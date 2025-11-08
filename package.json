@@ -1,4 +1,7 @@
 {
+  "workspaces": [
+    "services/*"
+  ],
   "name": "fleet-app-beta",
   "version": "0.1.0",
   "private": true,
@@ -23,4 +26,6 @@
     "eslint": "^9",
     "eslint-config-next": "16.0.1"
   }
+
 }
+
