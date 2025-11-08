@@ -26,6 +26,7 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
+DROP TRIGGER IF EXISTS update_dispatches_updated_at ON dispatches;
 CREATE TRIGGER update_dispatches_updated_at
   BEFORE UPDATE ON dispatches
   FOR EACH ROW
