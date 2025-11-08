@@ -1,0 +1,111 @@
+﻿name: fleet-app-beta
+services:
+  dispatch:
+    build:
+      context: C:\Users\bekel\Desktop\fleet-app-beta\services\dispatch
+      dockerfile: Dockerfile
+    environment:
+      PORT: "4003"
+    networks:
+      default: null
+    ports:
+      - mode: ingress
+        target: 4003
+        published: "4003"
+        protocol: tcp
+  kafka:
+    depends_on:
+      zookeeper:
+        condition: service_started
+        required: true
+    environment:
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://kafka:29092
+      KAFKA_BROKER_ID: "1"
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT_INTERNAL
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,PLAINTEXT_INTERNAL://0.0.0.0:29092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "1"
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+    image: confluentinc/cp-kafka:7.6.1
+    networks:
+      default: null
+    ports:
+      - mode: ingress
+        target: 9092
+        published: "9092"
+        protocol: tcp
+  master-data:
+    build:
+      context: C:\Users\bekel\Desktop\fleet-app-beta\services\master-data
+      dockerfile: Dockerfile
+    environment:
+      PORT: "4001"
+    networks:
+      default: null
+    ports:
+      - mode: ingress
+        target: 4001
+        published: "4001"
+        protocol: tcp
+  orders:
+    build:
+      context: C:\Users\bekel\Desktop\fleet-app-beta\services\orders
+      dockerfile: Dockerfile
+    environment:
+      PORT: "4002"
+    networks:
+      default: null
+    ports:
+      - mode: ingress
+        target: 4002
+        published: "4002"
+        protocol: tcp
+  postgres:
+    environment:
+      POSTGRES_DB: fleet
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: postgres
+    image: postgres:15
+    networks:
+      default: null
+    ports:
+      - mode: ingress
+        target: 5432
+        published: "5432"
+        protocol: tcp
+    volumes:
+      - type: volume
+        source: pgdata
+        target: /var/lib/postgresql/data
+        volume: {}
+  tracking:
+    build:
+      context: C:\Users\bekel\Desktop\fleet-app-beta\services\tracking
+      dockerfile: Dockerfile
+    environment:
+      PORT: "4004"
+    networks:
+      default: null
+    ports:
+      - mode: ingress
+        target: 4004
+        published: "4004"
+        protocol: tcp
+  zookeeper:
+    environment:
+      ZOOKEEPER_CLIENT_PORT: "2181"
+      ZOOKEEPER_TICK_TIME: "2000"
+    image: confluentinc/cp-zookeeper:7.6.1
+    networks:
+      default: null
+    ports:
+      - mode: ingress
+        target: 2181
+        published: "2181"
+        protocol: tcp
+networks:
+  default:
+    name: fleet-app-beta_default
+volumes:
+  pgdata:
+    name: fleet-app-beta_pgdata
