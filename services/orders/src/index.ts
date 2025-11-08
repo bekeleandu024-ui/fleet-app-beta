@@ -1,42 +1,27 @@
 import express from "express";
-import type { Request, Response } from "express";
-import cors from "cors";
-import bodyParser from "body-parser";
-import { v4 as uuidv4 } from "uuid";
+import orderRoutes from "./routes/orders";
+import { runMigrations } from "./db/init";
 
 const app = express();
-app.use(cors());
-app.use(bodyParser.json());
+const PORT = Number(process.env.PORT) || 4002;
 
-const orders: Record<string, any> = {};
+app.use(express.json());
 
-app.get("/orders", (req: Request, res: Response) => res.json(Object.values(orders)));
+app.get("/", (_req, res) => res.json({ ok: true, service: "orders" }));
+app.get("/healthz", (_req, res) => res.send("ok"));
 
-app.post("/orders", (req: Request, res: Response) => {
-  const id = uuidv4();
-  const order = { id, status: "created", createdAt: new Date().toISOString(), ...req.body };
-  orders[id] = order;
-  // In a real system we'd publish an event to Kafka here
-  res.status(201).json(order);
-});
+app.use("/api/orders", orderRoutes);
 
-app.get("/orders/:id", (req: Request, res: Response) => {
-  const o = orders[req.params.id];
-  if (!o) return res.status(404).json({ message: "not found" });
-  res.json(o);
-});
+async function start() {
+  try {
+    await runMigrations();
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`Orders service listening on ${PORT}`);
+    });
+  } catch (error) {
+    console.error("Failed to start orders service:", error);
+    process.exit(1);
+  }
+}
 
-app.put("/orders/:id", (req: Request, res: Response) => {
-  const o = orders[req.params.id];
-  if (!o) return res.status(404).json({ message: "not found" });
-  orders[req.params.id] = { ...o, ...req.body };
-  res.json(orders[req.params.id]);
-});
-
-app.delete("/orders/:id", (req: Request, res: Response) => {
-  delete orders[req.params.id];
-  res.status(204).send();
-});
-
-const port = process.env.PORT || 4002;
-app.listen(port, () => console.log(`orders service listening on ${port}`));
+start();

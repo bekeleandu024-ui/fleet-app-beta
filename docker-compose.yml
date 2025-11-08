@@ -47,6 +47,11 @@ services:
       - "4002:4002"
     environment:
       - PORT=4002
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/fleet
+      - KAFKA_BROKER=kafka:29092
+    depends_on:
+      - postgres
+      - kafka
 
   dispatch:
     build: ./services/dispatch
