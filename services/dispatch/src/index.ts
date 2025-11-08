@@ -1,29 +1,28 @@
 import express from "express";
-import cors from "cors";
-import bodyParser from "body-parser";
-import { v4 as uuidv4 } from "uuid";
+import dispatchRoutes from "./routes/dispatch";
+import { runMigrations } from "./db/init";
 
 const app = express();
-app.use(cors());
-app.use(bodyParser.json());
+const PORT = Number(process.env.PORT) || 4003;
 
-const trips: Record<string, any> = {};
+app.use(express.json());
 
-app.post("/trips", (req, res) => {
-  // Create a trip from order(s)
-  const id = uuidv4();
-  const trip = { id, status: "planned", createdAt: new Date().toISOString(), ...req.body };
-  trips[id] = trip;
-  // In a real system we'd publish 'trip.created' to the event bus
-  res.status(201).json(trip);
-});
+app.get("/", (_req, res) => res.json({ ok: true, service: "dispatch" }));
+app.get("/healthz", (_req, res) => res.send("ok"));
 
-app.get("/trips", (req, res) => res.json(Object.values(trips)));
-app.get("/trips/:id", (req, res) => {
-  const t = trips[req.params.id];
-  if (!t) return res.status(404).json({ message: "not found" });
-  res.json(t);
-});
+app.use("/api/dispatch", dispatchRoutes);
 
-const port = process.env.PORT || 4003;
-app.listen(port, () => console.log(`dispatch service listening on ${port}`));
+// Run migrations and start server
+async function start() {
+  try {
+    await runMigrations();
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`Dispatch service listening on ${PORT}`);
+    });
+  } catch (error) {
+    console.error("Failed to start dispatch service:", error);
+    process.exit(1);
+  }
+}
+
+start();
