@@ -1,0 +1,62 @@
+version: '3.8'
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: fleet
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  kafka:
+    image: bitnami/kafka:latest
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENERS: PLAINTEXT://:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+    ports:
+      - "9092:9092"
+    depends_on:
+      - zookeeper
+
+  zookeeper:
+    image: bitnami/zookeeper:latest
+    environment:
+      ALLOW_ANONYMOUS_LOGIN: "yes"
+    ports:
+      - "2181:2181"
+
+  master-data:
+    build: ./services/master-data
+    ports:
+      - "4001:4001"
+    environment:
+      - PORT=4001
+
+  orders:
+    build: ./services/orders
+    ports:
+      - "4002:4002"
+    environment:
+      - PORT=4002
+
+  dispatch:
+    build: ./services/dispatch
+    ports:
+      - "4003:4003"
+    environment:
+      - PORT=4003
+
+  tracking:
+    build: ./services/tracking
+    ports:
+      - "4004:4004"
+    environment:
+      - PORT=4004
+
+volumes:
+  pgdata:
