@@ -1,17 +1,13 @@
-# Build stage
-FROM node:20-alpine AS build
+FROM node:22-alpine
+
 WORKDIR /app
-COPY package.json package-lock.json* ./
-RUN npm ci
+
+COPY package.json ./
+RUN npm install
+
 COPY tsconfig.json ./
 COPY src ./src
-RUN npm run build
 
-# Runtime stage
-FROM node:20-alpine
-WORKDIR /app
-COPY package.json package-lock.json* ./
-RUN npm ci --omit=dev
-COPY --from=build /app/dist ./dist
 EXPOSE 4004
-CMD ["node", "dist/index.js"]
+
+CMD ["npm", "run", "dev"]

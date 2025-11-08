@@ -1,67 +1,55 @@
-import express from "express";
-import cors from "cors";
-import bodyParser from "body-parser";
-import { v4 as uuidv4 } from "uuid";
+import express from 'express';
+import { config } from './config/config';
+import { pool } from './db/client';
+import { runMigrations } from './db/init';
+import { connectProducer } from './services/kafkaProducer';
+import costingRoutes from './routes/costing';
 
 const app = express();
-app.use(cors());
-app.use(bodyParser.json());
+app.use(express.json());
 
-// In-memory stores for MVP
-const drivers: Record<string, any> = {};
-const units: Record<string, any> = {};
-const trailers: Record<string, any> = {};
-
-// Drivers
-app.get("/drivers", (req, res) => {
-  res.json(Object.values(drivers));
+// Health check
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', service: 'master-data' });
 });
 
-app.post("/drivers", (req, res) => {
-  const id = uuidv4();
-  const body = req.body;
-  const driver = { id, ...body };
-  drivers[id] = driver;
-  res.status(201).json(driver);
+// Costing API routes
+app.use('/api/costing', costingRoutes);
+
+async function startServer() {
+  try {
+    // Run database migrations
+    console.log('Running database migrations...');
+    await runMigrations(pool);
+    console.log('Database migrations completed');
+
+    // Connect Kafka producer
+    console.log('Connecting to Kafka...');
+    await connectProducer();
+    console.log('Kafka producer connected');
+
+    // Start HTTP server
+    app.listen(config.port, () => {
+      console.log(`Master-data service listening on port ${config.port}`);
+      console.log(`Costing API available at http://localhost:${config.port}/api/costing`);
+    });
+  } catch (error) {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+  }
+}
+
+// Graceful shutdown
+process.on('SIGTERM', async () => {
+  console.log('SIGTERM received, shutting down gracefully...');
+  await pool.end();
+  process.exit(0);
 });
 
-app.get("/drivers/:id", (req, res) => {
-  const d = drivers[req.params.id];
-  if (!d) return res.status(404).json({ message: "not found" });
-  res.json(d);
+process.on('SIGINT', async () => {
+  console.log('SIGINT received, shutting down gracefully...');
+  await pool.end();
+  process.exit(0);
 });
 
-app.put("/drivers/:id", (req, res) => {
-  const d = drivers[req.params.id];
-  if (!d) return res.status(404).json({ message: "not found" });
-  drivers[req.params.id] = { ...d, ...req.body };
-  res.json(drivers[req.params.id]);
-});
-
-app.delete("/drivers/:id", (req, res) => {
-  delete drivers[req.params.id];
-  res.status(204).send();
-});
-
-// Units (vehicles)
-app.get("/units", (req, res) => res.json(Object.values(units)));
-app.post("/units", (req, res) => {
-  const id = uuidv4();
-  const unit = { id, ...req.body };
-  units[id] = unit;
-  res.status(201).json(unit);
-});
-
-// Trailers
-app.get("/trailers", (req, res) => res.json(Object.values(trailers)));
-app.post("/trailers", (req, res) => {
-  const id = uuidv4();
-  const trailer = { id, ...req.body };
-  trailers[id] = trailer;
-  res.status(201).json(trailer);
-});
-
-const port = process.env.PORT || 4001;
-app.listen(port, () => {
-  console.log(`master-data service listening on ${port}`);
-});
+startServer();

@@ -40,6 +40,11 @@ services:
       - "4001:4001"
     environment:
       - PORT=4001
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/fleet
+      - KAFKA_BROKER=kafka:29092
+    depends_on:
+      - postgres
+      - kafka
 
   orders:
     build: ./services/orders
@@ -49,9 +54,11 @@ services:
       - PORT=4002
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/fleet
       - KAFKA_BROKER=kafka:29092
+      - MASTER_DATA_URL=http://master-data:4001
     depends_on:
       - postgres
       - kafka
+      - master-data
 
   dispatch:
     build: ./services/dispatch
