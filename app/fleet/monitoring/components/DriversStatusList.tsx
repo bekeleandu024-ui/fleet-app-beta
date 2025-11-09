@@ -6,7 +6,7 @@ const dutyColors: Record<string,string> = {
   'driving': 'bg-emerald-500',
   'on-duty': 'bg-blue-500',
   'rest-break': 'bg-yellow-500',
-  'off-duty': 'bg-gray-500',
+  'off-duty': 'bg-muted-foreground/70',
 };
 
 export function DriversStatusList() {

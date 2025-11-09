@@ -13,7 +13,7 @@ const statusColors = {
   completed: 'bg-emerald-500',
   'in-progress': 'bg-blue-500',
   pending: 'bg-amber-500',
-  cancelled: 'bg-gray-500',
+  cancelled: 'bg-muted text-muted-foreground border-border',
 };
 
 export function OrdersTab({ customerId }: OrdersTabProps) {

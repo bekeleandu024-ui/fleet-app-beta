@@ -9,7 +9,7 @@ import { Plus, Search } from "lucide-react";
 
 const statusColors = {
   active: 'bg-blue-500',
-  inactive: 'bg-gray-500',
+  inactive: 'bg-muted text-muted-foreground border-border',
   'high-value': 'bg-emerald-500',
 };
 
@@ -125,7 +125,7 @@ export default function CustomersPage() {
                     <td className="py-3 px-2 text-right">
                       <div className="flex items-center justify-end gap-2">
                         <span className="font-semibold">{customer.aiScore}</span>
-                        <div className="h-1.5 w-16 bg-gray-200 rounded-full overflow-hidden">
+                        <div className="h-1.5 w-16 bg-muted/60 rounded-full overflow-hidden">
                           <div
                             className={`h-full ${
                               customer.aiScore >= 80 ? 'bg-emerald-500' :

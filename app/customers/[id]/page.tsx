@@ -21,7 +21,7 @@ interface PageProps {
 
 const statusColors = {
   active: 'bg-blue-500',
-  inactive: 'bg-gray-500',
+  inactive: 'bg-muted text-muted-foreground border-border',
   'high-value': 'bg-emerald-500',
 };
 
@@ -101,7 +101,7 @@ export default function CustomerDetailPage({ params }: PageProps) {
             <div className="text-sm text-muted-foreground">AI Score</div>
             <div className="flex items-center gap-2 mt-1">
               <div className="text-2xl font-semibold">{customer.aiScore}</div>
-              <div className="h-2 flex-1 bg-gray-200 rounded-full overflow-hidden">
+              <div className="h-2 flex-1 bg-muted/60 rounded-full overflow-hidden">
                 <div
                   className={`h-full ${
                     customer.aiScore >= 80 ? 'bg-emerald-500' :
