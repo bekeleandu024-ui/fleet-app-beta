@@ -110,16 +110,16 @@ export default function RecentActivitiesFeed() {
       case "important":
         return <div className="h-2 w-2 rounded-full bg-yellow-500" />;
       case "normal":
-        return <div className="h-2 w-2 rounded-full bg-gray-300" />;
+        return <div className="h-2 w-2 rounded-full bg-border" />;
     }
   };
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 shadow-sm mt-6">
+  <div className="mt-6 rounded-lg border border-border bg-card shadow-sm">
       {/* Header */}
-      <div className="px-6 py-4 border-b border-gray-200">
+      <div className="border-b border-border px-6 py-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900">Recent Activities</h2>
+          <h2 className="text-lg font-semibold text-foreground">Recent Activities</h2>
           <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">
             View All
           </button>
@@ -127,16 +127,16 @@ export default function RecentActivitiesFeed() {
       </div>
 
       {/* Activities List */}
-      <div className="divide-y divide-gray-200 max-h-[600px] overflow-y-auto">
+      <div className="max-h-[600px] overflow-y-auto divide-y divide-border">
         {activities.map((activity) => (
           <div
             key={activity.id}
-            className="px-6 py-4 hover:bg-gray-50 transition-colors"
+            className="px-6 py-4 transition-colors hover:bg-card/95"
           >
             <div className="flex items-start gap-3">
               {/* Icon */}
               <div className="flex-shrink-0 mt-0.5">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card/80">
                   {getActivityIcon(activity.type)}
                 </div>
               </div>
@@ -146,15 +146,15 @@ export default function RecentActivitiesFeed() {
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-2">
                     {getPriorityIndicator(activity.priority)}
-                    <h3 className="text-sm font-semibold text-gray-900">
+                    <h3 className="text-sm font-semibold text-foreground">
                       {activity.title}
                     </h3>
                   </div>
-                  <span className="flex-shrink-0 text-xs text-gray-500">
+                  <span className="flex-shrink-0 text-xs text-muted-foreground">
                     {activity.timestamp}
                   </span>
                 </div>
-                <p className="mt-1 text-sm text-gray-600">{activity.description}</p>
+                <p className="mt-1 text-sm text-muted-foreground">{activity.description}</p>
               </div>
             </div>
           </div>
@@ -162,13 +162,13 @@ export default function RecentActivitiesFeed() {
       </div>
 
       {/* Footer - Real-time indicator */}
-      <div className="px-6 py-3 bg-gray-50 border-t border-gray-200">
+      <div className="border-t border-border bg-card/90 px-6 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-            <span className="text-xs text-gray-600">Live updates active</span>
+            <span className="text-xs text-muted-foreground">Live updates active</span>
           </div>
-          <button className="text-xs text-gray-500 hover:text-gray-700">
+          <button className="text-xs text-muted-foreground hover:text-foreground">
             <RefreshCw className="h-4 w-4" />
           </button>
         </div>

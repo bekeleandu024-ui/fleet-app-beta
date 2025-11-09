@@ -80,22 +80,22 @@ export default function AIInsightsPanel() {
   const getPriorityStyles = (priority: AIInsight["priority"]) => {
     switch (priority) {
       case "high":
-        return "border-l-4 border-l-red-500 bg-red-50";
+        return "border-l-4 border-l-red-500 bg-red-500/10";
       case "medium":
-        return "border-l-4 border-l-yellow-500 bg-yellow-50";
+        return "border-l-4 border-l-yellow-500 bg-yellow-500/10";
       case "low":
-        return "border-l-4 border-l-blue-500 bg-blue-50";
+        return "border-l-4 border-l-blue-500 bg-blue-500/10";
     }
   };
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+    <div className="rounded-lg border border-border bg-card shadow-sm">
       {/* Header */}
-      <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-blue-50">
+  <div className="border-b border-border bg-linear-to-r from-purple-500/10 to-blue-500/10 px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Brain className="h-6 w-6 text-purple-600" />
-            <h2 className="text-lg font-semibold text-gray-900">AI Insights</h2>
+            <h2 className="text-lg font-semibold text-foreground">AI Insights</h2>
           </div>
           <div className="flex items-center gap-2">
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
@@ -107,11 +107,11 @@ export default function AIInsightsPanel() {
       </div>
 
       {/* Insights List */}
-      <div className="divide-y divide-gray-200 max-h-[600px] overflow-y-auto">
+      <div className="max-h-[600px] overflow-y-auto divide-y divide-border">
         {insights.map((insight) => (
           <div
             key={insight.id}
-            className={`p-4 hover:bg-gray-50 transition-colors ${getPriorityStyles(
+            className={`p-4 transition-colors hover:bg-card/95 ${getPriorityStyles(
               insight.priority
             )}`}
           >
@@ -120,19 +120,19 @@ export default function AIInsightsPanel() {
               
               <div className="flex-1 min-w-0">
                 <div className="flex items-start justify-between gap-2">
-                  <h3 className="text-sm font-semibold text-gray-900">
+                  <h3 className="text-sm font-semibold text-foreground">
                     {insight.title}
                   </h3>
-                  <span className="flex-shrink-0 text-xs text-gray-500 font-medium">
+                  <span className="flex-shrink-0 text-xs font-medium text-muted-foreground">
                     {insight.confidence}% confident
                   </span>
                 </div>
                 
-                <p className="mt-1 text-sm text-gray-700">{insight.description}</p>
+                <p className="mt-1 text-sm text-muted-foreground">{insight.description}</p>
                 
                 {/* Confidence bar */}
                 <div className="mt-2">
-                  <div className="h-1 w-full bg-gray-200 rounded-full overflow-hidden">
+                  <div className="h-1 w-full overflow-hidden rounded-full bg-border/80">
                     <div
                       className={`h-full transition-all ${
                         insight.confidence >= 90
@@ -150,7 +150,7 @@ export default function AIInsightsPanel() {
                 {insight.action && (
                   <button
                     onClick={insight.action.onClick}
-                    className="mt-3 inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-colors"
+                    className="mt-3 inline-flex items-center rounded-md border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-card/95 hover:border-border/80"
                   >
                     {insight.action.label}
                   </button>
@@ -162,25 +162,25 @@ export default function AIInsightsPanel() {
       </div>
 
       {/* Footer Stats */}
-      <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
+      <div className="border-t border-border bg-card/90 px-6 py-4">
         <div className="grid grid-cols-3 gap-4 text-center">
           <div>
             <p className="text-lg font-bold text-red-600">
               {insights.filter((i) => i.priority === "high").length}
             </p>
-            <p className="text-xs text-gray-600">High Priority</p>
+            <p className="text-xs text-muted-foreground">High Priority</p>
           </div>
           <div>
             <p className="text-lg font-bold text-yellow-600">
               {insights.filter((i) => i.priority === "medium").length}
             </p>
-            <p className="text-xs text-gray-600">Medium</p>
+            <p className="text-xs text-muted-foreground">Medium</p>
           </div>
           <div>
             <p className="text-lg font-bold text-blue-600">
               {insights.filter((i) => i.priority === "low").length}
             </p>
-            <p className="text-xs text-gray-600">Low</p>
+            <p className="text-xs text-muted-foreground">Low</p>
           </div>
         </div>
       </div>

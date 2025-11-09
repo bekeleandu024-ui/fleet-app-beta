@@ -95,7 +95,7 @@ export default function ActiveTripsList() {
       case "delivering":
         return "bg-purple-100 text-purple-800 border-purple-200";
       case "completed":
-        return "bg-gray-100 text-gray-800 border-gray-200";
+        return "bg-muted text-foreground border-border";
     }
   };
 
@@ -123,26 +123,26 @@ export default function ActiveTripsList() {
   };
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 shadow-sm mt-6">
+    <div className="bg-card text-foreground rounded-lg border border-border shadow-sm mt-6">
       {/* Header */}
-      <div className="px-6 py-4 border-b border-gray-200">
-        <h2 className="text-lg font-semibold text-gray-900">Active Trips</h2>
-        <p className="text-sm text-gray-600 mt-1">{trips.length} trips in progress</p>
+      <div className="px-6 py-4 border-b border-border">
+        <h2 className="text-lg font-semibold">Active Trips</h2>
+        <p className="text-sm text-muted-foreground mt-1">{trips.length} trips in progress</p>
       </div>
 
       {/* Trips List */}
-      <div className="divide-y divide-gray-200 max-h-[600px] overflow-y-auto">
+      <div className="divide-y divide-border max-h-[600px] overflow-y-auto">
         {trips.map((trip) => (
           <div
             key={trip.id}
-            className="p-4 hover:bg-gray-50 transition-colors cursor-pointer"
+            className="p-4 hover:bg-muted/50 transition-colors cursor-pointer"
           >
             {/* Header row */}
             <div className="flex items-start justify-between gap-3 mb-3">
               <div className="flex items-center gap-3">
-                <span className="text-sm font-bold text-gray-900">{trip.id}</span>
-                <span className="text-sm text-gray-600">•</span>
-                <span className="text-sm text-gray-700">{trip.driver}</span>
+                <span className="text-sm font-bold">{trip.id}</span>
+                <span className="text-sm text-muted-foreground">•</span>
+                <span className="text-sm text-foreground">{trip.driver}</span>
               </div>
               <span
                 className={`px-2.5 py-1 text-xs font-medium rounded-full border ${getStatusStyles(
@@ -155,8 +155,8 @@ export default function ActiveTripsList() {
 
             {/* Location info */}
             <div className="flex items-center gap-2 mb-3">
-              <MapPin className="h-4 w-4 text-gray-400 flex-shrink-0" />
-              <div className="text-sm text-gray-600 truncate">
+              <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
+              <div className="text-sm text-muted-foreground truncate">
                 <span className="font-medium">{trip.currentLocation}</span>
                 <span className="mx-2">→</span>
                 <span>{trip.destination}</span>
@@ -165,8 +165,8 @@ export default function ActiveTripsList() {
 
             {/* ETA with confidence */}
             <div className="flex items-center gap-2 mb-3">
-              <Clock className="h-4 w-4 text-gray-400 flex-shrink-0" />
-              <span className="text-sm text-gray-700">ETA: {trip.eta}</span>
+              <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
+              <span className="text-sm">ETA: {trip.eta}</span>
               <span
                 className={`text-xs font-medium ${getConfidenceColor(
                   trip.etaConfidence
@@ -180,14 +180,14 @@ export default function ActiveTripsList() {
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-4 text-sm">
                 <div>
-                  <span className="text-gray-500">Cost:</span>
-                  <span className="ml-1 font-medium text-gray-900">
+                  <span className="text-muted-foreground">Cost:</span>
+                  <span className="ml-1 font-medium">
                     ${trip.cost.toLocaleString()}
                   </span>
                 </div>
                 <div>
-                  <span className="text-gray-500">Revenue:</span>
-                  <span className="ml-1 font-medium text-gray-900">
+                  <span className="text-muted-foreground">Revenue:</span>
+                  <span className="ml-1 font-medium">
                     ${trip.revenue.toLocaleString()}
                   </span>
                 </div>
@@ -216,7 +216,7 @@ export default function ActiveTripsList() {
                   return (
                     <div
                       key={index}
-                      className={`flex items-center gap-1.5 px-2 py-1 rounded-md bg-gray-100 border border-gray-200 ${flagInfo.color}`}
+                      className={`flex items-center gap-1.5 px-2 py-1 rounded-md bg-muted border border-border ${flagInfo.color}`}
                     >
                       {flagInfo.icon}
                       <span className="text-xs font-medium">{flagInfo.label}</span>
@@ -230,8 +230,8 @@ export default function ActiveTripsList() {
       </div>
 
       {/* Footer */}
-      <div className="px-6 py-3 bg-gray-50 border-t border-gray-200">
-        <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+      <div className="px-6 py-3 bg-muted/40 border-t border-border">
+        <button className="text-sm text-primary hover:text-primary/80 font-medium">
           View All Trips →
         </button>
       </div>

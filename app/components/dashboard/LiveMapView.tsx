@@ -36,7 +36,7 @@ export default function LiveMapView() {
   };
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+  <div className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
       {/* Map Controls */}
       <div className="absolute top-4 right-4 z-10 flex flex-col gap-2">
         <button
@@ -44,7 +44,7 @@ export default function LiveMapView() {
           className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg shadow-md transition-colors ${
             showTraffic
               ? "bg-blue-600 text-white"
-              : "bg-white text-gray-700 hover:bg-gray-50"
+              : "bg-card text-foreground hover:bg-card/95"
           }`}
         >
           <Navigation className="h-4 w-4" />
@@ -55,7 +55,7 @@ export default function LiveMapView() {
           className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg shadow-md transition-colors ${
             showRoutes
               ? "bg-blue-600 text-white"
-              : "bg-white text-gray-700 hover:bg-gray-50"
+              : "bg-card text-foreground hover:bg-card/95"
           }`}
         >
           <Layers className="h-4 w-4" />
@@ -66,7 +66,7 @@ export default function LiveMapView() {
           className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg shadow-md transition-colors ${
             showZones
               ? "bg-blue-600 text-white"
-              : "bg-white text-gray-700 hover:bg-gray-50"
+              : "bg-card text-foreground hover:bg-card/95"
           }`}
         >
           <MapPin className="h-4 w-4" />
@@ -98,13 +98,13 @@ export default function LiveMapView() {
               }}
             >
               {/* Truck marker */}
-              <div className={`${getStatusColor(truck.status)} h-4 w-4 rounded-full shadow-lg border-2 border-white animate-pulse`} />
+              <div className={`${getStatusColor(truck.status)} h-4 w-4 rounded-full border-2 border-background shadow-lg animate-pulse`} />
               
               {/* Tooltip on hover */}
               <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block">
-                <div className="bg-gray-900 text-white text-xs rounded-lg py-2 px-3 shadow-lg whitespace-nowrap">
+                <div className="whitespace-nowrap rounded-lg border border-border bg-card px-3 py-2 text-xs text-foreground shadow-lg">
                   <div className="font-semibold">{truck.id} - {truck.driver}</div>
-                  <div className="text-gray-300">ETA: {truck.eta}</div>
+                  <div className="text-muted-foreground">ETA: {truck.eta}</div>
                   <div className={`capitalize ${
                     truck.status === "on-time" ? "text-green-400" :
                     truck.status === "at-risk" ? "text-yellow-400" :
@@ -120,17 +120,17 @@ export default function LiveMapView() {
 
         {/* Exception alerts overlay */}
         <div className="absolute bottom-4 left-4 right-4">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-3 shadow-md">
+          <div className="rounded-lg border border-red-500/40 bg-red-500/10 p-3 shadow-md">
             <div className="flex items-start gap-2">
               <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5" />
               <div className="flex-1">
-                <p className="text-sm font-semibold text-red-900">
+                <p className="text-sm font-semibold text-red-500">
                   2 Active Alerts
                 </p>
-                <p className="text-xs text-red-700 mt-1">
+                <p className="mt-1 text-xs text-red-400">
                   • Late pickup: Order #1234 (15 min delay)
                 </p>
-                <p className="text-xs text-red-700">
+                <p className="text-xs text-red-400">
                   • Border delay: Truck T003 (30 min wait)
                 </p>
               </div>
@@ -140,30 +140,30 @@ export default function LiveMapView() {
 
         {/* Map center indicator */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="text-gray-400 text-xs font-medium">
+          <div className="text-xs font-medium text-muted-foreground">
             Live Map View - Toronto, ON
           </div>
         </div>
       </div>
 
       {/* Legend */}
-      <div className="px-4 py-3 bg-gray-50 border-t border-gray-200">
+      <div className="border-t border-border bg-card/90 px-4 py-3">
         <div className="flex items-center justify-between text-xs">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
               <div className="h-3 w-3 rounded-full bg-green-500" />
-              <span className="text-gray-600">On-Time</span>
+              <span className="text-muted-foreground">On-Time</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="h-3 w-3 rounded-full bg-yellow-500" />
-              <span className="text-gray-600">At Risk</span>
+              <span className="text-muted-foreground">At Risk</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="h-3 w-3 rounded-full bg-red-500" />
-              <span className="text-gray-600">Delayed</span>
+              <span className="text-muted-foreground">Delayed</span>
             </div>
           </div>
-          <div className="text-gray-500">
+          <div className="text-muted-foreground">
             {trucks.length} active trucks • Updated just now
           </div>
         </div>

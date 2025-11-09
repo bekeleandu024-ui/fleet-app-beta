@@ -67,15 +67,15 @@ export default function QuickActionsPanel() {
       case "primary":
         return "bg-blue-600 hover:bg-blue-700 text-white border-blue-600";
       case "secondary":
-        return "bg-white hover:bg-gray-50 text-gray-700 border-gray-300";
+        return "bg-card hover:bg-card/95 text-foreground border-border";
       case "danger":
         return "bg-red-600 hover:bg-red-700 text-white border-red-600";
     }
   };
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6 mt-6">
-      <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
+    <div className="mt-6 rounded-lg border border-border bg-card p-6 shadow-sm">
+      <h2 className="mb-4 text-lg font-semibold text-foreground">Quick Actions</h2>
       
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {actions.map((action, index) => (
@@ -93,7 +93,7 @@ export default function QuickActionsPanel() {
                 <div
                   className={`text-xs mt-0.5 ${
                     action.variant === "secondary"
-                      ? "text-gray-500"
+                      ? "text-muted-foreground"
                       : "opacity-80"
                   }`}
                 >
@@ -106,15 +106,15 @@ export default function QuickActionsPanel() {
       </div>
 
       {/* Additional quick stats */}
-      <div className="mt-6 pt-6 border-t border-gray-200">
+      <div className="mt-6 border-t border-border pt-6">
         <div className="grid grid-cols-2 gap-4 text-center">
           <div>
-            <p className="text-2xl font-bold text-gray-900">12</p>
-            <p className="text-xs text-gray-600 mt-1">Pending Orders</p>
+            <p className="text-2xl font-bold text-foreground">12</p>
+            <p className="mt-1 text-xs text-muted-foreground">Pending Orders</p>
           </div>
           <div>
             <p className="text-2xl font-bold text-green-600">8</p>
-            <p className="text-xs text-gray-600 mt-1">Ready to Assign</p>
+            <p className="mt-1 text-xs text-muted-foreground">Ready to Assign</p>
           </div>
         </div>
       </div>
