@@ -71,7 +71,7 @@ export default function EnterpriseKPITiles() {
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
       {kpis.map((kpi, index) => (
         <KPITile key={index} {...kpi} />
       ))}
@@ -89,20 +89,43 @@ function KPITile({ label, value, unit, target, delta, sparklineData }: KPITilePr
       : darkERPTheme.severity.breach
     : darkERPTheme.textMuted;
 
+  const deltaLabel = delta ? `${delta.isPositive ? "+" : ""}${delta.value}% ${delta.period}` : null;
+  const deltaBackground = delta
+    ? `${delta.isPositive ? darkERPTheme.severity.good : darkERPTheme.severity.breach}20`
+    : `${darkERPTheme.textMuted}20`;
+
   return (
-    <button
-      className="rounded-lg p-6 text-left transition-all focus:outline-none"
+    <div
+      className="rounded-2xl text-left transition-all"
       style={{
         backgroundColor: darkERPTheme.surface,
         border: `1px solid ${darkERPTheme.border}`,
+        padding: "32px",
+        minHeight: "240px",
       }}
     >
       {/* Label */}
-      <div
-        className="text-xs font-medium mb-3 uppercase tracking-wide"
-        style={{ color: darkERPTheme.textMuted }}
-      >
-        {label}
+      <div className="flex items-start justify-between mb-4">
+        <div>
+          <div
+            className="text-xs font-medium uppercase tracking-wide"
+            style={{ color: darkERPTheme.textMuted }}
+          >
+            {label}
+          </div>
+        </div>
+        {target && (
+          <span
+            className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded"
+            style={{
+              backgroundColor: darkERPTheme.surface2,
+              color: darkERPTheme.textMuted,
+              border: `1px solid ${darkERPTheme.border}`,
+            }}
+          >
+            Target {target}
+          </span>
+        )}
       </div>
 
       {/* Value */}
@@ -118,24 +141,10 @@ function KPITile({ label, value, unit, target, delta, sparklineData }: KPITilePr
       </div>
 
       {/* Target chip */}
-      {target && (
-        <div className="mb-3">
-          <span
-            className="inline-block px-2 py-1 text-xs font-medium rounded"
-            style={{
-              backgroundColor: darkERPTheme.surface2,
-              color: darkERPTheme.textMuted,
-            }}
-          >
-            Target: {target}
-          </span>
-        </div>
-      )}
-
       {/* Sparkline */}
       {sparklineData && (
-        <div className="h-10 -mx-2 mb-3">
-          <ResponsiveContainer width="100%" height={40} minHeight={40}>
+        <div className="h-14 -mx-2 mb-4">
+          <ResponsiveContainer width="100%" height={56} minHeight={56}>
             <LineChart
               data={sparklineData.map((val) => ({ value: val }))}
               margin={{ top: 2, right: 2, bottom: 2, left: 2 }}
@@ -155,21 +164,28 @@ function KPITile({ label, value, unit, target, delta, sparklineData }: KPITilePr
 
       {/* Delta */}
       {delta && (
-        <div className="flex items-center gap-1 text-xs">
-          {delta.isPositive ? (
-            <TrendingUp className="h-3.5 w-3.5" style={{ color: trendColor }} />
-          ) : delta.value === 0 ? (
-            <Minus className="h-3.5 w-3.5" style={{ color: trendColor }} />
-          ) : (
-            <TrendingDown className="h-3.5 w-3.5" style={{ color: trendColor }} />
-          )}
-          <span className="font-semibold" style={{ color: trendColor }}>
-            {delta.isPositive ? "+" : ""}
-            {delta.value}%
+        <div className="flex items-center justify-between">
+          <span
+            className="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full"
+            style={{
+              backgroundColor: deltaBackground,
+              color: trendColor,
+            }}
+          >
+            {delta.isPositive ? (
+              <TrendingUp className="h-3 w-3" />
+            ) : delta.value === 0 ? (
+              <Minus className="h-3 w-3" />
+            ) : (
+              <TrendingDown className="h-3 w-3" />
+            )}
+            {deltaLabel}
           </span>
-          <span style={{ color: darkERPTheme.textMuted }}>{delta.period}</span>
+          <span className="text-xs" style={{ color: darkERPTheme.textMuted }}>
+            Compared to last {delta.period}
+          </span>
         </div>
       )}
-    </button>
+    </div>
   );
 }

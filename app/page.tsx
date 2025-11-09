@@ -3,8 +3,6 @@
 import { useState } from "react";
 import LeftNavigationRail from "./components/layout/LeftNavigationRail";
 import TopBar from "./components/layout/TopBar";
-import PageHeader from "./components/layout/PageHeader";
-import GlobalFilters from "./components/layout/GlobalFilters";
 import SmartCommandStrip from "./components/dashboard/SmartCommandStrip";
 import EnterpriseKPITiles from "./components/dashboard/EnterpriseKPITiles";
 import ExceptionsTable from "./components/dashboard/ExceptionsTable";
@@ -28,42 +26,28 @@ export default function Home() {
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Top Bar */}
+        {/* Top Banner */}
         <TopBar />
 
         {/* Page Content */}
         <main className="flex-1 flex">
           {/* Main content area (8-9 cols) */}
           <div className="flex-1 px-6 py-6 overflow-auto">
-            {/* Page Header with Breadcrumb */}
-            <PageHeader
-              breadcrumbs={[
-                { label: "Operations", href: "/operations" },
-                { label: "Dashboard" },
-              ]}
-              title="Dashboard"
-              description="Real-time operational overview and key performance indicators"
-              lastUpdated="2m ago"
-            />
-
-            {/* Global Filters */}
-            <GlobalFilters />
-
-            {/* Smart Command Strip */}
+            {/* Smart Command Strip pinned just below the banner */}
             <SmartCommandStrip />
 
             {/* KPI Tiles */}
-            <div className="mb-6">
+            <div className="mb-8">
               <EnterpriseKPITiles />
             </div>
 
             {/* Exceptions Table */}
-            <div className="mb-6">
+            <div className="mb-8">
               <ExceptionsTable />
             </div>
 
             {/* Data Freshness Indicator */}
-            <div className="text-xs mt-6" style={{ color: darkERPTheme.textMuted }}>
+            <div className="text-xs" style={{ color: darkERPTheme.textMuted }}>
               Telemetry updated 1m ago • Data refreshes every 30s
             </div>
           </div>

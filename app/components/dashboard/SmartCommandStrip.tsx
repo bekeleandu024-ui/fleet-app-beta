@@ -1,303 +1,327 @@
 'use client';
 
-import { useState } from 'react';
-import { Search, MapPin, TrendingUp, Clock, DollarSign, Truck } from 'lucide-react';
-import { darkERPTheme, sp } from '@/app/lib/theme-config';
+import { FormEvent, ReactNode, useMemo, useState } from 'react';
+import { AlertTriangle, ArrowRight, MapPin, Navigation, Search, TrendingUp } from 'lucide-react';
+import { darkERPTheme } from '@/app/lib/theme-config';
 
-type SearchMode = 'origin' | 'destination' | 'general';
+type ActiveSegment = 'origin' | 'destination' | 'entity' | null;
+
+const LANE_SUGGESTIONS = ['Toronto, ON', 'Chicago, IL', 'Montreal, QC', 'Columbus, OH', 'Detroit, MI'];
+const ENTITY_SUGGESTIONS = ['Order ORD-453220', 'Truck #4521', 'Driver: J. Smith', 'Customer: Acme Corp'];
 
 export default function SmartCommandStrip() {
-  const [searchMode, setSearchMode] = useState<SearchMode>('general');
   const [originQuery, setOriginQuery] = useState('');
   const [destinationQuery, setDestinationQuery] = useState('');
-  const [generalQuery, setGeneralQuery] = useState('');
-  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [entityQuery, setEntityQuery] = useState('');
+  const [activeSegment, setActiveSegment] = useState<ActiveSegment>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Sample suggestions for origin/destination
-  const citySuggestions = [
-    'Chicago, IL', 'Dallas, TX', 'Los Angeles, CA', 'Atlanta, GA', 'Memphis, TN'
-  ];
+  const laneMatches = useMemo(() => {
+    if (activeSegment !== 'origin' && activeSegment !== 'destination') {
+      return [];
+    }
+    const needle = (activeSegment === 'origin' ? originQuery : destinationQuery).toLowerCase();
+    if (!needle) {
+      return LANE_SUGGESTIONS.slice(0, 4);
+    }
+    return LANE_SUGGESTIONS.filter((option) => option.toLowerCase().includes(needle)).slice(0, 4);
+  }, [activeSegment, originQuery, destinationQuery]);
 
-  // Sample general search suggestions
-  const generalSuggestions = [
-    'ORD-123456', 'Truck #4521', 'Driver: J. Smith', 'Walmart Inc.'
-  ];
+  const entityMatches = useMemo(() => {
+    if (activeSegment !== 'entity') {
+      return [];
+    }
+    const needle = entityQuery.toLowerCase();
+    if (!needle) {
+      return ENTITY_SUGGESTIONS.slice(0, 4);
+    }
+    return ENTITY_SUGGESTIONS.filter((option) => option.toLowerCase().includes(needle)).slice(0, 4);
+  }, [activeSegment, entityQuery]);
+
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsSubmitting(true);
+    // Placeholder: wire up ATLAS + HERE APIs for lane insights and routing.
+    setTimeout(() => setIsSubmitting(false), 900);
+  };
 
   return (
-    <div
-      className="mb-6 rounded-lg p-6 flex gap-6"
+    <section
+      className="mb-8"
       style={{
-        backgroundColor: darkERPTheme.surface,
         border: `1px solid ${darkERPTheme.border}`,
+        backgroundColor: darkERPTheme.surface,
+        borderRadius: darkERPTheme.radius.lg,
+        padding: '24px',
       }}
     >
-      {/* Left: Quick Search */}
-      <div className="flex-shrink-0 w-80">
-        <div className="flex gap-2 mb-4">
-          <button
-            onClick={() => setSearchMode('general')}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors`}
-            style={{
-              backgroundColor: searchMode === 'general' ? darkERPTheme.brandAccent : darkERPTheme.surface2,
-              color: searchMode === 'general' ? '#FFFFFF' : darkERPTheme.textMuted,
-            }}
+      <div className="flex flex-col xl:flex-row gap-6">
+        {/* Instant Summaries (ATLAS API) */}
+        <div className="flex flex-col gap-3 xl:w-72">
+          <SummaryCard
+            title="Internal Intel"
+            subtitle="Powered by ATLAS lane memory"
           >
-            General
-          </button>
-          <button
-            onClick={() => setSearchMode('origin')}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors`}
-            style={{
-              backgroundColor: searchMode === 'origin' ? darkERPTheme.brandAccent : darkERPTheme.surface2,
-              color: searchMode === 'origin' ? '#FFFFFF' : darkERPTheme.textMuted,
-            }}
-          >
-            Origin
-          </button>
-          <button
-            onClick={() => setSearchMode('destination')}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors`}
-            style={{
-              backgroundColor: searchMode === 'destination' ? darkERPTheme.brandAccent : darkERPTheme.surface2,
-              color: searchMode === 'destination' ? '#FFFFFF' : darkERPTheme.textMuted,
-            }}
-          >
-            Destination
-          </button>
+            <SummaryRow label="Similar trips this week" value="4 • Avg on-time 92%" />
+            <SummaryRow label="Margin per trip" value="$520" />
+            <SummaryRow label="Cost band" value="$2.1k – $2.6k" />
+          </SummaryCard>
+
+          <SummaryCard title="Market Snapshot" subtitle="Live market + HERE traffic">
+            <SummaryRow
+              label="Drive time"
+              value="8h 45m"
+              valueColor={darkERPTheme.textPrimary}
+            />
+            <SummaryRow
+              label="Traffic advisory"
+              value="Watch: I-94 slowdowns"
+              valueColor={darkERPTheme.severity.watch}
+            />
+            <SummaryRow
+              label="Spot rate band"
+              value="$2.38 – $2.71 / mile"
+              valueColor={darkERPTheme.severity.risk}
+            />
+          </SummaryCard>
+
+          <SummaryCard title="Next Best Actions" subtitle="Based on current lane demand">
+            <div className="flex flex-col gap-2">
+              {['Create Quote', 'Book Trip', 'Open Lane Report'].map((cta) => (
+                <button
+                  key={cta}
+                  className="w-full flex items-center justify-between px-4 py-2 text-sm font-medium rounded"
+                  style={{
+                    backgroundColor: darkERPTheme.surface,
+                    border: `1px solid ${darkERPTheme.border}`,
+                    color: darkERPTheme.brandAccent,
+                  }}
+                  type="button"
+                >
+                  <span>{cta}</span>
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </button>
+              ))}
+            </div>
+          </SummaryCard>
         </div>
 
-        {searchMode === 'general' ? (
-          <div className="relative">
-            <Search
-              className="absolute left-3 top-1/2 -translate-y-1/2"
-              size={18}
-              style={{ color: darkERPTheme.textMuted }}
-            />
-            <input
-              type="text"
-              placeholder="Order #, Truck #, Driver, Customer..."
-              value={generalQuery}
-              onChange={(e) => {
-                setGeneralQuery(e.target.value);
-                setShowSuggestions(e.target.value.length > 0);
-              }}
-              className="w-full pl-10 pr-4 py-2.5 rounded-lg text-sm outline-none"
+        {/* Live Map (HERE API placeholder) */}
+        <div
+          className="flex-1 min-h-[224px] relative overflow-hidden"
+          style={{
+            backgroundColor: darkERPTheme.surface2,
+            border: `1px solid ${darkERPTheme.border}`,
+            borderRadius: darkERPTheme.radius.md,
+          }}
+        >
+          <div className="absolute inset-0 opacity-20" style={{ background: 'radial-gradient(circle at 20% 20%, rgba(58,123,219,0.3), transparent)' }} />
+          <div className="absolute inset-0 flex flex-col justify-center items-center gap-3 text-center px-8">
+            <MapPin className="h-10 w-10" style={{ color: darkERPTheme.brandAccent }} />
+            <p className="text-sm" style={{ color: darkERPTheme.textMuted }}>
+              HERE Maps placeholder. Render real-time corridor highlights, ETA, and active trips once the query is submitted.
+            </p>
+            <div className="flex items-center gap-2 text-xs" style={{ color: darkERPTheme.textMuted }}>
+              <Navigation className="h-4 w-4" />
+              <span>Accepts bounding boxes + markers from the Smart Command Strip payload.</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Quick Search */}
+        <div className="xl:w-[360px]">
+          <form
+            onSubmit={handleSubmit}
+            className="h-full flex flex-col gap-4"
+            aria-label="Smart command quick search"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium" style={{ color: darkERPTheme.textPrimary }}>
+                Quick Search
+              </span>
+              <span className="text-xs" style={{ color: darkERPTheme.textMuted }}>
+                Order #, Truck, Driver, Customer
+              </span>
+            </div>
+
+            <div
+              className="flex gap-2"
               style={{
                 backgroundColor: darkERPTheme.surface2,
                 border: `1px solid ${darkERPTheme.border}`,
-                color: darkERPTheme.textPrimary,
+                borderRadius: darkERPTheme.radius.md,
+                padding: '16px',
               }}
-            />
-            {showSuggestions && generalQuery.length > 0 && (
-              <div
-                className="absolute top-full mt-2 w-full rounded-lg p-2 z-10"
-                style={{
-                  backgroundColor: darkERPTheme.surface2,
-                  border: `1px solid ${darkERPTheme.border}`,
-                }}
-              >
-                {generalSuggestions
-                  .filter((s) => s.toLowerCase().includes(generalQuery.toLowerCase()))
-                  .map((suggestion, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => {
-                        setGeneralQuery(suggestion);
-                        setShowSuggestions(false);
-                      }}
-                      className="w-full text-left px-3 py-2 rounded text-sm hover:opacity-80 transition-opacity"
-                      style={{
-                        color: darkERPTheme.textPrimary,
-                        backgroundColor: darkERPTheme.surface,
-                      }}
-                    >
-                      {suggestion}
-                    </button>
-                  ))}
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="space-y-3">
-            <div className="relative">
-              <MapPin
-                className="absolute left-3 top-1/2 -translate-y-1/2"
-                size={18}
-                style={{ color: darkERPTheme.severity.good }}
-              />
-              <input
-                type="text"
-                placeholder="Origin City, State"
+            >
+              <SegmentInput
+                id="origin"
+                label="Origin"
+                placeholder="City, State"
                 value={originQuery}
-                onChange={(e) => setOriginQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 rounded-lg text-sm outline-none"
-                style={{
-                  backgroundColor: darkERPTheme.surface2,
-                  border: `1px solid ${darkERPTheme.border}`,
-                  color: darkERPTheme.textPrimary,
-                }}
+                onFocus={() => setActiveSegment('origin')}
+                onChange={setOriginQuery}
               />
-            </div>
-            <div className="relative">
-              <MapPin
-                className="absolute left-3 top-1/2 -translate-y-1/2"
-                size={18}
-                style={{ color: darkERPTheme.severity.breach }}
-              />
-              <input
-                type="text"
-                placeholder="Destination City, State"
+              <SegmentInput
+                id="destination"
+                label="Destination"
+                placeholder="City, State"
                 value={destinationQuery}
-                onChange={(e) => setDestinationQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 rounded-lg text-sm outline-none"
-                style={{
-                  backgroundColor: darkERPTheme.surface2,
-                  border: `1px solid ${darkERPTheme.border}`,
-                  color: darkERPTheme.textPrimary,
-                }}
+                onFocus={() => setActiveSegment('destination')}
+                onChange={setDestinationQuery}
+              />
+              <SegmentInput
+                id="entity"
+                label="Entity"
+                placeholder="Order, truck, driver"
+                value={entityQuery}
+                onFocus={() => setActiveSegment('entity')}
+                onChange={setEntityQuery}
+                adornment={<Search className="h-3.5 w-3.5" style={{ color: darkERPTheme.textMuted }} />}
               />
             </div>
-            {(originQuery || destinationQuery) && (
+
+            {(laneMatches.length > 0 || entityMatches.length > 0) && (
               <div
-                className="rounded-lg p-2"
-                style={{
-                  backgroundColor: darkERPTheme.surface2,
-                  border: `1px solid ${darkERPTheme.border}`,
-                }}
+                className="grid gap-2"
+                style={{ color: darkERPTheme.textMuted }}
               >
-                {citySuggestions.slice(0, 3).map((city, idx) => (
+                {[...laneMatches, ...entityMatches].map((suggestion) => (
                   <button
-                    key={idx}
+                    key={suggestion}
+                    type="button"
                     onClick={() => {
-                      if (searchMode === 'origin') setOriginQuery(city);
-                      else setDestinationQuery(city);
+                      if (activeSegment === 'origin') {
+                        setOriginQuery(suggestion);
+                      } else if (activeSegment === 'destination') {
+                        setDestinationQuery(suggestion);
+                      } else {
+                        setEntityQuery(suggestion);
+                      }
                     }}
-                    className="w-full text-left px-3 py-2 rounded text-sm hover:opacity-80 transition-opacity"
-                    style={{ color: darkERPTheme.textPrimary }}
+                    className="flex items-center justify-between px-4 py-2 text-sm rounded"
+                    style={{
+                      backgroundColor: darkERPTheme.surface,
+                      border: `1px solid ${darkERPTheme.border}`,
+                      color: darkERPTheme.textPrimary,
+                    }}
                   >
-                    {city}
+                    <span>{suggestion}</span>
+                    <ArrowRight className="h-3.5 w-3.5" style={{ color: darkERPTheme.brandAccent }} />
                   </button>
                 ))}
               </div>
             )}
-          </div>
-        )}
-      </div>
 
-      {/* Middle: Live Map */}
-      <div
-        className="flex-1 rounded-lg overflow-hidden flex items-center justify-center"
-        style={{
-          backgroundColor: darkERPTheme.surface2,
-          border: `1px solid ${darkERPTheme.border}`,
-          minHeight: '240px',
-        }}
-      >
-        <div className="text-center">
-          <MapPin size={48} style={{ color: darkERPTheme.textMuted }} className="mx-auto mb-2" />
-          <p className="text-sm" style={{ color: darkERPTheme.textMuted }}>
-            Live Map with O/D plotting, traffic, and active trips
-          </p>
-          <p className="text-xs mt-2" style={{ color: darkERPTheme.textMuted }}>
-            (Integrate map provider: Mapbox, Google Maps, etc.)
-          </p>
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2 text-xs" style={{ color: darkERPTheme.textMuted }}>
+                <AlertTriangle className="h-3.5 w-3.5" />
+                <span>Submitting dispatches map + atlas payloads for contextual insights.</span>
+              </div>
+              <button
+                type="submit"
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded"
+                style={{
+                  backgroundColor: darkERPTheme.brandAccent,
+                  color: '#0F1422',
+                }}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? 'Processing…' : 'Run Command'}
+                <TrendingUp className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </form>
         </div>
       </div>
+    </section>
+  );
+}
 
-      {/* Right: Instant Summaries */}
-      <div className="flex-shrink-0 w-72 space-y-3">
-        {/* Internal Intel Card */}
-        <div
-          className="rounded-lg p-4"
-          style={{
-            backgroundColor: darkERPTheme.surface2,
-            border: `1px solid ${darkERPTheme.border}`,
-          }}
-        >
-          <div className="flex items-center justify-between mb-3">
-            <h4 className="text-sm font-medium" style={{ color: darkERPTheme.textPrimary }}>
-              Internal Intel
-            </h4>
-            <Truck size={16} style={{ color: darkERPTheme.brandAccent }} />
-          </div>
-          <div className="space-y-2 text-xs" style={{ color: darkERPTheme.textMuted }}>
-            <div className="flex justify-between">
-              <span>Active Trips on Lane:</span>
-              <span style={{ color: darkERPTheme.textPrimary }}>12</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Avg Transit Time:</span>
-              <span style={{ color: darkERPTheme.textPrimary }}>14.2 hrs</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Last Week Avg Cost:</span>
-              <span style={{ color: darkERPTheme.textPrimary }}>$2,340</span>
-            </div>
-          </div>
-        </div>
+interface SummaryCardProps {
+  title: string;
+  subtitle: string;
+  children: ReactNode;
+}
 
-        {/* Market Snapshot Card */}
-        <div
-          className="rounded-lg p-4"
-          style={{
-            backgroundColor: darkERPTheme.surface2,
-            border: `1px solid ${darkERPTheme.border}`,
-          }}
-        >
-          <div className="flex items-center justify-between mb-3">
-            <h4 className="text-sm font-medium" style={{ color: darkERPTheme.textPrimary }}>
-              Market Snapshot
-            </h4>
-            <TrendingUp size={16} style={{ color: darkERPTheme.severity.watch }} />
-          </div>
-          <div className="space-y-2 text-xs" style={{ color: darkERPTheme.textMuted }}>
-            <div className="flex justify-between">
-              <span>Spot Rate Index:</span>
-              <span style={{ color: darkERPTheme.severity.watch }}>+8% ↑</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Capacity Tightness:</span>
-              <span style={{ color: darkERPTheme.severity.risk }}>Medium</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Weather Impact:</span>
-              <span style={{ color: darkERPTheme.severity.good }}>Low</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Next Best Actions Card */}
-        <div
-          className="rounded-lg p-4"
-          style={{
-            backgroundColor: darkERPTheme.surface2,
-            border: `1px solid ${darkERPTheme.border}`,
-          }}
-        >
-          <div className="flex items-center justify-between mb-3">
-            <h4 className="text-sm font-medium" style={{ color: darkERPTheme.textPrimary }}>
-              Next Best Actions
-            </h4>
-            <DollarSign size={16} style={{ color: darkERPTheme.severity.good }} />
-          </div>
-          <div className="space-y-2 text-xs" style={{ color: darkERPTheme.textMuted }}>
-            <div className="flex items-start gap-2">
-              <div
-                className="w-1.5 h-1.5 rounded-full mt-1.5"
-                style={{ backgroundColor: darkERPTheme.brandAccent }}
-              />
-              <span>Book 2 more trucks on this lane for better backhaul</span>
-            </div>
-            <div className="flex items-start gap-2">
-              <div
-                className="w-1.5 h-1.5 rounded-full mt-1.5"
-                style={{ backgroundColor: darkERPTheme.brandAccent }}
-              />
-              <span>Consider intermodal for cost savings (Est. -12%)</span>
-            </div>
-          </div>
-        </div>
+function SummaryCard({ title, subtitle, children }: SummaryCardProps) {
+  return (
+    <div
+      style={{
+        backgroundColor: darkERPTheme.surface2,
+        border: `1px solid ${darkERPTheme.border}`,
+        borderRadius: darkERPTheme.radius.md,
+        padding: '16px',
+      }}
+    >
+      <div className="flex flex-col gap-1 mb-3">
+        <span className="text-sm font-semibold" style={{ color: darkERPTheme.textPrimary }}>
+          {title}
+        </span>
+        <span className="text-xs" style={{ color: darkERPTheme.textMuted }}>
+          {subtitle}
+        </span>
+      </div>
+      <div className="space-y-2">
+        {children}
       </div>
     </div>
+  );
+}
+
+interface SummaryRowProps {
+  label: string;
+  value: string;
+  valueColor?: string;
+}
+
+function SummaryRow({ label, value, valueColor = darkERPTheme.textPrimary }: SummaryRowProps) {
+  return (
+    <div className="flex items-center justify-between text-xs">
+      <span style={{ color: darkERPTheme.textMuted }}>{label}</span>
+      <span style={{ color: valueColor }}>{value}</span>
+    </div>
+  );
+}
+
+interface SegmentInputProps {
+  id: string;
+  label: string;
+  placeholder: string;
+  value: string;
+  onFocus: () => void;
+  onChange: (value: string) => void;
+  adornment?: React.ReactNode;
+}
+
+function SegmentInput({ id, label, placeholder, value, onFocus, onChange, adornment }: SegmentInputProps) {
+  return (
+    <label htmlFor={id} className="flex-1 flex flex-col gap-2">
+      <span className="text-xs font-medium uppercase tracking-wide" style={{ color: darkERPTheme.textMuted }}>
+        {label}
+      </span>
+      <div className="relative">
+        {adornment && (
+          <span className="absolute left-3 top-1/2 -translate-y-1/2">
+            {adornment}
+          </span>
+        )}
+        <input
+          id={id}
+          name={id}
+          value={value}
+          onFocus={onFocus}
+          onChange={(event) => onChange(event.target.value)}
+          placeholder={placeholder}
+          className="w-full text-sm"
+          style={{
+            backgroundColor: darkERPTheme.surface,
+            border: `1px solid ${darkERPTheme.border}`,
+            borderRadius: darkERPTheme.radius.md,
+            color: darkERPTheme.textPrimary,
+            padding: adornment ? '10px 12px 10px 32px' : '10px 12px',
+          }}
+        />
+      </div>
+    </label>
   );
 }
