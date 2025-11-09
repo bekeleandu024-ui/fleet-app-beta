@@ -1,85 +1,54 @@
-// Enterprise Theme Configuration
-export const themeColors = {
-  // Neutral enterprise palette
-  neutral: {
-    50: '#FAFAFA',
-    100: '#F5F5F5',
-    200: '#E5E5E5',
-    300: '#D4D4D4',
-    400: '#A3A3A3',
-    500: '#737373',
-    600: '#525252',
-    700: '#404040',
-    800: '#262626',
-    900: '#171717',
+// FleetOps Dark ERP Theme Configuration
+export const darkERPTheme = {
+  // Dark ERP Base Colors
+  bg: '#0F1422',           // midnight blue background
+  surface: '#151B2E',       // primary surface
+  surface2: '#1A2136',      // secondary surface
+  border: 'rgba(255,255,255,0.08)', // subtle borders
+  
+  // Typography
+  textPrimary: '#E8ECF6',
+  textMuted: '#A8B2C6',
+  
+  // Brand Accent
+  brandAccent: '#3A7BDB',   // links, focus, chips
+  
+  // Severity Scale (use for pills, bars, deltas only)
+  severity: {
+    good: '#22C55E',        // Green
+    watch: '#FACC15',       // Yellow (low)
+    risk: '#F59E0B',        // Orange (medium)
+    breach: '#EF4444',      // Red (high)
   },
-  // Single brand accent
-  brand: {
-    50: '#EFF6FF',
-    100: '#DBEAFE',
-    200: '#BFDBFE',
-    300: '#93C5FD',
-    400: '#60A5FA',
-    500: '#3B82F6',
-    600: '#2563EB',
-    700: '#1D4ED8',
-    800: '#1E40AF',
-    900: '#1E3A8A',
-  },
-  // Status & severity colors
-  status: {
-    breach: '#DC2626',      // Red - true incidents
-    risk: '#EA580C',        // Orange - at risk
-    watch: '#EAB308',       // Yellow - watch
-    info: '#3B82F6',        // Blue - informational
-    good: '#16A34A',        // Green - on track
+  
+  // Radii
+  radius: {
+    sm: '10px',
+    md: '12px',
+    lg: '14px',
   },
 };
 
 export const typography = {
   body: '16px',
-  sectionTitle: '24px',
+  sectionTitle: '20px',
   cardTitle: '14px',
   caption: '12px',
+  label: '13px',
 };
 
 export const spacing = {
-  grid: '12-column',
-  gap: '24px', // gap-6
-  cardPadding: '16px',
+  grid: '8px',              // 8px grid system
+  gap: '24px',              // gap-6 (3 * 8px)
+  cardPadding: '24px',      // Larger cards: increased padding
+  base: 8,                  // Base unit for 8px grid
 };
 
-export const themes = {
-  light: {
-    bg: themeColors.neutral[50],
-    surface: '#FFFFFF',
-    text: themeColors.neutral[900],
-    textSecondary: themeColors.neutral[600],
-    border: themeColors.neutral[200],
-    divider: themeColors.neutral[200],
-  },
-  dark: {
-    bg: themeColors.neutral[900],
-    surface: themeColors.neutral[800],
-    text: themeColors.neutral[50],
-    textSecondary: themeColors.neutral[400],
-    border: themeColors.neutral[700],
-    divider: themeColors.neutral[700],
-  },
-  highContrast: {
-    bg: '#FFFFFF',
-    surface: '#FFFFFF',
-    text: '#000000',
-    textSecondary: '#000000',
-    border: '#000000',
-    divider: '#000000',
-  },
-  print: {
-    bg: '#FFFFFF',
-    surface: '#FFFFFF',
-    text: '#000000',
-    textSecondary: '#333333',
-    border: '#CCCCCC',
-    divider: '#CCCCCC',
-  },
+// Helper to calculate spacing on 8px grid
+export const sp = (multiplier: number) => `${spacing.base * multiplier}px`;
+
+export const shadows = {
+  subtle: '0 1px 2px rgba(0,0,0,0.2)',
+  card: '0 2px 4px rgba(0,0,0,0.3)',
+  elevated: '0 4px 8px rgba(0,0,0,0.4)',
 };

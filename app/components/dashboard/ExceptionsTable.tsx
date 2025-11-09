@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ArrowUpDown, MoreVertical } from "lucide-react";
 import clsx from "clsx";
+import { darkERPTheme } from "@/app/lib/theme-config";
 
 interface Exception {
   id: string;
@@ -77,11 +78,11 @@ export default function ExceptionsTable() {
   const getSeverityStyles = (severity: Exception["severity"]) => {
     switch (severity) {
       case "breach":
-        return "bg-red-50 text-red-800 border-red-200";
+        return { bg: darkERPTheme.severity.breach, text: '#FFFFFF' };
       case "risk":
-        return "bg-orange-50 text-orange-800 border-orange-200";
+        return { bg: darkERPTheme.severity.risk, text: '#000000' };
       case "watch":
-        return "bg-yellow-50 text-yellow-800 border-yellow-200";
+        return { bg: darkERPTheme.severity.watch, text: '#000000' };
     }
   };
 
@@ -120,29 +121,59 @@ export default function ExceptionsTable() {
   };
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg">
+    <div
+      className="rounded-lg"
+      style={{
+        backgroundColor: darkERPTheme.surface,
+        border: `1px solid ${darkERPTheme.border}`,
+      }}
+    >
       {/* Header */}
-      <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+      <div
+        className="px-6 py-4 flex items-center justify-between"
+        style={{ borderBottom: `1px solid ${darkERPTheme.border}` }}
+      >
         <div>
-          <h2 className="text-base font-semibold text-gray-900">
+          <h2 className="text-base font-semibold" style={{ color: darkERPTheme.textPrimary }}>
             Exceptions at a Glance
           </h2>
-          <p className="text-sm text-gray-600 mt-0.5">
+          <p className="text-sm mt-0.5" style={{ color: darkERPTheme.textMuted }}>
             {exceptions.length} active exceptions requiring attention
           </p>
         </div>
         {selectedRows.length > 0 && (
           <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-600">
+            <span className="text-sm" style={{ color: darkERPTheme.textMuted }}>
               {selectedRows.length} selected
             </span>
-            <button className="px-3 py-1.5 text-sm font-medium text-gray-700 border border-gray-300 rounded hover:bg-gray-50 transition-colors">
+            <button
+              className="px-3 py-1.5 text-sm font-medium rounded transition-colors"
+              style={{
+                color: darkERPTheme.textPrimary,
+                border: `1px solid ${darkERPTheme.border}`,
+                backgroundColor: darkERPTheme.surface2,
+              }}
+            >
               Assign
             </button>
-            <button className="px-3 py-1.5 text-sm font-medium text-gray-700 border border-gray-300 rounded hover:bg-gray-50 transition-colors">
+            <button
+              className="px-3 py-1.5 text-sm font-medium rounded transition-colors"
+              style={{
+                color: darkERPTheme.textPrimary,
+                border: `1px solid ${darkERPTheme.border}`,
+                backgroundColor: darkERPTheme.surface2,
+              }}
+            >
               Snooze
             </button>
-            <button className="px-3 py-1.5 text-sm font-medium text-gray-700 border border-gray-300 rounded hover:bg-gray-50 transition-colors">
+            <button
+              className="px-3 py-1.5 text-sm font-medium rounded transition-colors"
+              style={{
+                color: darkERPTheme.textPrimary,
+                border: `1px solid ${darkERPTheme.border}`,
+                backgroundColor: darkERPTheme.surface2,
+              }}
+            >
               Export
             </button>
           </div>
@@ -152,107 +183,128 @@ export default function ExceptionsTable() {
       {/* Table */}
       <div className="overflow-x-auto">
         <table className="w-full">
-          <thead className="bg-gray-50 border-b border-gray-200">
+          <thead style={{ backgroundColor: darkERPTheme.surface2, borderBottom: `1px solid ${darkERPTheme.border}` }}>
             <tr>
               <th className="w-12 px-6 py-3 text-left">
                 <input
                   type="checkbox"
                   checked={selectedRows.length === exceptions.length}
                   onChange={toggleSelectAll}
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  className="rounded"
                 />
               </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: darkERPTheme.textMuted }}>
                 Order/Trip
               </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                <button className="flex items-center gap-1 hover:text-gray-900">
+              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: darkERPTheme.textMuted }}>
+                <button className="flex items-center gap-1 hover:opacity-80">
                   Issue
                   <ArrowUpDown className="h-3 w-3" />
                 </button>
               </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: darkERPTheme.textMuted }}>
                 Severity
               </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: darkERPTheme.textMuted }}>
                 ETA Impact
               </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: darkERPTheme.textMuted }}>
                 Owner
               </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                <button className="flex items-center gap-1 hover:text-gray-900">
+              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: darkERPTheme.textMuted }}>
+                <button className="flex items-center gap-1 hover:opacity-80">
                   SLA
                   <ArrowUpDown className="h-3 w-3" />
                 </button>
               </th>
-              <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
+              <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider" style={{ color: darkERPTheme.textMuted }}>
                 Action
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200">
-            {exceptions.map((exception, index) => (
-              <tr
-                key={exception.id}
-                className={clsx(
-                  "hover:bg-gray-50 transition-colors cursor-pointer",
-                  index % 2 === 0 ? "bg-white" : "bg-gray-50"
-                )}
-                onClick={() => toggleRowSelection(exception.id)}
-              >
-                <td className="px-6 py-4">
-                  <input
-                    type="checkbox"
-                    checked={selectedRows.includes(exception.id)}
-                    onChange={() => toggleRowSelection(exception.id)}
-                    onClick={(e) => e.stopPropagation()}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                  />
-                </td>
-                <td className="px-6 py-4">
-                  <span className="text-sm font-medium text-blue-600 hover:underline">
-                    {exception.orderTrip}
-                  </span>
-                </td>
-                <td className="px-6 py-4">
-                  <span className="text-sm text-gray-900">{exception.issue}</span>
-                </td>
-                <td className="px-6 py-4">
-                  <span
-                    className={`inline-flex px-2 py-1 text-xs font-medium rounded border ${getSeverityStyles(
-                      exception.severity
-                    )}`}
-                  >
-                    {getSeverityLabel(exception.severity)}
-                  </span>
-                </td>
-                <td className="px-6 py-4">
-                  <span className="text-sm font-medium text-gray-900">
-                    {exception.etaImpact}
-                  </span>
-                </td>
-                <td className="px-6 py-4">
-                  <span className="text-sm text-gray-700">{exception.owner}</span>
-                </td>
-                <td className="px-6 py-4">
-                  <span className={`text-sm ${getSLAStyles(exception.slaStatus)}`}>
-                    {exception.sla}
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-right">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      console.log("Action menu for", exception.id);
-                    }}
-                    className="p-1 hover:bg-gray-200 rounded transition-colors"
-                  >
-                    <MoreVertical className="h-4 w-4 text-gray-600" />
-                  </button>
-                </td>
-              </tr>
-            ))}
+          <tbody style={{ borderTop: `1px solid ${darkERPTheme.border}` }}>
+            {exceptions.map((exception, index) => {
+              const severityStyle = getSeverityStyles(exception.severity);
+              return (
+                <tr
+                  key={exception.id}
+                  className="hover:opacity-90 transition-opacity cursor-pointer"
+                  style={{
+                    backgroundColor: index % 2 === 0 ? darkERPTheme.surface : darkERPTheme.surface2,
+                    borderBottom: `1px solid ${darkERPTheme.border}`,
+                  }}
+                  onClick={() => toggleRowSelection(exception.id)}
+                >
+                  <td className="px-6 py-4">
+                    <input
+                      type="checkbox"
+                      checked={selectedRows.includes(exception.id)}
+                      onChange={() => toggleRowSelection(exception.id)}
+                      onClick={(e) => e.stopPropagation()}
+                      className="rounded"
+                    />
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className="text-sm font-medium hover:underline" style={{ color: darkERPTheme.brandAccent }}>
+                      {exception.orderTrip}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className="text-sm" style={{ color: darkERPTheme.textPrimary }}>
+                      {exception.issue}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span
+                      className="inline-flex px-2 py-1 text-xs font-medium rounded"
+                      style={{
+                        backgroundColor: severityStyle.bg,
+                        color: severityStyle.text,
+                      }}
+                    >
+                      {getSeverityLabel(exception.severity)}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className="text-sm font-medium" style={{ color: darkERPTheme.textPrimary }}>
+                      {exception.etaImpact}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className="text-sm" style={{ color: darkERPTheme.textMuted }}>
+                      {exception.owner}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span
+                      className="text-sm font-medium"
+                      style={{
+                        color:
+                          exception.slaStatus === 'breach'
+                            ? darkERPTheme.severity.breach
+                            : exception.slaStatus === 'warning'
+                            ? darkERPTheme.severity.watch
+                            : darkERPTheme.textMuted,
+                      }}
+                    >
+                      {exception.sla}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        console.log("Action menu for", exception.id);
+                      }}
+                      className="p-1 rounded transition-opacity hover:opacity-70"
+                      style={{ backgroundColor: darkERPTheme.surface2 }}
+                    >
+                      <MoreVertical className="h-4 w-4" style={{ color: darkERPTheme.textMuted }} />
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

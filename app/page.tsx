@@ -5,10 +5,12 @@ import LeftNavigationRail from "./components/layout/LeftNavigationRail";
 import TopBar from "./components/layout/TopBar";
 import PageHeader from "./components/layout/PageHeader";
 import GlobalFilters from "./components/layout/GlobalFilters";
+import SmartCommandStrip from "./components/dashboard/SmartCommandStrip";
 import EnterpriseKPITiles from "./components/dashboard/EnterpriseKPITiles";
 import ExceptionsTable from "./components/dashboard/ExceptionsTable";
 import ActionCenter from "./components/dashboard/ActionCenter";
 import SlideOver, { InsightDetail } from "./components/layout/SlideOver";
+import { darkERPTheme } from "./lib/theme-config";
 
 export default function Home() {
   const [slideOverOpen, setSlideOverOpen] = useState(false);
@@ -20,7 +22,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen flex" style={{ backgroundColor: darkERPTheme.bg }}>
       {/* Left Navigation Rail */}
       <LeftNavigationRail />
 
@@ -47,6 +49,9 @@ export default function Home() {
             {/* Global Filters */}
             <GlobalFilters />
 
+            {/* Smart Command Strip */}
+            <SmartCommandStrip />
+
             {/* KPI Tiles */}
             <div className="mb-6">
               <EnterpriseKPITiles />
@@ -57,34 +62,20 @@ export default function Home() {
               <ExceptionsTable />
             </div>
 
-            {/* Trend Charts Placeholder */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-              <div className="bg-white border border-gray-200 rounded-lg p-6">
-                <h3 className="text-base font-semibold text-gray-900 mb-4">
-                  Revenue vs Target (MTD)
-                </h3>
-                <div className="h-64 flex items-center justify-center text-gray-400">
-                  <p className="text-sm">Chart component placeholder</p>
-                </div>
-              </div>
-              <div className="bg-white border border-gray-200 rounded-lg p-6">
-                <h3 className="text-base font-semibold text-gray-900 mb-4">
-                  On-time Delivery Trend
-                </h3>
-                <div className="h-64 flex items-center justify-center text-gray-400">
-                  <p className="text-sm">Chart component placeholder</p>
-                </div>
-              </div>
-            </div>
-
             {/* Data Freshness Indicator */}
-            <div className="text-xs text-gray-500 mt-6">
+            <div className="text-xs mt-6" style={{ color: darkERPTheme.textMuted }}>
               Telemetry updated 1m ago • Data refreshes every 30s
             </div>
           </div>
 
           {/* Right Rail - Action Center (3-4 cols) */}
-          <aside className="w-96 border-l border-gray-200 bg-gray-50 overflow-auto">
+          <aside
+            className="w-96 overflow-auto"
+            style={{
+              borderLeft: `1px solid ${darkERPTheme.border}`,
+              backgroundColor: darkERPTheme.bg,
+            }}
+          >
             <div className="sticky top-0 h-screen">
               <ActionCenter onOpenDetails={handleOpenDetails} />
             </div>
@@ -92,13 +83,25 @@ export default function Home() {
         </main>
 
         {/* Footer */}
-        <footer className="py-4 px-6 bg-white border-t border-gray-200">
-          <div className="flex items-center justify-between text-xs text-gray-600">
+        <footer
+          className="py-4 px-6"
+          style={{
+            backgroundColor: darkERPTheme.surface,
+            borderTop: `1px solid ${darkERPTheme.border}`,
+          }}
+        >
+          <div className="flex items-center justify-between text-xs" style={{ color: darkERPTheme.textMuted }}>
             <p>© {new Date().getFullYear()} FleetOps Enterprise. All rights reserved.</p>
             <div className="flex items-center gap-4">
-              <a href="#" className="hover:text-gray-900">Help</a>
-              <a href="#" className="hover:text-gray-900">Privacy</a>
-              <a href="#" className="hover:text-gray-900">Terms</a>
+              <a href="#" className="hover:opacity-80" style={{ color: darkERPTheme.brandAccent }}>
+                Help
+              </a>
+              <a href="#" className="hover:opacity-80" style={{ color: darkERPTheme.brandAccent }}>
+                Privacy
+              </a>
+              <a href="#" className="hover:opacity-80" style={{ color: darkERPTheme.brandAccent }}>
+                Terms
+              </a>
             </div>
           </div>
         </footer>

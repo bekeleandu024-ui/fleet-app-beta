@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { X, Clock } from "lucide-react";
 import clsx from "clsx";
+import { darkERPTheme } from "@/app/lib/theme-config";
 
 interface SlideOverProps {
   isOpen: boolean;
@@ -41,19 +42,26 @@ export default function SlideOver({ isOpen, onClose, title, children }: SlideOve
       {/* Slide-over panel */}
       <div
         className={clsx(
-          "fixed inset-y-0 right-0 w-full max-w-2xl bg-white shadow-2xl transform transition-transform duration-300 ease-in-out z-50 flex flex-col",
+          "fixed inset-y-0 right-0 w-full max-w-2xl shadow-2xl transform transition-transform duration-300 ease-in-out z-50 flex flex-col",
           isOpen ? "translate-x-0" : "translate-x-full"
         )}
+        style={{ backgroundColor: darkERPTheme.surface }}
       >
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
+        <div
+          className="px-6 py-4 flex items-center justify-between"
+          style={{ borderBottom: `1px solid ${darkERPTheme.border}` }}
+        >
+          <h2 className="text-lg font-semibold" style={{ color: darkERPTheme.textPrimary }}>
+            {title}
+          </h2>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-2 rounded-lg transition-opacity hover:opacity-70"
+            style={{ color: darkERPTheme.textMuted }}
             aria-label="Close"
           >
-            <X className="h-5 w-5 text-gray-600" />
+            <X className="h-5 w-5" />
           </button>
         </div>
 
@@ -61,8 +69,17 @@ export default function SlideOver({ isOpen, onClose, title, children }: SlideOve
         <div className="flex-1 overflow-y-auto px-6 py-6">{children}</div>
 
         {/* Footer - Audit trail link */}
-        <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
-          <button className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 font-medium">
+        <div
+          className="px-6 py-4"
+          style={{
+            borderTop: `1px solid ${darkERPTheme.border}`,
+            backgroundColor: darkERPTheme.surface2,
+          }}
+        >
+          <button
+            className="flex items-center gap-2 text-sm font-medium hover:opacity-80"
+            style={{ color: darkERPTheme.brandAccent }}
+          >
             <Clock className="h-4 w-4" />
             View audit log
           </button>
@@ -78,8 +95,17 @@ export function InsightDetail({ insightId }: { insightId: string }) {
     <div className="space-y-6">
       {/* Context */}
       <div>
-        <h3 className="text-sm font-semibold text-gray-900 mb-2">Context</h3>
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-sm text-gray-700">
+        <h3 className="text-sm font-semibold mb-2" style={{ color: darkERPTheme.textPrimary }}>
+          Context
+        </h3>
+        <div
+          className="rounded-lg p-4 text-sm"
+          style={{
+            backgroundColor: darkERPTheme.surface2,
+            border: `1px solid ${darkERPTheme.border}`,
+            color: darkERPTheme.textMuted,
+          }}
+        >
           <p>
             Driver John Smith is currently on Trip #1234, en route from Toronto to Chicago. Based
             on current HOS data, he will exceed the 11-hour daily drive limit by 14 minutes if he
@@ -90,25 +116,64 @@ export function InsightDetail({ insightId }: { insightId: string }) {
 
       {/* Impact analysis */}
       <div>
-        <h3 className="text-sm font-semibold text-gray-900 mb-2">Impact Analysis</h3>
+        <h3 className="text-sm font-semibold mb-2" style={{ color: darkERPTheme.textPrimary }}>
+          Impact Analysis
+        </h3>
         <div className="grid grid-cols-2 gap-4">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-            <div className="text-xs font-medium text-red-700 uppercase mb-1">ETA Impact</div>
-            <div className="text-lg font-bold text-red-900">+25 minutes</div>
+          <div
+            className="rounded-lg p-3"
+            style={{
+              backgroundColor: darkERPTheme.surface2,
+              border: `2px solid ${darkERPTheme.severity.breach}`,
+            }}
+          >
+            <div
+              className="text-xs font-medium uppercase mb-1"
+              style={{ color: darkERPTheme.severity.breach }}
+            >
+              ETA Impact
+            </div>
+            <div className="text-lg font-bold" style={{ color: darkERPTheme.textPrimary }}>
+              +25 minutes
+            </div>
           </div>
-          <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
-            <div className="text-xs font-medium text-orange-700 uppercase mb-1">Compliance Risk</div>
-            <div className="text-lg font-bold text-orange-900">High</div>
+          <div
+            className="rounded-lg p-3"
+            style={{
+              backgroundColor: darkERPTheme.surface2,
+              border: `2px solid ${darkERPTheme.severity.risk}`,
+            }}
+          >
+            <div
+              className="text-xs font-medium uppercase mb-1"
+              style={{ color: darkERPTheme.severity.risk }}
+            >
+              Compliance Risk
+            </div>
+            <div className="text-lg font-bold" style={{ color: darkERPTheme.textPrimary }}>
+              High
+            </div>
           </div>
         </div>
       </div>
 
       {/* Recommendation */}
       <div>
-        <h3 className="text-sm font-semibold text-gray-900 mb-2">Recommended Action</h3>
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-gray-700">
-          <p className="font-medium text-blue-900 mb-2">Reassign to Driver Sarah Johnson</p>
-          <ul className="space-y-1 list-disc list-inside text-blue-800">
+        <h3 className="text-sm font-semibold mb-2" style={{ color: darkERPTheme.textPrimary }}>
+          Recommended Action
+        </h3>
+        <div
+          className="rounded-lg p-4 text-sm"
+          style={{
+            backgroundColor: darkERPTheme.surface2,
+            border: `1px solid ${darkERPTheme.brandAccent}`,
+            color: darkERPTheme.textMuted,
+          }}
+        >
+          <p className="font-medium mb-2" style={{ color: darkERPTheme.brandAccent }}>
+            Reassign to Driver Sarah Johnson
+          </p>
+          <ul className="space-y-1 list-disc list-inside" style={{ color: darkERPTheme.textMuted }}>
             <li>Currently available in Hamilton, ON (18 miles from pickup)</li>
             <li>8.5 hours HOS remaining</li>
             <li>Can maintain on-time delivery</li>
@@ -119,20 +184,29 @@ export function InsightDetail({ insightId }: { insightId: string }) {
 
       {/* Why this recommendation */}
       <div>
-        <h3 className="text-sm font-semibold text-gray-900 mb-2">
+        <h3 className="text-sm font-semibold mb-2" style={{ color: darkERPTheme.textPrimary }}>
           Why This Recommendation (92% Confidence)
         </h3>
-        <div className="space-y-2 text-sm text-gray-700">
+        <div className="space-y-2 text-sm" style={{ color: darkERPTheme.textMuted }}>
           <div className="flex items-start gap-2">
-            <div className="w-1 h-1 bg-gray-400 rounded-full mt-2" />
+            <div
+              className="w-1 h-1 rounded-full mt-2"
+              style={{ backgroundColor: darkERPTheme.brandAccent }}
+            />
             <p>Driver availability model predicts Sarah will be closest available driver for 6+ hours</p>
           </div>
           <div className="flex items-start gap-2">
-            <div className="w-1 h-1 bg-gray-400 rounded-full mt-2" />
+            <div
+              className="w-1 h-1 rounded-full mt-2"
+              style={{ backgroundColor: darkERPTheme.brandAccent }}
+            />
             <p>Historical data shows 95% on-time delivery for this reassignment pattern</p>
           </div>
           <div className="flex items-start gap-2">
-            <div className="w-1 h-1 bg-gray-400 rounded-full mt-2" />
+            <div
+              className="w-1 h-1 rounded-full mt-2"
+              style={{ backgroundColor: darkERPTheme.brandAccent }}
+            />
             <p>Weather and traffic conditions are favorable for the alternate route</p>
           </div>
         </div>
@@ -140,10 +214,20 @@ export function InsightDetail({ insightId }: { insightId: string }) {
 
       {/* Actions */}
       <div className="flex gap-3">
-        <button className="flex-1 px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">
+        <button
+          className="flex-1 px-4 py-2 text-sm font-semibold text-white rounded-lg transition-colors hover:opacity-90"
+          style={{ backgroundColor: darkERPTheme.brandAccent }}
+        >
           Reassign to Sarah
         </button>
-        <button className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 hover:bg-gray-50 rounded-lg transition-colors">
+        <button
+          className="px-4 py-2 text-sm font-medium rounded-lg transition-colors hover:opacity-80"
+          style={{
+            color: darkERPTheme.textPrimary,
+            border: `1px solid ${darkERPTheme.border}`,
+            backgroundColor: darkERPTheme.surface2,
+          }}
+        >
           Dismiss
         </button>
       </div>

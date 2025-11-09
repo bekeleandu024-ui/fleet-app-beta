@@ -1,7 +1,8 @@
 "use client";
 
-import { TrendingUp, TrendingDown } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { LineChart, Line, ResponsiveContainer } from "recharts";
+import { darkERPTheme } from "@/app/lib/theme-config";
 
 interface KPITileProps {
   label: string;
@@ -70,7 +71,7 @@ export default function EnterpriseKPITiles() {
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
       {kpis.map((kpi, index) => (
         <KPITile key={index} {...kpi} />
       ))}
@@ -82,25 +83,50 @@ function KPITile({ label, value, unit, target, delta, sparklineData }: KPITilePr
   const formattedValue = unit === "$" ? `$${value}` : value;
   const displayUnit = unit !== "$" ? unit : "";
 
+  const trendColor = delta
+    ? delta.isPositive
+      ? darkERPTheme.severity.good
+      : darkERPTheme.severity.breach
+    : darkERPTheme.textMuted;
+
   return (
-    <button className="bg-white border border-gray-200 rounded-lg p-4 text-left hover:border-blue-300 hover:shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-blue-500">
+    <button
+      className="rounded-lg p-6 text-left transition-all focus:outline-none"
+      style={{
+        backgroundColor: darkERPTheme.surface,
+        border: `1px solid ${darkERPTheme.border}`,
+      }}
+    >
       {/* Label */}
-      <div className="text-xs font-medium text-gray-600 mb-2 uppercase tracking-wide">
+      <div
+        className="text-xs font-medium mb-3 uppercase tracking-wide"
+        style={{ color: darkERPTheme.textMuted }}
+      >
         {label}
       </div>
 
       {/* Value */}
-      <div className="flex items-baseline gap-1 mb-1">
-        <span className="text-2xl font-bold text-gray-900">{formattedValue}</span>
+      <div className="flex items-baseline gap-1 mb-2">
+        <span className="text-3xl font-bold" style={{ color: darkERPTheme.textPrimary }}>
+          {formattedValue}
+        </span>
         {displayUnit && (
-          <span className="text-sm font-medium text-gray-500">{displayUnit}</span>
+          <span className="text-sm font-medium" style={{ color: darkERPTheme.textMuted }}>
+            {displayUnit}
+          </span>
         )}
       </div>
 
       {/* Target chip */}
       {target && (
-        <div className="mb-2">
-          <span className="inline-block px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-700 rounded border border-gray-200">
+        <div className="mb-3">
+          <span
+            className="inline-block px-2 py-1 text-xs font-medium rounded"
+            style={{
+              backgroundColor: darkERPTheme.surface2,
+              color: darkERPTheme.textMuted,
+            }}
+          >
             Target: {target}
           </span>
         </div>
@@ -108,14 +134,17 @@ function KPITile({ label, value, unit, target, delta, sparklineData }: KPITilePr
 
       {/* Sparkline */}
       {sparklineData && (
-        <div className="h-8 -mx-2 mb-2">
-          <ResponsiveContainer width="100%" height={32} minHeight={32}>
-            <LineChart data={sparklineData.map((val, i) => ({ value: val }))} margin={{ top: 2, right: 2, bottom: 2, left: 2 }}>
+        <div className="h-10 -mx-2 mb-3">
+          <ResponsiveContainer width="100%" height={40} minHeight={40}>
+            <LineChart
+              data={sparklineData.map((val) => ({ value: val }))}
+              margin={{ top: 2, right: 2, bottom: 2, left: 2 }}
+            >
               <Line
                 type="monotone"
                 dataKey="value"
-                stroke="#3B82F6"
-                strokeWidth={1.5}
+                stroke={darkERPTheme.brandAccent}
+                strokeWidth={2}
                 dot={false}
                 isAnimationActive={false}
               />
@@ -128,19 +157,17 @@ function KPITile({ label, value, unit, target, delta, sparklineData }: KPITilePr
       {delta && (
         <div className="flex items-center gap-1 text-xs">
           {delta.isPositive ? (
-            <TrendingUp className="h-3 w-3 text-green-600" />
+            <TrendingUp className="h-3.5 w-3.5" style={{ color: trendColor }} />
+          ) : delta.value === 0 ? (
+            <Minus className="h-3.5 w-3.5" style={{ color: trendColor }} />
           ) : (
-            <TrendingDown className="h-3 w-3 text-red-600" />
+            <TrendingDown className="h-3.5 w-3.5" style={{ color: trendColor }} />
           )}
-          <span
-            className={`font-semibold ${
-              delta.isPositive ? "text-green-600" : "text-red-600"
-            }`}
-          >
+          <span className="font-semibold" style={{ color: trendColor }}>
             {delta.isPositive ? "+" : ""}
             {delta.value}%
           </span>
-          <span className="text-gray-500">{delta.period}</span>
+          <span style={{ color: darkERPTheme.textMuted }}>{delta.period}</span>
         </div>
       )}
     </button>

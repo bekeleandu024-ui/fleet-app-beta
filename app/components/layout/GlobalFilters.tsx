@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { X } from "lucide-react";
+import { darkERPTheme } from "@/app/lib/theme-config";
 
 interface FilterChip {
   id: string;
@@ -34,26 +35,31 @@ export default function GlobalFilters() {
       {/* Active filters as chips */}
       {activeFilters.length > 0 && (
         <div className="flex items-center gap-2 flex-wrap mb-3">
-          <span className="text-sm font-medium text-gray-700">Active filters:</span>
+          <span className="text-sm font-medium" style={{ color: darkERPTheme.textMuted }}>
+            Active filters:
+          </span>
           {activeFilters.map((filter) => (
             <div
               key={filter.id}
-              className="inline-flex items-center gap-2 px-3 py-1 bg-blue-50 text-blue-700 text-sm font-medium rounded-full border border-blue-200"
+              className="inline-flex items-center gap-2 px-3 py-1 text-sm font-medium rounded-full"
+              style={{
+                backgroundColor: darkERPTheme.surface2,
+                color: darkERPTheme.brandAccent,
+                border: `1px solid ${darkERPTheme.border}`,
+              }}
             >
               <span>
                 {filter.label}: {filter.value}
               </span>
-              <button
-                onClick={() => removeFilter(filter.id)}
-                className="hover:text-blue-900"
-              >
+              <button onClick={() => removeFilter(filter.id)} className="hover:opacity-70">
                 <X className="h-3 w-3" />
               </button>
             </div>
           ))}
           <button
             onClick={() => setActiveFilters([])}
-            className="text-sm text-gray-600 hover:text-gray-900 underline"
+            className="text-sm underline hover:opacity-70"
+            style={{ color: darkERPTheme.textMuted }}
           >
             Clear all
           </button>
@@ -63,7 +69,12 @@ export default function GlobalFilters() {
       {/* Add filter button */}
       <button
         onClick={() => setShowFilterMenu(!showFilterMenu)}
-        className="px-3 py-1.5 text-sm font-medium text-gray-700 border border-gray-300 rounded hover:bg-gray-50 transition-colors"
+        className="px-3 py-1.5 text-sm font-medium rounded transition-colors hover:opacity-90"
+        style={{
+          color: darkERPTheme.textPrimary,
+          border: `1px solid ${darkERPTheme.border}`,
+          backgroundColor: darkERPTheme.surface2,
+        }}
       >
         + Add filter
       </button>

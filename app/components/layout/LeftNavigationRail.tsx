@@ -14,6 +14,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import clsx from "clsx";
+import { darkERPTheme } from "@/app/lib/theme-config";
 
 interface NavItem {
   label: string;
@@ -87,24 +88,34 @@ export default function LeftNavigationRail() {
   return (
     <nav
       className={clsx(
-        "h-screen bg-white border-r border-gray-200 transition-all duration-300 flex flex-col",
+        "h-screen transition-all duration-300 flex flex-col",
         collapsed ? "w-16" : "w-64"
       )}
+      style={{
+        backgroundColor: darkERPTheme.surface,
+        borderRight: `1px solid ${darkERPTheme.border}`,
+      }}
     >
       {/* Logo area */}
-      <div className="h-16 flex items-center justify-between px-4 border-b border-gray-200">
+      <div
+        className="h-16 flex items-center justify-between px-4"
+        style={{ borderBottom: `1px solid ${darkERPTheme.border}` }}
+      >
         {!collapsed && (
-          <span className="text-lg font-semibold text-gray-900">FleetOps</span>
+          <span className="text-lg font-semibold" style={{ color: darkERPTheme.textPrimary }}>
+            FleetOps
+          </span>
         )}
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="p-1.5 hover:bg-gray-100 rounded transition-colors"
+          className="p-1.5 rounded transition-opacity hover:opacity-70"
+          style={{ color: darkERPTheme.textMuted }}
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
           {collapsed ? (
-            <ChevronRight className="h-5 w-5 text-gray-600" />
+            <ChevronRight className="h-5 w-5" />
           ) : (
-            <ChevronLeft className="h-5 w-5 text-gray-600" />
+            <ChevronLeft className="h-5 w-5" />
           )}
         </button>
       </div>
@@ -115,7 +126,10 @@ export default function LeftNavigationRail() {
           <div key={groupIndex} className="mb-6">
             {!collapsed && (
               <div className="px-4 mb-2">
-                <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <span
+                  className="text-xs font-medium uppercase tracking-wider"
+                  style={{ color: darkERPTheme.textMuted }}
+                >
                   {group.title}
                 </span>
               </div>
@@ -125,12 +139,17 @@ export default function LeftNavigationRail() {
                 <button
                   key={itemIndex}
                   onClick={() => setActiveItem(item.href)}
-                  className={clsx(
-                    "w-full flex items-center gap-3 px-3 py-2 rounded text-sm font-medium transition-colors",
+                  className="w-full flex items-center gap-3 px-3 py-2 rounded text-sm font-medium transition-colors"
+                  style={
                     activeItem === item.href
-                      ? "bg-blue-50 text-blue-700 border-l-2 border-blue-600"
-                      : "text-gray-700 hover:bg-gray-100"
-                  )}
+                      ? {
+                          backgroundColor: darkERPTheme.brandAccent,
+                          color: '#FFFFFF',
+                        }
+                      : {
+                          color: darkERPTheme.textMuted,
+                        }
+                  }
                   title={collapsed ? item.label : undefined}
                 >
                   {item.icon}
@@ -138,14 +157,23 @@ export default function LeftNavigationRail() {
                     <>
                       <span className="flex-1 text-left">{item.label}</span>
                       {item.badge && (
-                        <span className="px-2 py-0.5 text-xs font-semibold bg-red-100 text-red-700 rounded-full">
+                        <span
+                          className="px-2 py-0.5 text-xs font-semibold rounded-full"
+                          style={{
+                            backgroundColor: darkERPTheme.severity.breach,
+                            color: '#FFFFFF',
+                          }}
+                        >
                           {item.badge}
                         </span>
                       )}
                     </>
                   )}
                   {collapsed && item.badge && (
-                    <span className="absolute right-1 top-1 h-2 w-2 bg-red-500 rounded-full" />
+                    <span
+                      className="absolute right-1 top-1 h-2 w-2 rounded-full"
+                      style={{ backgroundColor: darkERPTheme.severity.breach }}
+                    />
                   )}
                 </button>
               ))}
@@ -156,11 +184,11 @@ export default function LeftNavigationRail() {
 
       {/* Footer - version/help */}
       {!collapsed && (
-        <div className="p-4 border-t border-gray-200">
-          <div className="text-xs text-gray-500">
+        <div className="p-4" style={{ borderTop: `1px solid ${darkERPTheme.border}` }}>
+          <div className="text-xs" style={{ color: darkERPTheme.textMuted }}>
             <div>Version 2.4.0</div>
             <div className="mt-1">
-              <a href="#" className="text-blue-600 hover:underline">
+              <a href="#" className="hover:underline" style={{ color: darkERPTheme.brandAccent }}>
                 Help & Support
               </a>
             </div>
