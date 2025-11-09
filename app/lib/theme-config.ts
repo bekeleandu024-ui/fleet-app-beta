@@ -1,18 +1,18 @@
 // FleetOps Dark ERP Theme Configuration
 export const darkERPTheme = {
-  // Dark ERP Base Colors
-  bg: '#070A12',           // near-black base
-  surface: '#0C111C',       // dense graphite primary surface
-  surface2: '#121A2A',      // secondary surface with minimal blue tint
-    border: 'rgba(255,255,255,0.04)', // very subtle borders
-  
-  // Typography
-  textPrimary: '#E8ECF6',
-  textMuted: '#A8B2C6',
-  
+  // Semantic surfaces proxied to global design tokens
+  bg: 'var(--color-background)',
+  surface: 'var(--color-card)',
+  surface2: 'var(--color-card)',
+  border: 'var(--color-border)',
+
+  // Typography tokens
+  textPrimary: 'var(--color-foreground)',
+  textMuted: 'var(--color-muted-foreground)',
+
   // Brand Accent
-    brandAccent: '#7F8AA3',   // muted accent used for static elements (keeps UI dark)
-    hoverAccent: '#3A7BDB',   // pure blue used only for hover/interactive highlights
+  brandAccent: '#7F8AA3',
+  hoverAccent: '#3A7BDB',
   
   // Severity Scale (use for pills, bars, deltas only)
   severity: {

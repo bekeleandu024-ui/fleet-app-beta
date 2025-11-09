@@ -39,25 +39,18 @@ export default function TopBar() {
 
   return (
     <>
-      <header
-        className="sticky top-0 z-40"
-        style={{
-          backgroundColor: darkERPTheme.surface,
-          borderBottom: `1px solid ${darkERPTheme.border}`,
-          height: "72px",
-        }}
-      >
-        <div className="h-full px-6 flex flex-col justify-center">
+      <header className="sticky top-0 z-40 h-[72px] border-b border-border bg-card">
+        <div className="flex h-full flex-col justify-center px-6">
           <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-2 text-sm" style={{ color: darkERPTheme.textMuted }}>
-              <span className="font-medium" style={{ color: darkERPTheme.textPrimary }}>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <span className="font-medium text-foreground">
                 Operations
               </span>
               <ChevronRight className="h-4 w-4" />
-              <span className="font-medium" style={{ color: darkERPTheme.textPrimary }}>
+              <span className="font-medium text-foreground">
                 Dashboard
               </span>
-              <span className="ml-4 inline-flex items-center gap-2 text-xs uppercase tracking-wide" style={{ color: darkERPTheme.textMuted }}>
+              <span className="ml-4 inline-flex items-center gap-2 text-xs uppercase tracking-wide">
                 <RefreshCw className="h-3.5 w-3.5" />
                 Updated 2m ago
               </span>
@@ -65,12 +58,7 @@ export default function TopBar() {
 
             <div className="flex items-center gap-2">
               <button
-                className="relative p-2 rounded"
-                style={{
-                  color: darkERPTheme.textMuted,
-                  border: `1px solid ${darkERPTheme.border}`,
-                  backgroundColor: darkERPTheme.surface2,
-                }}
+                className="relative rounded border border-border bg-card/80 p-2 text-muted-foreground"
                 aria-label="View notifications"
               >
                 <Bell className="h-4 w-4" />
@@ -81,27 +69,15 @@ export default function TopBar() {
               </button>
 
               <button
-                className="flex items-center gap-2 px-4 py-2 rounded"
-                style={{
-                  backgroundColor: darkERPTheme.surface2,
-                  border: `1px solid ${darkERPTheme.border}`,
-                  color: darkERPTheme.textPrimary,
-                }}
+                className="flex items-center gap-2 rounded border border-border bg-card px-4 py-2 text-foreground"
                 aria-label="Open user menu"
               >
-                <div
-                  className="h-8 w-8 rounded"
-                  style={{
-                    backgroundColor: darkERPTheme.surface,
-                    display: "grid",
-                    placeItems: "center",
-                  }}
-                >
-                  <User className="h-4 w-4" style={{ color: darkERPTheme.textMuted }} />
+                <div className="grid h-8 w-8 place-items-center rounded border border-border bg-background text-muted-foreground">
+                  <User className="h-4 w-4" />
                 </div>
                 <div className="hidden md:block text-left">
-                  <div className="text-sm font-medium">John Doe</div>
-                  <div className="text-xs" style={{ color: darkERPTheme.textMuted }}>
+                  <div className="text-sm font-medium text-foreground">John Doe</div>
+                  <div className="text-xs text-muted-foreground">
                     Operations Lead
                   </div>
                 </div>
@@ -115,14 +91,7 @@ export default function TopBar() {
                 filters.map((filter) => (
                   <div
                     key={filter.id}
-                    className="inline-flex items-center gap-2 text-sm font-medium"
-                    style={{
-                      padding: "8px 16px",
-                      borderRadius: darkERPTheme.radius.lg,
-                      backgroundColor: darkERPTheme.surface2,
-                      border: `1px solid ${darkERPTheme.border}`,
-                      color: darkERPTheme.textPrimary,
-                    }}
+                    className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-foreground"
                   >
                     <span>
                       {filter.label}: {filter.value}
@@ -137,20 +106,19 @@ export default function TopBar() {
                   </div>
                 ))
               ) : (
-                <span className="text-xs uppercase tracking-wide" style={{ color: darkERPTheme.textMuted }}>
+                <span className="text-xs uppercase tracking-wide text-muted-foreground">
                   No active filters
                 </span>
               )}
               <button
                 onClick={handleResetFilters}
-                className="text-xs font-semibold tracking-wide uppercase"
-                style={{ color: darkERPTheme.textMuted }}
+                className="text-xs font-semibold uppercase tracking-wide text-muted-foreground hover:text-foreground"
               >
                 Reset
               </button>
             </div>
 
-            <div className="flex items-center gap-2 text-xs" style={{ color: darkERPTheme.textMuted }}>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <span>Filters apply to dashboard-wide metrics and insights.</span>
             </div>
           </div>

@@ -42,23 +42,18 @@ export default function SlideOver({ isOpen, onClose, title, children }: SlideOve
       {/* Slide-over panel */}
       <div
         className={clsx(
-          "fixed inset-y-0 right-0 w-full max-w-2xl shadow-2xl transform transition-transform duration-300 ease-in-out z-50 flex flex-col",
+          "fixed inset-y-0 right-0 z-50 flex w-full max-w-2xl flex-col transform border-l border-border bg-card shadow-2xl transition-transform duration-300 ease-in-out",
           isOpen ? "translate-x-0" : "translate-x-full"
         )}
-        style={{ backgroundColor: darkERPTheme.surface }}
       >
         {/* Header */}
-        <div
-          className="px-6 py-4 flex items-center justify-between"
-          style={{ borderBottom: `1px solid ${darkERPTheme.border}` }}
-        >
-          <h2 className="text-lg font-semibold" style={{ color: darkERPTheme.textPrimary }}>
+        <div className="flex items-center justify-between border-b border-border px-6 py-4">
+          <h2 className="text-lg font-semibold text-foreground">
             {title}
           </h2>
           <button
             onClick={onClose}
-            className="p-2 rounded-lg transition-opacity hover:opacity-70"
-            style={{ color: darkERPTheme.textMuted }}
+            className="rounded-lg p-2 text-muted-foreground transition-opacity hover:opacity-70"
             aria-label="Close"
           >
             <X className="h-5 w-5" />
@@ -69,13 +64,7 @@ export default function SlideOver({ isOpen, onClose, title, children }: SlideOve
         <div className="flex-1 overflow-y-auto px-6 py-6">{children}</div>
 
         {/* Footer - Audit trail link */}
-        <div
-          className="px-6 py-4"
-          style={{
-            borderTop: `1px solid ${darkERPTheme.border}`,
-            backgroundColor: darkERPTheme.surface2,
-          }}
-        >
+        <div className="border-t border-border bg-card px-6 py-4">
           <button
             className="flex items-center gap-2 text-sm font-medium hover:opacity-80"
             style={{ color: darkERPTheme.brandAccent }}
@@ -95,17 +84,10 @@ export function InsightDetail({ insightId }: { insightId: string }) {
     <div className="space-y-6">
       {/* Context */}
       <div>
-        <h3 className="text-sm font-semibold mb-2" style={{ color: darkERPTheme.textPrimary }}>
+        <h3 className="mb-2 text-sm font-semibold text-foreground">
           Context
         </h3>
-        <div
-          className="rounded-lg p-4 text-sm"
-          style={{
-            backgroundColor: darkERPTheme.surface2,
-            border: `1px solid ${darkERPTheme.border}`,
-            color: darkERPTheme.textMuted,
-          }}
-        >
+        <div className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
           <p>
             Driver John Smith is currently on Trip #1234, en route from Toronto to Chicago. Based
             on current HOS data, he will exceed the 11-hour daily drive limit by 14 minutes if he
@@ -116,16 +98,13 @@ export function InsightDetail({ insightId }: { insightId: string }) {
 
       {/* Impact analysis */}
       <div>
-        <h3 className="text-sm font-semibold mb-2" style={{ color: darkERPTheme.textPrimary }}>
+        <h3 className="mb-2 text-sm font-semibold text-foreground">
           Impact Analysis
         </h3>
         <div className="grid grid-cols-2 gap-4">
           <div
-            className="rounded-lg p-3"
-            style={{
-              backgroundColor: darkERPTheme.surface2,
-              border: `2px solid ${darkERPTheme.severity.breach}`,
-            }}
+            className="rounded-lg border-2 border-transparent bg-card p-3"
+            style={{ borderColor: darkERPTheme.severity.breach }}
           >
             <div
               className="text-xs font-medium uppercase mb-1"
@@ -133,16 +112,13 @@ export function InsightDetail({ insightId }: { insightId: string }) {
             >
               ETA Impact
             </div>
-            <div className="text-lg font-bold" style={{ color: darkERPTheme.textPrimary }}>
+            <div className="text-lg font-bold text-foreground">
               +25 minutes
             </div>
           </div>
           <div
-            className="rounded-lg p-3"
-            style={{
-              backgroundColor: darkERPTheme.surface2,
-              border: `2px solid ${darkERPTheme.severity.risk}`,
-            }}
+            className="rounded-lg border-2 border-transparent bg-card p-3"
+            style={{ borderColor: darkERPTheme.severity.risk }}
           >
             <div
               className="text-xs font-medium uppercase mb-1"
@@ -150,7 +126,7 @@ export function InsightDetail({ insightId }: { insightId: string }) {
             >
               Compliance Risk
             </div>
-            <div className="text-lg font-bold" style={{ color: darkERPTheme.textPrimary }}>
+            <div className="text-lg font-bold text-foreground">
               High
             </div>
           </div>
@@ -159,21 +135,17 @@ export function InsightDetail({ insightId }: { insightId: string }) {
 
       {/* Recommendation */}
       <div>
-        <h3 className="text-sm font-semibold mb-2" style={{ color: darkERPTheme.textPrimary }}>
+        <h3 className="mb-2 text-sm font-semibold text-foreground">
           Recommended Action
         </h3>
         <div
-          className="rounded-lg p-4 text-sm"
-          style={{
-            backgroundColor: darkERPTheme.surface2,
-            border: `1px solid ${darkERPTheme.brandAccent}`,
-            color: darkERPTheme.textMuted,
-          }}
+          className="rounded-lg border border-transparent bg-card p-4 text-sm text-muted-foreground"
+          style={{ borderColor: darkERPTheme.brandAccent }}
         >
-          <p className="font-medium mb-2" style={{ color: darkERPTheme.brandAccent }}>
+          <p className="mb-2 font-medium" style={{ color: darkERPTheme.brandAccent }}>
             Reassign to Driver Sarah Johnson
           </p>
-          <ul className="space-y-1 list-disc list-inside" style={{ color: darkERPTheme.textMuted }}>
+          <ul className="list-inside list-disc space-y-1">
             <li>Currently available in Hamilton, ON (18 miles from pickup)</li>
             <li>8.5 hours HOS remaining</li>
             <li>Can maintain on-time delivery</li>
@@ -184,10 +156,10 @@ export function InsightDetail({ insightId }: { insightId: string }) {
 
       {/* Why this recommendation */}
       <div>
-        <h3 className="text-sm font-semibold mb-2" style={{ color: darkERPTheme.textPrimary }}>
+        <h3 className="mb-2 text-sm font-semibold text-foreground">
           Why This Recommendation (92% Confidence)
         </h3>
-        <div className="space-y-2 text-sm" style={{ color: darkERPTheme.textMuted }}>
+        <div className="space-y-2 text-sm text-muted-foreground">
           <div className="flex items-start gap-2">
             <div
               className="w-1 h-1 rounded-full mt-2"
@@ -221,12 +193,7 @@ export function InsightDetail({ insightId }: { insightId: string }) {
           Reassign to Sarah
         </button>
         <button
-          className="px-4 py-2 text-sm font-medium rounded-lg transition-colors hover:opacity-80"
-          style={{
-            color: darkERPTheme.textPrimary,
-            border: `1px solid ${darkERPTheme.border}`,
-            backgroundColor: darkERPTheme.surface2,
-          }}
+          className="px-4 py-2 text-sm font-medium text-foreground rounded-lg border border-border bg-card transition-colors hover:opacity-80"
         >
           Dismiss
         </button>

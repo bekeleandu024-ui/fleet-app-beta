@@ -3,6 +3,7 @@
 import { FormEvent, ReactNode, useMemo, useState } from 'react';
 import { AlertTriangle, ArrowRight, MapPin, Navigation, Search, TrendingUp } from 'lucide-react';
 import { darkERPTheme } from '@/app/lib/theme-config';
+import { cn } from '@/lib/utils';
 
 type ActiveSegment = 'origin' | 'destination' | 'entity' | null;
 
@@ -46,18 +47,10 @@ export default function SmartCommandStrip() {
   };
 
   return (
-    <section
-      className="mb-6"
-      style={{
-        border: `1px solid ${darkERPTheme.border}`,
-        backgroundColor: darkERPTheme.surface,
-        borderRadius: darkERPTheme.radius.md,
-        padding: '16px',
-      }}
-    >
+    <section className="mb-6 rounded-xl border border-border bg-card p-4">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-stretch">
         {/* Instant Summaries (ATLAS API) */}
-        <div className="xl:w-[32rem]">
+  <div className="xl:w-lg">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <SummaryCard
             title="Internal Intel"
@@ -91,12 +84,7 @@ export default function SmartCommandStrip() {
                 {['Create Quote', 'Book Trip', 'Open Lane Report'].map((cta) => (
                   <button
                     key={cta}
-                    className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold rounded"
-                    style={{
-                      backgroundColor: darkERPTheme.surface,
-                      border: `1px solid ${darkERPTheme.border}`,
-                      color: darkERPTheme.textPrimary,
-                    }}
+                    className="flex w-full items-center justify-between rounded border border-border bg-card px-3 py-2 text-xs font-semibold text-foreground hover:bg-card/80"
                     type="button"
                   >
                     <span>{cta}</span>
@@ -109,21 +97,14 @@ export default function SmartCommandStrip() {
         </div>
 
         {/* Live Map (HERE API placeholder) */}
-        <div
-          className="flex-1 min-h-[180px] relative overflow-hidden"
-          style={{
-            backgroundColor: darkERPTheme.surface2,
-            border: `1px solid ${darkERPTheme.border}`,
-            borderRadius: darkERPTheme.radius.md,
-          }}
-        >
+        <div className="relative flex-1 min-h-[180px] overflow-hidden rounded-lg border border-border bg-card">
           <div className="absolute inset-0 opacity-20" style={{ background: 'radial-gradient(circle at 20% 20%, rgba(58,123,219,0.3), transparent)' }} />
-          <div className="absolute inset-0 flex flex-col justify-center items-center gap-3 text-center px-8">
-            <MapPin className="h-10 w-10" style={{ color: darkERPTheme.textMuted }} />
-            <p className="text-sm" style={{ color: darkERPTheme.textMuted }}>
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-8 text-center">
+            <MapPin className="h-10 w-10 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">
               HERE Maps placeholder. Render real-time corridor highlights, ETA, and active trips once the query is submitted.
             </p>
-            <div className="flex items-center gap-2 text-xs" style={{ color: darkERPTheme.textMuted }}>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <Navigation className="h-4 w-4" />
               <span>Accepts bounding boxes + markers from the Smart Command Strip payload.</span>
             </div>
@@ -138,10 +119,10 @@ export default function SmartCommandStrip() {
             aria-label="Smart command quick search"
           >
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium" style={{ color: darkERPTheme.textPrimary }}>
+              <span className="text-sm font-medium text-foreground">
                 Quick Search
               </span>
-              <span className="text-xs" style={{ color: darkERPTheme.textMuted }}>
+              <span className="text-xs text-muted-foreground">
                 Order #, Truck, Driver, Customer
               </span>
             </div>
@@ -170,15 +151,12 @@ export default function SmartCommandStrip() {
                 value={entityQuery}
                 onFocus={() => setActiveSegment('entity')}
                 onChange={setEntityQuery}
-                adornment={<Search className="h-3.5 w-3.5" style={{ color: darkERPTheme.textMuted }} />}
+                adornment={<Search className="h-3.5 w-3.5 text-muted-foreground" />}
               />
             </div>
 
             {(laneMatches.length > 0 || entityMatches.length > 0) && (
-              <div
-                className="grid gap-2"
-                style={{ color: darkERPTheme.textMuted }}
-              >
+              <div className="grid gap-2 text-muted-foreground">
                 {[...laneMatches, ...entityMatches].map((suggestion) => (
                   <button
                     key={suggestion}
@@ -192,22 +170,17 @@ export default function SmartCommandStrip() {
                         setEntityQuery(suggestion);
                       }
                     }}
-                    className="flex items-center justify-between px-3 py-2 text-xs rounded"
-                    style={{
-                      backgroundColor: darkERPTheme.surface,
-                      border: `1px solid ${darkERPTheme.border}`,
-                      color: darkERPTheme.textMuted,
-                    }}
+                    className="flex items-center justify-between rounded border border-border bg-card px-3 py-2 text-xs text-muted-foreground hover:bg-card/80"
                   >
                     <span>{suggestion}</span>
-                    <ArrowRight className="h-3.5 w-3.5" style={{ color: darkERPTheme.textMuted }} />
+                    <ArrowRight className="h-3.5 w-3.5" />
                   </button>
                 ))}
               </div>
             )}
 
             <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-2 text-xs" style={{ color: darkERPTheme.textMuted }}>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <AlertTriangle className="h-3.5 w-3.5" />
                 <span>Submitting dispatches map + atlas payloads for contextual insights.</span>
               </div>
@@ -239,19 +212,12 @@ interface SummaryCardProps {
 
 function SummaryCard({ title, subtitle, children }: SummaryCardProps) {
   return (
-    <div
-      style={{
-        backgroundColor: darkERPTheme.surface2,
-        border: `1px solid ${darkERPTheme.border}`,
-        borderRadius: darkERPTheme.radius.md,
-        padding: '12px',
-      }}
-    >
-      <div className="flex flex-col gap-1 mb-3">
-        <span className="text-sm font-semibold" style={{ color: darkERPTheme.textPrimary }}>
+    <div className="rounded-lg border border-border bg-card p-3">
+      <div className="mb-3 flex flex-col gap-1">
+        <span className="text-sm font-semibold text-foreground">
           {title}
         </span>
-        <span className="text-xs" style={{ color: darkERPTheme.textMuted }}>
+        <span className="text-xs text-muted-foreground">
           {subtitle}
         </span>
       </div>
@@ -271,7 +237,7 @@ interface SummaryRowProps {
 function SummaryRow({ label, value, valueColor = darkERPTheme.textPrimary }: SummaryRowProps) {
   return (
     <div className="flex items-center justify-between text-xs">
-      <span style={{ color: darkERPTheme.textMuted }}>{label}</span>
+      <span className="text-muted-foreground">{label}</span>
       <span style={{ color: valueColor }}>{value}</span>
     </div>
   );
@@ -290,7 +256,7 @@ interface SegmentInputProps {
 function SegmentInput({ id, label, placeholder, value, onFocus, onChange, adornment }: SegmentInputProps) {
   return (
     <label htmlFor={id} className="flex-1 flex flex-col gap-2">
-      <span className="text-[10px] font-medium uppercase tracking-wide" style={{ color: darkERPTheme.textMuted }}>
+      <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
         {label}
       </span>
       <div className="relative">
@@ -306,14 +272,10 @@ function SegmentInput({ id, label, placeholder, value, onFocus, onChange, adornm
           onFocus={onFocus}
           onChange={(event) => onChange(event.target.value)}
           placeholder={placeholder}
-          className="w-full text-sm"
-          style={{
-            backgroundColor: darkERPTheme.surface,
-            border: `1px solid ${darkERPTheme.border}`,
-            borderRadius: darkERPTheme.radius.md,
-            color: darkERPTheme.textPrimary,
-            padding: adornment ? '10px 12px 10px 32px' : '10px 12px',
-          }}
+          className={cn(
+            "w-full rounded-md border border-border bg-card text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background",
+            adornment ? "pl-8 pr-3 py-2.5" : "px-3 py-2.5"
+          )}
         />
       </div>
     </label>

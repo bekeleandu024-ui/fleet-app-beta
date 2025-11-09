@@ -127,19 +127,13 @@ export default function ActionCenter({ onOpenDetails }: ActionCenterProps) {
   };
 
   return (
-    <div
-      className="rounded-lg h-full flex flex-col"
-      style={{
-        backgroundColor: darkERPTheme.surface,
-        border: `1px solid ${darkERPTheme.border}`,
-      }}
-    >
+    <div className="flex h-full flex-col rounded-lg border border-border bg-card">
       {/* Header */}
-      <div className="px-6 py-4" style={{ borderBottom: `1px solid ${darkERPTheme.border}` }}>
-        <h2 className="text-base font-semibold" style={{ color: darkERPTheme.textPrimary }}>
+      <div className="border-b border-border px-6 py-4">
+        <h2 className="text-base font-semibold text-foreground">
           Action Center
         </h2>
-        <p className="text-sm mt-0.5" style={{ color: darkERPTheme.textMuted }}>
+        <p className="mt-0.5 text-sm text-muted-foreground">
           Optimization Insights
         </p>
       </div>
@@ -151,8 +145,7 @@ export default function ActionCenter({ onOpenDetails }: ActionCenterProps) {
             items.length > 0 && (
               <div
                 key={severity}
-                className="p-4"
-                style={{ borderBottom: `1px solid ${darkERPTheme.border}` }}
+                className="border-b border-border p-4"
               >
                 {/* Severity header */}
                 <div className="flex items-center justify-between mb-3">
@@ -171,24 +164,15 @@ export default function ActionCenter({ onOpenDetails }: ActionCenterProps) {
                     return (
                       <div
                         key={insight.id}
-                        className="p-3 rounded-lg"
-                        style={{
-                          backgroundColor: darkERPTheme.surface2,
-                          border: `1px solid ${darkERPTheme.border}`,
-                        }}
+                        className="rounded-lg border border-border bg-card p-3"
                       >
                         {/* Title + confidence */}
-                        <div className="flex items-start justify-between gap-2 mb-2">
-                          <h3 className="text-sm font-semibold flex-1" style={{ color: darkERPTheme.textPrimary }}>
+                        <div className="mb-2 flex items-start justify-between gap-2">
+                          <h3 className="flex-1 text-sm font-semibold text-foreground">
                             {insight.title}
                           </h3>
                           <span
-                            className="text-xs font-medium px-1.5 py-0.5 rounded"
-                            style={{
-                              color: darkERPTheme.textMuted,
-                              backgroundColor: darkERPTheme.surface,
-                              border: `1px solid ${darkERPTheme.border}`,
-                            }}
+                            className="rounded border border-border bg-card px-1.5 py-0.5 text-xs font-medium text-muted-foreground"
                             title={`${insight.confidencePercent}% confidence`}
                           >
                             {getConfidenceLabel(insight.confidence)}
@@ -196,18 +180,18 @@ export default function ActionCenter({ onOpenDetails }: ActionCenterProps) {
                         </div>
 
                         {/* Description */}
-                        <p className="text-xs mb-2 line-clamp-2" style={{ color: darkERPTheme.textMuted }}>
+                        <p className="mb-2 line-clamp-2 text-xs text-muted-foreground">
                           {insight.description}
                         </p>
 
                         {/* Impact */}
-                        <div className="flex items-center gap-1 mb-3">
+                        <div className="mb-3 flex items-center gap-1">
                           {insight.impact.type === "cost" ? (
-                            <DollarSign className="h-3 w-3" style={{ color: darkERPTheme.textMuted }} />
+                            <DollarSign className="h-3 w-3 text-muted-foreground" />
                           ) : (
-                            <Clock className="h-3 w-3" style={{ color: darkERPTheme.textMuted }} />
+                            <Clock className="h-3 w-3 text-muted-foreground" />
                           )}
-                          <span className="text-xs font-semibold" style={{ color: darkERPTheme.textPrimary }}>
+                          <span className="text-xs font-semibold text-foreground">
                             Impact: {insight.impact.value}
                           </span>
                         </div>
@@ -223,11 +207,7 @@ export default function ActionCenter({ onOpenDetails }: ActionCenterProps) {
                           </button>
                           <button
                             onClick={() => onOpenDetails(insight.id)}
-                            className="p-1.5 rounded transition-opacity hover:opacity-70"
-                            style={{
-                              color: darkERPTheme.textMuted,
-                              backgroundColor: darkERPTheme.surface,
-                            }}
+                            className="rounded bg-card p-1.5 text-muted-foreground transition-opacity hover:opacity-70"
                             title="View details"
                           >
                             <ChevronRight className="h-4 w-4" />
@@ -243,17 +223,11 @@ export default function ActionCenter({ onOpenDetails }: ActionCenterProps) {
       </div>
 
       {/* Footer - Stats */}
-      <div
-        className="px-6 py-3"
-        style={{
-          backgroundColor: darkERPTheme.surface2,
-          borderTop: `1px solid ${darkERPTheme.border}`,
-        }}
-      >
-        <div className="text-xs" style={{ color: darkERPTheme.textMuted }}>
+      <div className="border-t border-border bg-card px-6 py-3">
+        <div className="text-xs text-muted-foreground">
           <div className="flex items-center justify-between">
             <span>Total insights</span>
-            <span className="font-semibold" style={{ color: darkERPTheme.textPrimary }}>
+            <span className="font-semibold text-foreground">
               {insights.length}
             </span>
           </div>

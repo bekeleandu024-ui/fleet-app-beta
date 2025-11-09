@@ -96,28 +96,20 @@ export default function LeftNavigationRail() {
   return (
     <nav
       className={clsx(
-        "h-screen transition-all duration-300 flex flex-col",
+        "flex h-screen flex-col border-r border-border bg-card transition-all duration-300",
         collapsed ? "w-16" : "w-64"
       )}
-      style={{
-        backgroundColor: darkERPTheme.surface,
-        borderRight: `1px solid ${darkERPTheme.border}`,
-      }}
     >
       {/* Logo area */}
-      <div
-        className="flex items-center justify-between px-4"
-        style={{ height: '72px', borderBottom: `1px solid ${darkERPTheme.border}` }}
-      >
+      <div className="flex h-[72px] items-center justify-between border-b border-border px-4">
         {!collapsed && (
-          <span className="text-lg font-semibold" style={{ color: darkERPTheme.textPrimary }}>
+          <span className="text-lg font-semibold text-foreground">
             FleetOps
           </span>
         )}
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="p-1.5 rounded transition-opacity hover:opacity-70"
-          style={{ color: darkERPTheme.textMuted }}
+          className="rounded p-1.5 text-muted-foreground transition-opacity hover:opacity-70"
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
           {collapsed ? (
@@ -133,11 +125,8 @@ export default function LeftNavigationRail() {
         {navGroups.map((group, groupIndex) => (
           <div key={groupIndex} className="mb-6">
               {!collapsed && (
-                <div className="px-4 mb-2">
-                  <span
-                    className="text-xs font-medium uppercase tracking-wider"
-                    style={{ color: darkERPTheme.textMuted }}
-                  >
+                <div className="mb-2 px-4">
+                  <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
                     {group.title}
                   </span>
                 </div>
@@ -147,16 +136,16 @@ export default function LeftNavigationRail() {
                 <button
                   key={itemIndex}
                   onClick={() => setActiveItem(item.href)}
-                  className="w-full flex items-center gap-3 px-3 py-2 rounded text-sm font-medium transition-colors"
+                  className={clsx(
+                    "flex w-full items-center gap-3 rounded px-3 py-2 text-sm font-medium transition-colors",
+                    activeItem === item.href
+                      ? "text-background"
+                      : "text-muted-foreground hover:bg-card/70 hover:text-foreground"
+                  )}
                   style={
                     activeItem === item.href
-                      ? {
-                          backgroundColor: darkERPTheme.brandAccent,
-                          color: '#FFFFFF',
-                        }
-                      : {
-                          color: darkERPTheme.textMuted,
-                        }
+                      ? { backgroundColor: darkERPTheme.brandAccent }
+                      : undefined
                   }
                   title={collapsed ? item.label : undefined}
                 >
@@ -192,14 +181,13 @@ export default function LeftNavigationRail() {
 
       {/* Footer - version/help */}
       {!collapsed && (
-        <div className="p-4" style={{ borderTop: `1px solid ${darkERPTheme.border}` }}>
-          <div className="text-xs" style={{ color: darkERPTheme.textMuted }}>
+        <div className="border-t border-border p-4">
+          <div className="text-xs text-muted-foreground">
             <div>Version 2.4.0</div>
             <div className="mt-1">
               <a
                 href="#"
-                className="hover:underline hover-accent"
-                style={{ color: darkERPTheme.textPrimary }}
+                className="text-foreground hover:underline"
               >
                 Help & Support
               </a>

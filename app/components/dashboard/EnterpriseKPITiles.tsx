@@ -95,33 +95,17 @@ function KPITile({ label, value, unit, target, delta, sparklineData }: KPITilePr
     : `${darkERPTheme.textMuted}20`;
 
   return (
-    <div
-      className="rounded-md text-left transition-all"
-      style={{
-        backgroundColor: darkERPTheme.surface,
-        border: `1px solid ${darkERPTheme.border}`,
-        padding: "20px",
-        minHeight: "160px",
-      }}
-    >
+  <div className="min-h-40 rounded-md border border-border bg-card p-5 text-left transition-all">
       {/* Label */}
   <div className="flex items-start justify-between mb-3">
         <div>
-          <div
-            className="text-xs font-medium uppercase tracking-wide"
-            style={{ color: darkERPTheme.textMuted }}
-          >
+          <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
             {label}
           </div>
         </div>
         {target && (
           <span
-            className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded"
-            style={{
-              backgroundColor: darkERPTheme.surface2,
-              color: darkERPTheme.textMuted,
-              border: `1px solid ${darkERPTheme.border}`,
-            }}
+            className="inline-flex items-center gap-1 rounded border border-border bg-card px-2 py-1 text-xs font-medium text-muted-foreground"
           >
             Target {target}
           </span>
@@ -130,11 +114,11 @@ function KPITile({ label, value, unit, target, delta, sparklineData }: KPITilePr
 
       {/* Value */}
       <div className="flex items-baseline gap-1 mb-2">
-        <span className="text-3xl font-bold" style={{ color: darkERPTheme.textPrimary }}>
+        <span className="text-3xl font-bold text-foreground">
           {formattedValue}
         </span>
         {displayUnit && (
-          <span className="text-sm font-medium" style={{ color: darkERPTheme.textMuted }}>
+          <span className="text-sm font-medium text-muted-foreground">
             {displayUnit}
           </span>
         )}
@@ -181,7 +165,7 @@ function KPITile({ label, value, unit, target, delta, sparklineData }: KPITilePr
             )}
             {deltaLabel}
           </span>
-          <span className="text-xs" style={{ color: darkERPTheme.textMuted }}>
+          <span className="text-xs text-muted-foreground">
             {delta.period}
           </span>
         </div>
