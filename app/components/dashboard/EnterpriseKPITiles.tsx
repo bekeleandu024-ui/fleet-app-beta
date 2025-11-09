@@ -71,7 +71,7 @@ export default function EnterpriseKPITiles() {
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
       {kpis.map((kpi, index) => (
         <KPITile key={index} {...kpi} />
       ))}
@@ -96,16 +96,16 @@ function KPITile({ label, value, unit, target, delta, sparklineData }: KPITilePr
 
   return (
     <div
-      className="rounded-2xl text-left transition-all"
+      className="rounded-md text-left transition-all"
       style={{
         backgroundColor: darkERPTheme.surface,
         border: `1px solid ${darkERPTheme.border}`,
-        padding: "32px",
-        minHeight: "240px",
+        padding: "20px",
+        minHeight: "160px",
       }}
     >
       {/* Label */}
-      <div className="flex items-start justify-between mb-4">
+  <div className="flex items-start justify-between mb-3">
         <div>
           <div
             className="text-xs font-medium uppercase tracking-wide"
@@ -149,10 +149,10 @@ function KPITile({ label, value, unit, target, delta, sparklineData }: KPITilePr
               data={sparklineData.map((val) => ({ value: val }))}
               margin={{ top: 2, right: 2, bottom: 2, left: 2 }}
             >
-              <Line
+                <Line
                 type="monotone"
                 dataKey="value"
-                stroke={darkERPTheme.brandAccent}
+                stroke={darkERPTheme.hoverAccent}
                 strokeWidth={2}
                 dot={false}
                 isAnimationActive={false}
@@ -164,9 +164,9 @@ function KPITile({ label, value, unit, target, delta, sparklineData }: KPITilePr
 
       {/* Delta */}
       {delta && (
-        <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3 mt-3">
           <span
-            className="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full"
+            className="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded"
             style={{
               backgroundColor: deltaBackground,
               color: trendColor,
@@ -182,7 +182,7 @@ function KPITile({ label, value, unit, target, delta, sparklineData }: KPITilePr
             {deltaLabel}
           </span>
           <span className="text-xs" style={{ color: darkERPTheme.textMuted }}>
-            Compared to last {delta.period}
+            {delta.period}
           </span>
         </div>
       )}

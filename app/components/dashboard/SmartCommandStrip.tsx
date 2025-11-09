@@ -47,18 +47,19 @@ export default function SmartCommandStrip() {
 
   return (
     <section
-      className="mb-8"
+      className="mb-6"
       style={{
         border: `1px solid ${darkERPTheme.border}`,
         backgroundColor: darkERPTheme.surface,
-        borderRadius: darkERPTheme.radius.lg,
-        padding: '24px',
+        borderRadius: darkERPTheme.radius.md,
+        padding: '16px',
       }}
     >
-      <div className="flex flex-col xl:flex-row gap-6">
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-stretch">
         {/* Instant Summaries (ATLAS API) */}
-        <div className="flex flex-col gap-3 xl:w-72">
-          <SummaryCard
+        <div className="xl:w-[32rem]">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <SummaryCard
             title="Internal Intel"
             subtitle="Powered by ATLAS lane memory"
           >
@@ -67,48 +68,49 @@ export default function SmartCommandStrip() {
             <SummaryRow label="Cost band" value="$2.1k – $2.6k" />
           </SummaryCard>
 
-          <SummaryCard title="Market Snapshot" subtitle="Live market + HERE traffic">
-            <SummaryRow
-              label="Drive time"
-              value="8h 45m"
-              valueColor={darkERPTheme.textPrimary}
-            />
-            <SummaryRow
-              label="Traffic advisory"
-              value="Watch: I-94 slowdowns"
-              valueColor={darkERPTheme.severity.watch}
-            />
-            <SummaryRow
-              label="Spot rate band"
-              value="$2.38 – $2.71 / mile"
-              valueColor={darkERPTheme.severity.risk}
-            />
-          </SummaryCard>
+            <SummaryCard title="Market Snapshot" subtitle="Live market + HERE traffic">
+              <SummaryRow
+                label="Drive time"
+                value="8h 45m"
+                valueColor={darkERPTheme.textPrimary}
+              />
+              <SummaryRow
+                label="Traffic advisory"
+                value="Watch: I-94 slowdowns"
+                valueColor={darkERPTheme.severity.watch}
+              />
+              <SummaryRow
+                label="Spot rate band"
+                value="$2.38 – $2.71 / mile"
+                valueColor={darkERPTheme.severity.risk}
+              />
+            </SummaryCard>
 
-          <SummaryCard title="Next Best Actions" subtitle="Based on current lane demand">
-            <div className="flex flex-col gap-2">
-              {['Create Quote', 'Book Trip', 'Open Lane Report'].map((cta) => (
-                <button
-                  key={cta}
-                  className="w-full flex items-center justify-between px-4 py-2 text-sm font-medium rounded"
-                  style={{
-                    backgroundColor: darkERPTheme.surface,
-                    border: `1px solid ${darkERPTheme.border}`,
-                    color: darkERPTheme.brandAccent,
-                  }}
-                  type="button"
-                >
-                  <span>{cta}</span>
-                  <ArrowRight className="h-3.5 w-3.5" />
-                </button>
-              ))}
-            </div>
-          </SummaryCard>
+            <SummaryCard title="Next Best Actions" subtitle="Based on current lane demand">
+              <div className="flex flex-col gap-2">
+                {['Create Quote', 'Book Trip', 'Open Lane Report'].map((cta) => (
+                  <button
+                    key={cta}
+                    className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold rounded"
+                    style={{
+                      backgroundColor: darkERPTheme.surface,
+                      border: `1px solid ${darkERPTheme.border}`,
+                      color: darkERPTheme.textPrimary,
+                    }}
+                    type="button"
+                  >
+                    <span>{cta}</span>
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </button>
+                ))}
+              </div>
+            </SummaryCard>
+          </div>
         </div>
 
         {/* Live Map (HERE API placeholder) */}
         <div
-          className="flex-1 min-h-[224px] relative overflow-hidden"
+          className="flex-1 min-h-[180px] relative overflow-hidden"
           style={{
             backgroundColor: darkERPTheme.surface2,
             border: `1px solid ${darkERPTheme.border}`,
@@ -117,7 +119,7 @@ export default function SmartCommandStrip() {
         >
           <div className="absolute inset-0 opacity-20" style={{ background: 'radial-gradient(circle at 20% 20%, rgba(58,123,219,0.3), transparent)' }} />
           <div className="absolute inset-0 flex flex-col justify-center items-center gap-3 text-center px-8">
-            <MapPin className="h-10 w-10" style={{ color: darkERPTheme.brandAccent }} />
+            <MapPin className="h-10 w-10" style={{ color: darkERPTheme.textMuted }} />
             <p className="text-sm" style={{ color: darkERPTheme.textMuted }}>
               HERE Maps placeholder. Render real-time corridor highlights, ETA, and active trips once the query is submitted.
             </p>
@@ -129,10 +131,10 @@ export default function SmartCommandStrip() {
         </div>
 
         {/* Quick Search */}
-        <div className="xl:w-[360px]">
+        <div className="xl:w-[320px]">
           <form
             onSubmit={handleSubmit}
-            className="h-full flex flex-col gap-4"
+            className="h-full flex flex-col gap-3"
             aria-label="Smart command quick search"
           >
             <div className="flex items-center justify-between">
@@ -144,15 +146,7 @@ export default function SmartCommandStrip() {
               </span>
             </div>
 
-            <div
-              className="flex gap-2"
-              style={{
-                backgroundColor: darkERPTheme.surface2,
-                border: `1px solid ${darkERPTheme.border}`,
-                borderRadius: darkERPTheme.radius.md,
-                padding: '16px',
-              }}
-            >
+            <div className="flex gap-2">
               <SegmentInput
                 id="origin"
                 label="Origin"
@@ -198,15 +192,15 @@ export default function SmartCommandStrip() {
                         setEntityQuery(suggestion);
                       }
                     }}
-                    className="flex items-center justify-between px-4 py-2 text-sm rounded"
+                    className="flex items-center justify-between px-3 py-2 text-xs rounded"
                     style={{
                       backgroundColor: darkERPTheme.surface,
                       border: `1px solid ${darkERPTheme.border}`,
-                      color: darkERPTheme.textPrimary,
+                      color: darkERPTheme.textMuted,
                     }}
                   >
                     <span>{suggestion}</span>
-                    <ArrowRight className="h-3.5 w-3.5" style={{ color: darkERPTheme.brandAccent }} />
+                    <ArrowRight className="h-3.5 w-3.5" style={{ color: darkERPTheme.textMuted }} />
                   </button>
                 ))}
               </div>
@@ -219,10 +213,10 @@ export default function SmartCommandStrip() {
               </div>
               <button
                 type="submit"
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded"
+                className="inline-flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded"
                 style={{
                   backgroundColor: darkERPTheme.brandAccent,
-                  color: '#0F1422',
+                  color: '#070A12',
                 }}
                 disabled={isSubmitting}
               >
@@ -250,7 +244,7 @@ function SummaryCard({ title, subtitle, children }: SummaryCardProps) {
         backgroundColor: darkERPTheme.surface2,
         border: `1px solid ${darkERPTheme.border}`,
         borderRadius: darkERPTheme.radius.md,
-        padding: '16px',
+        padding: '12px',
       }}
     >
       <div className="flex flex-col gap-1 mb-3">
@@ -296,7 +290,7 @@ interface SegmentInputProps {
 function SegmentInput({ id, label, placeholder, value, onFocus, onChange, adornment }: SegmentInputProps) {
   return (
     <label htmlFor={id} className="flex-1 flex flex-col gap-2">
-      <span className="text-xs font-medium uppercase tracking-wide" style={{ color: darkERPTheme.textMuted }}>
+      <span className="text-[10px] font-medium uppercase tracking-wide" style={{ color: darkERPTheme.textMuted }}>
         {label}
       </span>
       <div className="relative">

@@ -121,7 +121,7 @@ export default function TopBar() {
                       borderRadius: darkERPTheme.radius.lg,
                       backgroundColor: darkERPTheme.surface2,
                       border: `1px solid ${darkERPTheme.border}`,
-                      color: darkERPTheme.brandAccent,
+                      color: darkERPTheme.textPrimary,
                     }}
                   >
                     <span>
@@ -161,7 +161,7 @@ export default function TopBar() {
         <div className="h-0.5 w-full overflow-hidden">
           <div
             className="h-full w-full animate-pulse"
-            style={{ backgroundColor: darkERPTheme.brandAccent, opacity: 0.65 }}
+            style={{ backgroundColor: darkERPTheme.hoverAccent, opacity: 0.65 }}
           />
         </div>
       )}

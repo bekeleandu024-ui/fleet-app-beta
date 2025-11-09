@@ -130,7 +130,7 @@ export default function ExceptionsTable() {
     >
       {/* Header */}
       <div
-        className="px-6 py-4 flex items-center justify-between"
+        className="px-4 py-3 flex items-center justify-between"
         style={{ borderBottom: `1px solid ${darkERPTheme.border}` }}
       >
         <div>
@@ -185,7 +185,7 @@ export default function ExceptionsTable() {
         <table className="w-full">
           <thead style={{ backgroundColor: darkERPTheme.surface2, borderBottom: `1px solid ${darkERPTheme.border}` }}>
             <tr>
-              <th className="w-12 px-6 py-3 text-left">
+              <th className="w-12 px-4 py-2 text-left">
                 <input
                   type="checkbox"
                   checked={selectedRows.length === exceptions.length}
@@ -193,31 +193,31 @@ export default function ExceptionsTable() {
                   className="rounded"
                 />
               </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: darkERPTheme.textMuted }}>
+              <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: darkERPTheme.textMuted }}>
                 Order/Trip
               </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: darkERPTheme.textMuted }}>
+              <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: darkERPTheme.textMuted }}>
                 <button className="flex items-center gap-1 hover:opacity-80">
                   Issue
                   <ArrowUpDown className="h-3 w-3" />
                 </button>
               </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: darkERPTheme.textMuted }}>
+              <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: darkERPTheme.textMuted }}>
                 Severity
               </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: darkERPTheme.textMuted }}>
+              <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: darkERPTheme.textMuted }}>
                 ETA Impact
               </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: darkERPTheme.textMuted }}>
+              <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: darkERPTheme.textMuted }}>
                 Owner
               </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: darkERPTheme.textMuted }}>
+              <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: darkERPTheme.textMuted }}>
                 <button className="flex items-center gap-1 hover:opacity-80">
                   SLA
                   <ArrowUpDown className="h-3 w-3" />
                 </button>
               </th>
-              <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider" style={{ color: darkERPTheme.textMuted }}>
+              <th className="px-4 py-2 text-right text-xs font-semibold uppercase tracking-wider" style={{ color: darkERPTheme.textMuted }}>
                 Action
               </th>
             </tr>
@@ -235,7 +235,7 @@ export default function ExceptionsTable() {
                   }}
                   onClick={() => toggleRowSelection(exception.id)}
                 >
-                  <td className="px-6 py-4">
+                  <td className="px-4 py-2">
                     <input
                       type="checkbox"
                       checked={selectedRows.includes(exception.id)}
@@ -244,17 +244,17 @@ export default function ExceptionsTable() {
                       className="rounded"
                     />
                   </td>
-                  <td className="px-6 py-4">
-                    <span className="text-sm font-medium hover:underline" style={{ color: darkERPTheme.brandAccent }}>
+                  <td className="px-4 py-2">
+                    <span className="text-sm font-medium hover:underline hover-accent" style={{ color: darkERPTheme.textPrimary }}>
                       {exception.orderTrip}
                     </span>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-4 py-2">
                     <span className="text-sm" style={{ color: darkERPTheme.textPrimary }}>
                       {exception.issue}
                     </span>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-4 py-2">
                     <span
                       className="inline-flex px-2 py-1 text-xs font-medium rounded"
                       style={{
@@ -265,17 +265,17 @@ export default function ExceptionsTable() {
                       {getSeverityLabel(exception.severity)}
                     </span>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-4 py-2">
                     <span className="text-sm font-medium" style={{ color: darkERPTheme.textPrimary }}>
                       {exception.etaImpact}
                     </span>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-4 py-2">
                     <span className="text-sm" style={{ color: darkERPTheme.textMuted }}>
                       {exception.owner}
                     </span>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-4 py-2">
                     <span
                       className="text-sm font-medium"
                       style={{
@@ -290,7 +290,7 @@ export default function ExceptionsTable() {
                       {exception.sla}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-right">
+                  <td className="px-4 py-2 text-right">
                     <button
                       onClick={(e) => {
                         e.stopPropagation();

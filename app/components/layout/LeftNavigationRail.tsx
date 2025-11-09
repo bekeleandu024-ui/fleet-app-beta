@@ -98,8 +98,8 @@ export default function LeftNavigationRail() {
     >
       {/* Logo area */}
       <div
-        className="h-16 flex items-center justify-between px-4"
-        style={{ borderBottom: `1px solid ${darkERPTheme.border}` }}
+        className="flex items-center justify-between px-4"
+        style={{ height: '72px', borderBottom: `1px solid ${darkERPTheme.border}` }}
       >
         {!collapsed && (
           <span className="text-lg font-semibold" style={{ color: darkERPTheme.textPrimary }}>
@@ -124,16 +124,16 @@ export default function LeftNavigationRail() {
       <div className="flex-1 overflow-y-auto py-4">
         {navGroups.map((group, groupIndex) => (
           <div key={groupIndex} className="mb-6">
-            {!collapsed && (
-              <div className="px-4 mb-2">
-                <span
-                  className="text-xs font-medium uppercase tracking-wider"
-                  style={{ color: darkERPTheme.textMuted }}
-                >
-                  {group.title}
-                </span>
-              </div>
-            )}
+              {!collapsed && (
+                <div className="px-4 mb-2">
+                  <span
+                    className="text-xs font-medium uppercase tracking-wider"
+                    style={{ color: darkERPTheme.textMuted }}
+                  >
+                    {group.title}
+                  </span>
+                </div>
+              )}
             <div className="space-y-1 px-2">
               {group.items.map((item, itemIndex) => (
                 <button
@@ -153,22 +153,22 @@ export default function LeftNavigationRail() {
                   title={collapsed ? item.label : undefined}
                 >
                   {item.icon}
-                  {!collapsed && (
-                    <>
-                      <span className="flex-1 text-left">{item.label}</span>
-                      {item.badge && (
-                        <span
-                          className="px-2 py-0.5 text-xs font-semibold rounded-full"
-                          style={{
-                            backgroundColor: darkERPTheme.severity.breach,
-                            color: '#FFFFFF',
-                          }}
-                        >
-                          {item.badge}
-                        </span>
+                      {!collapsed && (
+                        <>
+                          <span className="flex-1 text-left">{item.label}</span>
+                          {item.badge && (
+                            <span
+                              className="px-2 py-0.5 text-xs font-semibold rounded-full"
+                              style={{
+                                backgroundColor: darkERPTheme.severity.breach,
+                                color: '#FFFFFF',
+                              }}
+                            >
+                              {item.badge}
+                            </span>
+                          )}
+                        </>
                       )}
-                    </>
-                  )}
                   {collapsed && item.badge && (
                     <span
                       className="absolute right-1 top-1 h-2 w-2 rounded-full"
@@ -188,7 +188,11 @@ export default function LeftNavigationRail() {
           <div className="text-xs" style={{ color: darkERPTheme.textMuted }}>
             <div>Version 2.4.0</div>
             <div className="mt-1">
-              <a href="#" className="hover:underline" style={{ color: darkERPTheme.brandAccent }}>
+              <a
+                href="#"
+                className="hover:underline hover-accent"
+                style={{ color: darkERPTheme.textPrimary }}
+              >
                 Help & Support
               </a>
             </div>

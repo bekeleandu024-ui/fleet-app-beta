@@ -60,7 +60,7 @@ export default function Home() {
               backgroundColor: darkERPTheme.bg,
             }}
           >
-            <div className="sticky top-0 h-screen">
+            <div className="sticky" style={{ top: '72px', height: 'calc(100vh - 72px)' }}>
               <ActionCenter onOpenDetails={handleOpenDetails} />
             </div>
           </aside>
@@ -77,13 +77,13 @@ export default function Home() {
           <div className="flex items-center justify-between text-xs" style={{ color: darkERPTheme.textMuted }}>
             <p>© {new Date().getFullYear()} FleetOps Enterprise. All rights reserved.</p>
             <div className="flex items-center gap-4">
-              <a href="#" className="hover:opacity-80" style={{ color: darkERPTheme.brandAccent }}>
+              <a href="#" className="hover:opacity-80 hover-accent" style={{ color: darkERPTheme.textPrimary }}>
                 Help
               </a>
-              <a href="#" className="hover:opacity-80" style={{ color: darkERPTheme.brandAccent }}>
+              <a href="#" className="hover:opacity-80 hover-accent" style={{ color: darkERPTheme.textPrimary }}>
                 Privacy
               </a>
-              <a href="#" className="hover:opacity-80" style={{ color: darkERPTheme.brandAccent }}>
+              <a href="#" className="hover:opacity-80 hover-accent" style={{ color: darkERPTheme.textPrimary }}>
                 Terms
               </a>
             </div>

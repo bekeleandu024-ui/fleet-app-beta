@@ -1,17 +1,18 @@
 // FleetOps Dark ERP Theme Configuration
 export const darkERPTheme = {
   // Dark ERP Base Colors
-  bg: '#0F1422',           // midnight blue background
-  surface: '#151B2E',       // primary surface
-  surface2: '#1A2136',      // secondary surface
-  border: 'rgba(255,255,255,0.08)', // subtle borders
+  bg: '#070A12',           // near-black base
+  surface: '#0C111C',       // dense graphite primary surface
+  surface2: '#121A2A',      // secondary surface with minimal blue tint
+    border: 'rgba(255,255,255,0.04)', // very subtle borders
   
   // Typography
   textPrimary: '#E8ECF6',
   textMuted: '#A8B2C6',
   
   // Brand Accent
-  brandAccent: '#3A7BDB',   // links, focus, chips
+    brandAccent: '#7F8AA3',   // muted accent used for static elements (keeps UI dark)
+    hoverAccent: '#3A7BDB',   // pure blue used only for hover/interactive highlights
   
   // Severity Scale (use for pills, bars, deltas only)
   severity: {
@@ -23,9 +24,9 @@ export const darkERPTheme = {
   
   // Radii
   radius: {
-    sm: '10px',
-    md: '12px',
-    lg: '14px',
+     sm: '8px',
+     md: '10px',
+     lg: '12px',
   },
 };
 
@@ -48,7 +49,7 @@ export const spacing = {
 export const sp = (multiplier: number) => `${spacing.base * multiplier}px`;
 
 export const shadows = {
-  subtle: '0 1px 2px rgba(0,0,0,0.2)',
-  card: '0 2px 4px rgba(0,0,0,0.3)',
-  elevated: '0 4px 8px rgba(0,0,0,0.4)',
+  subtle: '0 1px 2px rgba(0,0,0,0.5)',
+  card: '0 2px 6px rgba(0,0,0,0.5)',
+  elevated: '0 6px 12px rgba(0,0,0,0.55)',
 };
