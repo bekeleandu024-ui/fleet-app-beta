@@ -75,12 +75,12 @@ export default function LiveMapView() {
       </div>
 
       {/* Map Placeholder - In production, integrate Mapbox or Google Maps */}
-      <div className="relative h-[500px] bg-gradient-to-br from-blue-50 to-gray-100">
+  <div className="relative h-[500px] bg-linear-to-br from-primary/20 to-muted">
         {/* Map background pattern */}
         <div className="absolute inset-0 opacity-10">
-          <svg width="100%" height="100%">
+          <svg width="100%" height="100%" className="h-full w-full text-muted-foreground">
             <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-              <path d="M 40 0 L 0 0 0 40" fill="none" stroke="gray" strokeWidth="1" />
+              <path d="M 40 0 L 0 0 0 40" fill="none" stroke="currentColor" strokeWidth="1" />
             </pattern>
             <rect width="100%" height="100%" fill="url(#grid)" />
           </svg>
