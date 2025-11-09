@@ -78,22 +78,22 @@ export default function TrackingPage() {
   const focusTripIds = filteredTrips.map((trip) => trip.id);
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-[#050814] text-slate-100">
-      <header className="flex items-start justify-between border-b border-slate-800/60 px-8 py-6">
+    <div className="flex h-screen flex-col overflow-hidden bg-background text-foreground">
+      <header className="flex items-start justify-between border-b border-border px-8 py-6">
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-semibold tracking-tight text-white">Live Tracking</h1>
+            <h1 className="text-2xl font-semibold tracking-tight text-foreground">Live Tracking</h1>
             <Badge className="bg-rose-500/90 text-xs uppercase tracking-wider text-white">Live</Badge>
             <Badge className="bg-emerald-500/20 text-xs uppercase tracking-wider text-emerald-200 border border-emerald-400/40">
               AI Assisted
             </Badge>
           </div>
-          <p className="max-w-2xl text-sm text-slate-400">
+          <p className="max-w-2xl text-sm text-muted-foreground">
             Monitor every active trip in real-time, keep tabs on at-risk freight, and react to AI-powered alerts before customers feel the impact.
           </p>
         </div>
-        <div className="hidden text-right text-xs text-slate-400 lg:block">
-          <p className="font-semibold uppercase tracking-wide text-slate-300">Network Watch</p>
+        <div className="hidden text-right text-xs text-muted-foreground lg:block">
+          <p className="font-semibold uppercase tracking-wide text-foreground/80">Network Watch</p>
           <p>{NETWORK_PREDICTION.trendingRisk}</p>
         </div>
       </header>
@@ -119,21 +119,21 @@ export default function TrackingPage() {
                 prediction={NETWORK_PREDICTION}
               />
             </div>
-            <div className="pointer-events-none absolute inset-0 border border-slate-800/40" aria-hidden />
+            <div className="pointer-events-none absolute inset-0 border border-border/60" aria-hidden />
           </div>
 
           <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {AI_FEATURES.map((feature) => (
               <Card
                 key={feature.id}
-                className="border-slate-800/70 bg-[#0b1328] text-slate-200"
+                className="border border-border/70 bg-card/90 text-foreground"
               >
                 <CardHeader className="space-y-2">
-                  <CardTitle className="flex items-center gap-3 text-base text-white">
+                  <CardTitle className="flex items-center gap-3 text-base text-foreground">
                     <span className="text-xl" aria-hidden>{feature.emoji}</span>
                     {feature.label}
                   </CardTitle>
-                  <CardDescription className="text-sm text-slate-400">
+                  <CardDescription className="text-sm text-muted-foreground">
                     {feature.description}
                   </CardDescription>
                 </CardHeader>
@@ -141,32 +141,32 @@ export default function TrackingPage() {
             ))}
           </div>
 
-          <Card className="mt-6 border-slate-800/70 bg-[#0b1328] text-slate-200">
+          <Card className="mt-6 border border-border/70 bg-card/90 text-foreground">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-white">
+              <CardTitle className="flex items-center gap-2 text-foreground">
                 Network Watchlist
                 <Badge className="bg-amber-400/20 text-amber-200 border border-amber-400/40">
                   {riskTrips.length} at-risk
                 </Badge>
               </CardTitle>
-              <CardDescription className="text-slate-400">
+              <CardDescription className="text-muted-foreground">
                 {NETWORK_PREDICTION.narrative}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {riskTrips.length === 0 && (
-                <p className="text-sm text-slate-400">No at-risk shipments at the moment.</p>
+                <p className="text-sm text-muted-foreground">No at-risk shipments at the moment.</p>
               )}
               {riskTrips.map((trip) => (
                 <div
                   key={`risk-${trip.id}`}
-                  className="rounded-lg border border-slate-800/70 bg-slate-900/40 p-4"
+                  className="rounded-lg border border-border/70 bg-card/80 p-4"
                 >
-                  <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-white">
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-foreground">
                     <span className="font-semibold">{trip.orderId}</span>
-                    <span className="text-xs text-slate-400">ETA {trip.eta}</span>
+                    <span className="text-xs text-muted-foreground">ETA {trip.eta}</span>
                   </div>
-                  <p className="mt-1 text-xs text-slate-400">
+                  <p className="mt-1 text-xs text-muted-foreground">
                     {trip.route.origin} → {trip.route.destination} · {trip.speedMph} mph · {trip.route.milesRemaining} miles remaining
                   </p>
                   <p className="mt-3 text-sm text-amber-200">{trip.aiPrediction}</p>

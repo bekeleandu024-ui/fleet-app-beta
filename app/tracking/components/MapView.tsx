@@ -53,7 +53,7 @@ export function MapView({
   const dimNonFocused = focusSet.size > 0 && focusSet.size !== trips.length;
 
   return (
-    <div className="relative h-full w-full overflow-hidden rounded-lg border border-slate-800/60 bg-[#050b1a]">
+    <div className="relative h-full w-full overflow-hidden rounded-lg border border-border bg-card">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(30,64,175,0.35),_transparent_55%)]" />
       <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[length:80px_80px] opacity-40" />
 
@@ -71,7 +71,7 @@ export function MapView({
         ).map((key) => (
           <div
             key={key}
-            className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs uppercase tracking-wide text-slate-100"
+            className="flex items-center gap-2 rounded-full border border-border/60 bg-card/80 px-3 py-1 text-xs uppercase tracking-wide text-foreground/80"
           >
             <span
               className={cn("h-2.5 w-2.5 rounded-full", {
@@ -92,7 +92,7 @@ export function MapView({
           onClick={onToggleTraffic}
           aria-pressed={showTraffic}
           className={cn(
-            "border-slate-500/60 bg-slate-900/70 text-slate-100 hover:bg-slate-800/70",
+            "border border-border bg-card/80 text-foreground hover:bg-card/90",
             showTraffic && "bg-emerald-500 text-slate-900 hover:bg-emerald-400"
           )}
         >
@@ -104,7 +104,7 @@ export function MapView({
           onClick={onToggleWeather}
           aria-pressed={showWeather}
           className={cn(
-            "border-slate-500/60 bg-slate-900/70 text-slate-100 hover:bg-slate-800/70",
+            "border border-border bg-card/80 text-foreground hover:bg-card/90",
             showWeather && "bg-sky-400 text-slate-900 hover:bg-sky-300"
           )}
         >
@@ -151,14 +151,14 @@ export function MapView({
             type="button"
             onClick={() => onSelectTrip(trip.id)}
             className={cn(
-              "group absolute -translate-x-1/2 -translate-y-full rounded-lg border px-3 py-2 text-left text-xs font-medium text-slate-100 shadow-lg transition-all",
-              "border-slate-800/70 bg-slate-900/75 backdrop-blur",
-              isSelected && "border-white/70 bg-slate-900/90 shadow-emerald-400/40",
+              "group absolute -translate-x-1/2 -translate-y-full rounded-lg border px-3 py-2 text-left text-xs font-medium text-foreground shadow-lg transition-all",
+              "border-border bg-card/90 backdrop-blur",
+              isSelected && "ring-1 ring-ring bg-card",
               shouldDim && "opacity-45"
             )}
             style={{ left: `${trip.position.x}%`, top: `${trip.position.y}%` }}
           >
-            <div className="flex items-center justify-between gap-2 text-[11px] uppercase tracking-wide text-slate-300">
+            <div className="flex items-center justify-between gap-2 text-[11px] uppercase tracking-wide text-foreground/80">
               <span>{trip.orderId}</span>
               <Badge
                 variant="outline"
@@ -170,9 +170,9 @@ export function MapView({
                 {STATUS_LABEL[trip.status]}
               </Badge>
             </div>
-            <div className="mt-1 text-[13px] font-semibold text-white">{trip.driverName}</div>
-            <div className="text-[11px] text-slate-400">{trip.locationSummary}</div>
-            <div className="mt-1 flex items-center justify-between text-[11px] text-slate-300">
+            <div className="mt-1 text-[13px] font-semibold text-foreground">{trip.driverName}</div>
+            <div className="text-[11px] text-muted-foreground">{trip.locationSummary}</div>
+            <div className="mt-1 flex items-center justify-between text-[11px] text-foreground/80">
               <span>{trip.speedMph} mph</span>
               <span>ETA {trip.eta}</span>
             </div>
@@ -180,9 +180,9 @@ export function MapView({
         );
       })}
 
-      <div className="pointer-events-none absolute bottom-4 left-4 max-w-xs rounded-lg border border-white/10 bg-white/5 p-4 text-xs text-slate-100 shadow-lg">
-        <p className="text-[11px] uppercase tracking-wider text-slate-300">AI Network Synopsis</p>
-        <p className="mt-2 leading-relaxed text-slate-100">
+      <div className="pointer-events-none absolute bottom-4 left-4 max-w-xs rounded-lg border border-border/60 bg-card/80 p-4 text-xs text-foreground shadow-lg">
+        <p className="text-[11px] uppercase tracking-wider text-foreground/80">AI Network Synopsis</p>
+        <p className="mt-2 leading-relaxed text-foreground">
           Watching weather system near Des Moines and construction along I-35. Recommendations will auto-refresh every 2 minutes.
         </p>
       </div>

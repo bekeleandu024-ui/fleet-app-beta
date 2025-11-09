@@ -97,17 +97,6 @@ export default function ExceptionsTable() {
     }
   };
 
-  const getSLAStyles = (status: Exception["slaStatus"]) => {
-    switch (status) {
-      case "breach":
-        return "text-red-600 font-semibold";
-      case "warning":
-        return "text-yellow-600 font-semibold";
-      case "good":
-        return "text-gray-600";
-    }
-  };
-
   const toggleRowSelection = (id: string) => {
     setSelectedRows((prev) =>
       prev.includes(id) ? prev.filter((rowId) => rowId !== id) : [...prev, id]
@@ -121,58 +110,34 @@ export default function ExceptionsTable() {
   };
 
   return (
-    <div
-      className="rounded-lg"
-      style={{
-        backgroundColor: darkERPTheme.surface,
-        border: `1px solid ${darkERPTheme.border}`,
-      }}
-    >
+    <div className="rounded-lg border border-border bg-card">
       {/* Header */}
-      <div
-        className="px-4 py-3 flex items-center justify-between"
-        style={{ borderBottom: `1px solid ${darkERPTheme.border}` }}
-      >
+      <div className="flex items-center justify-between border-b border-border px-4 py-3">
         <div>
-          <h2 className="text-base font-semibold" style={{ color: darkERPTheme.textPrimary }}>
+          <h2 className="text-base font-semibold text-foreground">
             Exceptions at a Glance
           </h2>
-          <p className="text-sm mt-0.5" style={{ color: darkERPTheme.textMuted }}>
+          <p className="mt-0.5 text-sm text-muted-foreground">
             {exceptions.length} active exceptions requiring attention
           </p>
         </div>
         {selectedRows.length > 0 && (
           <div className="flex items-center gap-2">
-            <span className="text-sm" style={{ color: darkERPTheme.textMuted }}>
+            <span className="text-sm text-muted-foreground">
               {selectedRows.length} selected
             </span>
             <button
-              className="px-3 py-1.5 text-sm font-medium rounded transition-colors"
-              style={{
-                color: darkERPTheme.textPrimary,
-                border: `1px solid ${darkERPTheme.border}`,
-                backgroundColor: darkERPTheme.surface2,
-              }}
+              className="rounded border border-border bg-card px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-card/90"
             >
               Assign
             </button>
             <button
-              className="px-3 py-1.5 text-sm font-medium rounded transition-colors"
-              style={{
-                color: darkERPTheme.textPrimary,
-                border: `1px solid ${darkERPTheme.border}`,
-                backgroundColor: darkERPTheme.surface2,
-              }}
+              className="rounded border border-border bg-card px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-card/90"
             >
               Snooze
             </button>
             <button
-              className="px-3 py-1.5 text-sm font-medium rounded transition-colors"
-              style={{
-                color: darkERPTheme.textPrimary,
-                border: `1px solid ${darkERPTheme.border}`,
-                backgroundColor: darkERPTheme.surface2,
-              }}
+              className="rounded border border-border bg-card px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-card/90"
             >
               Export
             </button>
@@ -183,7 +148,7 @@ export default function ExceptionsTable() {
       {/* Table */}
       <div className="overflow-x-auto">
         <table className="w-full">
-          <thead style={{ backgroundColor: darkERPTheme.surface2, borderBottom: `1px solid ${darkERPTheme.border}` }}>
+          <thead className="border-b border-border bg-card/80 text-muted-foreground">
             <tr>
               <th className="w-12 px-4 py-2 text-left">
                 <input
@@ -193,46 +158,45 @@ export default function ExceptionsTable() {
                   className="rounded"
                 />
               </th>
-              <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: darkERPTheme.textMuted }}>
+              <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Order/Trip
               </th>
-              <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: darkERPTheme.textMuted }}>
+              <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 <button className="flex items-center gap-1 hover:opacity-80">
                   Issue
                   <ArrowUpDown className="h-3 w-3" />
                 </button>
               </th>
-              <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: darkERPTheme.textMuted }}>
+              <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Severity
               </th>
-              <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: darkERPTheme.textMuted }}>
+              <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 ETA Impact
               </th>
-              <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: darkERPTheme.textMuted }}>
+              <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Owner
               </th>
-              <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: darkERPTheme.textMuted }}>
+              <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 <button className="flex items-center gap-1 hover:opacity-80">
                   SLA
                   <ArrowUpDown className="h-3 w-3" />
                 </button>
               </th>
-              <th className="px-4 py-2 text-right text-xs font-semibold uppercase tracking-wider" style={{ color: darkERPTheme.textMuted }}>
+              <th className="px-4 py-2 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Action
               </th>
             </tr>
           </thead>
-          <tbody style={{ borderTop: `1px solid ${darkERPTheme.border}` }}>
+          <tbody className="border-t border-border">
             {exceptions.map((exception, index) => {
               const severityStyle = getSeverityStyles(exception.severity);
               return (
                 <tr
                   key={exception.id}
-                  className="hover:opacity-90 transition-opacity cursor-pointer"
-                  style={{
-                    backgroundColor: index % 2 === 0 ? darkERPTheme.surface : darkERPTheme.surface2,
-                    borderBottom: `1px solid ${darkERPTheme.border}`,
-                  }}
+                  className={clsx(
+                    "cursor-pointer border-b border-border transition-colors hover:bg-card/90",
+                    index % 2 === 0 ? "bg-card" : "bg-card/80"
+                  )}
                   onClick={() => toggleRowSelection(exception.id)}
                 >
                   <td className="px-4 py-2">
@@ -245,12 +209,12 @@ export default function ExceptionsTable() {
                     />
                   </td>
                   <td className="px-4 py-2">
-                    <span className="text-sm font-medium hover:underline hover-accent" style={{ color: darkERPTheme.textPrimary }}>
+                    <span className="text-sm font-medium text-foreground hover:underline">
                       {exception.orderTrip}
                     </span>
                   </td>
                   <td className="px-4 py-2">
-                    <span className="text-sm" style={{ color: darkERPTheme.textPrimary }}>
+                    <span className="text-sm text-foreground">
                       {exception.issue}
                     </span>
                   </td>
@@ -266,12 +230,12 @@ export default function ExceptionsTable() {
                     </span>
                   </td>
                   <td className="px-4 py-2">
-                    <span className="text-sm font-medium" style={{ color: darkERPTheme.textPrimary }}>
+                    <span className="text-sm font-medium text-foreground">
                       {exception.etaImpact}
                     </span>
                   </td>
                   <td className="px-4 py-2">
-                    <span className="text-sm" style={{ color: darkERPTheme.textMuted }}>
+                    <span className="text-sm text-muted-foreground">
                       {exception.owner}
                     </span>
                   </td>
@@ -284,7 +248,7 @@ export default function ExceptionsTable() {
                             ? darkERPTheme.severity.breach
                             : exception.slaStatus === 'warning'
                             ? darkERPTheme.severity.watch
-                            : darkERPTheme.textMuted,
+                            : "var(--color-muted-foreground)",
                       }}
                     >
                       {exception.sla}
@@ -296,10 +260,9 @@ export default function ExceptionsTable() {
                         e.stopPropagation();
                         console.log("Action menu for", exception.id);
                       }}
-                      className="p-1 rounded transition-opacity hover:opacity-70"
-                      style={{ backgroundColor: darkERPTheme.surface2 }}
+                      className="rounded border border-border bg-card px-1.5 py-1 transition-opacity hover:opacity-70"
                     >
-                      <MoreVertical className="h-4 w-4" style={{ color: darkERPTheme.textMuted }} />
+                      <MoreVertical className="h-4 w-4 text-muted-foreground" />
                     </button>
                   </td>
                 </tr>

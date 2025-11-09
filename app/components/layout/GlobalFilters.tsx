@@ -34,19 +34,15 @@ export default function GlobalFilters() {
     <div className="mb-6">
       {/* Active filters as chips */}
       {activeFilters.length > 0 && (
-        <div className="flex items-center gap-2 flex-wrap mb-3">
-          <span className="text-sm font-medium" style={{ color: darkERPTheme.textMuted }}>
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <span className="text-sm font-medium text-muted-foreground">
             Active filters:
           </span>
           {activeFilters.map((filter) => (
             <div
               key={filter.id}
-              className="inline-flex items-center gap-2 px-3 py-1 text-sm font-medium rounded-full"
-              style={{
-                backgroundColor: darkERPTheme.surface2,
-                color: darkERPTheme.brandAccent,
-                border: `1px solid ${darkERPTheme.border}`,
-              }}
+              className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-sm font-medium"
+              style={{ color: darkERPTheme.brandAccent }}
             >
               <span>
                 {filter.label}: {filter.value}
@@ -58,8 +54,7 @@ export default function GlobalFilters() {
           ))}
           <button
             onClick={() => setActiveFilters([])}
-            className="text-sm underline hover:opacity-70"
-            style={{ color: darkERPTheme.textMuted }}
+            className="text-sm text-muted-foreground underline transition-opacity hover:opacity-70"
           >
             Clear all
           </button>
@@ -69,12 +64,7 @@ export default function GlobalFilters() {
       {/* Add filter button */}
       <button
         onClick={() => setShowFilterMenu(!showFilterMenu)}
-        className="px-3 py-1.5 text-sm font-medium rounded transition-colors hover:opacity-90"
-        style={{
-          color: darkERPTheme.textPrimary,
-          border: `1px solid ${darkERPTheme.border}`,
-          backgroundColor: darkERPTheme.surface2,
-        }}
+        className="rounded border border-border bg-card px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-card/90"
       >
         + Add filter
       </button>
