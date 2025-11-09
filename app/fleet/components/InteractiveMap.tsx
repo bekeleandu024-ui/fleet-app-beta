@@ -62,14 +62,10 @@ const MapController = ({
   }, [selectedUnit, selectedDriver, activeTab, map]);
   return null;
 };
-export const InteractiveMap = ({
-  selectedUnit,
-  selectedDriver,
-  activeTab,
-  onSelectUnit
-}) => {
+export const InteractiveMap = ({ units, drivers, selectedUnitId, onSelectUnit }) => {
   const [mapStyle, setMapStyle] = useState('dark');
   const [showTraffic, setShowTraffic] = useState(true);
+
   const getRoute = (origin: string, destination: string) => {
     const start = locationCoordinates[origin];
     const end = locationCoordinates[destination];
@@ -78,9 +74,9 @@ export const InteractiveMap = ({
     }
     return null;
   };
-  return <div className="bg-gray-800 rounded-lg overflow-hidden relative shadow-xl" style={{
-    height: '550px'
-  }}>
+
+  return (
+    <div className="bg-gray-800 rounded-lg overflow-hidden relative shadow-xl" style={{ height: '550px' }}>
       <div className="absolute top-4 right-4 z-[1000] flex flex-col space-y-2">
         <button onClick={() => setMapStyle(mapStyle === 'dark' ? 'light' : 'dark')} className="bg-gray-900 hover:bg-gray-800 text-white p-3 rounded-lg shadow-lg transition-all hover:scale-105" title="Toggle Map Style">
           <Layers className="h-5 w-5" />
@@ -105,55 +101,86 @@ export const InteractiveMap = ({
           </div>
         </div>
       </div>
-      <MapContainer center={[43.6532, -79.3832]} zoom={7} style={{
-      height: '100%',
-      width: '100%'
-    }} zoomControl={false}>
+      <MapContainer center={[43.6532, -79.3832]} zoom={7} style={{ height: '100%', width: '100%' }} zoomControl={false}>
         <ZoomControl position="bottomright" />
-        <TileLayer url={mapStyle === 'dark' ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png' : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'} attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' />
-        <MapController selectedUnit={selectedUnit} selectedDriver={selectedDriver} activeTab={activeTab} />
-        {unitsData.map(unit => {
-        const coords = locationCoordinates[unit.location as keyof typeof locationCoordinates];
-        if (!coords) return null;
-        const color = unit.status === 'active' ? '#10b981' : '#f59e0b';
-        // FIX: match selected driver ID to unit's driver ID
-        const selectedDriverObj = driversData.find(d => d.id === selectedDriver);
-        const isSelected = 
-          (activeTab === 'units' && selectedUnit === unit.id) || 
-          (activeTab === 'drivers' && selectedDriverObj && unit.driverId === selectedDriverObj.id);
-        const route = null; // Removed tripInfo as it doesn't exist in Unit type
-        return <Fragment key={unit.id}>
-              {showTraffic && isSelected && <Circle center={coords} radius={15000} pathOptions={{
-            fillColor: color,
-            fillOpacity: 0.1,
-            color: color,
-            weight: 2,
-            opacity: 0.4
-          }} />}
-              <Marker position={coords} icon={createCustomIcon(color, !!isSelected)} eventHandlers={{
-            click: () => onSelectUnit(unit.id)
-          }}>
+        <TileLayer
+          url={mapStyle === 'dark' ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png' : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'}
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        />
+        <MapController selectedUnitId={selectedUnitId} />
+        {units.map(unit => {
+          const coords = locationCoordinates[unit.location as keyof typeof locationCoordinates];
+          if (!coords) return null;
+
+          const color = unit.status === 'active' ? '#10b981' : '#f59e0b';
+          const isSelected = selectedUnitId === unit.id;
+          
+          // Mock route for visualization
+          const route = isSelected ? getRoute(unit.location, "Windsor, ON") : null;
+
+          return (
+            <Fragment key={unit.id}>
+              {showTraffic && isSelected && (
+                <Circle
+                  center={coords}
+                  radius={15000}
+                  pathOptions={{
+                    fillColor: color,
+                    fillOpacity: 0.1,
+                    color: color,
+                    weight: 2,
+                    opacity: 0.4,
+                  }}
+                />
+              )}
+              <Marker
+                position={coords}
+                icon={createCustomIcon(color, isSelected)}
+                eventHandlers={{
+                  click: () => onSelectUnit(unit.id),
+                }}
+              >
                 <Popup>
                   <div className="text-sm">
-                    <p className="font-bold text-base mb-1">Unit {unit.id}</p>
+                    <p className="font-bold text-base mb-1">{unit.id}</p>
                     <p className="text-gray-700">{unit.make} {unit.model}</p>
                     <p className="text-gray-700">Driver: {unit.driverName || 'Unassigned'}</p>
-                    <p className="text-gray-700">
-                      Status:{' '}
-                      <span className="font-semibold">{unit.status}</span>
-                    </p>
+                    <p className="text-gray-700">Status: <span className="font-semibold">{unit.status}</span></p>
                     <p className="text-gray-700">Location: {unit.location}</p>
                   </div>
                 </Popup>
               </Marker>
-              {route && <Polyline positions={route} pathOptions={{
-            color: '#3b82f6',
-            weight: 4,
-            opacity: isSelected ? 0.9 : 0.5,
-            dashArray: '10, 10'
-          }} />}
-            </Fragment>;
-      })}
+              {route && (
+                <Polyline
+                  positions={route}
+                  pathOptions={{
+                    color: '#3b82f6',
+                    weight: 4,
+                    opacity: isSelected ? 0.9 : 0.5,
+                    dashArray: '10, 10',
+                  }}
+                />
+              )}
+            </Fragment>
+          );
+        })}
       </MapContainer>
-    </div>;
+    </div>
+  );
+};
+
+const MapController = ({ selectedUnitId }) => {
+  const map = useMap();
+  useEffect(() => {
+    if (selectedUnitId) {
+      const unit = unitsData.find(u => u.id === selectedUnitId);
+      if (unit && locationCoordinates[unit.location]) {
+        map.setView(locationCoordinates[unit.location], 11, {
+          animate: true,
+          duration: 1,
+        });
+      }
+    }
+  }, [selectedUnitId, map]);
+  return null;
 };
