@@ -1,7 +1,7 @@
 import React, { useEffect, useState, Fragment } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap, ZoomControl, Circle } from 'react-leaflet';
-import { unitsData, driversData } from '../data/mockData';
-import { LayersIcon, NavigationIcon, MaximizeIcon } from 'lucide-react';
+import { mockDrivers as driversData, mockUnits as unitsData } from '../mockData';
+import { Layers, Navigation } from 'lucide-react';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 // Fix for default marker icons in React-Leaflet
@@ -83,10 +83,10 @@ export const InteractiveMap = ({
   }}>
       <div className="absolute top-4 right-4 z-[1000] flex flex-col space-y-2">
         <button onClick={() => setMapStyle(mapStyle === 'dark' ? 'light' : 'dark')} className="bg-gray-900 hover:bg-gray-800 text-white p-3 rounded-lg shadow-lg transition-all hover:scale-105" title="Toggle Map Style">
-          <LayersIcon className="h-5 w-5" />
+          <Layers className="h-5 w-5" />
         </button>
         <button onClick={() => setShowTraffic(!showTraffic)} className={`${showTraffic ? 'bg-blue-600' : 'bg-gray-900'} hover:bg-gray-800 text-white p-3 rounded-lg shadow-lg transition-all hover:scale-105`} title="Toggle Traffic Layer">
-          <NavigationIcon className="h-5 w-5" />
+          <Navigation className="h-5 w-5" />
         </button>
       </div>
       <div className="absolute top-4 left-4 z-[1000] bg-gray-900 bg-opacity-90 rounded-lg p-3 shadow-lg">
@@ -113,11 +113,15 @@ export const InteractiveMap = ({
         <TileLayer url={mapStyle === 'dark' ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png' : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'} attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' />
         <MapController selectedUnit={selectedUnit} selectedDriver={selectedDriver} activeTab={activeTab} />
         {unitsData.map(unit => {
-        const coords = locationCoordinates[unit.location];
+        const coords = locationCoordinates[unit.location as keyof typeof locationCoordinates];
         if (!coords) return null;
         const color = unit.status === 'active' ? '#10b981' : '#f59e0b';
-        const isSelected = activeTab === 'units' && selectedUnit === unit.id || activeTab === 'drivers' && selectedDriver === unit.driver;
-        const route = unit.tripInfo?.isOnTrip ? getRoute(unit.tripInfo.origin, unit.tripInfo.nextDestination) : null;
+        // FIX: match selected driver ID to unit's driver ID
+        const selectedDriverObj = driversData.find(d => d.id === selectedDriver);
+        const isSelected = 
+          (activeTab === 'units' && selectedUnit === unit.id) || 
+          (activeTab === 'drivers' && selectedDriverObj && unit.driverId === selectedDriverObj.id);
+        const route = null; // Removed tripInfo as it doesn't exist in Unit type
         return <Fragment key={unit.id}>
               {showTraffic && isSelected && <Circle center={coords} radius={15000} pathOptions={{
             fillColor: color,
@@ -126,24 +130,19 @@ export const InteractiveMap = ({
             weight: 2,
             opacity: 0.4
           }} />}
-              <Marker position={coords} icon={createCustomIcon(color, isSelected)} eventHandlers={{
+              <Marker position={coords} icon={createCustomIcon(color, !!isSelected)} eventHandlers={{
             click: () => onSelectUnit(unit.id)
           }}>
                 <Popup>
                   <div className="text-sm">
                     <p className="font-bold text-base mb-1">Unit {unit.id}</p>
-                    <p className="text-gray-700">{unit.model}</p>
-                    <p className="text-gray-700">Driver: {unit.driver}</p>
+                    <p className="text-gray-700">{unit.make} {unit.model}</p>
+                    <p className="text-gray-700">Driver: {unit.driverName || 'Unassigned'}</p>
                     <p className="text-gray-700">
                       Status:{' '}
                       <span className="font-semibold">{unit.status}</span>
                     </p>
                     <p className="text-gray-700">Location: {unit.location}</p>
-                    {unit.tripInfo?.isOnTrip && <div className="mt-2 pt-2 border-t border-gray-300">
-                        <p className="text-xs text-gray-600">
-                          Next: {unit.tripInfo.nextDestination}
-                        </p>
-                      </div>}
                   </div>
                 </Popup>
               </Marker>

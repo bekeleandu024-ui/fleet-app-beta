@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { XIcon, UserIcon, BarChartIcon, ClockIcon } from 'lucide-react';
+import { X, User, BarChart, Clock } from 'lucide-react';
 export const DriverDetailsModal = ({
   driver,
   onClose
@@ -7,8 +7,8 @@ export const DriverDetailsModal = ({
   const [activeTab, setActiveTab] = useState('profile');
   return <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-gray-900 text-white rounded-lg w-full max-w-2xl overflow-hidden relative">
-        <button className="absolute top-4 right-4 text-white hover:text-gray-300" onClick={onClose}>
-          <XIcon className="h-5 w-5" />
+        <button aria-label="Close" className="absolute top-4 right-4 text-white hover:text-gray-300" onClick={onClose}>
+          <X className="h-5 w-5" />
         </button>
         <div className="p-6">
           <h2 className="text-xl font-bold mb-1">Driver Details</h2>
@@ -17,15 +17,15 @@ export const DriverDetailsModal = ({
           </p>
           <div className="flex border-b border-gray-700 mt-4">
             <button className={`flex items-center px-4 py-2 mr-2 ${activeTab === 'profile' ? 'border-b-2 border-blue-500 text-blue-500' : 'text-gray-400 hover:text-gray-300'}`} onClick={() => setActiveTab('profile')}>
-              <UserIcon className="h-4 w-4 mr-2" />
+              <User className="h-4 w-4 mr-2" />
               Profile
             </button>
             <button className={`flex items-center px-4 py-2 mr-2 ${activeTab === 'performance' ? 'border-b-2 border-blue-500 text-blue-500' : 'text-gray-400 hover:text-gray-300'}`} onClick={() => setActiveTab('performance')}>
-              <BarChartIcon className="h-4 w-4 mr-2" />
+              <BarChart className="h-4 w-4 mr-2" />
               Performance
             </button>
             <button className={`flex items-center px-4 py-2 mr-2 ${activeTab === 'hos' ? 'border-b-2 border-blue-500 text-blue-500' : 'text-gray-400 hover:text-gray-300'}`} onClick={() => setActiveTab('hos')}>
-              <ClockIcon className="h-4 w-4 mr-2" />
+              <Clock className="h-4 w-4 mr-2" />
               HOS Tracking
             </button>
           </div>

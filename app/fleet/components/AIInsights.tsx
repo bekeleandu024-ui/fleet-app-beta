@@ -1,15 +1,15 @@
 import React from 'react';
-import { TruckIcon, MapPinIcon, TrendingUpIcon, AlertTriangleIcon } from 'lucide-react';
+import { Truck, TrendingUp, AlertTriangle } from 'lucide-react';
 export const AIInsights = () => {
   const insights = [{
-    icon: TruckIcon,
+    icon: Truck,
     title: 'LTL Opportunities',
     description: '12 LTL loads available in the Windsor area. 4 heading to Brampton, 3 to Toronto, 2 to Hamilton, and 3 to Ottawa. Estimated revenue opportunity: $8,400. Recommend consolidating Windsor-Brampton routes for maximum efficiency.',
     color: 'text-green-400',
     bgColor: 'bg-green-900 bg-opacity-20',
     borderColor: 'border-green-700'
   }, {
-    icon: AlertTriangleIcon,
+    icon: AlertTriangle,
     title: 'Route Optimization Alert',
     description: 'Current market shows high demand on Toronto-Montreal corridor (+23% above normal). 3 units within 50mi proximity could be consolidated. Traffic delays detected on Highway 401 (30min average). Weather advisory: Heavy snow expected in Quebec region affecting 2 active routes.',
     color: 'text-amber-400',
