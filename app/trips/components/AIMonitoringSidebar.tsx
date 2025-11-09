@@ -12,6 +12,16 @@ import {
 import { DispatchOrder, Driver } from "../types";
 import { useMemo } from "react";
 
+const fleetTokens = {
+  bgPrimary: "bg-fleet-primary",
+  bgSecondary: "bg-fleet-secondary",
+  bgTertiary: "bg-fleet-tertiary",
+  border: "border-fleet",
+  textPrimary: "text-fleet-primary",
+  textSecondary: "text-fleet-secondary",
+  textMuted: "text-fleet-muted",
+};
+
 interface AIMonitoringSidebarProps {
   trips: DispatchOrder[];
   drivers: Driver[];
@@ -114,40 +124,40 @@ export function AIMonitoringSidebar({ trips, drivers }: AIMonitoringSidebarProps
   const getAlertIcon = (type: "critical" | "warning" | "info") => {
     switch (type) {
       case "critical":
-        return <AlertTriangle className="h-4 w-4 text-[#FF4D4D]" />;
+        return <AlertTriangle className="h-4 w-4 text-fleet-danger" />;
       case "warning":
-        return <AlertTriangle className="h-4 w-4 text-[#FFC857]" />;
+        return <AlertTriangle className="h-4 w-4 text-fleet-warning" />;
       case "info":
-        return <Activity className="h-4 w-4 text-[#60A5FA]" />;
+        return <Activity className="h-4 w-4 text-fleet-accent" />;
     }
   };
 
   return (
-    <div className="w-80 bg-[#0A0F1E] border-l border-[#1E2638] flex flex-col h-full">
+    <div className={`w-80 ${fleetTokens.bgPrimary} border-l ${fleetTokens.border} flex flex-col h-full`}>
       {/* Header */}
-      <div className="p-4 border-b border-[#1E2638]">
+      <div className={`p-4 border-b ${fleetTokens.border}`}>
         <div className="flex items-center gap-2 mb-2">
           <BarChart3 className="h-5 w-5 text-[#A78BFA]" />
-          <h2 className="text-lg font-semibold text-[#E6EAF2]">AI Monitoring</h2>
+          <h2 className={`text-lg font-semibold ${fleetTokens.textPrimary}`}>AI Monitoring</h2>
         </div>
-        <p className="text-xs text-[#6C7484]">
+        <p className={`text-xs ${fleetTokens.textMuted}`}>
           Real-time performance tracking and exception reporting
         </p>
       </div>
 
       {/* Performance Metrics */}
-      <div className="p-4 border-b border-[#1E2638]">
-        <h3 className="text-xs font-medium text-[#6C7484] mb-3 uppercase">
+      <div className={`p-4 border-b ${fleetTokens.border}`}>
+        <h3 className={`text-xs font-medium ${fleetTokens.textMuted} mb-3 uppercase`}>
           Performance Metrics
         </h3>
         <div className="space-y-3">
           {/* Active Trips */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Activity className="h-4 w-4 text-[#60A5FA]" />
-              <span className="text-xs text-[#9AA4B2]">Active Trips</span>
+              <Activity className="h-4 w-4 text-fleet-accent" />
+              <span className={`text-xs ${fleetTokens.textSecondary}`}>Active Trips</span>
             </div>
-            <span className="text-sm font-semibold text-[#E6EAF2]">
+            <span className={`text-sm font-semibold ${fleetTokens.textPrimary}`}>
               {metrics.activeTrips}
             </span>
           </div>
@@ -155,10 +165,10 @@ export function AIMonitoringSidebar({ trips, drivers }: AIMonitoringSidebarProps
           {/* Completed Today */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-[#24D67B]" />
-              <span className="text-xs text-[#9AA4B2]">Completed Today</span>
+              <TrendingUp className="h-4 w-4 text-fleet-success" />
+              <span className={`text-xs ${fleetTokens.textSecondary}`}>Completed Today</span>
             </div>
-            <span className="text-sm font-semibold text-[#E6EAF2]">
+            <span className={`text-sm font-semibold ${fleetTokens.textPrimary}`}>
               {metrics.completedTrips}
             </span>
           </div>
@@ -166,10 +176,10 @@ export function AIMonitoringSidebar({ trips, drivers }: AIMonitoringSidebarProps
           {/* Avg Margin */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-[#FFC857]" />
-              <span className="text-xs text-[#9AA4B2]">Avg Margin</span>
+              <TrendingUp className="h-4 w-4 text-fleet-warning" />
+              <span className={`text-xs ${fleetTokens.textSecondary}`}>Avg Margin</span>
             </div>
-            <span className="text-sm font-semibold text-[#E6EAF2]">
+            <span className={`text-sm font-semibold ${fleetTokens.textPrimary}`}>
               {metrics.avgMargin.toFixed(1)}%
             </span>
           </div>
@@ -177,10 +187,10 @@ export function AIMonitoringSidebar({ trips, drivers }: AIMonitoringSidebarProps
           {/* Delayed Trips */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-[#FF8A00]" />
-              <span className="text-xs text-[#9AA4B2]">Delayed Trips</span>
+              <Clock className="h-4 w-4 text-fleet-alert" />
+              <span className={`text-xs ${fleetTokens.textSecondary}`}>Delayed Trips</span>
             </div>
-            <span className="text-sm font-semibold text-[#FF8A00]">
+            <span className="text-sm font-semibold text-fleet-alert">
               {metrics.delayedTrips}
             </span>
           </div>
@@ -188,18 +198,18 @@ export function AIMonitoringSidebar({ trips, drivers }: AIMonitoringSidebarProps
       </div>
 
       {/* Fleet Status */}
-      <div className="p-4 border-b border-[#1E2638]">
-        <h3 className="text-xs font-medium text-[#6C7484] mb-3 uppercase">
+      <div className={`p-4 border-b ${fleetTokens.border}`}>
+        <h3 className={`text-xs font-medium ${fleetTokens.textMuted} mb-3 uppercase`}>
           Fleet Status
         </h3>
         <div className="space-y-3">
           {/* Available Drivers */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-[#24D67B]" />
-              <span className="text-xs text-[#9AA4B2]">Available</span>
+              <Users className="h-4 w-4 text-fleet-success" />
+              <span className={`text-xs ${fleetTokens.textSecondary}`}>Available</span>
             </div>
-            <span className="text-sm font-semibold text-[#E6EAF2]">
+            <span className={`text-sm font-semibold ${fleetTokens.textPrimary}`}>
               {metrics.availableDrivers}
             </span>
           </div>
@@ -207,10 +217,10 @@ export function AIMonitoringSidebar({ trips, drivers }: AIMonitoringSidebarProps
           {/* On Trip */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Truck className="h-4 w-4 text-[#60A5FA]" />
-              <span className="text-xs text-[#9AA4B2]">On Trip</span>
+              <Truck className="h-4 w-4 text-fleet-accent" />
+              <span className={`text-xs ${fleetTokens.textSecondary}`}>On Trip</span>
             </div>
-            <span className="text-sm font-semibold text-[#E6EAF2]">
+            <span className={`text-sm font-semibold ${fleetTokens.textPrimary}`}>
               {metrics.onTripDrivers}
             </span>
           </div>
@@ -219,9 +229,9 @@ export function AIMonitoringSidebar({ trips, drivers }: AIMonitoringSidebarProps
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4 text-[#A78BFA]" />
-              <span className="text-xs text-[#9AA4B2]">Utilization</span>
+              <span className={`text-xs ${fleetTokens.textSecondary}`}>Utilization</span>
             </div>
-            <span className="text-sm font-semibold text-[#E6EAF2]">
+            <span className={`text-sm font-semibold ${fleetTokens.textPrimary}`}>
               {metrics.utilizationRate}%
             </span>
           </div>
@@ -230,10 +240,10 @@ export function AIMonitoringSidebar({ trips, drivers }: AIMonitoringSidebarProps
           {metrics.lowHosDrivers > 0 && (
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4 text-[#FFC857]" />
-                <span className="text-xs text-[#9AA4B2]">Low HOS</span>
+                <AlertTriangle className="h-4 w-4 text-fleet-warning" />
+                <span className={`text-xs ${fleetTokens.textSecondary}`}>Low HOS</span>
               </div>
-              <span className="text-sm font-semibold text-[#FFC857]">
+              <span className="text-sm font-semibold text-fleet-warning">
                 {metrics.lowHosDrivers}
               </span>
             </div>
@@ -243,15 +253,15 @@ export function AIMonitoringSidebar({ trips, drivers }: AIMonitoringSidebarProps
 
       {/* Alerts & Exceptions */}
       <div className="flex-1 overflow-y-auto p-4">
-        <h3 className="text-xs font-medium text-[#6C7484] mb-3 uppercase">
+        <h3 className={`text-xs font-medium ${fleetTokens.textMuted} mb-3 uppercase`}>
           Alerts & Exceptions
         </h3>
         <div className="space-y-2">
           {alerts.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-8 text-center">
-              <Activity className="h-10 w-10 text-[#6C7484] mb-2 opacity-30" />
-              <p className="text-xs text-[#6C7484]">No active alerts</p>
-              <p className="text-xs text-[#6C7484] mt-1">All systems nominal</p>
+              <Activity className={`h-10 w-10 ${fleetTokens.textMuted} mb-2 opacity-30`} />
+              <p className={`text-xs ${fleetTokens.textMuted}`}>No active alerts</p>
+              <p className={`text-xs ${fleetTokens.textMuted} mt-1`}>All systems nominal</p>
             </div>
           ) : (
             alerts.map((alert) => (
@@ -262,10 +272,10 @@ export function AIMonitoringSidebar({ trips, drivers }: AIMonitoringSidebarProps
                 <div className="flex items-start gap-2 mb-1">
                   {getAlertIcon(alert.type)}
                   <div className="flex-1">
-                    <div className="text-xs font-medium text-[#E6EAF2] mb-1">
+                    <div className={`text-xs font-medium ${fleetTokens.textPrimary} mb-1`}>
                       {alert.title}
                     </div>
-                    <p className="text-xs text-[#9AA4B2] leading-relaxed">
+                    <p className={`text-xs ${fleetTokens.textSecondary} leading-relaxed`}>
                       {alert.message}
                     </p>
                   </div>
@@ -277,9 +287,9 @@ export function AIMonitoringSidebar({ trips, drivers }: AIMonitoringSidebarProps
       </div>
 
       {/* Footer Stats */}
-      <div className="p-4 border-t border-[#1E2638] bg-[#0F1420]">
-        <div className="text-xs text-[#6C7484] mb-2">Last Updated</div>
-        <div className="text-sm font-medium text-[#E6EAF2]">
+      <div className={`p-4 border-t ${fleetTokens.border} ${fleetTokens.bgSecondary}`}>
+        <div className={`text-xs ${fleetTokens.textMuted} mb-2`}>Last Updated</div>
+        <div className={`text-sm font-medium ${fleetTokens.textPrimary}`}>
           {new Date().toLocaleTimeString("en-US", {
             hour: "2-digit",
             minute: "2-digit",

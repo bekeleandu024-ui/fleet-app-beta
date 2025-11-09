@@ -165,6 +165,31 @@
   }
 }
 
+@layer utilities {
+  .bg-fleet-primary { background-color: var(--color-fleet-bg-primary); }
+  .bg-fleet-secondary { background-color: var(--color-fleet-bg-secondary); }
+  .bg-fleet-tertiary { background-color: var(--color-fleet-bg-tertiary); }
+  .bg-fleet-accent { background-color: var(--fleet-accent-primary); }
+  .bg-fleet-accent\/15 { background-color: color-mix(in srgb, var(--fleet-accent-primary) 15%, transparent); }
+  .bg-fleet-accent\/20 { background-color: color-mix(in srgb, var(--fleet-accent-primary) 20%, transparent); }
+  .bg-fleet-border { background-color: var(--color-fleet-border); }
+  .text-fleet-primary { color: var(--color-fleet-text-primary); }
+  .text-fleet-secondary { color: var(--color-fleet-text-secondary); }
+  .text-fleet-muted { color: var(--color-fleet-text-muted); }
+  .text-fleet-accent { color: var(--fleet-accent-primary); }
+  .text-fleet-success { color: var(--fleet-success); }
+  .text-fleet-warning { color: var(--fleet-warning); }
+  .text-fleet-alert { color: var(--fleet-alert); }
+  .text-fleet-danger { color: var(--fleet-danger); }
+  .border-fleet { border-color: var(--color-fleet-border); }
+  .border-fleet-accent { border-color: var(--fleet-accent-primary); }
+  .border-fleet-accent\/40 { border-color: color-mix(in srgb, var(--fleet-accent-primary) 40%, transparent); }
+  .focus\:border-fleet-accent:focus { border-color: var(--fleet-accent-primary); }
+  .hover\:border-fleet-accent\/40:hover { border-color: color-mix(in srgb, var(--fleet-accent-primary) 40%, transparent); }
+  .focus\:ring-fleet-accent\/40:focus { --tw-ring-color: color-mix(in srgb, var(--fleet-accent-primary) 40%, transparent); }
+}
+
+
 /* Fleet UI structural helpers */
 .panel {
   background: var(--color-fleet-bg-secondary);

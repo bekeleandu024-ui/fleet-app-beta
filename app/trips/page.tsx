@@ -58,7 +58,7 @@ export default function TripsBoardPage() {
   }, [filteredDrivers]);
 
   return (
-    <div className="flex h-screen bg-[#0A0F1E] overflow-hidden">
+  <div className="flex h-screen [background-color:var(--color-fleet-bg-primary)] overflow-hidden">
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Control Panel */}
