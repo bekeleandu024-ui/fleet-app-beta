@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { Plus, Upload, FileDown, Sparkles } from "lucide-react";
 import { OrderRow, OrderStatus, OrderType, ProfitabilityFilter, OrderDetail } from "./types";
 import { MOCK_ORDERS, MOCK_ORDER_DETAILS } from "./mockData";
@@ -9,6 +10,7 @@ import { OrdersTable } from "./components/OrdersTable";
 import { OrderDetailSheet } from "./components/OrderDetailSheet";
 
 export default function OrdersPage() {
+  const router = useRouter();
   // Filters state
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilters, setStatusFilters] = useState<OrderStatus[]>([]);
@@ -142,7 +144,10 @@ export default function OrdersPage() {
               <Sparkles className="h-4 w-4" />
               AI Batch Optimizer
             </button>
-            <button className="h-9 px-3 bg-[#60A5FA] hover:bg-[#60A5FA]/90 rounded-md text-sm text-white font-medium transition-colors flex items-center gap-2">
+            <button 
+              onClick={() => router.push("/orders/new")}
+              className="h-9 px-3 bg-[#60A5FA] hover:bg-[#60A5FA]/90 rounded-md text-sm text-white font-medium transition-colors flex items-center gap-2"
+            >
               <Plus className="h-4 w-4" />
               Create New Order
             </button>
