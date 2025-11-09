@@ -1,12 +1,12 @@
 import React from 'react';
 import { UserIcon } from 'lucide-react';
 import { StatusBadge } from './StatusBadge';
-import { driversData } from '../data/mockData';
+import { mockDrivers as driversData } from '../mockData';
 export const DriversTable = ({
   selectedDriver,
   onSelectDriver,
   onViewDetails
-}) => {
+}: any) => {
   return <div className="bg-gray-800 rounded-lg overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full">
@@ -39,7 +39,7 @@ export const DriversTable = ({
             </tr>
           </thead>
           <tbody>
-            {driversData.map(driver => <tr key={driver.id} onClick={() => onSelectDriver(driver.id)} className={`border-b border-gray-700 cursor-pointer transition-colors ${selectedDriver === driver.id ? 'bg-blue-900 bg-opacity-30 border-l-4 border-l-blue-500' : 'hover:bg-gray-700'}`}>
+            {driversData.map((driver: any) => <tr key={driver.id} onClick={() => onSelectDriver(driver.id)} className={`border-b border-gray-700 cursor-pointer transition-colors ${selectedDriver === driver.id ? 'bg-blue-900 bg-opacity-30 border-l-4 border-l-blue-500' : 'hover:bg-gray-700'}`}>
                 <td className="px-4 py-4">
                   <div className="flex items-center">
                     <div className="bg-gray-700 rounded-full w-10 h-10 mr-3 flex items-center justify-center">

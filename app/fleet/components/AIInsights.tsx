@@ -16,8 +16,8 @@ export const AIInsights = () => {
     bgColor: 'bg-amber-900 bg-opacity-20',
     borderColor: 'border-amber-700'
   }];
-  return <div className="mb-6">
-      <h3 className="text-lg font-semibold text-white mb-4">
+  return <div className="panel p-4 mb-6">
+      <h3 className="text-lg font-semibold text-[var(--color-fleet-text-primary)] mb-4">
         AI Insights & Recommendations
       </h3>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

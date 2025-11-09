@@ -4,6 +4,7 @@ import { mockDrivers as driversData, mockUnits as unitsData } from '../mockData'
 import { Layers, Navigation } from 'lucide-react';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
+import type { Unit, Driver } from '../types';
 // Fix for default marker icons in React-Leaflet
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -11,7 +12,7 @@ L.Icon.Default.mergeOptions({
   iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png'
 });
-const locationCoordinates = {
+const locationCoordinates: Record<string, [number, number]> = {
   'Guelph, ON': [43.5448, -80.2482],
   'Windsor, ON': [42.3149, -83.0364],
   'Brampton, ON': [43.7315, -79.7624],
@@ -24,7 +25,7 @@ const locationCoordinates = {
   'Sarnia, ON': [42.9746, -82.4066],
   'Detroit, MI': [42.3314, -83.0458]
 };
-const createCustomIcon = (color: string, isSelected: boolean) => {
+const createCustomIcon = (color: string, isSelected: boolean): any => {
   const size = isSelected ? 32 : 24;
   const border = isSelected ? 4 : 3;
   return L.divIcon({
@@ -34,35 +35,14 @@ const createCustomIcon = (color: string, isSelected: boolean) => {
     iconAnchor: [size / 2, size / 2]
   });
 };
-const MapController = ({
-  selectedUnit,
-  selectedDriver,
-  activeTab
-}) => {
-  const map = useMap();
-  useEffect(() => {
-    let location = null;
-    if (activeTab === 'units' && selectedUnit) {
-      const unit = unitsData.find(u => u.id === selectedUnit);
-      if (unit) {
-        location = locationCoordinates[unit.location];
-      }
-    } else if (activeTab === 'drivers' && selectedDriver) {
-      const driver = driversData.find(d => d.id === selectedDriver);
-      if (driver) {
-        location = locationCoordinates[driver.location];
-      }
-    }
-    if (location) {
-      map.setView(location, 11, {
-        animate: true,
-        duration: 1
-      });
-    }
-  }, [selectedUnit, selectedDriver, activeTab, map]);
-  return null;
+type InteractiveMapProps = {
+  units: Unit[];
+  drivers: Driver[];
+  selectedUnitId: string | null;
+  onSelectUnit: (id: string) => void;
 };
-export const InteractiveMap = ({ units, drivers, selectedUnitId, onSelectUnit }) => {
+
+export const InteractiveMap: React.FC<InteractiveMapProps> = ({ units, drivers, selectedUnitId, onSelectUnit }) => {
   const [mapStyle, setMapStyle] = useState('dark');
   const [showTraffic, setShowTraffic] = useState(true);
 
@@ -107,9 +87,9 @@ export const InteractiveMap = ({ units, drivers, selectedUnitId, onSelectUnit })
           url={mapStyle === 'dark' ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png' : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'}
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         />
-        <MapController selectedUnitId={selectedUnitId} />
-        {units.map(unit => {
-          const coords = locationCoordinates[unit.location as keyof typeof locationCoordinates];
+        <MapViewController selectedUnitId={selectedUnitId} />
+        {units.map((unit: Unit) => {
+          const coords = locationCoordinates[unit.location];
           if (!coords) return null;
 
           const color = unit.status === 'active' ? '#10b981' : '#f59e0b';
@@ -169,7 +149,7 @@ export const InteractiveMap = ({ units, drivers, selectedUnitId, onSelectUnit })
   );
 };
 
-const MapController = ({ selectedUnitId }) => {
+const MapViewController: React.FC<{ selectedUnitId: string | null }> = ({ selectedUnitId }) => {
   const map = useMap();
   useEffect(() => {
     if (selectedUnitId) {

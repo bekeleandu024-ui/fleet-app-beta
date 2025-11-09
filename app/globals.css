@@ -164,3 +164,41 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Fleet UI structural helpers */
+.panel {
+  background: var(--color-fleet-bg-secondary);
+  border: 1px solid var(--color-fleet-border);
+  border-radius: var(--radius-md);
+}
+
+.panel-alt {
+  background: var(--color-fleet-bg-tertiary);
+  border: 1px solid var(--color-fleet-border);
+  border-radius: var(--radius-md);
+}
+
+.status-pill {
+  display:inline-flex;
+  align-items:center;
+  font-size:11px;
+  font-weight:600;
+  line-height:1;
+  padding:4px 10px;
+  border-radius:999px;
+  letter-spacing:.25px;
+  border:1px solid var(--color-fleet-border);
+  background:linear-gradient(145deg,var(--color-fleet-bg-tertiary),var(--color-fleet-bg-secondary));
+}
+.status-pill--active {background:rgba(36,214,123,0.12);border-color:#1b5f3b;color:#24D67B;}
+.status-pill--maintenance {background:rgba(255,200,87,0.15);border-color:#7a5b21;color:#FFC857;}
+.status-pill--out {background:rgba(255,77,77,0.18);border-color:#7a2626;color:#FF4D4D;}
+
+.fleet-table thead {background: var(--color-fleet-bg-tertiary);}
+.fleet-table tbody tr {background: var(--color-fleet-bg-secondary); transition: background .18s ease;}
+.fleet-table tbody tr:hover {background: var(--color-fleet-bg-tertiary);}
+.fleet-table tbody tr.is-selected {background: rgba(96,165,250,0.15);}
+
+.fleet-map-container {background: var(--color-fleet-bg-secondary); border:1px solid var(--color-fleet-border); border-radius: var(--radius-md);}
+.fleet-info-card {background: var(--color-fleet-bg-secondary); border:1px solid var(--color-fleet-border); border-radius: var(--radius-md);}
+

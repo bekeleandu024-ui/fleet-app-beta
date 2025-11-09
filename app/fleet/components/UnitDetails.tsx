@@ -1,5 +1,4 @@
 import { Clock, MapPin, Truck, Calendar, Flag } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 import { Unit } from '../types';
 
 interface UnitDetailsProps {
@@ -17,48 +16,46 @@ const mockTripData = {
 
 export function UnitDetails({ unit }: UnitDetailsProps) {
   return (
-    <div className="h-full flex flex-col">
-      <div className="flex justify-between items-start mb-4">
-        <h3 className="text-xl font-bold text-white">{unit.id}</h3>
-        <Badge variant="default">{mockTripData.status}</Badge>
+    <div className="fleet-info-card h-full flex flex-col p-6">
+      <div className="flex justify-between items-start mb-6">
+        <h3 className="text-lg font-semibold text-[var(--color-fleet-text-primary)]">Unit {unit.id}</h3>
+        <span className="status-pill status-pill--active">On Trip</span>
       </div>
-      <div className="space-y-5 text-sm">
-        <div className="flex items-center">
-          <Clock className="h-4 w-4 mr-3 text-gray-400" />
+      <div className="space-y-4 text-sm">
+        <div className="flex items-start">
+          <Clock className="h-5 w-5 mr-3 text-blue-400 mt-0.5" />
           <div>
-            <p className="text-gray-400">Trip Started</p>
-            <p className="text-white font-medium">{mockTripData.tripStarted}</p>
+            <p className="text-[10px] tracking-wide text-[var(--color-fleet-text-muted)] mb-1">Trip Started</p>
+            <p className="text-[var(--color-fleet-text-primary)] font-medium">{mockTripData.tripStarted}</p>
           </div>
         </div>
-        <div className="flex items-center">
-          <Flag className="h-4 w-4 mr-3 text-gray-400" />
+        <div className="flex items-start">
+          <Flag className="h-5 w-5 mr-3 text-blue-400 mt-0.5" />
           <div>
-            <p className="text-gray-400">Origin</p>
-            <p className="text-white font-medium">{mockTripData.origin}</p>
+            <p className="text-[10px] tracking-wide text-[var(--color-fleet-text-muted)] mb-1">Origin</p>
+            <p className="text-[var(--color-fleet-text-primary)] font-medium">{mockTripData.origin}</p>
           </div>
         </div>
-        <div className="flex items-center">
-          <Truck className="h-4 w-4 mr-3 text-gray-400" />
+        <div className="flex items-start">
+          <Truck className="h-5 w-5 mr-3 text-blue-400 mt-0.5" />
           <div>
-            <p className="text-gray-400">Next Destination</p>
-            <p className="text-white font-medium">{mockTripData.nextDestination}</p>
+            <p className="text-[10px] tracking-wide text-[var(--color-fleet-text-muted)] mb-1">Next Destination</p>
+            <p className="text-[var(--color-fleet-text-primary)] font-medium">{mockTripData.nextDestination}</p>
           </div>
         </div>
-        <div className="flex items-center">
-          <Calendar className="h-4 w-4 mr-3 text-gray-400" />
+        <div className="flex items-start">
+          <Calendar className="h-5 w-5 mr-3 text-blue-400 mt-0.5" />
           <div>
-            <p className="text-gray-400">Projected End Date</p>
-            <p className="text-white font-medium">{mockTripData.projectedEndDate}</p>
+            <p className="text-[10px] tracking-wide text-[var(--color-fleet-text-muted)] mb-1">Projected End Date</p>
+            <p className="text-[var(--color-fleet-text-primary)] font-medium">{mockTripData.projectedEndDate}</p>
           </div>
         </div>
       </div>
-      <div className="mt-auto bg-gray-900/70 rounded-lg p-4">
+      <div className="mt-6 bg-[var(--color-fleet-bg-tertiary)] rounded-lg p-4 border border-[var(--color-fleet-border)]">
+        <p className="text-[10px] tracking-wide text-[var(--color-fleet-text-muted)] mb-1">Current Location</p>
         <div className="flex items-center">
-          <MapPin className="h-4 w-4 mr-3 text-gray-400" />
-          <div>
-            <p className="text-gray-400">Current Location</p>
-            <p className="text-white font-bold text-lg">{mockTripData.currentLocation}</p>
-          </div>
+          <MapPin className="h-5 w-5 mr-3 text-blue-400" />
+          <p className="text-[var(--color-fleet-text-primary)] font-semibold text-base">{mockTripData.currentLocation}</p>
         </div>
       </div>
     </div>
