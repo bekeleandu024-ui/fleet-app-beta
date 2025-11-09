@@ -74,6 +74,7 @@ export interface Trip {
   delivery_arrival?: Date;
   delivery_departure?: Date;
   completed_at?: Date;
+  closed_at?: Date;
   
   // Metrics
   planned_miles?: number;
@@ -90,7 +91,7 @@ export interface Trip {
   on_time_delivery: boolean;
   
   // Route history (JSONB)
-  route_history: LocationPoint[];
+  route_history?: LocationPoint[];
   
   // Metadata
   notes?: string;
@@ -178,6 +179,9 @@ export interface CustomerView {
 export interface TripStop {
   location: string;
   type: 'pickup' | 'delivery';
+  sequence: number;
+  lat?: number;
+  lng?: number;
   window_start?: Date;
   window_end?: Date;
   arrived_at?: Date;

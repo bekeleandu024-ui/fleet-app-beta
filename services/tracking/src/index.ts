@@ -1,29 +1,39 @@
 import express from "express";
 import cors from "cors";
-import bodyParser from "body-parser";
+import { runMigrations } from "./db/init";
+import { PORT, SERVICE_NAME } from "./config/config";
+import tripsRouter from "./routes/trips";
+import telemetryRouter from "./routes/telemetry";
+import viewsRouter from "./routes/views";
+import { startConsumer } from "./services/kafkaConsumer";
+import { handleKafkaMessage } from "./services/eventProcessor";
 
 const app = express();
 app.use(cors());
-app.use(bodyParser.json());
+app.use(express.json());
 
-// Store pings per trip/driver
-const pings: Record<string, any[]> = {};
+app.get("/", (_req, res) => res.json({ ok: true, service: SERVICE_NAME }));
+app.get("/healthz", (_req, res) => res.send("ok"));
 
-// Accept GPS ping: { tripId?, driverId, lat, lon, ts }
-app.post("/pings", (req, res) => {
-  const { tripId, driverId, lat, lon, ts } = req.body;
-  const key = tripId || driverId || "unknown";
-  const arr = pings[key] || [];
-  const ping = { lat, lon, ts: ts || new Date().toISOString() };
-  arr.push(ping);
-  pings[key] = arr;
-  // Would publish event 'tracking.ping' in production
-  res.status(201).json(ping);
-});
+app.use("/api/trips", tripsRouter);
+app.use("/api/telemetry", telemetryRouter);
+app.use("/api/views", viewsRouter);
 
-app.get("/pings/:key", (req, res) => {
-  res.json(pings[req.params.key] || []);
-});
+async function bootstrap() {
+  try {
+    await runMigrations();
+    await startConsumer([
+      "dispatch.assigned",
+      "dispatch.status.changed",
+    ], handleKafkaMessage);
 
-const port = process.env.PORT || 4004;
-app.listen(port, () => console.log(`tracking service listening on ${port}`));
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`${SERVICE_NAME} listening on ${PORT}`);
+    });
+  } catch (error) {
+    console.error("Failed to start tracking service", error);
+    process.exit(1);
+  }
+}
+
+bootstrap();
