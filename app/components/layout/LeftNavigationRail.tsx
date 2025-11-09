@@ -12,6 +12,7 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
+  Users,
 } from "lucide-react";
 import clsx from "clsx";
 import { darkERPTheme } from "@/app/lib/theme-config";
@@ -61,6 +62,12 @@ export default function LeftNavigationRail() {
         { label: "Costing", icon: <DollarSign className="h-5 w-5" />, href: "/finance/costing" },
         { label: "Pricing", icon: <DollarSign className="h-5 w-5" />, href: "/finance/pricing" },
         { label: "Invoicing", icon: <DollarSign className="h-5 w-5" />, href: "/finance/invoicing" },
+      ],
+    },
+    {
+      title: "Customers",
+      items: [
+        { label: "All Customers", icon: <Users className="h-5 w-5" />, href: "/customers" },
       ],
     },
     {
