@@ -1,5 +1,3 @@
-import fetch from "node-fetch";
-
 let cachedToken: { value: string; expiresAt: number } | null = null;
 
 async function getToken(apiKey: string): Promise<string> {
