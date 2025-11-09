@@ -52,6 +52,7 @@ export default function LeftNavigationRail() {
       items: [
         { label: "Live Tracking", icon: <MapPin className="h-5 w-5" />, href: "/tracking" },
         { label: "Fleet Status", icon: <MapPin className="h-5 w-5" />, href: "/tracking/fleet" },
+        { label: "Monitoring", icon: <MapPin className="h-5 w-5" />, href: "/fleet/monitoring" },
       ],
     },
     {
