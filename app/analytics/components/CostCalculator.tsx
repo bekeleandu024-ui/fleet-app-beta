@@ -29,38 +29,38 @@ export function CostCalculator() {
   };
 
   return (
-    <Card className="bg-gray-800/30 border-gray-700/50 h-fit">
+    <Card className="h-fit border-border">
       <CardHeader>
-        <CardTitle className="text-white flex items-center gap-2">
+        <CardTitle className="flex items-center gap-2">
           <Calculator className="h-5 w-5 text-cyan-400" />
           Cost Calculator
         </CardTitle>
-        <CardDescription className="text-gray-400">
+        <CardDescription>
           Quick cost estimation tool
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div>
-          <label className="text-sm font-medium text-gray-300 block mb-2">
+          <label className="mb-2 block text-sm font-medium text-muted-foreground">
             Miles
           </label>
           <input
             type="number"
             value={miles}
             onChange={(e) => setMiles(Number(e.target.value))}
-            className="w-full bg-gray-700/50 border border-gray-600 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+            className="w-full rounded-md border border-border bg-muted/60 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-cyan-500"
             placeholder="Enter miles"
           />
         </div>
 
         <div>
-          <label className="text-sm font-medium text-gray-300 block mb-2">
+          <label className="mb-2 block text-sm font-medium text-muted-foreground">
             Driver Type
           </label>
           <select
             value={driverType}
             onChange={(e) => setDriverType(e.target.value as 'COM' | 'RNR' | 'OO')}
-            className="w-full bg-gray-700/50 border border-gray-600 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+            className="w-full rounded-md border border-border bg-muted/60 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-cyan-500"
           >
             <option value="COM">Company (COM)</option>
             <option value="RNR">Rental (RNR)</option>
@@ -69,14 +69,14 @@ export function CostCalculator() {
         </div>
 
         <div>
-          <label className="text-sm font-medium text-gray-300 block mb-2">
+          <label className="mb-2 block text-sm font-medium text-muted-foreground">
             Special Events
           </label>
           <input
             type="number"
             value={events}
             onChange={(e) => setEvents(Number(e.target.value))}
-            className="w-full bg-gray-700/50 border border-gray-600 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+            className="w-full rounded-md border border-border bg-muted/60 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-cyan-500"
             placeholder="Number of events"
           />
         </div>
@@ -89,20 +89,20 @@ export function CostCalculator() {
         </Button>
 
         {result && (
-          <div className="space-y-3 pt-4 border-t border-gray-700">
-            <div className="bg-gray-700/50 p-3 rounded-lg">
-              <p className="text-xs text-gray-400">Estimated Cost</p>
-              <p className="text-2xl font-bold text-white">${result.estimatedCost}</p>
-              <p className="text-xs text-gray-500">at ${result.cpm}/mile</p>
+          <div className="space-y-3 border-t border-border pt-4">
+            <div className="rounded-lg bg-muted/60 p-3">
+              <p className="text-xs text-muted-foreground">Estimated Cost</p>
+              <p className="text-2xl font-bold text-foreground">${result.estimatedCost}</p>
+              <p className="text-xs text-muted-foreground/80">at ${result.cpm}/mile</p>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <div className="bg-gray-700/30 p-2 rounded">
-                <p className="text-xs text-gray-400">Break-even</p>
+              <div className="rounded bg-muted/50 p-2">
+                <p className="text-xs text-muted-foreground">Break-even</p>
                 <p className="text-lg font-semibold text-yellow-400">${result.breakEvenPrice}</p>
               </div>
-              <div className="bg-gray-700/30 p-2 rounded">
-                <p className="text-xs text-gray-400">Target Price</p>
+              <div className="rounded bg-muted/50 p-2">
+                <p className="text-xs text-muted-foreground">Target Price</p>
                 <p className="text-lg font-semibold text-green-400">${result.targetPrice}</p>
               </div>
             </div>
@@ -111,7 +111,7 @@ export function CostCalculator() {
               <p className="text-xs text-cyan-400">
                 <strong>🤖 Market Rate:</strong> ${result.marketRate}
               </p>
-              <p className="text-xs text-gray-400 mt-1">
+              <p className="mt-1 text-xs text-muted-foreground">
                 Based on current lane analysis
               </p>
             </div>

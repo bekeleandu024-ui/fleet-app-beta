@@ -38,22 +38,22 @@ export function KPICards() {
       {kpis.map((kpi, index) => {
         const Icon = kpi.icon;
         return (
-          <Card key={index} className="bg-gray-800/30 border-gray-700/50">
+          <Card key={index} className="border-border">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-300">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
                 {kpi.title}
               </CardTitle>
               <Icon className="h-4 w-4 text-cyan-400" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-white">{kpi.value}</div>
+              <div className="text-2xl font-bold text-foreground">{kpi.value}</div>
               {kpi.period && (
-                <p className="text-xs text-gray-400 mt-1">
+                <p className="mt-1 text-xs text-muted-foreground">
                   {kpi.period} <span className={kpi.trend === "up" ? "text-green-400" : "text-red-400"}>{kpi.change}</span>
                 </p>
               )}
               {kpi.subtitle && (
-                <p className={`text-xs mt-1 ${kpi.aiInsight ? "text-cyan-400 bg-cyan-900/30 p-1 rounded" : "text-gray-400"}`}>
+                <p className={`mt-1 text-xs ${kpi.aiInsight ? "text-cyan-400 bg-cyan-900/30 p-1 rounded" : "text-muted-foreground"}`}>
                   {kpi.aiInsight && "🤖 AI: "}{kpi.subtitle}
                 </p>
               )}

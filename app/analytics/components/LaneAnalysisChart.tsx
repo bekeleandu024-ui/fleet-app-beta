@@ -9,10 +9,10 @@ export function LaneAnalysisChart() {
   const maxMargin = Math.max(...mockLaneData.map(l => l.avgMargin));
 
   return (
-    <Card className="bg-gray-800/30 border-gray-700/50">
+    <Card className="border-border">
       <CardHeader>
-        <CardTitle className="text-white">Lane Analysis</CardTitle>
-        <CardDescription className="text-gray-400">
+        <CardTitle>Lane Analysis</CardTitle>
+        <CardDescription>
           Cost, margin, and volume by origin-destination pairs
         </CardDescription>
       </CardHeader>
@@ -23,40 +23,40 @@ export function LaneAnalysisChart() {
             const marginColor = lane.avgMargin >= 18 ? 'bg-green-500' : lane.avgMargin >= 15 ? 'bg-yellow-500' : 'bg-red-500';
             
             return (
-              <div key={index} className="bg-gray-700/30 p-4 rounded-lg border border-gray-600/50 hover:border-cyan-500/50 transition-colors">
+              <div key={index} className="bg-muted/40 p-4 rounded-lg border border-border hover:border-cyan-500/50 transition-colors">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2 flex-1">
-                    <span className="text-white font-medium text-sm">{lane.origin}</span>
-                    <ArrowRight className="h-4 w-4 text-gray-400" />
-                    <span className="text-white font-medium text-sm">{lane.destination}</span>
+                    <span className="text-sm font-medium text-foreground">{lane.origin}</span>
+                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-medium text-foreground">{lane.destination}</span>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="text-xs text-gray-400">{lane.tripCount} trips</span>
-                    <div className={`${marginColor} text-white text-xs font-bold px-2 py-1 rounded`}>
+                    <span className="text-xs text-muted-foreground">{lane.tripCount} trips</span>
+                    <div className={`${marginColor} rounded px-2 py-1 text-xs font-bold text-white`}>
                       {lane.avgMargin.toFixed(1)}%
                     </div>
                   </div>
                 </div>
                 
-                <div className="grid grid-cols-3 gap-4 text-xs text-gray-400 mb-2">
+                <div className="mb-2 grid grid-cols-3 gap-4 text-xs text-muted-foreground">
                   <div>
-                    <span className="block text-gray-500">Avg Cost</span>
-                    <span className="text-white font-medium">${lane.avgCost}</span>
+                    <span className="block text-muted-foreground/80">Avg Cost</span>
+                    <span className="font-medium text-foreground">${lane.avgCost}</span>
                   </div>
                   <div>
-                    <span className="block text-gray-500">Avg Revenue</span>
-                    <span className="text-white font-medium">${lane.avgRevenue}</span>
+                    <span className="block text-muted-foreground/80">Avg Revenue</span>
+                    <span className="font-medium text-foreground">${lane.avgRevenue}</span>
                   </div>
                   <div>
-                    <span className="block text-gray-500">Margin</span>
-                    <span className="text-white font-medium">${(lane.avgRevenue - lane.avgCost).toFixed(0)}</span>
+                    <span className="block text-muted-foreground/80">Margin</span>
+                    <span className="font-medium text-foreground">${(lane.avgRevenue - lane.avgCost).toFixed(0)}</span>
                   </div>
                 </div>
                 
                 {/* Volume bar */}
-                <div className="w-full bg-gray-600/30 rounded-full h-2">
+                <div className="h-2 w-full rounded-full bg-muted/50">
                   <div 
-                    className="bg-cyan-500 h-2 rounded-full transition-all duration-500"
+                    className="h-2 rounded-full bg-cyan-500 transition-all duration-500"
                     style={{ width: `${volumePercent}%` }}
                   />
                 </div>

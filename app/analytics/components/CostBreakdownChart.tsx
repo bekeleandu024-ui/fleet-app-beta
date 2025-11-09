@@ -24,10 +24,10 @@ export function CostBreakdownChart() {
   const total = totals.fixed + totals.wage + totals.rolling + totals.accessorials;
 
   return (
-    <Card className="bg-gray-800/30 border-gray-700/50">
+    <Card className="border-border">
       <CardHeader>
-        <CardTitle className="text-white">Cost Component Breakdown</CardTitle>
-        <CardDescription className="text-gray-400">
+        <CardTitle>Cost Component Breakdown</CardTitle>
+        <CardDescription>
           Last 7 days - Total: ${total.toLocaleString()}
         </CardDescription>
       </CardHeader>
@@ -49,9 +49,9 @@ export function CostBreakdownChart() {
               ))}
             </Pie>
             <Tooltip 
-              contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '8px' }}
-              labelStyle={{ color: '#f3f4f6' }}
-              itemStyle={{ color: '#d1d5db' }}
+              contentStyle={{ backgroundColor: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', borderRadius: '8px' }}
+              labelStyle={{ color: 'hsl(var(--foreground))' }}
+              itemStyle={{ color: 'hsl(var(--muted-foreground))' }}
               formatter={(value: number) => `$${value.toLocaleString()}`}
             />
           </PieChart>
@@ -59,13 +59,13 @@ export function CostBreakdownChart() {
 
         <div className="mt-4 grid grid-cols-2 gap-3">
           {pieData.map((item) => (
-            <div key={item.name} className="bg-gray-700/30 p-3 rounded-lg border border-gray-600/50">
+            <div key={item.name} className="rounded-lg border border-border bg-muted/40 p-3">
               <div className="flex items-center gap-2 mb-1">
                 <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
-                <span className="text-xs text-gray-400">{item.name}</span>
+                <span className="text-xs text-muted-foreground">{item.name}</span>
               </div>
-              <p className="text-lg font-bold text-white">${item.value.toLocaleString()}</p>
-              <p className="text-xs text-gray-500">
+              <p className="text-lg font-bold text-foreground">${item.value.toLocaleString()}</p>
+              <p className="text-xs text-muted-foreground/80">
                 {((item.value / total) * 100).toFixed(1)}% of total
               </p>
             </div>

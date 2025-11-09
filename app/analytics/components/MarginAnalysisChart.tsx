@@ -8,50 +8,50 @@ export function MarginAnalysisChart() {
   const profitabilityThreshold = 15; // 15% margin threshold
 
   return (
-    <Card className="bg-gray-800/30 border-gray-700/50">
+    <Card className="border-border">
       <CardHeader>
-        <CardTitle className="text-white">Margin Analysis</CardTitle>
-        <CardDescription className="text-gray-400">
+        <CardTitle>Margin Analysis</CardTitle>
+        <CardDescription>
           Cost vs Revenue per trip with profitability threshold
         </CardDescription>
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={350}>
           <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
             <XAxis 
               type="number" 
               dataKey="cost" 
               name="Cost" 
               unit="$"
-              stroke="#9ca3af"
-              tick={{ fill: '#9ca3af' }}
-              label={{ value: 'Cost ($)', position: 'insideBottom', offset: -10, fill: '#9ca3af' }}
+              stroke="hsl(var(--muted-foreground))"
+              tick={{ fill: 'hsl(var(--muted-foreground))' }}
+              label={{ value: 'Cost ($)', position: 'insideBottom', offset: -10, fill: 'hsl(var(--muted-foreground))' }}
             />
             <YAxis 
               type="number" 
               dataKey="revenue" 
               name="Revenue" 
               unit="$"
-              stroke="#9ca3af"
-              tick={{ fill: '#9ca3af' }}
-              label={{ value: 'Revenue ($)', angle: -90, position: 'insideLeft', fill: '#9ca3af' }}
+              stroke="hsl(var(--muted-foreground))"
+              tick={{ fill: 'hsl(var(--muted-foreground))' }}
+              label={{ value: 'Revenue ($)', angle: -90, position: 'insideLeft', fill: 'hsl(var(--muted-foreground))' }}
             />
             <ZAxis type="number" dataKey="marginPercentage" range={[50, 400]} name="Margin %" />
             <Tooltip 
-              contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '8px' }}
-              labelStyle={{ color: '#f3f4f6' }}
-              itemStyle={{ color: '#d1d5db' }}
+              contentStyle={{ backgroundColor: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', borderRadius: '8px' }}
+              labelStyle={{ color: 'hsl(var(--foreground))' }}
+              itemStyle={{ color: 'hsl(var(--muted-foreground))' }}
               cursor={{ strokeDasharray: '3 3' }}
               content={({ active, payload }) => {
                 if (active && payload && payload.length) {
                   const data = payload[0].payload;
                   return (
-                    <div className="bg-gray-800 border border-gray-700 rounded-lg p-3">
-                      <p className="text-white font-semibold">{data.id}</p>
-                      <p className="text-gray-300 text-sm">{data.driverName} ({data.driverType})</p>
-                      <p className="text-gray-400 text-xs mt-1">Cost: ${data.cost}</p>
-                      <p className="text-gray-400 text-xs">Revenue: ${data.revenue}</p>
+                    <div className="rounded-lg border border-border bg-card p-3">
+                      <p className="font-semibold text-foreground">{data.id}</p>
+                      <p className="text-sm text-muted-foreground">{data.driverName} ({data.driverType})</p>
+                      <p className="mt-1 text-xs text-muted-foreground">Cost: ${data.cost}</p>
+                      <p className="text-xs text-muted-foreground">Revenue: ${data.revenue}</p>
                       <p className={`text-xs font-semibold mt-1 ${data.marginPercentage >= profitabilityThreshold ? 'text-green-400' : 'text-red-400'}`}>
                         Margin: {data.marginPercentage}%
                       </p>
@@ -61,7 +61,7 @@ export function MarginAnalysisChart() {
                 return null;
               }}
             />
-            <Legend wrapperStyle={{ color: '#d1d5db' }} />
+            <Legend wrapperStyle={{ color: 'hsl(var(--muted-foreground))' }} />
             <Scatter 
               name="Profitable Trips" 
               data={mockTripMargins.filter(t => t.marginPercentage >= profitabilityThreshold)} 

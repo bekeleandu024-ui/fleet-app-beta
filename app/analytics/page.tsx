@@ -30,7 +30,7 @@ export default function AnalyticsPage() {
       <div className="grid gap-6 grid-cols-1 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <Tabs defaultValue="cost-trends" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-5 bg-gray-800/50">
+            <TabsList className="grid w-full grid-cols-5 bg-muted/60 border border-border">
               <TabsTrigger value="cost-trends">Cost Trends</TabsTrigger>
               <TabsTrigger value="margin">Margin</TabsTrigger>
               <TabsTrigger value="driver-type">Driver Type</TabsTrigger>
