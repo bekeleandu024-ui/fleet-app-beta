@@ -9,7 +9,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint ."
+    "lint": "eslint --ext .js,.jsx,.ts,.tsx app components services/*/src",
+    "lint:fix": "npm run lint -- --fix",
+    "typecheck": "tsc -b --noEmit"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.15",
