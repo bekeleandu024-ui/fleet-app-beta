@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { MapView } from "./components/MapView";
 import { SidePanel } from "./components/SidePanel";
 import { BottomStatsBar } from "./components/BottomStatsBar";
@@ -27,6 +27,8 @@ export default function TrackingPage() {
   const [showTraffic, setShowTraffic] = useState(true);
   const [showWeather, setShowWeather] = useState(false);
   const [isSidePanelOpen, setIsSidePanelOpen] = useState(true);
+
+  // User-driven selection; we no longer mirror in an effect.
   const [selectedTripId, setSelectedTripId] = useState<string | null>(
     ACTIVE_TRIPS[0]?.id ?? null
   );
@@ -49,24 +51,18 @@ export default function TrackingPage() {
     }).sort((a, b) => STATUS_PRIORITY[a.status] - STATUS_PRIORITY[b.status]);
   }, [statusFilter, searchTerm]);
 
-  const effectiveSelectedTripId = useMemo(() => {
+  // Derived "display" selection that clamps to the filtered list.
+  const displaySelectedTripId = useMemo(() => {
     if (filteredTrips.length === 0) return null;
-    if (selectedTripId && filteredTrips.some((trip) => trip.id === selectedTripId)) {
-      return selectedTripId;
-    }
-    return filteredTrips[0]?.id ?? null;
+    return selectedTripId && filteredTrips.some((t) => t.id === selectedTripId)
+      ? selectedTripId
+      : filteredTrips[0]?.id ?? null;
   }, [filteredTrips, selectedTripId]);
 
-  useEffect(() => {
-    if (effectiveSelectedTripId !== selectedTripId) {
-      setSelectedTripId(effectiveSelectedTripId);
-    }
-  }, [effectiveSelectedTripId, selectedTripId]);
-
   const selectedTrip: ActiveTrip | null = useMemo(() => {
-    if (!effectiveSelectedTripId) return null;
-    return ACTIVE_TRIPS.find((trip) => trip.id === effectiveSelectedTripId) ?? null;
-  }, [effectiveSelectedTripId]);
+    if (!displaySelectedTripId) return null;
+    return ACTIVE_TRIPS.find((trip) => trip.id === displaySelectedTripId) ?? null;
+  }, [displaySelectedTripId]);
 
   const totalTrips = ACTIVE_TRIPS.length;
   const onTimeCount = ACTIVE_TRIPS.filter((trip) => trip.status === "on-time").length;
@@ -103,7 +99,7 @@ export default function TrackingPage() {
           <div className="relative h-[60vh] min-h-[460px]">
             <MapView
               trips={ACTIVE_TRIPS}
-              selectedTripId={effectiveSelectedTripId}
+              selectedTripId={displaySelectedTripId}
               onSelectTrip={setSelectedTripId}
               focusTripIds={focusTripIds}
               showTraffic={showTraffic}

@@ -1,6 +1,14 @@
 "use client";
 
-import { ArrowRight, ChevronDown, ChevronUp, MoreVertical, Package, Repeat, Truck } from "lucide-react";
+import {
+  ArrowRight,
+  ChevronDown,
+  ChevronUp,
+  MoreVertical,
+  Package,
+  Repeat,
+  Truck,
+} from "lucide-react";
 import { OrderRow } from "../types";
 import {
   formatCurrency,
@@ -12,6 +20,19 @@ import {
   statusLabel,
 } from "../utils";
 
+// Moved OUTSIDE the component to avoid "components created during render".
+function renderSortIcon(
+  active: boolean,
+  dir: "asc" | "desc"
+) {
+  if (!active) return null;
+  return dir === "asc" ? (
+    <ChevronUp className="h-3 w-3 inline ml-1" />
+  ) : (
+    <ChevronDown className="h-3 w-3 inline ml-1" />
+  );
+}
+
 interface OrdersTableProps {
   orders: OrderRow[];
   onOrderClick: (order: OrderRow) => void;
@@ -20,16 +41,13 @@ interface OrdersTableProps {
   onSort: (column: keyof OrderRow) => void;
 }
 
-export function OrdersTable({ orders, onOrderClick, sortColumn, sortDirection, onSort }: OrdersTableProps) {
-  const SortIcon = ({ column }: { column: keyof OrderRow }) => {
-    if (sortColumn !== column) return null;
-    return sortDirection === "asc" ? (
-      <ChevronUp className="h-3 w-3 inline ml-1" />
-    ) : (
-      <ChevronDown className="h-3 w-3 inline ml-1" />
-    );
-  };
-
+export function OrdersTable({
+  orders,
+  onOrderClick,
+  sortColumn,
+  sortDirection,
+  onSort,
+}: OrdersTableProps) {
   const getTypeIcon = (type: OrderRow["type"]) => {
     switch (type) {
       case "pickup":
@@ -51,13 +69,13 @@ export function OrdersTable({ orders, onOrderClick, sortColumn, sortDirection, o
                 className="px-4 py-3 text-left text-xs font-medium text-fleet-muted transition-colors cursor-pointer hover:text-fleet-primary"
                 onClick={() => onSort("id")}
               >
-                Order ID <SortIcon column="id" />
+                Order ID {renderSortIcon(sortColumn === "id", sortDirection)}
               </th>
               <th
                 className="px-4 py-3 text-left text-xs font-medium text-fleet-muted transition-colors cursor-pointer hover:text-fleet-primary"
                 onClick={() => onSort("customer")}
               >
-                Customer <SortIcon column="customer" />
+                Customer {renderSortIcon(sortColumn === "customer", sortDirection)}
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-fleet-muted">Type</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-fleet-muted">Route</th>
@@ -66,7 +84,7 @@ export function OrdersTable({ orders, onOrderClick, sortColumn, sortDirection, o
                 className="px-4 py-3 text-left text-xs font-medium text-fleet-muted transition-colors cursor-pointer hover:text-fleet-primary"
                 onClick={() => onSort("status")}
               >
-                Status <SortIcon column="status" />
+                Status {renderSortIcon(sortColumn === "status", sortDirection)}
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-fleet-muted">Driver</th>
               <th className="px-4 py-3 text-right text-xs font-medium text-fleet-muted">Cost</th>
@@ -75,13 +93,13 @@ export function OrdersTable({ orders, onOrderClick, sortColumn, sortDirection, o
                 className="px-4 py-3 text-right text-xs font-medium text-fleet-muted transition-colors cursor-pointer hover:text-fleet-primary"
                 onClick={() => onSort("marginPct")}
               >
-                Margin <SortIcon column="marginPct" />
+                Margin {renderSortIcon(sortColumn === "marginPct", sortDirection)}
               </th>
               <th
                 className="px-4 py-3 text-center text-xs font-medium text-fleet-muted transition-colors cursor-pointer hover:text-fleet-primary"
                 onClick={() => onSort("aiRisk")}
               >
-                AI Risk <SortIcon column="aiRisk" />
+                AI Risk {renderSortIcon(sortColumn === "aiRisk", sortDirection)}
               </th>
               <th className="px-4 py-3 text-center text-xs font-medium text-fleet-muted">Actions</th>
             </tr>
