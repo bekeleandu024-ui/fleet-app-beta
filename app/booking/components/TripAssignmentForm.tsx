@@ -56,19 +56,19 @@ export function TripAssignmentForm({
   };
 
   return (
-    <div className="bg-[#0B1020] border border-[#1E2638] rounded-lg p-6">
+    <div className="bg-fleet-primary border border-fleet rounded-lg p-6">
       {/* Header */}
       <div className="flex items-start justify-between mb-6">
         <div>
-          <h2 className="text-lg font-semibold text-[#E6EAF2] mb-1">
+          <h2 className="text-lg font-semibold text-fleet-primary mb-1">
             Trip Assignment & Dispatch Overrides
           </h2>
-          <p className="text-xs text-[#6C7484]">
+          <p className="text-xs text-fleet-muted">
             Align drivers, equipment, economics, and routing commitments before
             launching the trip.
           </p>
         </div>
-        <span className="px-3 py-1 bg-[#24D67B]/10 border border-[#24D67B]/30 rounded-md text-xs font-medium text-[#24D67B]">
+        <span className="px-3 py-1 bg-fleet-success/10 border border-fleet-success/20 rounded-md text-xs font-medium text-fleet-success">
           ACTIVE LOAD
         </span>
       </div>
@@ -76,10 +76,10 @@ export function TripAssignmentForm({
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Trip Assignment Section */}
         <div>
-          <div className="text-xs font-medium text-[#6C7484] mb-4">
+          <div className="text-xs font-medium text-fleet-muted mb-4">
             TRIP ASSIGNMENT
           </div>
-          <p className="text-xs text-[#9AA4B2] mb-4">
+          <p className="text-xs text-fleet-secondary mb-4">
             Align resources, economics, and guardrails before booking.
           </p>
 
@@ -87,14 +87,14 @@ export function TripAssignmentForm({
             {/* Driver Selection */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs text-[#6C7484] mb-2">
+                <label className="block text-xs text-fleet-muted mb-2">
                   DRIVER
                 </label>
                 <div className="relative">
                   <select
                     value={selectedDriver}
                     onChange={(e) => setSelectedDriver(e.target.value)}
-                    className="w-full bg-[#0F1420] border border-[#1E2638] rounded-md px-3 py-2 text-sm text-[#E6EAF2] appearance-none cursor-pointer focus:outline-none focus:border-[#60A5FA] transition-colors"
+                    className="w-full bg-fleet-secondary border border-fleet rounded-md px-3 py-2 text-sm text-fleet-primary appearance-none cursor-pointer focus:outline-none focus:border-fleet-accent focus:ring-2 focus:ring-fleet-accent/40 focus:ring-offset-2 focus:ring-offset-(--color-fleet-bg-primary) transition-colors"
                   >
                     {drivers.map((driver) => (
                       <option key={driver.id} value={driver.id}>
@@ -102,22 +102,22 @@ export function TripAssignmentForm({
                       </option>
                     ))}
                   </select>
-                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#6C7484] pointer-events-none" />
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-fleet-muted pointer-events-none" />
                 </div>
-                <div className="text-xs text-[#6C7484] mt-1">
+                <div className="text-xs text-fleet-muted mt-1">
                   {drivers.find((d) => d.id === selectedDriver)?.homeTerminal}
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs text-[#6C7484] mb-2">
+                <label className="block text-xs text-fleet-muted mb-2">
                   DRIVER NAME (MANIFEST)
                 </label>
                 <input
                   type="text"
                   value={drivers.find((d) => d.id === selectedDriver)?.name || ""}
                   readOnly
-                  className="w-full bg-[#0F1420] border border-[#1E2638] rounded-md px-3 py-2 text-sm text-[#E6EAF2] focus:outline-none focus:border-[#60A5FA] transition-colors"
+                  className="w-full bg-fleet-secondary border border-fleet rounded-md px-3 py-2 text-sm text-fleet-primary focus:outline-none focus:border-fleet-accent focus:ring-2 focus:ring-fleet-accent/40 focus:ring-offset-2 focus:ring-offset-(--color-fleet-bg-primary) transition-colors"
                 />
               </div>
             </div>
@@ -125,14 +125,14 @@ export function TripAssignmentForm({
             {/* Unit Selection */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs text-[#6C7484] mb-2">
+                <label className="block text-xs text-fleet-muted mb-2">
                   UNIT
                 </label>
                 <div className="relative">
                   <select
                     value={selectedUnit}
                     onChange={(e) => setSelectedUnit(e.target.value)}
-                    className="w-full bg-[#0F1420] border border-[#1E2638] rounded-md px-3 py-2 text-sm text-[#E6EAF2] appearance-none cursor-pointer focus:outline-none focus:border-[#60A5FA] transition-colors"
+                    className="w-full bg-fleet-secondary border border-fleet rounded-md px-3 py-2 text-sm text-fleet-primary appearance-none cursor-pointer focus:outline-none focus:border-fleet-accent focus:ring-2 focus:ring-fleet-accent/40 focus:ring-offset-2 focus:ring-offset-(--color-fleet-bg-primary) transition-colors"
                   >
                     {units.map((unit) => (
                       <option key={unit.id} value={unit.id}>
@@ -140,23 +140,23 @@ export function TripAssignmentForm({
                       </option>
                     ))}
                   </select>
-                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#6C7484] pointer-events-none" />
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-fleet-muted pointer-events-none" />
                 </div>
-                <div className="text-xs text-[#6C7484] mt-1">
+                <div className="text-xs text-fleet-muted mt-1">
                   {units.find((u) => u.id === selectedUnit)?.class} -{" "}
                   {units.find((u) => u.id === selectedUnit)?.homeTerminal}
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs text-[#6C7484] mb-2">
+                <label className="block text-xs text-fleet-muted mb-2">
                   UNIT CODE (BOL)
                 </label>
                 <input
                   type="text"
                   value={units.find((u) => u.id === selectedUnit)?.unitNumber || ""}
                   readOnly
-                  className="w-full bg-[#0F1420] border border-[#1E2638] rounded-md px-3 py-2 text-sm text-[#E6EAF2] focus:outline-none focus:border-[#60A5FA] transition-colors"
+                  className="w-full bg-fleet-secondary border border-fleet rounded-md px-3 py-2 text-sm text-fleet-primary focus:outline-none focus:border-fleet-accent focus:ring-2 focus:ring-fleet-accent/40 focus:ring-offset-2 focus:ring-offset-(--color-fleet-bg-primary) transition-colors"
                 />
               </div>
             </div>
@@ -164,14 +164,14 @@ export function TripAssignmentForm({
             {/* Rate Selection */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs text-[#6C7484] mb-2">
+                <label className="block text-xs text-fleet-muted mb-2">
                   RATE
                 </label>
                 <div className="relative">
                   <select
                     value={rate}
                     onChange={(e) => setRate(e.target.value)}
-                    className="w-full bg-[#0F1420] border border-[#1E2638] rounded-md px-3 py-2 text-sm text-[#E6EAF2] appearance-none cursor-pointer focus:outline-none focus:border-[#60A5FA] transition-colors"
+                    className="w-full bg-fleet-secondary border border-fleet rounded-md px-3 py-2 text-sm text-fleet-primary appearance-none cursor-pointer focus:outline-none focus:border-fleet-accent focus:ring-2 focus:ring-fleet-accent/40 focus:ring-offset-2 focus:ring-offset-(--color-fleet-bg-primary) transition-colors"
                   >
                     <option value={rate}>{rate}</option>
                     <option value="COM - REGIONAL - 1.45 CPM">
@@ -181,19 +181,19 @@ export function TripAssignmentForm({
                       EXPEDITE - URGENT - 2.15 CPM
                     </option>
                   </select>
-                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#6C7484] pointer-events-none" />
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-fleet-muted pointer-events-none" />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs text-[#6C7484] mb-2">
+                <label className="block text-xs text-fleet-muted mb-2">
                   TRIP TYPE
                 </label>
                 <input
                   type="text"
                   value={recommendation.rate.type}
                   readOnly
-                  className="w-full bg-[#0F1420] border border-[#1E2638] rounded-md px-3 py-2 text-sm text-[#E6EAF2] focus:outline-none"
+                  className="w-full bg-fleet-secondary border border-fleet rounded-md px-3 py-2 text-sm text-fleet-primary focus:outline-none"
                 />
               </div>
             </div>
@@ -201,32 +201,32 @@ export function TripAssignmentForm({
             {/* Trip Zone & Miles */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs text-[#6C7484] mb-2">
+                <label className="block text-xs text-fleet-muted mb-2">
                   TRIP ZONE
                 </label>
                 <div className="relative">
                   <select
                     value={tripZone}
                     onChange={(e) => setTripZone(e.target.value)}
-                    className="w-full bg-[#0F1420] border border-[#1E2638] rounded-md px-3 py-2 text-sm text-[#E6EAF2] appearance-none cursor-pointer focus:outline-none focus:border-[#60A5FA] transition-colors"
+                    className="w-full bg-fleet-secondary border border-fleet rounded-md px-3 py-2 text-sm text-fleet-primary appearance-none cursor-pointer focus:outline-none focus:border-fleet-accent focus:ring-2 focus:ring-fleet-accent/40 focus:ring-offset-2 focus:ring-offset-(--color-fleet-bg-primary) transition-colors"
                   >
                     <option value="GLOBAL">GLOBAL</option>
                     <option value="REGIONAL">REGIONAL</option>
                     <option value="LOCAL">LOCAL</option>
                   </select>
-                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#6C7484] pointer-events-none" />
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-fleet-muted pointer-events-none" />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs text-[#6C7484] mb-2">
+                <label className="block text-xs text-fleet-muted mb-2">
                   MILES
                 </label>
                 <input
                   type="text"
                   value={miles}
                   onChange={(e) => setMiles(e.target.value)}
-                  className="w-full bg-[#0F1420] border border-[#1E2638] rounded-md px-3 py-2 text-sm text-[#E6EAF2] focus:outline-none focus:border-[#60A5FA] transition-colors"
+                  className="w-full bg-fleet-secondary border border-fleet rounded-md px-3 py-2 text-sm text-fleet-primary focus:outline-none focus:border-fleet-accent focus:ring-2 focus:ring-fleet-accent/40 focus:ring-offset-2 focus:ring-offset-(--color-fleet-bg-primary) transition-colors"
                 />
               </div>
             </div>
@@ -234,10 +234,10 @@ export function TripAssignmentForm({
         </div>
 
         {/* Submit Button */}
-        <div className="flex items-center justify-end pt-4 border-t border-[#1E2638]">
+        <div className="flex items-center justify-end pt-4 border-t border-fleet">
           <button
             type="submit"
-            className="px-6 py-2.5 bg-[#60A5FA] hover:bg-[#60A5FA]/90 rounded-md text-sm font-medium text-white transition-colors focus:outline-none focus:ring-2 focus:ring-[#60A5FA] focus:ring-offset-2 focus:ring-offset-[#0B1020]"
+            className="px-6 py-2.5 bg-fleet-accent hover:bg-(--hover-accent) rounded-md text-sm font-medium text-white transition-colors focus:outline-none focus:ring-2 focus:ring-fleet-accent/40 focus:ring-offset-2 focus:ring-offset-(--color-fleet-bg-primary)"
           >
             Launch Booking
           </button>

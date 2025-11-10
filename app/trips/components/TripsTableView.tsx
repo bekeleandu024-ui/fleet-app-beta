@@ -15,13 +15,13 @@ export function TripsTableView({ trips }: TripsTableViewProps) {
       case "assigned":
         return "bg-fleet-accent/10 text-fleet-accent border border-fleet-accent/20";
       case "en_route_pickup":
-        return "bg-[#22D3EE]/10 text-[#22D3EE] border-[#22D3EE]/30";
+        return "bg-fleet-info/10 text-fleet-info border border-fleet-info/20";
       case "at_pickup":
         return "bg-fleet-alert/10 text-fleet-alert border border-fleet-alert/20";
       case "in_transit":
-        return "bg-[#A78BFA]/10 text-[#A78BFA] border-[#A78BFA]/30";
+        return "bg-fleet-insight/10 text-fleet-insight border border-fleet-insight/20";
       case "at_delivery":
-        return "bg-[#FCD34D]/10 text-[#FCD34D] border-[#FCD34D]/30";
+        return "bg-fleet-highlight/10 text-fleet-highlight border border-fleet-highlight/20";
       case "completed":
         return "bg-fleet-success/10 text-fleet-success border border-fleet-success/20";
     }

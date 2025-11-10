@@ -113,11 +113,11 @@ export function AIMonitoringSidebar({ trips, drivers }: AIMonitoringSidebarProps
   const getAlertColor = (type: "critical" | "warning" | "info") => {
     switch (type) {
       case "critical":
-        return "border-[#FF4D4D]/30 bg-[#FF4D4D]/5 text-[#FF4D4D]";
+        return "border-fleet-danger/20 bg-fleet-danger/10 text-fleet-danger";
       case "warning":
-        return "border-[#FFC857]/30 bg-[#FFC857]/5 text-[#FFC857]";
+        return "border-fleet-warning/20 bg-fleet-warning/10 text-fleet-warning";
       case "info":
-        return "border-[#60A5FA]/30 bg-[#60A5FA]/5 text-[#60A5FA]";
+        return "border-fleet-insight/20 bg-fleet-insight/10 text-fleet-insight";
     }
   };
 
@@ -137,7 +137,7 @@ export function AIMonitoringSidebar({ trips, drivers }: AIMonitoringSidebarProps
       {/* Header */}
       <div className={`p-4 border-b ${fleetTokens.border}`}>
         <div className="flex items-center gap-2 mb-2">
-          <BarChart3 className="h-5 w-5 text-[#A78BFA]" />
+          <BarChart3 className="h-5 w-5 text-fleet-insight" />
           <h2 className={`text-lg font-semibold ${fleetTokens.textPrimary}`}>AI Monitoring</h2>
         </div>
         <p className={`text-xs ${fleetTokens.textMuted}`}>
@@ -228,7 +228,7 @@ export function AIMonitoringSidebar({ trips, drivers }: AIMonitoringSidebarProps
           {/* Utilization Rate */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <BarChart3 className="h-4 w-4 text-[#A78BFA]" />
+              <BarChart3 className="h-4 w-4 text-fleet-insight" />
               <span className={`text-xs ${fleetTokens.textSecondary}`}>Utilization</span>
             </div>
             <span className={`text-sm font-semibold ${fleetTokens.textPrimary}`}>

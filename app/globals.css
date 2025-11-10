@@ -16,6 +16,9 @@
   --fleet-warning: #FFC857;
   --fleet-alert: #FF8A00;
   --fleet-danger: #FF4D4D;
+  --fleet-info: #22D3EE;
+  --fleet-insight: #A78BFA;
+  --fleet-highlight: #FCD34D;
   --fleet-accent-primary: #60A5FA;
 --fleet-accent-hover: #3A7BDB;
   --radius: 0.625rem;
@@ -70,6 +73,9 @@
   --color-fleet-warning: #FFC857;
   --color-fleet-alert: #FF8A00;
   --color-fleet-danger: #FF4D4D;
+  --color-fleet-info: #22D3EE;
+  --color-fleet-insight: #A78BFA;
+  --color-fleet-highlight: #FCD34D;
   --color-fleet-accent: #60A5FA;
 
   /* Radius tokens - sharp corners only */
@@ -189,6 +195,15 @@
   .bg-fleet-danger { background-color: var(--fleet-danger); }
   .bg-fleet-danger\/10 { background-color: color-mix(in srgb, var(--fleet-danger) 10%, transparent); }
   .bg-fleet-danger\/20 { background-color: color-mix(in srgb, var(--fleet-danger) 20%, transparent); }
+  .bg-fleet-info { background-color: var(--color-fleet-info); }
+  .bg-fleet-info\/10 { background-color: color-mix(in srgb, var(--color-fleet-info) 10%, transparent); }
+  .bg-fleet-info\/20 { background-color: color-mix(in srgb, var(--color-fleet-info) 20%, transparent); }
+  .bg-fleet-insight { background-color: var(--color-fleet-insight); }
+  .bg-fleet-insight\/10 { background-color: color-mix(in srgb, var(--color-fleet-insight) 10%, transparent); }
+  .bg-fleet-insight\/20 { background-color: color-mix(in srgb, var(--color-fleet-insight) 20%, transparent); }
+  .bg-fleet-highlight { background-color: var(--color-fleet-highlight); }
+  .bg-fleet-highlight\/10 { background-color: color-mix(in srgb, var(--color-fleet-highlight) 10%, transparent); }
+  .bg-fleet-highlight\/20 { background-color: color-mix(in srgb, var(--color-fleet-highlight) 20%, transparent); }
   .text-fleet-primary { color: var(--color-fleet-text-primary); }
   .text-fleet-secondary { color: var(--color-fleet-text-secondary); }
   .text-fleet-muted { color: var(--color-fleet-text-muted); }
@@ -197,6 +212,9 @@
   .text-fleet-warning { color: var(--fleet-warning); }
   .text-fleet-alert { color: var(--fleet-alert); }
   .text-fleet-danger { color: var(--fleet-danger); }
+  .text-fleet-info { color: var(--color-fleet-info); }
+  .text-fleet-insight { color: var(--color-fleet-insight); }
+  .text-fleet-highlight { color: var(--color-fleet-highlight); }
   .border-fleet { border-color: var(--color-fleet-border); }
   .border-fleet-accent { border-color: var(--fleet-accent-primary); }
   .border-fleet-success { border-color: var(--fleet-success); }
@@ -207,6 +225,12 @@
   .border-fleet-alert\/20 { border-color: color-mix(in srgb, var(--fleet-alert) 20%, transparent); }
   .border-fleet-danger { border-color: var(--fleet-danger); }
   .border-fleet-danger\/20 { border-color: color-mix(in srgb, var(--fleet-danger) 20%, transparent); }
+  .border-fleet-info { border-color: var(--color-fleet-info); }
+  .border-fleet-info\/20 { border-color: color-mix(in srgb, var(--color-fleet-info) 20%, transparent); }
+  .border-fleet-insight { border-color: var(--color-fleet-insight); }
+  .border-fleet-insight\/20 { border-color: color-mix(in srgb, var(--color-fleet-insight) 20%, transparent); }
+  .border-fleet-highlight { border-color: var(--color-fleet-highlight); }
+  .border-fleet-highlight\/20 { border-color: color-mix(in srgb, var(--color-fleet-highlight) 20%, transparent); }
   .border-fleet-muted { border-color: var(--color-fleet-text-muted); }
   .border-fleet-muted\/20 { border-color: color-mix(in srgb, var(--color-fleet-text-muted) 20%, transparent); }
   .border-fleet-accent\/40 { border-color: color-mix(in srgb, var(--fleet-accent-primary) 40%, transparent); }

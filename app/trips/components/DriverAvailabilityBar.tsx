@@ -42,7 +42,7 @@ export function DriverAvailabilityBar({ drivers, onDriverClick }: DriverAvailabi
       case "rental":
   return { label: "RNR", color: "text-fleet-warning bg-fleet-warning/20 border border-fleet-warning/20" };
       case "owner_operator":
-        return { label: "O/O", color: "text-[#A78BFA] bg-[#A78BFA]/10 border-[#A78BFA]/20" };
+        return { label: "O/O", color: "text-fleet-insight bg-fleet-insight/10 border border-fleet-insight/20" };
     }
   };
 

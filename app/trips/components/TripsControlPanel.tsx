@@ -121,7 +121,7 @@ export function TripsControlPanel({
 
         {/* Right: AI Toggle */}
         <div className="flex items-center gap-3">
-          <BarChart3 className="h-5 w-5 text-[#A78BFA]" />
+          <BarChart3 className="h-5 w-5 text-fleet-insight" />
           <span className={`text-sm ${fleetTokens.textPrimary}`}>AI Monitoring</span>
           <button
             onClick={() => onAiToggle(!aiEnabled)}

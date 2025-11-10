@@ -14,10 +14,10 @@ export function KanbanColumn({ title, orders, onOrderClick, onDragStart }: Kanba
   const getStatusColor = () => {
     if (title.includes("Unassigned")) return "border-fleet-warning";
     if (title.includes("Assigned")) return "border-fleet-accent";
-    if (title.includes("En Route")) return "border-[#22D3EE]";
+  if (title.includes("En Route")) return "border-fleet-info";
     if (title.includes("Pickup")) return "border-fleet-alert";
-    if (title.includes("Transit")) return "border-[#A78BFA]";
-    if (title.includes("Delivery")) return "border-[#FCD34D]";
+  if (title.includes("Transit")) return "border-fleet-insight";
+  if (title.includes("Delivery")) return "border-fleet-highlight";
     if (title.includes("Completed")) return "border-fleet-success";
     return "border-fleet";
   };
@@ -140,7 +140,7 @@ function OrderCard({
           <div className="text-xs space-y-1">
             <div className="flex justify-between">
               <span className="text-fleet-muted">ETA to Pickup</span>
-              <span className="text-[#22D3EE]">
+              <span className="text-fleet-info">
                 {new Date(order.eta!).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
               </span>
             </div>
@@ -174,7 +174,7 @@ function OrderCard({
           </div>
           <div className="w-full bg-fleet-border rounded-full h-1.5">
             <div
-              className="bg-[#A78BFA] h-1.5 rounded-full transition-all"
+              className="bg-fleet-insight h-1.5 rounded-full transition-all"
               style={{ width: `${order.progressPct}%` }}
             />
           </div>
