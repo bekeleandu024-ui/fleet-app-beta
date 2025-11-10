@@ -4,6 +4,7 @@ import { pool } from './db/client';
 import { runMigrations } from './db/init';
 import { connectProducer } from './services/kafkaProducer';
 import costingRoutes from './routes/costing';
+import metadataRoutes from './routes/metadata';
 
 const app = express();
 app.use(express.json());
@@ -15,6 +16,9 @@ app.get('/health', (req, res) => {
 
 // Costing API routes
 app.use('/api/costing', costingRoutes);
+
+// Metadata API routes
+app.use('/api/metadata', metadataRoutes);
 
 async function startServer() {
   try {
