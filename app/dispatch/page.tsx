@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Info } from "lucide-react";
 
-import { PageSection } from "@/components/page-section";
+import { SectionBanner } from "@/components/section-banner";
 import { RecommendationCallout } from "@/components/recommendation-callout";
 import { HealthDot } from "@/components/health-dot";
 import { StatChip } from "@/components/stat-chip";
@@ -33,9 +33,12 @@ export default function DispatchPage() {
   if (isError || !data) {
     return (
       <div className="space-y-6">
-        <PageSection title="Dispatch Console">
-          <p className="text-sm text-[var(--muted)]">Dispatch data unavailable.</p>
-        </PageSection>
+        <SectionBanner>
+          <SectionBanner.Header title="Dispatch Console" />
+          <SectionBanner.Content>
+            <p className="text-sm text-[var(--muted)]">Dispatch data unavailable.</p>
+          </SectionBanner.Content>
+        </SectionBanner>
       </div>
     );
   }
@@ -44,13 +47,14 @@ export default function DispatchPage() {
 
   return (
     <div className="space-y-6">
-      <PageSection
-        title="Dispatch Control Center"
-        description="Stage qualified orders, apply guardrails, and confirm launch-ready crews."
-        contentClassName="p-0"
-      >
-        <div className="grid gap-0 border-t border-[var(--border)] lg:grid-cols-3">
-          <div className="space-y-5 border-b border-[var(--border)] px-6 py-6 lg:border-b-0 lg:border-r">
+      <SectionBanner>
+        <SectionBanner.Header
+          title="Dispatch Control Center"
+          description="Stage qualified orders, apply guardrails, and confirm launch-ready crews."
+        />
+        <SectionBanner.Content className="p-0">
+          <div className="grid gap-0 border-t border-[var(--border)] lg:grid-cols-3">
+            <div className="space-y-5 border-b border-[var(--border)] px-6 py-6 lg:border-b-0 lg:border-r">
             <header className="flex items-center justify-between">
               <h3 className="text-sm font-semibold text-[var(--text)]">Qualified Orders</h3>
               <div className="flex gap-2 text-xs text-[var(--muted)]">
@@ -92,7 +96,7 @@ export default function DispatchPage() {
             </div>
           </div>
 
-          <div className="space-y-5 border-b border-[var(--border)] px-6 py-6 lg:border-b-0 lg:border-r">
+            <div className="space-y-5 border-b border-[var(--border)] px-6 py-6 lg:border-b-0 lg:border-r">
             <h3 className="text-sm font-semibold text-[var(--text)]">Assignment & Guardrails</h3>
             <RecommendationCallout
               title={data.recommendation.title}
@@ -164,7 +168,7 @@ export default function DispatchPage() {
             </form>
           </div>
 
-          <div className="space-y-5 px-6 py-6">
+            <div className="space-y-5 px-6 py-6">
             <h3 className="text-sm font-semibold text-[var(--text)]">Crew & Assets</h3>
             <div className="grid gap-4 lg:grid-cols-1 xl:grid-cols-2">
               <section className="space-y-3 rounded-md border border-[var(--border)] bg-[var(--surface-2)] p-4">
@@ -202,12 +206,12 @@ export default function DispatchPage() {
               </section>
             </div>
           </div>
-        </div>
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--border)] bg-[var(--surface-2)] px-6 py-4">
-          <div className="flex items-center gap-2 text-xs text-[var(--muted)]">
+        </SectionBanner.Content>
+        <SectionBanner.Footer className="flex flex-wrap items-center justify-between gap-3 bg-[var(--surface-2)] text-xs text-[var(--muted)]">
+          <div className="flex items-center gap-2">
             <Info className="size-4" /> Ensure guardrails satisfied before launch.
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 text-[var(--text)]">
             <Button variant="ghost" className="rounded-md border border-[var(--border)] bg-[var(--surface-1)] text-xs uppercase tracking-wide text-[var(--text)]">
               Save Draft
             </Button>
@@ -215,8 +219,8 @@ export default function DispatchPage() {
               Launch Trip
             </Button>
           </div>
-        </div>
-      </PageSection>
+        </SectionBanner.Footer>
+      </SectionBanner>
     </div>
   );
 }
@@ -224,9 +228,11 @@ export default function DispatchPage() {
 function DispatchSkeleton() {
   return (
     <div className="space-y-6">
-      <PageSection title="Dispatch Control Center" hideHeader>
-        <div className="h-[520px] animate-pulse rounded-md bg-[var(--surface-2)]" />
-      </PageSection>
+      <SectionBanner>
+        <SectionBanner.Content>
+          <div className="h-[520px] animate-pulse rounded-md bg-[var(--surface-2)]" />
+        </SectionBanner.Content>
+      </SectionBanner>
     </div>
   );
 }

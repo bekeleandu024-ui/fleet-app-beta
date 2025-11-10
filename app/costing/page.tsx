@@ -3,7 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Download, Save } from "lucide-react";
 
-import { PageSection } from "@/components/page-section";
+import { SectionBanner } from "@/components/section-banner";
 import { Button } from "@/components/ui/button";
 import { fetchCostingDefaults } from "@/lib/api";
 import { queryKeys } from "@/lib/query";
@@ -21,9 +21,12 @@ export default function CostingPage() {
   if (isError || !data) {
     return (
       <div className="space-y-6">
-        <PageSection title="Costing Workbench">
-          <p className="text-sm text-[var(--muted)]">Unable to load costing workbench.</p>
-        </PageSection>
+        <SectionBanner>
+          <SectionBanner.Header title="Costing Workbench" />
+          <SectionBanner.Content>
+            <p className="text-sm text-[var(--muted)]">Unable to load costing workbench.</p>
+          </SectionBanner.Content>
+        </SectionBanner>
       </div>
     );
   }
@@ -31,11 +34,13 @@ export default function CostingPage() {
   return (
     <div className="space-y-6 pb-20">
       <div className="grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-        <PageSection
-          title="Costing Workbench"
-          description="Adjust assumptions and review full cost structure before committing."
-        >
-          <form className="grid gap-4 text-sm md:grid-cols-2">
+        <SectionBanner>
+          <SectionBanner.Header
+            title="Costing Workbench"
+            description="Adjust assumptions and review full cost structure before committing."
+          />
+          <SectionBanner.Content>
+            <form className="grid gap-4 text-sm md:grid-cols-2">
             <label className="grid gap-2">
               <span className="text-xs uppercase tracking-wide text-[var(--muted)]">Miles</span>
               <input
@@ -133,15 +138,17 @@ export default function CostingPage() {
                 placeholder="Add pricing assumptions or notes"
               />
             </label>
-          </form>
-        </PageSection>
+            </form>
+          </SectionBanner.Content>
+        </SectionBanner>
 
-        <PageSection
-          title="Breakdown"
-          description="Fixed, variable, and accessorial cost components."
-          contentClassName="space-y-5"
-        >
-          <div className="space-y-4">
+        <SectionBanner>
+          <SectionBanner.Header
+            title="Breakdown"
+            description="Fixed, variable, and accessorial cost components."
+          />
+          <SectionBanner.Content className="space-y-5">
+            <div className="space-y-4">
             {data.breakdown.sections.map((section) => (
               <section key={section.title} className="rounded-md border border-[var(--border)] bg-[var(--surface-2)]">
                 <header className="flex items-center justify-between border-b border-[var(--border)] px-4 py-2">
@@ -158,7 +165,7 @@ export default function CostingPage() {
               </section>
             ))}
           </div>
-          <div className="rounded-md border border-[var(--border)] bg-[var(--surface-2)]">
+            <div className="rounded-md border border-[var(--border)] bg-[var(--surface-2)]">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] px-4 py-3 text-sm">
               <span className="text-[var(--muted)]">{data.breakdown.totalLabel}</span>
               <span className="text-base font-semibold text-[var(--text)]">{data.breakdown.totalValue}</span>
@@ -177,8 +184,8 @@ export default function CostingPage() {
                 <span className="text-sm font-semibold text-[var(--text)]">{data.targets.breakEven}</span>
               </div>
             </div>
-          </div>
-        </PageSection>
+          </SectionBanner.Content>
+        </SectionBanner>
       </div>
 
       <div className="sticky bottom-4 z-10">
@@ -201,9 +208,11 @@ export default function CostingPage() {
 function CostingSkeleton() {
   return (
     <div className="space-y-6">
-      <PageSection title="Costing Workbench" hideHeader>
-        <div className="h-[520px] animate-pulse rounded-md bg-[var(--surface-2)]" />
-      </PageSection>
+      <SectionBanner>
+        <SectionBanner.Content>
+          <div className="h-[520px] animate-pulse rounded-md bg-[var(--surface-2)]" />
+        </SectionBanner.Content>
+      </SectionBanner>
     </div>
   );
 }

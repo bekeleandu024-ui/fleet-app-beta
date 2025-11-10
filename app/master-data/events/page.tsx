@@ -3,7 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { DataTable, type DataTableColumn } from "@/components/data-table";
-import { PageSection } from "@/components/page-section";
+import { SectionBanner } from "@/components/section-banner";
 import { fetchEventsMasterData } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
 import { queryKeys } from "@/lib/query";
@@ -22,9 +22,12 @@ export default function EventsMasterDataPage() {
   if (isError || !data) {
     return (
       <div className="space-y-6">
-        <PageSection title="Events">
-          <p className="text-sm text-[var(--muted)]">Events not available.</p>
-        </PageSection>
+        <SectionBanner>
+          <SectionBanner.Header title="Events" />
+          <SectionBanner.Content>
+            <p className="text-sm text-[var(--muted)]">Events not available.</p>
+          </SectionBanner.Content>
+        </SectionBanner>
       </div>
     );
   }
@@ -39,8 +42,13 @@ export default function EventsMasterDataPage() {
 
   return (
     <div className="space-y-6">
-      <PageSection title="Event Filters" description="Filter safety, compliance, and exception events." contentClassName="space-y-4">
-        <form className="grid gap-4 text-sm md:grid-cols-2 lg:grid-cols-3">
+      <SectionBanner>
+        <SectionBanner.Header
+          title="Event Filters"
+          description="Filter safety, compliance, and exception events."
+        />
+        <SectionBanner.Content className="space-y-4">
+          <form className="grid gap-4 text-sm md:grid-cols-2 lg:grid-cols-3">
           <label className="grid gap-2">
             <span className="text-xs uppercase tracking-wide text-[var(--muted)]">Region</span>
             <select className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2">
@@ -62,14 +70,21 @@ export default function EventsMasterDataPage() {
               </div>
             </div>
           </label>
-        </form>
-      </PageSection>
+          </form>
+        </SectionBanner.Content>
+      </SectionBanner>
 
-      <PageSection title="Event Log" description="Chronological, read-only telemetry feed." contentClassName="px-0 pb-0">
-        <div className="border-t border-[var(--border)]">
-          <DataTable columns={columns} data={data.data} getRowId={(row) => row.id} />
-        </div>
-      </PageSection>
+      <SectionBanner>
+        <SectionBanner.Header
+          title="Event Log"
+          description="Chronological, read-only telemetry feed."
+        />
+        <SectionBanner.Content className="px-0 pb-0">
+          <div className="border-t border-[var(--border)]">
+            <DataTable columns={columns} data={data.data} getRowId={(row) => row.id} />
+          </div>
+        </SectionBanner.Content>
+      </SectionBanner>
     </div>
   );
 }
@@ -77,9 +92,11 @@ export default function EventsMasterDataPage() {
 function MasterDataSkeleton({ title }: { title: string }) {
   return (
     <div className="space-y-6">
-      <PageSection title={title} hideHeader>
-        <div className="h-[420px] animate-pulse rounded-md bg-[var(--surface-2)]" />
-      </PageSection>
+      <SectionBanner>
+        <SectionBanner.Content>
+          <div className="h-[420px] animate-pulse rounded-md bg-[var(--surface-2)]" />
+        </SectionBanner.Content>
+      </SectionBanner>
     </div>
   );
 }

@@ -6,7 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { RefreshCw } from "lucide-react";
 
 import { DataTable, type DataTableColumn } from "@/components/data-table";
-import { PageSection } from "@/components/page-section";
+import { SectionBanner } from "@/components/section-banner";
 import { Button } from "@/components/ui/button";
 import { fetchOrders } from "@/lib/api";
 import { formatCurrency } from "@/lib/format";
@@ -80,9 +80,12 @@ export default function OrdersPage() {
   if (isError || !data) {
     return (
       <div className="space-y-6">
-        <PageSection title="Orders">
-          <p className="text-sm text-[var(--muted)]">Unable to load orders. Try refreshing the page.</p>
-        </PageSection>
+        <SectionBanner>
+          <SectionBanner.Header title="Orders" />
+          <SectionBanner.Content>
+            <p className="text-sm text-[var(--muted)]">Unable to load orders. Try refreshing the page.</p>
+          </SectionBanner.Content>
+        </SectionBanner>
       </div>
     );
   }
@@ -96,46 +99,54 @@ export default function OrdersPage() {
 
   return (
     <div className="space-y-6">
-      <PageSection
-        title="Orders Workspace"
-        description="Review, price, and action the active order stack."
-        actions={
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] text-xs font-semibold uppercase tracking-wide text-[var(--text)]"
-              onClick={() => {
-                void refetch();
-              }}
-            >
-              <RefreshCw className="size-4" /> Refresh
-            </Button>
-            <Button
-              size="sm"
-              className="rounded-md bg-[var(--accent)] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-black"
-            >
-              Create Order
-            </Button>
+      <SectionBanner>
+        <SectionBanner.Header
+          title="Orders Workspace"
+          description="Review, price, and action the active order stack."
+          actions={
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] text-xs font-semibold uppercase tracking-wide text-[var(--text)]"
+                onClick={() => {
+                  void refetch();
+                }}
+              >
+                <RefreshCw className="size-4" /> Refresh
+              </Button>
+              <Button
+                size="sm"
+                className="rounded-md bg-[var(--accent)] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-black"
+              >
+                Create Order
+              </Button>
+            </div>
+          }
+        />
+        <SectionBanner.Content>
+          <div className="flex flex-wrap items-center gap-3">
+            {stats.map((stat) => (
+              <span
+                key={stat.label}
+                className="inline-flex items-center gap-2 rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-1 text-xs uppercase tracking-wide text-[var(--muted)]"
+              >
+                <span className="text-base font-semibold text-[var(--text)]">{stat.value}</span>
+                {stat.label}
+              </span>
+            ))}
           </div>
-        }
-      >
-        <div className="flex flex-wrap items-center gap-3">
-          {stats.map((stat) => (
-            <span
-              key={stat.label}
-              className="inline-flex items-center gap-2 rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-1 text-xs uppercase tracking-wide text-[var(--muted)]"
-            >
-              <span className="text-base font-semibold text-[var(--text)]">{stat.value}</span>
-              {stat.label}
-            </span>
-          ))}
-        </div>
-      </PageSection>
+        </SectionBanner.Content>
+      </SectionBanner>
 
       <div className="grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
-        <PageSection title="Filters" description="Target customer, service level, or lane." contentClassName="space-y-4">
-          <form className="grid gap-4 text-sm">
+        <SectionBanner>
+          <SectionBanner.Header
+            title="Filters"
+            description="Target customer, service level, or lane."
+          />
+          <SectionBanner.Content className="space-y-4">
+            <form className="grid gap-4 text-sm">
             <label className="grid gap-2">
               <span className="text-xs uppercase tracking-wide text-[var(--muted)]">Customer</span>
               <select className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2">
@@ -173,37 +184,40 @@ export default function OrdersPage() {
                 ))}
               </select>
             </label>
-          </form>
-        </PageSection>
+            </form>
+          </SectionBanner.Content>
+        </SectionBanner>
 
-        <PageSection
-          title="Orders Ledger"
-          description="Sortable view of live and planned orders."
-          contentClassName="px-0 pb-0"
-        >
-          <div className="border-t border-[var(--border)]">
-            <DataTable
-              columns={columns}
-              data={data.data}
-              busy={isLoading}
-              getRowId={(row) => row.id}
-              onRowClick={(row) => router.push(`/orders/${row.id}`)}
-              rowActions={(row) => (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-xs text-[var(--muted)] hover:text-[var(--text)]"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    router.push(`/orders/${row.id}`);
-                  }}
-                >
-                  View
-                </Button>
-              )}
-            />
-          </div>
-        </PageSection>
+        <SectionBanner>
+          <SectionBanner.Header
+            title="Orders Ledger"
+            description="Sortable view of live and planned orders."
+          />
+          <SectionBanner.Content className="px-0 pb-0">
+            <div className="border-t border-[var(--border)]">
+              <DataTable
+                columns={columns}
+                data={data.data}
+                busy={isLoading}
+                getRowId={(row) => row.id}
+                onRowClick={(row) => router.push(`/orders/${row.id}`)}
+                rowActions={(row) => (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs text-[var(--muted)] hover:text-[var(--text)]"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      router.push(`/orders/${row.id}`);
+                    }}
+                  >
+                    View
+                  </Button>
+                )}
+              />
+            </div>
+          </SectionBanner.Content>
+        </SectionBanner>
       </div>
     </div>
   );
@@ -212,15 +226,19 @@ export default function OrdersPage() {
 function OrdersSkeleton() {
   return (
     <div className="space-y-6">
-      <PageSection title="Orders Workspace" hideHeader>
-        <div className="h-24 animate-pulse rounded-md bg-[var(--surface-2)]" />
-      </PageSection>
-      <PageSection title="Orders" hideHeader>
-        <div className="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
-          <div className="h-64 animate-pulse rounded-md bg-[var(--surface-2)]" />
-          <div className="h-96 animate-pulse rounded-md bg-[var(--surface-2)]" />
-        </div>
-      </PageSection>
+      <SectionBanner>
+        <SectionBanner.Content>
+          <div className="h-24 animate-pulse rounded-md bg-[var(--surface-2)]" />
+        </SectionBanner.Content>
+      </SectionBanner>
+      <SectionBanner>
+        <SectionBanner.Content>
+          <div className="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
+            <div className="h-64 animate-pulse rounded-md bg-[var(--surface-2)]" />
+            <div className="h-96 animate-pulse rounded-md bg-[var(--surface-2)]" />
+          </div>
+        </SectionBanner.Content>
+      </SectionBanner>
     </div>
   );
 }

@@ -3,7 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { DataTable, type DataTableColumn } from "@/components/data-table";
-import { PageSection } from "@/components/page-section";
+import { SectionBanner } from "@/components/section-banner";
 import { fetchUnitsMasterData } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
 import { queryKeys } from "@/lib/query";
@@ -22,9 +22,12 @@ export default function UnitsMasterDataPage() {
   if (isError || !data) {
     return (
       <div className="space-y-6">
-        <PageSection title="Units">
-          <p className="text-sm text-[var(--muted)]">Units not available.</p>
-        </PageSection>
+        <SectionBanner>
+          <SectionBanner.Header title="Units" />
+          <SectionBanner.Content>
+            <p className="text-sm text-[var(--muted)]">Units not available.</p>
+          </SectionBanner.Content>
+        </SectionBanner>
       </div>
     );
   }
@@ -39,8 +42,13 @@ export default function UnitsMasterDataPage() {
 
   return (
     <div className="space-y-6">
-      <PageSection title="Unit Filters" description="Filter by fleet region, readiness, and assignment." contentClassName="space-y-4">
-        <form className="grid gap-4 text-sm md:grid-cols-2 lg:grid-cols-3">
+      <SectionBanner>
+        <SectionBanner.Header
+          title="Unit Filters"
+          description="Filter by fleet region, readiness, and assignment."
+        />
+        <SectionBanner.Content className="space-y-4">
+          <form className="grid gap-4 text-sm md:grid-cols-2 lg:grid-cols-3">
           <label className="grid gap-2">
             <span className="text-xs uppercase tracking-wide text-[var(--muted)]">Region</span>
             <select className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2">
@@ -62,14 +70,21 @@ export default function UnitsMasterDataPage() {
               </div>
             </div>
           </label>
-        </form>
-      </PageSection>
+          </form>
+        </SectionBanner.Content>
+      </SectionBanner>
 
-      <PageSection title="Unit Registry" description="Current assets and compliance state." contentClassName="px-0 pb-0">
-        <div className="border-t border-[var(--border)]">
-          <DataTable columns={columns} data={data.data} getRowId={(row) => row.id} />
-        </div>
-      </PageSection>
+      <SectionBanner>
+        <SectionBanner.Header
+          title="Unit Registry"
+          description="Current assets and compliance state."
+        />
+        <SectionBanner.Content className="px-0 pb-0">
+          <div className="border-t border-[var(--border)]">
+            <DataTable columns={columns} data={data.data} getRowId={(row) => row.id} />
+          </div>
+        </SectionBanner.Content>
+      </SectionBanner>
     </div>
   );
 }
@@ -77,9 +92,11 @@ export default function UnitsMasterDataPage() {
 function MasterDataSkeleton({ title }: { title: string }) {
   return (
     <div className="space-y-6">
-      <PageSection title={title} hideHeader>
-        <div className="h-[420px] animate-pulse rounded-md bg-[var(--surface-2)]" />
-      </PageSection>
+      <SectionBanner>
+        <SectionBanner.Content>
+          <div className="h-[420px] animate-pulse rounded-md bg-[var(--surface-2)]" />
+        </SectionBanner.Content>
+      </SectionBanner>
     </div>
   );
 }
