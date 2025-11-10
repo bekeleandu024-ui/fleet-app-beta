@@ -133,50 +133,7 @@ export default function OrdersPage() {
         </div>
       </PageSection>
 
-      <div className="grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
-        <PageSection title="Filters" description="Target customer, service level, or lane." contentClassName="space-y-4">
-          <form className="grid gap-4 text-sm">
-            <label className="grid gap-2">
-              <span className="text-xs uppercase tracking-wide text-[var(--muted)]">Customer</span>
-              <select className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2">
-                {data.filters.customers.map((customer) => (
-                  <option key={customer}>{customer}</option>
-                ))}
-              </select>
-            </label>
-            <label className="grid gap-2">
-              <span className="text-xs uppercase tracking-wide text-[var(--muted)]">Status</span>
-              <div className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] p-3">
-                <div className="grid gap-2">
-                  {data.filters.statuses.map((status) => (
-                    <label key={status} className="flex items-center gap-2 text-sm text-[var(--text)]">
-                      <input type="checkbox" className="size-3 accent-[var(--accent)]" defaultChecked={status !== "Delivered"} />
-                      <span>{status}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            </label>
-            <label className="grid gap-2">
-              <span className="text-xs uppercase tracking-wide text-[var(--muted)]">Date Range</span>
-              <select className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2">
-                {data.filters.dateRanges.map((range) => (
-                  <option key={range}>{range}</option>
-                ))}
-              </select>
-            </label>
-            <label className="grid gap-2">
-              <span className="text-xs uppercase tracking-wide text-[var(--muted)]">Lane</span>
-              <select className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2">
-                {data.filters.lanes.map((lane) => (
-                  <option key={lane}>{lane}</option>
-                ))}
-              </select>
-            </label>
-          </form>
-        </PageSection>
-
-        <PageSection
+      <PageSection
           title="Orders Ledger"
           description="Sortable view of live and planned orders."
           contentClassName="px-0 pb-0"
@@ -204,7 +161,6 @@ export default function OrdersPage() {
             />
           </div>
         </PageSection>
-      </div>
     </div>
   );
 }
@@ -216,10 +172,7 @@ function OrdersSkeleton() {
         <div className="h-24 animate-pulse rounded-md bg-[var(--surface-2)]" />
       </PageSection>
       <PageSection title="Orders" hideHeader>
-        <div className="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
-          <div className="h-64 animate-pulse rounded-md bg-[var(--surface-2)]" />
-          <div className="h-96 animate-pulse rounded-md bg-[var(--surface-2)]" />
-        </div>
+        <div className="h-96 animate-pulse rounded-md bg-[var(--surface-2)]" />
       </PageSection>
     </div>
   );

@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 
-import { DrawerFilter } from "@/components/drawer-filter";
 import { DataTable, type DataTableColumn } from "@/components/data-table";
 import { StatChip } from "@/components/stat-chip";
 import { Toolbar } from "@/components/toolbar";
@@ -97,86 +96,39 @@ export default function TripsPage() {
   ];
 
   return (
-    <>
-      <DrawerFilter
-        title="Filters"
-        sections={[
-          {
-            title: "Status",
-            fields: (
-              <select className="focus-ring-brand rounded-xl border border-subtle bg-surface-2 px-3 py-2 text-sm text-[var(--text)]">
-                {data.filters.statuses.map((status) => (
-                  <option key={status}>{status}</option>
-                ))}
-              </select>
-            ),
-          },
-          {
-            title: "Exception",
-            fields: (
-              <div className="grid gap-2">
-                {data.filters.exceptions.map((ex) => (
-                  <label key={ex} className="flex items-center gap-2 text-sm text-[var(--text)]">
-                    <input type="checkbox" className="size-3 accent-[var(--brand)]" />
-                    <span>{ex}</span>
-                  </label>
-                ))}
-              </div>
-            ),
-          },
-          {
-            title: "Date Range",
-            fields: (
-              <select className="focus-ring-brand rounded-xl border border-subtle bg-surface-2 px-3 py-2 text-sm text-[var(--text)]">
-                {data.filters.dateRanges.map((range) => (
-                  <option key={range}>{range}</option>
-                ))}
-              </select>
-            ),
-          },
-        ]}
-        onClear={() => void 0}
-        onApply={() => void 0}
+    <div className="flex flex-col gap-6">
+      <Toolbar
+        title="Trips & Tracking"
+        description="Monitor live trips, exceptions, and telemetry pings."
+        stats={stats.map((stat) => ({ ...stat, id: stat.label }))}
       />
-      <div className="col-span-12 flex flex-col gap-6 lg:col-span-9">
-        <Toolbar
-          title="Trips & Tracking"
-          description="Monitor live trips, exceptions, and telemetry pings."
-          stats={stats.map((stat) => ({ ...stat, id: stat.label }))}
-        />
-        <DataTable
-          columns={columns}
-          data={data.data}
-          getRowId={(row) => row.id}
-          onRowClick={(row) => router.push(`/trips/${row.id}`)}
-          rowActions={(row) => (
-            <button
-              type="button"
-              className="text-xs text-muted hover:text-[var(--text)]"
-              onClick={(event) => {
-                event.stopPropagation();
-                router.push(`/trips/${row.id}`);
-              }}
-            >
-              View
-            </button>
-          )}
-        />
-      </div>
-    </>
+      <DataTable
+        columns={columns}
+        data={data.data}
+        getRowId={(row) => row.id}
+        onRowClick={(row) => router.push(`/trips/${row.id}`)}
+        rowActions={(row) => (
+          <button
+            type="button"
+            className="text-xs text-muted hover:text-[var(--text)]"
+            onClick={(event) => {
+              event.stopPropagation();
+              router.push(`/trips/${row.id}`);
+            }}
+          >
+            View
+          </button>
+        )}
+      />
+    </div>
   );
 }
 
 function TripsSkeleton() {
   return (
-    <>
-      <div className="col-span-12 lg:col-span-3">
-        <div className="h-96 animate-pulse rounded-xl border border-subtle bg-surface-1" />
-      </div>
-      <div className="col-span-12 flex flex-col gap-6 lg:col-span-9">
-        <div className="h-24 animate-pulse rounded-xl border border-subtle bg-surface-1" />
-        <div className="h-[480px] animate-pulse rounded-xl border border-subtle bg-surface-1" />
-      </div>
-    </>
+    <div className="flex flex-col gap-6">
+      <div className="h-24 animate-pulse rounded-xl border border-subtle bg-surface-1" />
+      <div className="h-[480px] animate-pulse rounded-xl border border-subtle bg-surface-1" />
+    </div>
   );
 }

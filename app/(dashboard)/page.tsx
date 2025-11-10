@@ -117,14 +117,11 @@ export default function DashboardPage() {
       </section>
 
       {/* main grid */}
-      <section className="col-span-12 grid gap-6 lg:grid-cols-12">
-        {/* live network */}
-        <article className="lg:col-span-7 xl:col-span-8 flex flex-col gap-4 rounded-xl border border-subtle bg-surface-1 p-4 shadow-soft">
+      <section className="col-span-12">
+        <article className="flex flex-col gap-4 rounded-xl border border-subtle bg-surface-1 p-4 shadow-soft">
           <header className="flex items-center justify-between">
             <div>
-              <h2 className="text-sm font-semibold text-[var(--text)]">
-                Live Network
-              </h2>
+              <h2 className="text-sm font-semibold text-[var(--text)]">Live Network</h2>
               <p className="text-xs text-muted">
                 Filter the active network and monitor critical movement.
               </p>
@@ -200,71 +197,6 @@ export default function DashboardPage() {
             </div>
           </div>
         </article>
-
-        {/* today at a glance */}
-        <article className="lg:col-span-5 xl:col-span-4 flex flex-col gap-4 rounded-xl border border-subtle bg-surface-1 p-4 shadow-soft">
-          <header>
-            <h2 className="text-sm font-semibold text-[var(--text)]">
-              Today at a Glance
-            </h2>
-            <p className="text-xs text-muted">
-              Lane performance, available crews, and equipment readiness.
-            </p>
-          </header>
-          <div className="grid gap-4 md:grid-cols-2">
-            <section className="space-y-3">
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-muted">
-                Top Lanes
-              </h3>
-              <ul className="space-y-2 text-sm">
-                {data.glance.topLanes.map((lane) => (
-                  <li
-                    key={lane.lane}
-                    className="flex items-center justify-between text-[var(--text)]"
-                  >
-                    <span>{lane.lane}</span>
-                    <span className="text-xs text-muted">
-                      {lane.orders} loads • {formatPercent(lane.onTimePercent)}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </section>
-            <section className="space-y-3">
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-muted">
-                Resources
-              </h3>
-              <div className="rounded-xl border border-subtle bg-surface-2 p-3 text-sm">
-                <div className="flex items-center justify-between">
-                  <span className="text-muted">Drivers available</span>
-                  <span className="font-semibold text-[var(--text)]">
-                    {data.glance.drivers.available}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted">Drivers booked</span>
-                  <span className="font-semibold text-[var(--text)]">
-                    {data.glance.drivers.booked}
-                  </span>
-                </div>
-              </div>
-              <div className="rounded-xl border border-subtle bg-surface-2 p-3 text-sm">
-                <div className="flex items-center justify-between">
-                  <span className="text-muted">Units available</span>
-                  <span className="font-semibold text-[var(--text)]">
-                    {data.glance.units.available}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted">Units down</span>
-                  <span className="font-semibold text-[var(--text)]">
-                    {data.glance.units.down}
-                  </span>
-                </div>
-              </div>
-            </section>
-          </div>
-        </article>
       </section>
     </>
   );
@@ -293,9 +225,8 @@ function DashboardSkeleton() {
           ))}
         </div>
       </section>
-      <section className="col-span-12 grid gap-6 lg:grid-cols-12">
-        <div className="lg:col-span-7 xl:col-span-8 h-80 animate-pulse rounded-xl border border-subtle bg-surface-1" />
-        <div className="lg:col-span-5 xl:col-span-4 h-80 animate-pulse rounded-xl border border-subtle bg-surface-1" />
+      <section className="col-span-12">
+        <div className="h-80 animate-pulse rounded-xl border border-subtle bg-surface-1" />
       </section>
     </>
   );
