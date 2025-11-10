@@ -172,7 +172,23 @@
   .bg-fleet-accent { background-color: var(--fleet-accent-primary); }
   .bg-fleet-accent\/15 { background-color: color-mix(in srgb, var(--fleet-accent-primary) 15%, transparent); }
   .bg-fleet-accent\/20 { background-color: color-mix(in srgb, var(--fleet-accent-primary) 20%, transparent); }
+  .bg-fleet-accent\/10 { background-color: color-mix(in srgb, var(--fleet-accent-primary) 10%, transparent); }
   .bg-fleet-border { background-color: var(--color-fleet-border); }
+  .bg-fleet-muted { background-color: var(--color-fleet-text-muted); }
+  .bg-fleet-muted\/10 { background-color: color-mix(in srgb, var(--color-fleet-text-muted) 10%, transparent); }
+  .bg-fleet-muted\/20 { background-color: color-mix(in srgb, var(--color-fleet-text-muted) 20%, transparent); }
+  .bg-fleet-success { background-color: var(--fleet-success); }
+  .bg-fleet-success\/10 { background-color: color-mix(in srgb, var(--fleet-success) 10%, transparent); }
+  .bg-fleet-success\/20 { background-color: color-mix(in srgb, var(--fleet-success) 20%, transparent); }
+  .bg-fleet-warning { background-color: var(--fleet-warning); }
+  .bg-fleet-warning\/10 { background-color: color-mix(in srgb, var(--fleet-warning) 10%, transparent); }
+  .bg-fleet-warning\/20 { background-color: color-mix(in srgb, var(--fleet-warning) 20%, transparent); }
+  .bg-fleet-alert { background-color: var(--fleet-alert); }
+  .bg-fleet-alert\/10 { background-color: color-mix(in srgb, var(--fleet-alert) 10%, transparent); }
+  .bg-fleet-alert\/20 { background-color: color-mix(in srgb, var(--fleet-alert) 20%, transparent); }
+  .bg-fleet-danger { background-color: var(--fleet-danger); }
+  .bg-fleet-danger\/10 { background-color: color-mix(in srgb, var(--fleet-danger) 10%, transparent); }
+  .bg-fleet-danger\/20 { background-color: color-mix(in srgb, var(--fleet-danger) 20%, transparent); }
   .text-fleet-primary { color: var(--color-fleet-text-primary); }
   .text-fleet-secondary { color: var(--color-fleet-text-secondary); }
   .text-fleet-muted { color: var(--color-fleet-text-muted); }
@@ -183,7 +199,18 @@
   .text-fleet-danger { color: var(--fleet-danger); }
   .border-fleet { border-color: var(--color-fleet-border); }
   .border-fleet-accent { border-color: var(--fleet-accent-primary); }
+  .border-fleet-success { border-color: var(--fleet-success); }
+  .border-fleet-success\/20 { border-color: color-mix(in srgb, var(--fleet-success) 20%, transparent); }
+  .border-fleet-warning { border-color: var(--fleet-warning); }
+  .border-fleet-warning\/20 { border-color: color-mix(in srgb, var(--fleet-warning) 20%, transparent); }
+  .border-fleet-alert { border-color: var(--fleet-alert); }
+  .border-fleet-alert\/20 { border-color: color-mix(in srgb, var(--fleet-alert) 20%, transparent); }
+  .border-fleet-danger { border-color: var(--fleet-danger); }
+  .border-fleet-danger\/20 { border-color: color-mix(in srgb, var(--fleet-danger) 20%, transparent); }
+  .border-fleet-muted { border-color: var(--color-fleet-text-muted); }
+  .border-fleet-muted\/20 { border-color: color-mix(in srgb, var(--color-fleet-text-muted) 20%, transparent); }
   .border-fleet-accent\/40 { border-color: color-mix(in srgb, var(--fleet-accent-primary) 40%, transparent); }
+  .border-fleet-accent\/20 { border-color: color-mix(in srgb, var(--fleet-accent-primary) 20%, transparent); }
   .focus\:border-fleet-accent:focus { border-color: var(--fleet-accent-primary); }
   .hover\:border-fleet-accent\/40:hover { border-color: color-mix(in srgb, var(--fleet-accent-primary) 40%, transparent); }
   .focus\:ring-fleet-accent\/40:focus { --tw-ring-color: color-mix(in srgb, var(--fleet-accent-primary) 40%, transparent); }
