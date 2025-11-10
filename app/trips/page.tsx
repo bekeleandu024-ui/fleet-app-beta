@@ -1,86 +1,182 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { TripsTableView } from "./components/TripsTableView";
-import { TripsControlPanel } from "./components/TripsControlPanel";
-import { AIMonitoringSidebar } from "./components/AIMonitoringSidebar";
-import { MOCK_DISPATCH_ORDERS, MOCK_DRIVERS } from "./mockData";
-import {
-  DispatchOrder,
-  Driver,
-  DispatchFilters,
-} from "./types";
+import { useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 
-export default function TripsBoardPage() {
-  // Filters
-  const [filters, setFilters] = useState<DispatchFilters>({
-    date: new Date().toISOString().split("T")[0],
-    driverTypes: [],
-    region: "All Regions",
+import { DrawerFilter } from "@/components/drawer-filter";
+import { DataTable, type DataTableColumn } from "@/components/data-table";
+import { StatChip } from "@/components/stat-chip";
+import { Toolbar } from "@/components/toolbar";
+import { fetchTrips } from "@/lib/api";
+import { formatDateTime } from "@/lib/format";
+import { queryKeys } from "@/lib/query";
+import type { TripListItem } from "@/lib/types";
+
+const statusTone: Record<string, "default" | "ok" | "warn" | "alert"> = {
+  "On Time": "ok",
+  "Running Late": "warn",
+  "Exception": "alert",
+};
+
+export default function TripsPage() {
+  const router = useRouter();
+  const { data, isLoading, isError } = useQuery({
+    queryKey: queryKeys.trips(),
+    queryFn: fetchTrips,
   });
-  const [aiEnabled, setAiEnabled] = useState<boolean>(true);
 
-  // Data
-  const [trips] = useState<DispatchOrder[]>(MOCK_DISPATCH_ORDERS);
-  const [drivers] = useState<Driver[]>(MOCK_DRIVERS);
+  if (isLoading) {
+    return <TripsSkeleton />;
+  }
 
-  // Filter trips by date and region
-  const filteredTrips = useMemo(() => {
-    return trips.filter((trip) => {
-      // Date filter (simplified - in real app, check pickup date)
-      // For demo, just show all trips
-      
-      // Region filter - skip since origin/destination don't have region field
-      // In real app would filter by region
+  if (isError || !data) {
+    return (
+      <section className="col-span-12 rounded-xl border border-subtle bg-surface-1 p-6 text-sm text-muted">
+        Trips unavailable.
+      </section>
+    );
+  }
 
-      return true;
-    });
-  }, [trips, filters.date, filters.region]);
+  const columns: DataTableColumn<TripListItem>[] = [
+    {
+      key: "trip",
+      header: "Trip",
+      cell: (row) => (
+        <div className="flex flex-col">
+          <span className="font-semibold text-[var(--text)]">{row.tripNumber}</span>
+          <span className="text-xs text-muted">{row.status}</span>
+        </div>
+      ),
+      widthClass: "min-w-[160px]",
+    },
+    {
+      key: "driver",
+      header: "Driver",
+      accessor: (row) => row.driver,
+    },
+    {
+      key: "unit",
+      header: "Unit",
+      accessor: (row) => row.unit,
+    },
+    {
+      key: "lane",
+      header: "PU→DEL",
+      cell: (row) => (
+        <div className="flex flex-col">
+          <span>{row.pickup}</span>
+          <span className="text-xs text-muted">{row.delivery}</span>
+        </div>
+      ),
+      widthClass: "min-w-[200px]",
+    },
+    {
+      key: "eta",
+      header: "ETA",
+      accessor: (row) => formatDateTime(row.eta),
+      widthClass: "min-w-[200px]",
+    },
+    {
+      key: "exceptions",
+      header: "Exceptions",
+      cell: (row) => <StatChip label={row.exceptions > 0 ? `${row.exceptions}` : "0"} variant={row.exceptions > 0 ? "warn" : "default"} />,
+      align: "center",
+    },
+    {
+      key: "lastPing",
+      header: "Last Ping",
+      accessor: (row) => formatDateTime(row.lastPing),
+      widthClass: "min-w-[200px]",
+    },
+  ];
 
-  // Filter drivers by type
-  const filteredDrivers = useMemo(() => {
-    if (filters.driverTypes.length === 0) return drivers;
-    return drivers.filter((d) => filters.driverTypes.includes(d.type));
-  }, [drivers, filters.driverTypes]);
-
-  // Active trips count
-  const activeTripsCount = useMemo(() => {
-    return filteredTrips.filter(
-      (t) =>
-        t.status !== "unassigned" &&
-        t.status !== "completed"
-    ).length;
-  }, [filteredTrips]);
-
-  // Available drivers count
-  const availableDriversCount = useMemo(() => {
-    return filteredDrivers.filter((d) => d.status === "available").length;
-  }, [filteredDrivers]);
+  const stats = [
+    { label: "Active", value: data.stats.active.toString(), variant: "ok" as const },
+    { label: "Late", value: data.stats.late.toString(), variant: "warn" as const },
+    { label: "Exceptions", value: data.stats.exception.toString(), variant: "alert" as const },
+  ];
 
   return (
-  <div className="flex h-screen [background-color:var(--color-fleet-bg-primary)] overflow-hidden">
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Control Panel */}
-        <TripsControlPanel
-          filters={filters}
-          onFiltersChange={setFilters}
-          activeTrips={activeTripsCount}
-          availableDrivers={availableDriversCount}
-          aiEnabled={aiEnabled}
-          onAiToggle={setAiEnabled}
+    <>
+      <DrawerFilter
+        title="Filters"
+        sections={[
+          {
+            title: "Status",
+            fields: (
+              <select className="focus-ring-brand rounded-xl border border-subtle bg-surface-2 px-3 py-2 text-sm text-[var(--text)]">
+                {data.filters.statuses.map((status) => (
+                  <option key={status}>{status}</option>
+                ))}
+              </select>
+            ),
+          },
+          {
+            title: "Exception",
+            fields: (
+              <div className="grid gap-2">
+                {data.filters.exceptions.map((ex) => (
+                  <label key={ex} className="flex items-center gap-2 text-sm text-[var(--text)]">
+                    <input type="checkbox" className="size-3 accent-[var(--brand)]" />
+                    <span>{ex}</span>
+                  </label>
+                ))}
+              </div>
+            ),
+          },
+          {
+            title: "Date Range",
+            fields: (
+              <select className="focus-ring-brand rounded-xl border border-subtle bg-surface-2 px-3 py-2 text-sm text-[var(--text)]">
+                {data.filters.dateRanges.map((range) => (
+                  <option key={range}>{range}</option>
+                ))}
+              </select>
+            ),
+          },
+        ]}
+        onClear={() => void 0}
+        onApply={() => void 0}
+      />
+      <div className="col-span-12 flex flex-col gap-6 lg:col-span-9">
+        <Toolbar
+          title="Trips & Tracking"
+          description="Monitor live trips, exceptions, and telemetry pings."
+          stats={stats.map((stat) => ({ ...stat, id: stat.label }))}
         />
-
-        {/* Table View */}
-        <div className="flex-1 overflow-hidden">
-          <TripsTableView trips={filteredTrips} />
-        </div>
+        <DataTable
+          columns={columns}
+          data={data.data}
+          getRowId={(row) => row.id}
+          onRowClick={(row) => router.push(`/trips/${row.id}`)}
+          rowActions={(row) => (
+            <button
+              type="button"
+              className="text-xs text-muted hover:text-[var(--text)]"
+              onClick={(event) => {
+                event.stopPropagation();
+                router.push(`/trips/${row.id}`);
+              }}
+            >
+              View
+            </button>
+          )}
+        />
       </div>
+    </>
+  );
+}
 
-      {/* AI Monitoring Sidebar */}
-      {aiEnabled && (
-        <AIMonitoringSidebar trips={filteredTrips} drivers={filteredDrivers} />
-      )}
-    </div>
+function TripsSkeleton() {
+  return (
+    <>
+      <div className="col-span-12 lg:col-span-3">
+        <div className="h-96 animate-pulse rounded-xl border border-subtle bg-surface-1" />
+      </div>
+      <div className="col-span-12 flex flex-col gap-6 lg:col-span-9">
+        <div className="h-24 animate-pulse rounded-xl border border-subtle bg-surface-1" />
+        <div className="h-[480px] animate-pulse rounded-xl border border-subtle bg-surface-1" />
+      </div>
+    </>
   );
 }

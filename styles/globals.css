@@ -1,0 +1,116 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: dark;
+  --bg: #0E0F12;
+  --surface-1: #14161A;
+  --surface-2: #1B1E24;
+  --surface-3: #22262E;
+  --muted: #8B93A1;
+  --text: #E8ECF1;
+  --brand: #5B8CFF;
+  --ok: #2BB673;
+  --warn: #E7A93A;
+  --alert: #E05D5D;
+  --border-subtle: #2C313A;
+  --shadow-soft: 0 24px 48px rgba(5, 6, 8, 0.65);
+  --radius-base: 0.875rem;
+}
+
+@theme inline {
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-background: var(--bg);
+  --color-foreground: var(--text);
+  --color-card: var(--surface-1);
+  --color-card-foreground: var(--text);
+  --color-popover: var(--surface-1);
+  --color-popover-foreground: var(--text);
+  --color-primary: var(--brand);
+  --color-primary-foreground: #0A1424;
+  --color-secondary: color-mix(in srgb, var(--surface-2) 80%, #000 20%);
+  --color-secondary-foreground: var(--text);
+  --color-muted: color-mix(in srgb, var(--surface-2) 75%, #000 25%);
+  --color-muted-foreground: var(--muted);
+  --color-accent: var(--surface-3);
+  --color-accent-foreground: var(--text);
+  --color-destructive: var(--alert);
+  --color-destructive-foreground: var(--text);
+  --color-border: var(--border-subtle);
+  --color-input: var(--surface-2);
+  --color-ring: var(--brand);
+  --color-surface-1: var(--surface-1);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-muted-text: var(--muted);
+  --color-ok: var(--ok);
+  --color-warn: var(--warn);
+  --color-alert: var(--alert);
+  --radius-md: var(--radius-base);
+  --radius-lg: calc(var(--radius-base) + 0.25rem);
+  --radius-xl: calc(var(--radius-base) + 0.5rem);
+  --shadow-soft: var(--shadow-soft);
+}
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    border-color: var(--border-subtle);
+    outline: none;
+  }
+
+  body {
+    background-color: var(--bg);
+    color: var(--text);
+    font-family: var(--font-geist-sans), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.4;
+  }
+
+  a {
+    color: var(--brand);
+    text-underline-offset: 4px;
+    transition: color 120ms ease;
+  }
+
+  a:hover {
+    color: color-mix(in srgb, var(--brand) 80%, white 20%);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--brand);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background-color: color-mix(in srgb, var(--brand) 35%, transparent);
+    color: var(--text);
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: color-mix(in srgb, var(--surface-2) 60%, transparent);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--surface-3) 90%, transparent);
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+}
+
+@layer utilities {
+  .bg-surface-1 { background-color: var(--surface-1); }
+  .bg-surface-2 { background-color: var(--surface-2); }
+  .bg-surface-3 { background-color: var(--surface-3); }
+  .text-muted { color: var(--muted); }
+  .border-subtle { border-color: var(--border-subtle); }
+  .shadow-soft { box-shadow: var(--shadow-soft); }
+  .focus-ring-brand:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+}
