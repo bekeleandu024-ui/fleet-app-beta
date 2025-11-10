@@ -1,28 +1,27 @@
-// app/layout.tsx
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
-import "./styles/print.css";
+import "@/styles/globals.css";
+
+import { AppShell } from "@/components/app-shell";
+import { QueryProvider } from "@/components/query-provider";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "FleetOps Enterprise - Dashboard",
-  description: "Enterprise fleet management and operations platform",
+  title: "FleetOps Control Center",
+  description: "Enterprise dispatch, costing, and tracking workspace.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="dark" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen
-                    bg-background text-foreground`}
+        className={`${geistSans.variable} ${geistMono.variable} min-h-screen bg-[var(--bg)] text-[var(--text)] antialiased`}
       >
-        {/* optional: subtle depth layer */}
-        <div className="pointer-events-none fixed inset-0 -z-10
-                        bg-[radial-gradient(1200px_600px_at_50%_-200px,rgba(16,185,129,.06),transparent)]" />
-        {children}
+        <QueryProvider>
+          <AppShell>{children}</AppShell>
+        </QueryProvider>
       </body>
     </html>
   );
