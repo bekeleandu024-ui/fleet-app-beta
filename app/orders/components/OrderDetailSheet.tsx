@@ -20,26 +20,26 @@ export function OrderDetailSheet({ order, onClose }: OrderDetailSheetProps) {
   return (
     <>
       {/* Overlay */}
-      <div className="fixed inset-0 bg-black/60 z-40" onClick={onClose} />
+      <div className="fixed inset-0 z-40 bg-black/60" onClick={onClose} />
 
       {/* Sheet */}
-      <div className="fixed right-0 top-0 bottom-0 w-full max-w-[640px] bg-[#0B1020] z-50 shadow-2xl flex flex-col">
+      <div className="fixed right-0 top-0 bottom-0 z-50 flex w-full max-w-[640px] flex-col bg-fleet-primary shadow-2xl">
         {/* Header */}
-        <div className="border-b border-[#1E2638] p-4 flex items-center justify-between">
+        <div className="flex items-center justify-between border-b border-fleet p-4">
           <div>
-            <h2 className="text-lg font-semibold text-[#E6EAF2]">Order Details</h2>
-            <code className="text-sm text-[#9AA4B2] font-mono">{order.id}</code>
+            <h2 className="text-lg font-semibold text-fleet-primary">Order Details</h2>
+            <code className="font-mono text-sm text-fleet-secondary">{order.id}</code>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-[#1E2638] rounded-md transition-colors text-[#9AA4B2] hover:text-[#E6EAF2]"
+            className="rounded-md p-2 text-fleet-secondary transition-colors hover:bg-fleet-secondary hover:text-fleet-primary"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
         {/* Tabs */}
-        <div className="border-b border-[#1E2638] px-4 flex gap-6">
+        <div className="flex gap-6 border-b border-fleet px-4">
           {[
             { id: "overview", label: "Overview", icon: Clock },
             { id: "costing", label: "Costing", icon: DollarSign },
@@ -50,10 +50,10 @@ export function OrderDetailSheet({ order, onClose }: OrderDetailSheetProps) {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              className={`py-3 px-1 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
+              className={`flex items-center gap-2 border-b-2 px-1 py-3 text-sm font-medium transition-colors ${
                 activeTab === tab.id
-                  ? "border-[#60A5FA] text-[#E6EAF2]"
-                  : "border-transparent text-[#9AA4B2] hover:text-[#E6EAF2]"
+                  ? "border-fleet-accent text-fleet-primary"
+                  : "border-transparent text-fleet-secondary hover:text-fleet-primary"
               }`}
             >
               <tab.icon className="h-4 w-4" />
@@ -63,7 +63,7 @@ export function OrderDetailSheet({ order, onClose }: OrderDetailSheetProps) {
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+  <div className="flex-1 space-y-4 overflow-y-auto p-4">
           {activeTab === "overview" && <OverviewTab order={order} />}
           {activeTab === "costing" && <CostingTab order={order} />}
           {activeTab === "driver" && <DriverTab order={order} />}
@@ -79,42 +79,42 @@ function OverviewTab({ order }: { order: OrderDetail }) {
   return (
     <div className="space-y-4">
       {/* Key Details */}
-      <div className="bg-[#121826] border border-[#1E2638] rounded-lg p-4 space-y-3">
+      <div className="space-y-3 rounded-lg border border-fleet bg-fleet-secondary p-4">
         <div className="grid grid-cols-2 gap-3 text-sm">
           <div>
-            <div className="text-[#6C7484] text-xs mb-1">Customer</div>
-            <div className="text-[#E6EAF2]">{order.customer}</div>
+            <div className="mb-1 text-xs text-fleet-muted">Customer</div>
+            <div className="text-fleet-primary">{order.customer}</div>
           </div>
           <div>
-            <div className="text-[#6C7484] text-xs mb-1">Order Type</div>
-            <div className="text-[#E6EAF2] capitalize">{order.type.replace("_", " ")}</div>
+            <div className="mb-1 text-xs text-fleet-muted">Order Type</div>
+            <div className="capitalize text-fleet-primary">{order.type.replace("_", " ")}</div>
           </div>
           <div>
-            <div className="text-[#6C7484] text-xs mb-1">Origin</div>
-            <div className="text-[#E6EAF2]">
+            <div className="mb-1 text-xs text-fleet-muted">Origin</div>
+            <div className="text-fleet-primary">
               {order.origin.city}, {order.origin.state}
             </div>
           </div>
           <div>
-            <div className="text-[#6C7484] text-xs mb-1">Destination</div>
-            <div className="text-[#E6EAF2]">
+            <div className="mb-1 text-xs text-fleet-muted">Destination</div>
+            <div className="text-fleet-primary">
               {order.destination.city}, {order.destination.state}
             </div>
           </div>
           <div>
-            <div className="text-[#6C7484] text-xs mb-1">Distance</div>
-            <div className="text-[#E6EAF2]">{order.miles} mi</div>
+            <div className="mb-1 text-xs text-fleet-muted">Distance</div>
+            <div className="text-fleet-primary">{order.miles} mi</div>
           </div>
           <div>
-            <div className="text-[#6C7484] text-xs mb-1">AI Risk</div>
-            <div className="text-[#FFC857]">{order.aiRisk}/100</div>
+            <div className="mb-1 text-xs text-fleet-muted">AI Risk</div>
+            <div className="text-fleet-warning">{order.aiRisk}/100</div>
           </div>
         </div>
       </div>
 
       {/* Timeline */}
-      <div className="bg-[#121826] border border-[#1E2638] rounded-lg p-4">
-        <h3 className="text-sm font-medium text-[#E6EAF2] mb-3">Timeline</h3>
+      <div className="rounded-lg border border-fleet bg-fleet-secondary p-4">
+        <h3 className="mb-3 text-sm font-medium text-fleet-primary">Timeline</h3>
         <div className="space-y-3">
           {[
             { label: "Created", time: order.timeline.created, completed: true },
@@ -125,13 +125,13 @@ function OverviewTab({ order }: { order: OrderDetail }) {
           ].map((step) => (
             <div key={step.label} className="flex items-center gap-3">
               <div
-                className={`w-2 h-2 rounded-full ${
-                  step.completed ? "bg-[#24D67B]" : "bg-[#1E2638]"
+                className={`h-2 w-2 rounded-full ${
+                  step.completed ? "bg-fleet-success" : "bg-fleet-tertiary"
                 }`}
               />
               <div className="flex-1">
-                <div className="text-sm text-[#E6EAF2]">{step.label}</div>
-                <div className="text-xs text-[#6C7484]">{step.time ? formatDateTime(step.time) : "Pending"}</div>
+                <div className="text-sm text-fleet-primary">{step.label}</div>
+                <div className="text-xs text-fleet-muted">{step.time ? formatDateTime(step.time) : "Pending"}</div>
               </div>
             </div>
           ))}
@@ -140,12 +140,12 @@ function OverviewTab({ order }: { order: OrderDetail }) {
 
       {/* Special Instructions */}
       {order.specialInstructions && (
-        <div className="bg-[#121826] border border-[#1E2638] rounded-lg p-4">
-          <h3 className="text-sm font-medium text-[#E6EAF2] mb-2 flex items-center gap-2">
-            <AlertCircle className="h-4 w-4 text-[#FFC857]" />
+        <div className="rounded-lg border border-fleet bg-fleet-secondary p-4">
+          <h3 className="mb-2 flex items-center gap-2 text-sm font-medium text-fleet-primary">
+            <AlertCircle className="h-4 w-4 text-fleet-warning" />
             Special Instructions
           </h3>
-          <p className="text-sm text-[#9AA4B2]">{order.specialInstructions}</p>
+          <p className="text-sm text-fleet-secondary">{order.specialInstructions}</p>
         </div>
       )}
     </div>
@@ -160,48 +160,48 @@ function CostingTab({ order }: { order: OrderDetail }) {
   return (
     <div className="space-y-4">
       {/* Cost Breakdown */}
-      <div className="bg-[#121826] border border-[#1E2638] rounded-lg p-4">
-        <h3 className="text-sm font-medium text-[#E6EAF2] mb-3">Cost Breakdown</h3>
-        <div className="space-y-2 text-sm">
+      <div className="rounded-lg border border-fleet bg-fleet-secondary p-4">
+        <h3 className="mb-3 text-sm font-medium text-fleet-primary">Cost Breakdown</h3>
+        <div className="space-y-2 text-sm text-fleet-primary">
           <div className="flex justify-between">
-            <span className="text-[#9AA4B2]">Fixed Costs</span>
-            <span className="text-[#E6EAF2] font-mono">{formatCurrency(breakdown.fixed)}</span>
+            <span className="text-fleet-secondary">Fixed Costs</span>
+            <span className="font-mono">{formatCurrency(breakdown.fixed)}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-[#9AA4B2]">Wage Costs</span>
-            <span className="text-[#E6EAF2] font-mono">{formatCurrency(breakdown.wage)}</span>
+            <span className="text-fleet-secondary">Wage Costs</span>
+            <span className="font-mono">{formatCurrency(breakdown.wage)}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-[#9AA4B2]">Rolling Costs</span>
-            <span className="text-[#E6EAF2] font-mono">{formatCurrency(breakdown.rolling)}</span>
+            <span className="text-fleet-secondary">Rolling Costs</span>
+            <span className="font-mono">{formatCurrency(breakdown.rolling)}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-[#9AA4B2]">Accessorials</span>
-            <span className="text-[#E6EAF2] font-mono">{formatCurrency(breakdown.accessorials)}</span>
+            <span className="text-fleet-secondary">Accessorials</span>
+            <span className="font-mono">{formatCurrency(breakdown.accessorials)}</span>
           </div>
-          <div className="border-t border-[#1E2638] pt-2 flex justify-between font-medium">
-            <span className="text-[#E6EAF2]">Total Cost</span>
-            <span className="text-[#E6EAF2] font-mono">{formatCurrency(breakdown.total)}</span>
+          <div className="flex justify-between border-t border-fleet pt-2 font-medium">
+            <span>Total Cost</span>
+            <span className="font-mono">{formatCurrency(breakdown.total)}</span>
           </div>
         </div>
       </div>
 
       {/* Revenue & Margin */}
-      <div className="bg-[#121826] border border-[#1E2638] rounded-lg p-4">
-        <h3 className="text-sm font-medium text-[#E6EAF2] mb-3">Revenue & Margin</h3>
-        <div className="space-y-2 text-sm">
+      <div className="rounded-lg border border-fleet bg-fleet-secondary p-4">
+        <h3 className="mb-3 text-sm font-medium text-fleet-primary">Revenue & Margin</h3>
+        <div className="space-y-2 text-sm text-fleet-primary">
           <div className="flex justify-between">
-            <span className="text-[#9AA4B2]">Revenue</span>
-            <span className="text-[#E6EAF2] font-mono">{formatCurrency(order.revenueUsd)}</span>
+            <span className="text-fleet-secondary">Revenue</span>
+            <span className="font-mono">{formatCurrency(order.revenueUsd)}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-[#9AA4B2]">Cost</span>
-            <span className="text-[#E6EAF2] font-mono">{formatCurrency(breakdown.total)}</span>
+            <span className="text-fleet-secondary">Cost</span>
+            <span className="font-mono">{formatCurrency(breakdown.total)}</span>
           </div>
-          <div className="border-t border-[#1E2638] pt-2 flex justify-between font-medium">
-            <span className="text-[#E6EAF2]">Margin</span>
+          <div className="flex justify-between border-t border-fleet pt-2 font-medium">
+            <span>Margin</span>
             <div className="flex items-center gap-2">
-              <span className="text-[#E6EAF2] font-mono">{formatCurrency(margin)}</span>
+              <span className="font-mono">{formatCurrency(margin)}</span>
               <span className={`px-2 py-0.5 rounded-md text-xs border ${marginColor(marginPct)}`}>
                 {formatPercentage(marginPct)}
               </span>
@@ -212,13 +212,13 @@ function CostingTab({ order }: { order: OrderDetail }) {
 
       {/* AI Market Insight */}
       {order.marketRate && (
-        <div className="bg-[#60A5FA]/5 border border-[#60A5FA]/20 rounded-lg p-4">
+        <div className="rounded-lg border border-fleet-accent/20 bg-fleet-accent/10 p-4">
           <div className="flex items-start gap-2">
-            <TrendingUp className="h-4 w-4 text-[#60A5FA] mt-0.5" />
+            <TrendingUp className="mt-0.5 h-4 w-4 text-fleet-accent" />
             <div>
-              <div className="text-sm font-medium text-[#E6EAF2] mb-1">🤖 AI Market Insight</div>
-              <p className="text-sm text-[#9AA4B2]">
-                Market rate for this lane: <span className="text-[#60A5FA]">{formatCurrency(order.marketRate)}/mi</span>
+              <div className="mb-1 text-sm font-medium text-fleet-primary">🤖 AI Market Insight</div>
+              <p className="text-sm text-fleet-secondary">
+                Market rate for this lane: <span className="text-fleet-accent">{formatCurrency(order.marketRate)}/mi</span>
               </p>
             </div>
           </div>
@@ -233,21 +233,21 @@ function DriverTab({ order }: { order: OrderDetail }) {
     <div className="space-y-4">
       {/* Current Driver */}
       {order.driver && (
-        <div className="bg-[#121826] border border-[#1E2638] rounded-lg p-4">
-          <h3 className="text-sm font-medium text-[#E6EAF2] mb-3">Assigned Driver</h3>
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-12 h-12 rounded-lg bg-[#60A5FA]/20 flex items-center justify-center text-[#60A5FA] font-medium">
+        <div className="rounded-lg border border-fleet bg-fleet-secondary p-4">
+          <h3 className="mb-3 text-sm font-medium text-fleet-primary">Assigned Driver</h3>
+          <div className="mb-3 flex items-center gap-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-fleet-accent/20 font-medium text-fleet-accent">
               {order.driver.initials}
             </div>
             <div>
-              <div className="text-[#E6EAF2] font-medium">{order.driver.name}</div>
-              <div className="text-sm text-[#6C7484]">ID: {order.driver.id}</div>
+              <div className="font-medium text-fleet-primary">{order.driver.name}</div>
+              <div className="text-sm text-fleet-muted">ID: {order.driver.id}</div>
             </div>
           </div>
           {order.driver.hosRemaining !== undefined && (
             <div className="text-sm">
-              <span className="text-[#9AA4B2]">HOS Remaining: </span>
-              <span className="text-[#E6EAF2]">{order.driver.hosRemaining.toFixed(1)} hours</span>
+              <span className="text-fleet-secondary">HOS Remaining: </span>
+              <span className="text-fleet-primary">{order.driver.hosRemaining.toFixed(1)} hours</span>
             </div>
           )}
         </div>
@@ -255,16 +255,16 @@ function DriverTab({ order }: { order: OrderDetail }) {
 
       {/* Unit */}
       {order.unit && (
-        <div className="bg-[#121826] border border-[#1E2638] rounded-lg p-4">
-          <h3 className="text-sm font-medium text-[#E6EAF2] mb-3">Assigned Unit</h3>
+        <div className="rounded-lg border border-fleet bg-fleet-secondary p-4">
+          <h3 className="mb-3 text-sm font-medium text-fleet-primary">Assigned Unit</h3>
           <div className="grid grid-cols-2 gap-3 text-sm">
             <div>
-              <div className="text-[#6C7484] text-xs mb-1">Unit ID</div>
-              <div className="text-[#E6EAF2]">{order.unit.id}</div>
+              <div className="mb-1 text-xs text-fleet-muted">Unit ID</div>
+              <div className="text-fleet-primary">{order.unit.id}</div>
             </div>
             <div>
-              <div className="text-[#6C7484] text-xs mb-1">Make & Model</div>
-              <div className="text-[#E6EAF2]">
+              <div className="mb-1 text-xs text-fleet-muted">Make & Model</div>
+              <div className="text-fleet-primary">
                 {order.unit.make} {order.unit.model}
               </div>
             </div>
@@ -274,28 +274,28 @@ function DriverTab({ order }: { order: OrderDetail }) {
 
       {/* Alternative Drivers */}
       {order.alternateDrivers && order.alternateDrivers.length > 0 && (
-        <div className="bg-[#121826] border border-[#1E2638] rounded-lg p-4">
-          <h3 className="text-sm font-medium text-[#E6EAF2] mb-3">🤖 Alternative Drivers</h3>
+        <div className="rounded-lg border border-fleet bg-fleet-secondary p-4">
+          <h3 className="mb-3 text-sm font-medium text-fleet-primary">🤖 Alternative Drivers</h3>
           <div className="space-y-2">
             {order.alternateDrivers.map((alt) => (
               <div
                 key={alt.driver.id}
-                className="flex items-center justify-between p-3 bg-[#0B1020] rounded-lg border border-[#1E2638]"
+                className="flex items-center justify-between rounded-lg border border-fleet bg-fleet-primary p-3"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-md bg-[#60A5FA]/20 flex items-center justify-center text-[#60A5FA] text-xs font-medium">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-md bg-fleet-accent/20 text-xs font-medium text-fleet-accent">
                     {alt.driver.initials}
                   </div>
                   <div>
-                    <div className="text-sm text-[#E6EAF2]">{alt.driver.name}</div>
-                    <div className="text-xs text-[#6C7484]">
+                    <div className="text-sm text-fleet-primary">{alt.driver.name}</div>
+                    <div className="text-xs text-fleet-muted">
                       {alt.costDelta > 0 ? "+" : ""}
                       {formatCurrency(alt.costDelta)} • {alt.etaDelta > 0 ? "+" : ""}
                       {alt.etaDelta.toFixed(1)}h ETA
                     </div>
                   </div>
                 </div>
-                <button className="text-xs text-[#60A5FA] hover:underline">Reassign</button>
+                <button className="text-xs text-fleet-accent hover:underline">Reassign</button>
               </div>
             ))}
           </div>
@@ -309,16 +309,16 @@ function TrackingTab({ order }: { order: OrderDetail }) {
   return (
     <div className="space-y-4">
       {/* Event History */}
-      <div className="bg-[#121826] border border-[#1E2638] rounded-lg p-4">
-        <h3 className="text-sm font-medium text-[#E6EAF2] mb-3">Event History</h3>
+      <div className="rounded-lg border border-fleet bg-fleet-secondary p-4">
+        <h3 className="mb-3 text-sm font-medium text-fleet-primary">Event History</h3>
         {order.events && order.events.length > 0 ? (
           <div className="space-y-3">
             {order.events.map((event, idx) => (
               <div key={idx} className="flex gap-3">
-                <div className="w-2 h-2 rounded-full bg-[#24D67B] mt-1.5" />
+                <div className="mt-1.5 h-2 w-2 rounded-full bg-fleet-success" />
                 <div className="flex-1">
-                  <div className="text-sm text-[#E6EAF2]">{event.event}</div>
-                  <div className="text-xs text-[#6C7484]">
+                  <div className="text-sm text-fleet-primary">{event.event}</div>
+                  <div className="text-xs text-fleet-muted">
                     {formatDateTime(event.timestamp)}
                     {event.location && ` • ${event.location}`}
                   </div>
@@ -327,7 +327,7 @@ function TrackingTab({ order }: { order: OrderDetail }) {
             ))}
           </div>
         ) : (
-          <p className="text-sm text-[#6C7484]">No tracking events yet</p>
+          <p className="text-sm text-fleet-muted">No tracking events yet</p>
         )}
       </div>
     </div>
@@ -337,34 +337,34 @@ function TrackingTab({ order }: { order: OrderDetail }) {
 function DocumentsTab({ order }: { order: OrderDetail }) {
   return (
     <div className="space-y-4">
-      <div className="bg-[#121826] border border-[#1E2638] rounded-lg p-4">
-        <h3 className="text-sm font-medium text-[#E6EAF2] mb-3">Documents</h3>
+      <div className="rounded-lg border border-fleet bg-fleet-secondary p-4">
+        <h3 className="mb-3 text-sm font-medium text-fleet-primary">Documents</h3>
         {order.documents && order.documents.length > 0 ? (
           <div className="space-y-2">
             {order.documents.map((doc) => (
               <div
                 key={doc.id}
-                className="flex items-center justify-between p-3 bg-[#0B1020] rounded-lg border border-[#1E2638]"
+                className="flex items-center justify-between rounded-lg border border-fleet bg-fleet-primary p-3"
               >
                 <div className="flex items-center gap-3">
-                  <FileText className="h-4 w-4 text-[#9AA4B2]" />
+                  <FileText className="h-4 w-4 text-fleet-secondary" />
                   <div>
-                    <div className="text-sm text-[#E6EAF2]">{doc.type}</div>
-                    <div className="text-xs text-[#6C7484]">Uploaded {formatDate(doc.uploadedAt)}</div>
+                    <div className="text-sm text-fleet-primary">{doc.type}</div>
+                    <div className="text-xs text-fleet-muted">Uploaded {formatDate(doc.uploadedAt)}</div>
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <button className="text-xs text-[#60A5FA] hover:underline">View</button>
-                  <button className="text-xs text-[#60A5FA] hover:underline">Download</button>
+                  <button className="text-xs text-fleet-accent hover:underline">View</button>
+                  <button className="text-xs text-fleet-accent hover:underline">Download</button>
                 </div>
               </div>
             ))}
           </div>
         ) : (
-          <p className="text-sm text-[#6C7484]">No documents uploaded yet</p>
+          <p className="text-sm text-fleet-muted">No documents uploaded yet</p>
         )}
       </div>
-      <button className="w-full py-2 border border-dashed border-[#1E2638] rounded-lg text-sm text-[#9AA4B2] hover:border-[#60A5FA]/40 hover:text-[#E6EAF2] transition-colors">
+      <button className="w-full rounded-lg border border-dashed border-fleet py-2 text-sm text-fleet-secondary transition-colors hover:border-fleet-accent/40 hover:text-fleet-primary">
         Upload Document
       </button>
     </div>

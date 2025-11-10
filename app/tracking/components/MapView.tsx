@@ -7,9 +7,15 @@ import { cn } from "@/lib/utils";
 import { useMemo } from "react";
 
 const STATUS_BADGES: Record<ActiveTrip["status"], string> = {
-  "on-time": "bg-emerald-500/90 text-white border-emerald-400/80",
-  "at-risk": "bg-amber-500/80 text-slate-900 border-amber-300/80",
-  "delayed": "bg-rose-500/80 text-white border-rose-300/80",
+  "on-time": "bg-fleet-success/20 text-fleet-success border-fleet-success/20",
+  "at-risk": "bg-fleet-warning/20 text-fleet-warning border-fleet-warning/20",
+  "delayed": "bg-fleet-danger/20 text-fleet-danger border-fleet-danger/20",
+};
+
+const STATUS_STROKE_COLOR: Record<ActiveTrip["status"], string> = {
+  "on-time": "var(--color-fleet-success)",
+  "at-risk": "var(--color-fleet-warning)",
+  "delayed": "var(--color-fleet-danger)",
 };
 
 const STATUS_LABEL: Record<ActiveTrip["status"], string> = {
@@ -54,8 +60,8 @@ export function MapView({
 
   return (
     <div className="relative h-full w-full overflow-hidden rounded-lg border border-border bg-card">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(30,64,175,0.35),_transparent_55%)]" />
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[length:80px_80px] opacity-40" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(30,64,175,0.35),transparent_55%)]" />
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-size-[80px_80px] opacity-40" />
 
       {showWeather && (
         <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_20%_20%,rgba(14,165,233,0.25),transparent_45%),radial-gradient(circle_at_75%_40%,rgba(59,130,246,0.2),transparent_55%),radial-gradient(circle_at_50%_80%,rgba(56,189,248,0.2),transparent_45%)]" />
@@ -75,9 +81,9 @@ export function MapView({
           >
             <span
               className={cn("h-2.5 w-2.5 rounded-full", {
-                "bg-emerald-400": key === "on-time",
-                "bg-amber-400": key === "at-risk",
-                "bg-rose-500": key === "delayed",
+                "bg-fleet-success": key === "on-time",
+                "bg-fleet-warning": key === "at-risk",
+                "bg-fleet-danger": key === "delayed",
               })}
             />
             {STATUS_LABEL[key]} • {statusCounts[key]}
@@ -92,8 +98,8 @@ export function MapView({
           onClick={onToggleTraffic}
           aria-pressed={showTraffic}
           className={cn(
-            "border border-border bg-card/80 text-foreground hover:bg-card/90",
-            showTraffic && "bg-emerald-500 text-slate-900 hover:bg-emerald-400"
+            "border border-border bg-card/80 text-foreground transition-colors hover:bg-card/90",
+            showTraffic && "bg-fleet-success text-fleet-primary hover:opacity-90"
           )}
         >
           Traffic Layer
@@ -104,8 +110,8 @@ export function MapView({
           onClick={onToggleWeather}
           aria-pressed={showWeather}
           className={cn(
-            "border border-border bg-card/80 text-foreground hover:bg-card/90",
-            showWeather && "bg-sky-400 text-slate-900 hover:bg-sky-300"
+            "border border-border bg-card/80 text-foreground transition-colors hover:bg-card/90",
+            showWeather && "bg-fleet-info text-fleet-primary hover:opacity-90"
           )}
         >
           Weather Layer
@@ -119,12 +125,7 @@ export function MapView({
       >
         {trips.map((trip) => {
           const isFocused = !dimNonFocused || focusSet.has(trip.id);
-          const strokeColor =
-            trip.status === "on-time"
-              ? "#4ade80"
-              : trip.status === "at-risk"
-              ? "#fbbf24"
-              : "#f87171";
+          const strokeColor = STATUS_STROKE_COLOR[trip.status];
           const baseOpacity = trip.status === "on-time" ? 0.55 : 0.75;
           const strokeOpacity = isFocused ? baseOpacity : baseOpacity * 0.35;
           return (

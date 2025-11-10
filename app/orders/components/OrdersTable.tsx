@@ -42,48 +42,48 @@ export function OrdersTable({ orders, onOrderClick, sortColumn, sortDirection, o
   };
 
   return (
-    <div className="bg-[#121826] border border-[#1E2638] rounded-lg overflow-hidden">
+    <div className="overflow-hidden rounded-lg border border-fleet bg-fleet-secondary">
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
-            <tr className="border-b border-[#1E2638]">
+            <tr className="border-b border-fleet">
               <th
-                className="px-4 py-3 text-left text-xs font-medium text-[#9AA4B2] cursor-pointer hover:text-[#E6EAF2] transition-colors"
+                className="px-4 py-3 text-left text-xs font-medium text-fleet-muted transition-colors cursor-pointer hover:text-fleet-primary"
                 onClick={() => onSort("id")}
               >
                 Order ID <SortIcon column="id" />
               </th>
               <th
-                className="px-4 py-3 text-left text-xs font-medium text-[#9AA4B2] cursor-pointer hover:text-[#E6EAF2] transition-colors"
+                className="px-4 py-3 text-left text-xs font-medium text-fleet-muted transition-colors cursor-pointer hover:text-fleet-primary"
                 onClick={() => onSort("customer")}
               >
                 Customer <SortIcon column="customer" />
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-[#9AA4B2]">Type</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-[#9AA4B2]">Route</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-[#9AA4B2]">Windows</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-fleet-muted">Type</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-fleet-muted">Route</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-fleet-muted">Windows</th>
               <th
-                className="px-4 py-3 text-left text-xs font-medium text-[#9AA4B2] cursor-pointer hover:text-[#E6EAF2] transition-colors"
+                className="px-4 py-3 text-left text-xs font-medium text-fleet-muted transition-colors cursor-pointer hover:text-fleet-primary"
                 onClick={() => onSort("status")}
               >
                 Status <SortIcon column="status" />
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-[#9AA4B2]">Driver</th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-[#9AA4B2]">Cost</th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-[#9AA4B2]">Revenue</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-fleet-muted">Driver</th>
+              <th className="px-4 py-3 text-right text-xs font-medium text-fleet-muted">Cost</th>
+              <th className="px-4 py-3 text-right text-xs font-medium text-fleet-muted">Revenue</th>
               <th
-                className="px-4 py-3 text-right text-xs font-medium text-[#9AA4B2] cursor-pointer hover:text-[#E6EAF2] transition-colors"
+                className="px-4 py-3 text-right text-xs font-medium text-fleet-muted transition-colors cursor-pointer hover:text-fleet-primary"
                 onClick={() => onSort("marginPct")}
               >
                 Margin <SortIcon column="marginPct" />
               </th>
               <th
-                className="px-4 py-3 text-center text-xs font-medium text-[#9AA4B2] cursor-pointer hover:text-[#E6EAF2] transition-colors"
+                className="px-4 py-3 text-center text-xs font-medium text-fleet-muted transition-colors cursor-pointer hover:text-fleet-primary"
                 onClick={() => onSort("aiRisk")}
               >
                 AI Risk <SortIcon column="aiRisk" />
               </th>
-              <th className="px-4 py-3 text-center text-xs font-medium text-[#9AA4B2]">Actions</th>
+              <th className="px-4 py-3 text-center text-xs font-medium text-fleet-muted">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -91,34 +91,34 @@ export function OrdersTable({ orders, onOrderClick, sortColumn, sortDirection, o
               <tr
                 key={order.id}
                 onClick={() => onOrderClick(order)}
-                className="border-b border-[#1E2638] hover:bg-[#141C2F] cursor-pointer transition-colors"
+                className="cursor-pointer border-b border-fleet transition-colors hover:bg-fleet-tertiary"
               >
                 <td className="px-4 py-3">
-                  <code className="text-sm text-[#E6EAF2] font-mono">{order.id}</code>
+                  <code className="font-mono text-sm text-fleet-primary">{order.id}</code>
                 </td>
-                <td className="px-4 py-3 text-sm text-[#E6EAF2]">{order.customer}</td>
+                <td className="px-4 py-3 text-sm text-fleet-primary">{order.customer}</td>
                 <td className="px-4 py-3">
-                  <div className="flex items-center justify-center w-8 h-8 rounded-md bg-[#141C2F] text-[#9AA4B2]">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-md bg-fleet-tertiary text-fleet-secondary">
                     {getTypeIcon(order.type)}
                   </div>
                 </td>
                 <td className="px-4 py-3">
-                  <div className="flex items-center gap-2 text-sm">
-                    <span className="text-[#E6EAF2]">
+                  <div className="flex items-center gap-2 text-sm text-fleet-primary">
+                    <span>
                       {order.origin.city}, {order.origin.state}
                     </span>
-                    <ArrowRight className="h-3 w-3 text-[#6C7484]" />
-                    <span className="text-[#E6EAF2]">
+                    <ArrowRight className="h-3 w-3 text-fleet-muted" />
+                    <span>
                       {order.destination.city}, {order.destination.state}
                     </span>
                   </div>
                 </td>
                 <td className="px-4 py-3">
-                  <div className="text-xs space-y-0.5">
-                    <div className="text-[#9AA4B2]">
+                  <div className="space-y-0.5 text-xs">
+                    <div className="text-fleet-secondary">
                       P: {formatDateTime(order.pickupWindow.start)}
                     </div>
-                    <div className="text-[#9AA4B2]">
+                    <div className="text-fleet-secondary">
                       D: {formatDateTime(order.deliveryWindow.start)}
                     </div>
                   </div>
@@ -135,19 +135,19 @@ export function OrdersTable({ orders, onOrderClick, sortColumn, sortDirection, o
                 <td className="px-4 py-3">
                   {order.driver ? (
                     <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-md bg-[#60A5FA]/20 flex items-center justify-center text-[#60A5FA] text-xs font-medium">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-md bg-fleet-accent/20 text-xs font-medium text-fleet-accent">
                         {order.driver.initials}
                       </div>
-                      <span className="text-sm text-[#E6EAF2]">{order.driver.name}</span>
+                      <span className="text-sm text-fleet-primary">{order.driver.name}</span>
                     </div>
                   ) : (
-                    <span className="text-sm text-[#6C7484]">—</span>
+                    <span className="text-sm text-fleet-muted">—</span>
                   )}
                 </td>
-                <td className="px-4 py-3 text-right text-sm text-[#E6EAF2] font-mono">
+                <td className="px-4 py-3 text-right text-sm font-mono text-fleet-primary">
                   {formatCurrency(order.estCostUsd)}
                 </td>
-                <td className="px-4 py-3 text-right text-sm text-[#E6EAF2] font-mono">
+                <td className="px-4 py-3 text-right text-sm font-mono text-fleet-primary">
                   {formatCurrency(order.revenueUsd)}
                 </td>
                 <td className="px-4 py-3 text-right">
@@ -175,9 +175,9 @@ export function OrdersTable({ orders, onOrderClick, sortColumn, sortDirection, o
                       e.stopPropagation();
                       // Handle dropdown open
                     }}
-                    className="p-1 hover:bg-[#1E2638] rounded-md transition-colors"
+                    className="rounded-md p-1 transition-colors hover:bg-fleet-secondary"
                   >
-                    <MoreVertical className="h-4 w-4 text-[#9AA4B2]" />
+                    <MoreVertical className="h-4 w-4 text-fleet-secondary" />
                   </button>
                 </td>
               </tr>
@@ -187,8 +187,8 @@ export function OrdersTable({ orders, onOrderClick, sortColumn, sortDirection, o
       </div>
       {orders.length === 0 && (
         <div className="py-12 text-center">
-          <p className="text-[#6C7484] text-sm">No orders match your filters</p>
-          <button className="mt-2 text-sm text-[#60A5FA] hover:underline">Reset filters</button>
+          <p className="text-sm text-fleet-muted">No orders match your filters</p>
+          <button className="mt-2 text-sm text-fleet-accent hover:underline">Reset filters</button>
         </div>
       )}
     </div>

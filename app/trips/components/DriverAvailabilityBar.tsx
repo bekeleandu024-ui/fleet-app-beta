@@ -81,7 +81,7 @@ export function DriverAvailabilityBar({ drivers, onDriverClick }: DriverAvailabi
             <div
               key={driver.id}
               onClick={() => onDriverClick(driver)}
-              className="flex-shrink-0 w-64 bg-fleet-tertiary border border-fleet rounded-lg p-3 cursor-pointer hover:border-fleet-accent/40 transition-colors"
+              className="w-64 shrink-0 bg-fleet-tertiary border border-fleet rounded-lg p-3 cursor-pointer hover:border-fleet-accent/40 transition-colors"
             >
               {/* Header */}
               <div className="flex items-center justify-between mb-3">

@@ -126,27 +126,27 @@ export default function OrdersPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0B1020] text-[#E6EAF2]">
+    <div className="min-h-screen bg-fleet-primary text-fleet-primary">
       {/* Header */}
-      <div className="sticky top-0 z-30 bg-[#0B1020] border-b border-[#1E2638] px-6 py-4">
+      <div className="sticky top-0 z-30 bg-fleet-primary border-b border-fleet px-6 py-4">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-semibold">Orders</h1>
           <div className="flex items-center gap-2">
-            <button className="h-9 px-3 bg-[#121826] border border-[#1E2638] rounded-md text-sm text-[#9AA4B2] hover:text-[#E6EAF2] hover:border-[#60A5FA]/40 transition-colors flex items-center gap-2">
+            <button className="h-9 px-3 rounded-md border border-fleet bg-fleet-secondary text-sm text-fleet-secondary transition-colors hover:border-fleet-accent/40 hover:text-fleet-primary flex items-center gap-2">
               <Upload className="h-4 w-4" />
               Bulk Import
             </button>
-            <button className="h-9 px-3 bg-[#121826] border border-[#1E2638] rounded-md text-sm text-[#9AA4B2] hover:text-[#E6EAF2] hover:border-[#60A5FA]/40 transition-colors flex items-center gap-2">
+            <button className="h-9 px-3 rounded-md border border-fleet bg-fleet-secondary text-sm text-fleet-secondary transition-colors hover:border-fleet-accent/40 hover:text-fleet-primary flex items-center gap-2">
               <FileDown className="h-4 w-4" />
               Export CSV
             </button>
-            <button className="h-9 px-3 bg-[#121826] border border-[#1E2638] rounded-md text-sm text-[#9AA4B2] hover:text-[#E6EAF2] hover:border-[#60A5FA]/40 transition-colors flex items-center gap-2">
+            <button className="h-9 px-3 rounded-md border border-fleet bg-fleet-secondary text-sm text-fleet-secondary transition-colors hover:border-fleet-accent/40 hover:text-fleet-primary flex items-center gap-2">
               <Sparkles className="h-4 w-4" />
               AI Batch Optimizer
             </button>
             <button 
               onClick={() => router.push("/orders/new")}
-              className="h-9 px-3 bg-[#60A5FA] hover:bg-[#60A5FA]/90 rounded-md text-sm text-white font-medium transition-colors flex items-center gap-2"
+              className="h-9 px-3 bg-fleet-accent hover:opacity-90 rounded-md text-sm text-white font-medium transition-colors flex items-center gap-2"
             >
               <Plus className="h-4 w-4" />
               Create New Order
@@ -173,7 +173,7 @@ export default function OrdersPage() {
         />
 
         {/* Results Count */}
-        <div className="text-sm text-[#9AA4B2]">
+        <div className="text-sm text-fleet-secondary">
           Showing {filteredOrders.length} of {MOCK_ORDERS.length} orders
         </div>
 

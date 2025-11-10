@@ -52,17 +52,17 @@ export function FiltersBar({
     aiAttentionOnly;
 
   return (
-    <div className="bg-[#121826] border border-[#1E2638] rounded-lg p-4">
+    <div className="rounded-lg border border-fleet bg-fleet-secondary p-4">
       <div className="flex flex-wrap gap-3 items-center">
         {/* Search */}
         <div className="relative flex-1 min-w-[280px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#6C7484]" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-fleet-muted" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder="Search by Order ID, customer, origin/destination…"
-            className="w-full h-9 pl-10 pr-3 bg-[#0B1020] border border-[#1E2638] rounded-md text-sm text-[#E6EAF2] placeholder:text-[#6C7484] focus:outline-none focus:ring-2 focus:ring-[#60A5FA]/40 focus:border-[#60A5FA]"
+            className="w-full h-9 rounded-md border border-fleet bg-fleet-primary pl-10 pr-3 text-sm text-fleet-primary placeholder:text-fleet-muted focus:outline-none focus:ring-2 focus:ring-fleet-accent/40 focus:border-fleet-accent"
           />
         </div>
 
@@ -80,9 +80,9 @@ export function FiltersBar({
           <div className="relative">
             <button
               type="button"
-              className="h-9 px-3 bg-[#0B1020] border border-[#1E2638] rounded-md text-sm text-[#E6EAF2] hover:border-[#60A5FA]/40 focus:outline-none focus:ring-2 focus:ring-[#60A5FA]/40 focus:border-[#60A5FA] flex items-center gap-2 min-w-[120px]"
+              className="h-9 min-w-[120px] rounded-md border border-fleet bg-fleet-primary px-3 text-sm text-fleet-primary flex items-center gap-2 transition-colors hover:border-fleet-accent/40 focus:outline-none focus:ring-2 focus:ring-fleet-accent/40 focus:border-fleet-accent"
             >
-              <span className="text-[#9AA4B2] text-xs">Status:</span>
+              <span className="text-xs text-fleet-secondary">Status:</span>
               <span>{statusFilters.length ? `${statusFilters.length} selected` : "All"}</span>
             </button>
             {/* Simplified for demo - in production use a proper dropdown component */}
@@ -93,10 +93,10 @@ export function FiltersBar({
         <select
           value={typeFilter}
           onChange={(e) => onTypeFilterChange(e.target.value as OrderType | "all")}
-          className="h-9 px-3 bg-[#0B1020] border border-[#1E2638] rounded-md text-sm text-[#E6EAF2] hover:border-[#60A5FA]/40 focus:outline-none focus:ring-2 focus:ring-[#60A5FA]/40 focus:border-[#60A5FA] min-w-[140px]"
+          className="h-9 min-w-[140px] rounded-md border border-fleet bg-fleet-primary px-3 text-sm text-fleet-primary hover:border-fleet-accent/40 focus:outline-none focus:ring-2 focus:ring-fleet-accent/40 focus:border-fleet-accent"
         >
           {typeOptions.map((opt) => (
-            <option key={opt.value} value={opt.value} className="bg-[#121826]">
+            <option key={opt.value} value={opt.value} className="bg-fleet-secondary">
               {opt.label}
             </option>
           ))}
@@ -106,10 +106,10 @@ export function FiltersBar({
         <select
           value={profitabilityFilter}
           onChange={(e) => onProfitabilityFilterChange(e.target.value as ProfitabilityFilter)}
-          className="h-9 px-3 bg-[#0B1020] border border-[#1E2638] rounded-md text-sm text-[#E6EAF2] hover:border-[#60A5FA]/40 focus:outline-none focus:ring-2 focus:ring-[#60A5FA]/40 focus:border-[#60A5FA] min-w-[140px]"
+          className="h-9 min-w-[140px] rounded-md border border-fleet bg-fleet-primary px-3 text-sm text-fleet-primary hover:border-fleet-accent/40 focus:outline-none focus:ring-2 focus:ring-fleet-accent/40 focus:border-fleet-accent"
         >
           {profitabilityOptions.map((opt) => (
-            <option key={opt.value} value={opt.value} className="bg-[#121826]">
+            <option key={opt.value} value={opt.value} className="bg-fleet-secondary">
               {opt.label}
             </option>
           ))}
@@ -121,8 +121,8 @@ export function FiltersBar({
           onClick={() => onAiAttentionOnlyChange(!aiAttentionOnly)}
           className={`h-9 px-3 border rounded-md text-sm font-medium transition-colors flex items-center gap-2 ${
             aiAttentionOnly
-              ? "bg-[#60A5FA]/10 border-[#60A5FA] text-[#60A5FA]"
-              : "bg-[#0B1020] border-[#1E2638] text-[#9AA4B2] hover:border-[#60A5FA]/40"
+              ? "bg-fleet-accent/10 border-fleet-accent text-fleet-accent"
+              : "bg-fleet-primary border-fleet text-fleet-secondary hover:border-fleet-accent/40"
           }`}
         >
           <span>🤖</span>
@@ -134,7 +134,7 @@ export function FiltersBar({
           <button
             type="button"
             onClick={onClearFilters}
-            className="h-9 px-3 text-sm text-[#9AA4B2] hover:text-[#E6EAF2] transition-colors flex items-center gap-1"
+            className="h-9 px-3 text-sm text-fleet-secondary hover:text-fleet-primary transition-colors flex items-center gap-1"
           >
             <X className="h-4 w-4" />
             <span>Clear Filters</span>

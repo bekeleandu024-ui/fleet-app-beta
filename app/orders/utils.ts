@@ -14,29 +14,29 @@ export function formatPercentage(value: number): string {
 }
 
 export function marginColor(marginPct: number): string {
-  if (marginPct >= 0.15) return "text-[#24D67B] bg-[#24D67B]/10 border-[#24D67B]/20";
-  if (marginPct >= 0.05) return "text-[#FFC857] bg-[#FFC857]/10 border-[#FFC857]/20";
-  return "text-[#FF4D4D] bg-[#FF4D4D]/10 border-[#FF4D4D]/20";
+  if (marginPct >= 0.15) return "text-fleet-success bg-fleet-success/10 border-fleet-success/20";
+  if (marginPct >= 0.05) return "text-fleet-warning bg-fleet-warning/10 border-fleet-warning/20";
+  return "text-fleet-danger bg-fleet-danger/10 border-fleet-danger/20";
 }
 
 export function riskColor(risk: number): string {
-  if (risk <= 30) return "text-[#24D67B] bg-[#24D67B]/10 border-[#24D67B]/20";
-  if (risk <= 70) return "text-[#FFC857] bg-[#FFC857]/10 border-[#FFC857]/20";
-  return "text-[#FF4D4D] bg-[#FF4D4D]/10 border-[#FF4D4D]/20";
+  if (risk <= 30) return "text-fleet-success bg-fleet-success/10 border-fleet-success/20";
+  if (risk <= 70) return "text-fleet-warning bg-fleet-warning/10 border-fleet-warning/20";
+  return "text-fleet-danger bg-fleet-danger/10 border-fleet-danger/20";
 }
 
 export function statusColor(status: OrderStatus): string {
   switch (status) {
     case "pending":
-      return "text-[#9AA4B2] bg-[#9AA4B2]/10 border-[#9AA4B2]/20";
+      return "text-fleet-secondary bg-fleet-muted/10 border-fleet-muted/20";
     case "assigned":
-      return "text-[#60A5FA] bg-[#60A5FA]/10 border-[#60A5FA]/20";
+      return "text-fleet-accent bg-fleet-accent/10 border-fleet-accent/20";
     case "in_progress":
-      return "text-[#22D3EE] bg-[#22D3EE]/10 border-[#22D3EE]/20";
+      return "text-fleet-info bg-fleet-info/10 border-fleet-info/20";
     case "completed":
-      return "text-[#24D67B] bg-[#24D67B]/10 border-[#24D67B]/20";
+      return "text-fleet-success bg-fleet-success/10 border-fleet-success/20";
     case "canceled":
-      return "text-[#FF4D4D] bg-[#FF4D4D]/10 border-[#FF4D4D]/20";
+      return "text-fleet-danger bg-fleet-danger/10 border-fleet-danger/20";
   }
 }
 
