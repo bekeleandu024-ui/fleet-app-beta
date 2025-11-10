@@ -151,7 +151,7 @@ export function TopNav() {
             <Button variant="ghost" size="icon-sm" className="text-[var(--muted)] hover:text-[var(--text)]" aria-label="Profile">
               <User className="size-4" />
             </Button>
-            <Button className="rounded-md bg-[var(--accent)] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-black">
+            <Button className="rounded-md bg-[var(--brand)] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-black">
               <Plus className="size-4" />
               New Order
             </Button>
@@ -204,7 +204,7 @@ export function TopNav() {
               <Button variant="ghost" size="icon-sm" className="text-[var(--muted)] hover:text-[var(--text)]" aria-label="Profile">
                 <User className="size-4" />
               </Button>
-              <Button className="flex-1 rounded-md bg-[var(--accent)] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-black">
+              <Button className="flex-1 rounded-md bg-[var(--brand)] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-black">
                 <Plus className="size-4" />
                 New Order
               </Button>

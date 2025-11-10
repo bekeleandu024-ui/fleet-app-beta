@@ -71,7 +71,7 @@ export default function DispatchPage() {
                     onClick={() => setSelectedOrderId(order.id)}
                     className={`rounded-md border px-3 py-3 text-left transition-colors ${
                       isActive
-                        ? "border-[var(--accent)] bg-[color-mix(in_srgb,var(--accent)_14%,transparent)]"
+                        ? "border-[var(--brand)] bg-[color-mix(in_srgb,var(--brand)_14%,transparent)]"
                         : "border-[var(--border)] bg-[var(--surface-2)] hover:bg-[var(--surface-3)]"
                     }`}
                   >
@@ -211,7 +211,7 @@ export default function DispatchPage() {
             <Button variant="ghost" className="rounded-md border border-[var(--border)] bg-[var(--surface-1)] text-xs uppercase tracking-wide text-[var(--text)]">
               Save Draft
             </Button>
-            <Button className="rounded-md bg-[var(--accent)] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-black">
+            <Button className="rounded-md bg-[var(--brand)] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-black">
               Launch Trip
             </Button>
           </div>

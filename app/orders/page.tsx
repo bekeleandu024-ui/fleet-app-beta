@@ -14,7 +14,7 @@ import { queryKeys } from "@/lib/query";
 import type { OrderListItem } from "@/lib/types";
 
 const statusTone: Record<string, string> = {
-  New: "text-[var(--accent)]",
+  New: "text-[var(--brand)]",
   Planning: "text-[var(--text)]",
   "In Transit": "text-[var(--ok)]",
   "At Risk": "text-[var(--warn)]",
@@ -113,7 +113,7 @@ export default function OrdersPage() {
             </Button>
             <Button
               size="sm"
-              className="rounded-md bg-[var(--accent)] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-black"
+              className="rounded-md bg-[var(--brand)] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-black"
             >
               Create Order
             </Button>
@@ -150,7 +150,7 @@ export default function OrdersPage() {
                 <div className="grid gap-2">
                   {data.filters.statuses.map((status) => (
                     <label key={status} className="flex items-center gap-2 text-sm text-[var(--text)]">
-                      <input type="checkbox" className="size-3 accent-[var(--accent)]" defaultChecked={status !== "Delivered"} />
+                      <input type="checkbox" className="size-3 accent-[var(--brand)]" defaultChecked={status !== "Delivered"} />
                       <span>{status}</span>
                     </label>
                   ))}

@@ -55,7 +55,7 @@ export default function EventsMasterDataPage() {
               <div className="grid gap-2">
                 {data.filters.statuses.map((status) => (
                   <label key={status} className="flex items-center gap-2 text-sm text-[var(--text)]">
-                    <input type="checkbox" className="size-3 accent-[var(--accent)]" defaultChecked={status !== "Closed"} />
+                    <input type="checkbox" className="size-3 accent-[var(--brand)]" defaultChecked={status !== "Closed"} />
                     <span>{status}</span>
                   </label>
                 ))}

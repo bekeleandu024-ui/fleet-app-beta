@@ -38,7 +38,7 @@ export default function MapPlannerPage() {
             <Button variant="ghost" className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] text-xs uppercase tracking-wide text-[var(--text)]">
               Reset
             </Button>
-            <Button className="rounded-md bg-[var(--accent)] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-black">
+            <Button className="rounded-md bg-[var(--brand)] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-black">
               Generate Route
             </Button>
           </div>
@@ -60,13 +60,13 @@ export default function MapPlannerPage() {
                 </label>
                 <div className="grid gap-2 text-xs text-[var(--muted)]">
                   <label className="flex items-center gap-2">
-                    <input type="checkbox" className="size-3 accent-[var(--accent)]" /> Hazmat Enabled
+                    <input type="checkbox" className="size-3 accent-[var(--brand)]" /> Hazmat Enabled
                   </label>
                   <label className="flex items-center gap-2">
-                    <input type="checkbox" className="size-3 accent-[var(--accent)]" /> Avoid Tolls
+                    <input type="checkbox" className="size-3 accent-[var(--brand)]" /> Avoid Tolls
                   </label>
                   <label className="flex items-center gap-2">
-                    <input type="checkbox" className="size-3 accent-[var(--accent)]" /> Avoid Low Bridges
+                    <input type="checkbox" className="size-3 accent-[var(--brand)]" /> Avoid Low Bridges
                   </label>
                 </div>
                 <label className="grid gap-2">
@@ -75,7 +75,7 @@ export default function MapPlannerPage() {
                     <div className="grid gap-2">
                       {data.options.avoidances.map((item) => (
                         <label key={item} className="flex items-center gap-2 text-sm text-[var(--text)]">
-                          <input type="checkbox" className="size-3 accent-[var(--accent)]" />
+                          <input type="checkbox" className="size-3 accent-[var(--brand)]" />
                           <span>{item}</span>
                         </label>
                       ))}

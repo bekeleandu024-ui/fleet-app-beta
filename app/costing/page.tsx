@@ -75,7 +75,7 @@ export default function CostingPage() {
               </select>
             </label>
             <label className="flex items-center gap-2 pt-6 text-xs text-[var(--muted)]">
-              <input type="checkbox" defaultChecked={data.form.roundTrip} className="size-3 accent-[var(--accent)]" /> Round trip
+              <input type="checkbox" defaultChecked={data.form.roundTrip} className="size-3 accent-[var(--brand)]" /> Round trip
             </label>
             <label className="grid gap-2">
               <span className="text-xs uppercase tracking-wide text-[var(--muted)]">Border Crossings</span>
@@ -189,7 +189,7 @@ export default function CostingPage() {
           >
             <Save className="size-4" /> Persist to Order
           </Button>
-          <Button className="rounded-md bg-[var(--accent)] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-black">
+          <Button className="rounded-md bg-[var(--brand)] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-black">
             <Download className="size-4" /> Export
           </Button>
         </div>
