@@ -32,7 +32,7 @@ export function CostCalculator() {
     <Card className="h-fit border-border">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Calculator className="h-5 w-5 text-cyan-400" />
+          <Calculator className="h-5 w-5 text-fleet-accent" />
           Cost Calculator
         </CardTitle>
         <CardDescription>
@@ -48,7 +48,7 @@ export function CostCalculator() {
             type="number"
             value={miles}
             onChange={(e) => setMiles(Number(e.target.value))}
-            className="w-full rounded-md border border-border bg-muted/60 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-cyan-500"
+            className="w-full rounded-md border border-border bg-muted/60 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-fleet-accent/40"
             placeholder="Enter miles"
           />
         </div>
@@ -60,7 +60,7 @@ export function CostCalculator() {
           <select
             value={driverType}
             onChange={(e) => setDriverType(e.target.value as 'COM' | 'RNR' | 'OO')}
-            className="w-full rounded-md border border-border bg-muted/60 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-cyan-500"
+            className="w-full rounded-md border border-border bg-muted/60 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-fleet-accent/40"
           >
             <option value="COM">Company (COM)</option>
             <option value="RNR">Rental (RNR)</option>
@@ -76,14 +76,14 @@ export function CostCalculator() {
             type="number"
             value={events}
             onChange={(e) => setEvents(Number(e.target.value))}
-            className="w-full rounded-md border border-border bg-muted/60 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-cyan-500"
+            className="w-full rounded-md border border-border bg-muted/60 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-fleet-accent/40"
             placeholder="Number of events"
           />
         </div>
 
         <Button 
           onClick={calculateCost}
-          className="w-full bg-cyan-600 hover:bg-cyan-700 text-white"
+          className="w-full bg-fleet-accent text-white hover:opacity-90"
         >
           Calculate
         </Button>
@@ -99,16 +99,16 @@ export function CostCalculator() {
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded bg-muted/50 p-2">
                 <p className="text-xs text-muted-foreground">Break-even</p>
-                <p className="text-lg font-semibold text-yellow-400">${result.breakEvenPrice}</p>
+                <p className="text-lg font-semibold text-fleet-warning">${result.breakEvenPrice}</p>
               </div>
               <div className="rounded bg-muted/50 p-2">
                 <p className="text-xs text-muted-foreground">Target Price</p>
-                <p className="text-lg font-semibold text-green-400">${result.targetPrice}</p>
+                <p className="text-lg font-semibold text-fleet-success">${result.targetPrice}</p>
               </div>
             </div>
 
-            <div className="p-3 bg-cyan-900/30 rounded-lg border border-cyan-700/50">
-              <p className="text-xs text-cyan-400">
+            <div className="p-3 bg-fleet-accent/10 rounded-lg border border-fleet-accent/20">
+              <p className="text-xs text-fleet-accent">
                 <strong>🤖 Market Rate:</strong> ${result.marketRate}
               </p>
               <p className="mt-1 text-xs text-muted-foreground">

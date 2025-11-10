@@ -20,10 +20,14 @@ export function LaneAnalysisChart() {
         <div className="space-y-3">
           {mockLaneData.map((lane, index) => {
             const volumePercent = (lane.tripCount / maxVolume) * 100;
-            const marginColor = lane.avgMargin >= 18 ? 'bg-green-500' : lane.avgMargin >= 15 ? 'bg-yellow-500' : 'bg-red-500';
+            const marginStyle = lane.avgMargin >= 18
+              ? 'border border-fleet-success/20 bg-fleet-success/10 text-fleet-success'
+              : lane.avgMargin >= 15
+                ? 'border border-fleet-warning/20 bg-fleet-warning/10 text-fleet-warning'
+                : 'border border-fleet-danger/20 bg-fleet-danger/10 text-fleet-danger';
             
             return (
-              <div key={index} className="bg-muted/40 p-4 rounded-lg border border-border hover:border-cyan-500/50 transition-colors">
+              <div key={index} className="bg-muted/40 p-4 rounded-lg border border-border hover:border-fleet-accent/40 transition-colors">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2 flex-1">
                     <span className="text-sm font-medium text-foreground">{lane.origin}</span>
@@ -32,7 +36,7 @@ export function LaneAnalysisChart() {
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="text-xs text-muted-foreground">{lane.tripCount} trips</span>
-                    <div className={`${marginColor} rounded px-2 py-1 text-xs font-bold text-white`}>
+                    <div className={`${marginStyle} rounded px-2 py-1 text-xs font-bold`}>
                       {lane.avgMargin.toFixed(1)}%
                     </div>
                   </div>
@@ -56,7 +60,7 @@ export function LaneAnalysisChart() {
                 {/* Volume bar */}
                 <div className="h-2 w-full rounded-full bg-muted/50">
                   <div 
-                    className="h-2 rounded-full bg-cyan-500 transition-all duration-500"
+                    className="h-2 rounded-full bg-fleet-accent transition-all duration-500"
                     style={{ width: `${volumePercent}%` }}
                   />
                 </div>
@@ -65,8 +69,8 @@ export function LaneAnalysisChart() {
           })}
         </div>
         
-        <div className="mt-4 p-3 bg-cyan-900/30 rounded-lg border border-cyan-700/50">
-          <p className="text-sm text-cyan-400">
+        <div className="mt-4 p-3 bg-fleet-accent/10 rounded-lg border border-fleet-accent/20">
+          <p className="text-sm text-fleet-accent">
             <strong>🤖 AI Recommendation:</strong> Focus on Toronto → Chicago lane (24 trips, 17.4% margin). 
             Consider increasing rates on Toronto → Detroit (+8% potential).
           </p>

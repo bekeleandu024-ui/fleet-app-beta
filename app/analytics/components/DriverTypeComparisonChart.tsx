@@ -41,9 +41,9 @@ export function DriverTypeComparisonChart() {
               itemStyle={{ color: 'hsl(var(--muted-foreground))' }}
             />
             <Legend wrapperStyle={{ color: 'hsl(var(--muted-foreground))' }} />
-            <Bar yAxisId="left" dataKey="avgCPM" fill="#06b6d4" name="Avg CPM ($)" />
-            <Bar yAxisId="right" dataKey="avgMargin" fill="#10b981" name="Avg Margin (%)" />
-            <Bar yAxisId="right" dataKey="utilization" fill="#8b5cf6" name="Utilization (%)" />
+            <Bar yAxisId="left" dataKey="avgCPM" fill="var(--color-chart-2)" name="Avg CPM ($)" />
+            <Bar yAxisId="right" dataKey="avgMargin" fill="var(--color-chart-3)" name="Avg Margin (%)" />
+            <Bar yAxisId="right" dataKey="utilization" fill="var(--color-chart-1)" name="Utilization (%)" />
           </BarChart>
         </ResponsiveContainer>
         <div className="mt-4 grid grid-cols-3 gap-4 text-sm">

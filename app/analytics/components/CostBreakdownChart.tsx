@@ -15,10 +15,10 @@ export function CostBreakdownChart() {
   }), { fixed: 0, wage: 0, rolling: 0, accessorials: 0 });
 
   const pieData = [
-    { name: 'Fixed Costs', value: totals.fixed, color: '#8b5cf6' },
-    { name: 'Wage Costs', value: totals.wage, color: '#06b6d4' },
-    { name: 'Rolling Costs', value: totals.rolling, color: '#10b981' },
-    { name: 'Accessorials', value: totals.accessorials, color: '#f59e0b' },
+    { name: 'Fixed Costs', value: totals.fixed, color: 'var(--color-chart-1)' },
+    { name: 'Wage Costs', value: totals.wage, color: 'var(--color-chart-2)' },
+    { name: 'Rolling Costs', value: totals.rolling, color: 'var(--color-chart-3)' },
+    { name: 'Accessorials', value: totals.accessorials, color: 'var(--color-chart-4)' },
   ];
 
   const total = totals.fixed + totals.wage + totals.rolling + totals.accessorials;
@@ -41,7 +41,7 @@ export function CostBreakdownChart() {
               labelLine={false}
               label={({ name, percent }: any) => `${name}: ${(percent * 100).toFixed(1)}%`}
               outerRadius={100}
-              fill="#8884d8"
+              fill="var(--color-chart-1)"
               dataKey="value"
             >
               {pieData.map((entry, index) => (
@@ -72,8 +72,8 @@ export function CostBreakdownChart() {
           ))}
         </div>
 
-        <div className="mt-4 p-3 bg-yellow-900/30 rounded-lg border border-yellow-700/50">
-          <p className="text-sm text-yellow-400">
+        <div className="mt-4 p-3 bg-fleet-warning/10 rounded-lg border border-fleet-warning/20">
+          <p className="text-sm text-fleet-warning">
             <strong>🤖 Cost Driver Alert:</strong> Wage costs increased 8% this week. 
             Review overtime and rental driver usage.
           </p>

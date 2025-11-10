@@ -17,7 +17,7 @@ export function MarketRateDashboard() {
       <CardContent className="space-y-4">
         {mockMarketRates.map((lane, index) => {
           const trendIcon = lane.trend === 'up' ? TrendingUp : lane.trend === 'down' ? TrendingDown : Minus;
-          const trendColor = lane.trend === 'up' ? 'text-green-400' : lane.trend === 'down' ? 'text-red-400' : 'text-muted-foreground';
+          const trendColor = lane.trend === 'up' ? 'text-fleet-success' : lane.trend === 'down' ? 'text-fleet-danger' : 'text-fleet-muted';
           const TrendIcon = trendIcon;
 
           return (
@@ -61,8 +61,8 @@ export function MarketRateDashboard() {
                 </LineChart>
               </ResponsiveContainer>
 
-              <div className="mt-3 p-2 bg-cyan-900/30 rounded border border-cyan-700/50">
-                <p className="text-xs text-cyan-400">
+              <div className="mt-3 p-2 bg-fleet-accent/10 rounded border border-fleet-accent/20">
+                <p className="text-xs text-fleet-accent">
                   <strong>🤖 30-Day Forecast:</strong> ${lane.predictedRate.toFixed(2)}/mi
                   <span className="ml-2 text-muted-foreground">
                     ({lane.predictedRate > lane.currentRate ? '+' : ''}{((lane.predictedRate - lane.currentRate) / lane.currentRate * 100).toFixed(1)}%)
@@ -73,8 +73,8 @@ export function MarketRateDashboard() {
           );
         })}
 
-        <div className="p-3 bg-purple-900/30 rounded-lg border border-purple-700/50">
-          <p className="text-sm text-purple-400">
+        <div className="p-3 bg-fleet-warning/10 rounded-lg border border-fleet-warning/20">
+          <p className="text-sm text-fleet-warning">
             <strong>🤖 Seasonal Pattern:</strong> Rates typically increase 15-20% during Q4 holiday season. 
             Consider booking commitments now.
           </p>

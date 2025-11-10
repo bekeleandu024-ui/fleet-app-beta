@@ -18,20 +18,20 @@ export function CostTrendsChart() {
           <AreaChart data={mockCostTrends}>
             <defs>
               <linearGradient id="colorFixed" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.8}/>
-                <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
+                <stop offset="5%" stopColor="var(--color-chart-1)" stopOpacity={0.8}/>
+                <stop offset="95%" stopColor="var(--color-chart-1)" stopOpacity={0}/>
               </linearGradient>
               <linearGradient id="colorWage" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.8}/>
-                <stop offset="95%" stopColor="#06b6d4" stopOpacity={0}/>
+                <stop offset="5%" stopColor="var(--color-chart-2)" stopOpacity={0.8}/>
+                <stop offset="95%" stopColor="var(--color-chart-2)" stopOpacity={0}/>
               </linearGradient>
               <linearGradient id="colorRolling" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#10b981" stopOpacity={0.8}/>
-                <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                <stop offset="5%" stopColor="var(--color-chart-3)" stopOpacity={0.8}/>
+                <stop offset="95%" stopColor="var(--color-chart-3)" stopOpacity={0}/>
               </linearGradient>
               <linearGradient id="colorAccessorials" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.8}/>
-                <stop offset="95%" stopColor="#f59e0b" stopOpacity={0}/>
+                <stop offset="5%" stopColor="var(--color-chart-4)" stopOpacity={0.8}/>
+                <stop offset="95%" stopColor="var(--color-chart-4)" stopOpacity={0}/>
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
@@ -48,10 +48,10 @@ export function CostTrendsChart() {
               itemStyle={{ color: 'hsl(var(--muted-foreground))' }}
             />
             <Legend wrapperStyle={{ color: 'hsl(var(--muted-foreground))' }} />
-            <Area type="monotone" dataKey="fixed" stackId="1" stroke="#8b5cf6" fillOpacity={1} fill="url(#colorFixed)" name="Fixed" />
-            <Area type="monotone" dataKey="wage" stackId="1" stroke="#06b6d4" fillOpacity={1} fill="url(#colorWage)" name="Wage" />
-            <Area type="monotone" dataKey="rolling" stackId="1" stroke="#10b981" fillOpacity={1} fill="url(#colorRolling)" name="Rolling" />
-            <Area type="monotone" dataKey="accessorials" stackId="1" stroke="#f59e0b" fillOpacity={1} fill="url(#colorAccessorials)" name="Accessorials" />
+            <Area type="monotone" dataKey="fixed" stackId="1" stroke="var(--color-chart-1)" fillOpacity={1} fill="url(#colorFixed)" name="Fixed" />
+            <Area type="monotone" dataKey="wage" stackId="1" stroke="var(--color-chart-2)" fillOpacity={1} fill="url(#colorWage)" name="Wage" />
+            <Area type="monotone" dataKey="rolling" stackId="1" stroke="var(--color-chart-3)" fillOpacity={1} fill="url(#colorRolling)" name="Rolling" />
+            <Area type="monotone" dataKey="accessorials" stackId="1" stroke="var(--color-chart-4)" fillOpacity={1} fill="url(#colorAccessorials)" name="Accessorials" />
           </AreaChart>
         </ResponsiveContainer>
       </CardContent>

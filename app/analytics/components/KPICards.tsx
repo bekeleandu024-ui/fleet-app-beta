@@ -43,18 +43,25 @@ export function KPICards() {
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 {kpi.title}
               </CardTitle>
-              <Icon className="h-4 w-4 text-cyan-400" />
+              <Icon className="h-4 w-4 text-fleet-accent" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-foreground">{kpi.value}</div>
               {kpi.period && (
                 <p className="mt-1 text-xs text-muted-foreground">
-                  {kpi.period} <span className={kpi.trend === "up" ? "text-green-400" : "text-red-400"}>{kpi.change}</span>
+                  {kpi.period} <span className={kpi.trend === "up" ? "text-fleet-success" : "text-fleet-danger"}>{kpi.change}</span>
                 </p>
               )}
               {kpi.subtitle && (
-                <p className={`mt-1 text-xs ${kpi.aiInsight ? "text-cyan-400 bg-cyan-900/30 p-1 rounded" : "text-muted-foreground"}`}>
-                  {kpi.aiInsight && "🤖 AI: "}{kpi.subtitle}
+                <p
+                  className={`mt-1 text-xs ${
+                    kpi.aiInsight
+                      ? "text-fleet-accent bg-fleet-accent/10 border border-fleet-accent/20 px-2 py-1 rounded"
+                      : "text-muted-foreground"
+                  }`}
+                >
+                  {kpi.aiInsight && "🤖 AI: "}
+                  {kpi.subtitle}
                 </p>
               )}
             </CardContent>

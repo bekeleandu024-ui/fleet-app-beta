@@ -52,7 +52,7 @@ export function MarginAnalysisChart() {
                       <p className="text-sm text-muted-foreground">{data.driverName} ({data.driverType})</p>
                       <p className="mt-1 text-xs text-muted-foreground">Cost: ${data.cost}</p>
                       <p className="text-xs text-muted-foreground">Revenue: ${data.revenue}</p>
-                      <p className={`text-xs font-semibold mt-1 ${data.marginPercentage >= profitabilityThreshold ? 'text-green-400' : 'text-red-400'}`}>
+                      <p className={`text-xs font-semibold mt-1 ${data.marginPercentage >= profitabilityThreshold ? 'text-fleet-success' : 'text-fleet-danger'}`}>
                         Margin: {data.marginPercentage}%
                       </p>
                     </div>
@@ -65,26 +65,26 @@ export function MarginAnalysisChart() {
             <Scatter 
               name="Profitable Trips" 
               data={mockTripMargins.filter(t => t.marginPercentage >= profitabilityThreshold)} 
-              fill="#10b981"
+              fill="var(--color-chart-3)"
               fillOpacity={0.6}
             />
             <Scatter 
               name="Low Margin Trips" 
               data={mockTripMargins.filter(t => t.marginPercentage < profitabilityThreshold)} 
-              fill="#ef4444"
+              fill="var(--fleet-danger)"
               fillOpacity={0.6}
             />
             <ReferenceLine 
-              stroke="#f59e0b" 
+              stroke="var(--fleet-warning)" 
               strokeDasharray="5 5" 
               strokeWidth={2}
               segment={[{ x: 600, y: 600 * 1.176 }, { x: 1500, y: 1500 * 1.176 }]}
-              label={{ value: '15% Margin Threshold', fill: '#f59e0b', position: 'insideTopRight' }}
+              label={{ value: '15% Margin Threshold', fill: 'var(--fleet-warning)', position: 'insideTopRight' }}
             />
           </ScatterChart>
         </ResponsiveContainer>
-        <div className="mt-4 p-3 bg-cyan-900/30 rounded-lg border border-cyan-700/50">
-          <p className="text-sm text-cyan-400">
+        <div className="mt-4 p-3 bg-fleet-accent/10 rounded-lg border border-fleet-accent/20">
+          <p className="text-sm text-fleet-accent">
             <strong>🤖 AI Insight:</strong> 75% of trips exceed the 15% profitability threshold. 
             Consider reviewing low-margin trips to optimize pricing or driver assignments.
           </p>
