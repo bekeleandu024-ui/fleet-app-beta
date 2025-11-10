@@ -2,9 +2,8 @@
 
 import { useQuery } from "@tanstack/react-query";
 
-import { DrawerFilter } from "@/components/drawer-filter";
 import { DataTable, type DataTableColumn } from "@/components/data-table";
-import { Toolbar } from "@/components/toolbar";
+import { PageSection } from "@/components/page-section";
 import { fetchRulesMasterData } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
 import { queryKeys } from "@/lib/query";
@@ -17,14 +16,16 @@ export default function RulesMasterDataPage() {
   });
 
   if (isLoading) {
-    return <MasterDataSkeleton />;
+    return <MasterDataSkeleton title="Rules" />;
   }
 
   if (isError || !data) {
     return (
-      <section className="col-span-12 rounded-xl border border-subtle bg-surface-1 p-6 text-sm text-muted">
-        Rules not available.
-      </section>
+      <div className="space-y-6">
+        <PageSection title="Rules">
+          <p className="text-sm text-[var(--muted)]">Rules not available.</p>
+        </PageSection>
+      </div>
     );
   }
 
@@ -37,55 +38,48 @@ export default function RulesMasterDataPage() {
   ];
 
   return (
-    <>
-      <DrawerFilter
-        title="Filters"
-        sections={[
-          {
-            title: "Region",
-            fields: (
-              <select className="focus-ring-brand rounded-xl border border-subtle bg-surface-2 px-3 py-2 text-sm text-[var(--text)]">
-                {data.filters.regions.map((region) => (
-                  <option key={region}>{region}</option>
-                ))}
-              </select>
-            ),
-          },
-          {
-            title: "Status",
-            fields: (
+    <div className="space-y-6">
+      <PageSection title="Rule Filters" description="Segment policies by region and activation." contentClassName="space-y-4">
+        <form className="grid gap-4 text-sm md:grid-cols-2 lg:grid-cols-3">
+          <label className="grid gap-2">
+            <span className="text-xs uppercase tracking-wide text-[var(--muted)]">Region</span>
+            <select className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2">
+              {data.filters.regions.map((region) => (
+                <option key={region}>{region}</option>
+              ))}
+            </select>
+          </label>
+          <label className="grid gap-2">
+            <span className="text-xs uppercase tracking-wide text-[var(--muted)]">Status</span>
+            <div className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] p-3">
               <div className="grid gap-2">
                 {data.filters.statuses.map((status) => (
                   <label key={status} className="flex items-center gap-2 text-sm text-[var(--text)]">
-                    <input type="checkbox" className="size-3 accent-[var(--brand)]" defaultChecked={status === "Active"} />
+                    <input type="checkbox" className="size-3 accent-[var(--accent)]" defaultChecked={status === "Active"} />
                     <span>{status}</span>
                   </label>
                 ))}
               </div>
-            ),
-          },
-        ]}
-        onClear={() => void 0}
-        onApply={() => void 0}
-      />
-      <div className="col-span-12 flex flex-col gap-6 lg:col-span-9">
-        <Toolbar title="Rules" description="Network policy catalog. Editing is disabled." />
-        <DataTable columns={columns} data={data.data} getRowId={(row) => row.id} />
-      </div>
-    </>
+            </div>
+          </label>
+        </form>
+      </PageSection>
+
+      <PageSection title="Rule Catalog" description="Read-only network policy matrix." contentClassName="px-0 pb-0">
+        <div className="border-t border-[var(--border)]">
+          <DataTable columns={columns} data={data.data} getRowId={(row) => row.id} />
+        </div>
+      </PageSection>
+    </div>
   );
 }
 
-function MasterDataSkeleton() {
+function MasterDataSkeleton({ title }: { title: string }) {
   return (
-    <>
-      <div className="col-span-12 lg:col-span-3">
-        <div className="h-64 animate-pulse rounded-xl border border-subtle bg-surface-1" />
-      </div>
-      <div className="col-span-12 flex flex-col gap-6 lg:col-span-9">
-        <div className="h-20 animate-pulse rounded-xl border border-subtle bg-surface-1" />
-        <div className="h-[420px] animate-pulse rounded-xl border border-subtle bg-surface-1" />
-      </div>
-    </>
+    <div className="space-y-6">
+      <PageSection title={title} hideHeader>
+        <div className="h-[420px] animate-pulse rounded-md bg-[var(--surface-2)]" />
+      </PageSection>
+    </div>
   );
 }
