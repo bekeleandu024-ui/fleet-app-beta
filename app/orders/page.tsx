@@ -8,6 +8,8 @@ import { RefreshCw } from "lucide-react";
 import { DataTable, type DataTableColumn } from "@/components/data-table";
 import { PageSection } from "@/components/page-section";
 import { Button } from "@/components/ui/button";
+import { Chip } from "@/components/ui/chip";
+import { Select } from "@/components/ui/select";
 import { fetchOrders } from "@/lib/api";
 import { formatCurrency } from "@/lib/format";
 import { queryKeys } from "@/lib/query";
@@ -102,19 +104,16 @@ export default function OrdersPage() {
         actions={
           <div className="flex items-center gap-2">
             <Button
-              variant="ghost"
+              variant="secondary"
               size="sm"
-              className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] text-xs font-semibold uppercase tracking-wide text-[var(--text)]"
+              className="text-xs font-semibold uppercase tracking-wide text-[var(--text)]"
               onClick={() => {
                 void refetch();
               }}
             >
               <RefreshCw className="size-4" /> Refresh
             </Button>
-            <Button
-              size="sm"
-              className="rounded-md bg-[var(--accent)] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-black"
-            >
+            <Button size="sm" className="text-xs font-semibold uppercase tracking-wide">
               Create Order
             </Button>
           </div>
@@ -122,13 +121,10 @@ export default function OrdersPage() {
       >
         <div className="flex flex-wrap items-center gap-3">
           {stats.map((stat) => (
-            <span
-              key={stat.label}
-              className="inline-flex items-center gap-2 rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-1 text-xs uppercase tracking-wide text-[var(--muted)]"
-            >
+            <Chip key={stat.label}>
               <span className="text-base font-semibold text-[var(--text)]">{stat.value}</span>
               {stat.label}
-            </span>
+            </Chip>
           ))}
         </div>
       </PageSection>
@@ -138,11 +134,11 @@ export default function OrdersPage() {
           <form className="grid gap-4 text-sm">
             <label className="grid gap-2">
               <span className="text-xs uppercase tracking-wide text-[var(--muted)]">Customer</span>
-              <select className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2">
+              <Select>
                 {data.filters.customers.map((customer) => (
                   <option key={customer}>{customer}</option>
                 ))}
-              </select>
+              </Select>
             </label>
             <label className="grid gap-2">
               <span className="text-xs uppercase tracking-wide text-[var(--muted)]">Status</span>
@@ -159,19 +155,19 @@ export default function OrdersPage() {
             </label>
             <label className="grid gap-2">
               <span className="text-xs uppercase tracking-wide text-[var(--muted)]">Date Range</span>
-              <select className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2">
+              <Select>
                 {data.filters.dateRanges.map((range) => (
                   <option key={range}>{range}</option>
                 ))}
-              </select>
+              </Select>
             </label>
             <label className="grid gap-2">
               <span className="text-xs uppercase tracking-wide text-[var(--muted)]">Lane</span>
-              <select className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2">
+              <Select>
                 {data.filters.lanes.map((lane) => (
                   <option key={lane}>{lane}</option>
                 ))}
-              </select>
+              </Select>
             </label>
           </form>
         </PageSection>

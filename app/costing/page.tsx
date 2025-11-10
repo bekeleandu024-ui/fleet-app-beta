@@ -5,6 +5,8 @@ import { Download, Save } from "lucide-react";
 
 import { PageSection } from "@/components/page-section";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { fetchCostingDefaults } from "@/lib/api";
 import { queryKeys } from "@/lib/query";
 
@@ -38,92 +40,62 @@ export default function CostingPage() {
           <form className="grid gap-4 text-sm md:grid-cols-2">
             <label className="grid gap-2">
               <span className="text-xs uppercase tracking-wide text-[var(--muted)]">Miles</span>
-              <input
-                type="number"
-                defaultValue={data.form.miles}
-                className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2"
-              />
+              <Input type="number" defaultValue={data.form.miles} />
             </label>
             <label className="grid gap-2">
               <span className="text-xs uppercase tracking-wide text-[var(--muted)]">Revenue</span>
-              <input
-                type="number"
-                defaultValue={data.form.revenue ?? 0}
-                className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2"
-              />
+              <Input type="number" defaultValue={data.form.revenue ?? 0} />
             </label>
             <label className="grid gap-2">
               <span className="text-xs uppercase tracking-wide text-[var(--muted)]">Origin</span>
-              <input
-                defaultValue={data.form.origin}
-                className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2"
-              />
+              <Input defaultValue={data.form.origin} />
             </label>
             <label className="grid gap-2">
               <span className="text-xs uppercase tracking-wide text-[var(--muted)]">Destination</span>
-              <input
-                defaultValue={data.form.destination}
-                className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2"
-              />
+              <Input defaultValue={data.form.destination} />
             </label>
             <label className="grid gap-2">
               <span className="text-xs uppercase tracking-wide text-[var(--muted)]">Order Type</span>
-              <select className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2" defaultValue={data.form.orderType}>
+              <Select defaultValue={data.form.orderType}>
                 {data.orderTypes.map((type) => (
                   <option key={type}>{type}</option>
                 ))}
-              </select>
+              </Select>
             </label>
             <label className="flex items-center gap-2 pt-6 text-xs text-[var(--muted)]">
               <input type="checkbox" defaultChecked={data.form.roundTrip} className="size-3 accent-[var(--accent)]" /> Round trip
             </label>
             <label className="grid gap-2">
               <span className="text-xs uppercase tracking-wide text-[var(--muted)]">Border Crossings</span>
-              <input
-                type="number"
-                defaultValue={data.form.borderCrossings}
-                className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2"
-              />
+              <Input type="number" defaultValue={data.form.borderCrossings} />
             </label>
             <label className="grid gap-2">
               <span className="text-xs uppercase tracking-wide text-[var(--muted)]">Deadhead Miles</span>
-              <input
-                type="number"
-                defaultValue={data.form.deadheadMiles}
-                className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2"
-              />
+              <Input type="number" defaultValue={data.form.deadheadMiles} />
             </label>
             <label className="grid gap-2">
               <span className="text-xs uppercase tracking-wide text-[var(--muted)]">Pickups</span>
-              <input
-                type="number"
-                defaultValue={data.form.pickups}
-                className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2"
-              />
+              <Input type="number" defaultValue={data.form.pickups} />
             </label>
             <label className="grid gap-2">
               <span className="text-xs uppercase tracking-wide text-[var(--muted)]">Deliveries</span>
-              <input
-                type="number"
-                defaultValue={data.form.deliveries}
-                className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2"
-              />
+              <Input type="number" defaultValue={data.form.deliveries} />
             </label>
             <label className="grid gap-2">
               <span className="text-xs uppercase tracking-wide text-[var(--muted)]">Driver</span>
-              <select className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2" defaultValue={data.form.driver}>
+              <Select defaultValue={data.form.driver}>
                 {data.drivers.map((driver) => (
                   <option key={driver}>{driver}</option>
                 ))}
-              </select>
+              </Select>
             </label>
             <label className="grid gap-2">
               <span className="text-xs uppercase tracking-wide text-[var(--muted)]">Unit</span>
-              <select className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2" defaultValue={data.form.unit}>
+              <Select defaultValue={data.form.unit}>
                 {data.units.map((unit) => (
                   <option key={unit}>{unit}</option>
                 ))}
-              </select>
+              </Select>
             </label>
             <label className="md:col-span-2 grid gap-2">
               <span className="text-xs uppercase tracking-wide text-[var(--muted)]">Assumptions</span>
@@ -183,13 +155,10 @@ export default function CostingPage() {
 
       <div className="sticky bottom-4 z-10">
         <div className="flex flex-wrap items-center justify-end gap-2 rounded-md border border-[var(--border)] bg-[color-mix(in_srgb,var(--surface-1)_96%,transparent)] px-4 py-3 shadow-sm backdrop-blur">
-          <Button
-            variant="ghost"
-            className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] text-xs uppercase tracking-wide text-[var(--text)]"
-          >
+          <Button variant="secondary" className="text-xs uppercase tracking-wide">
             <Save className="size-4" /> Persist to Order
           </Button>
-          <Button className="rounded-md bg-[var(--accent)] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-black">
+          <Button className="text-xs font-semibold uppercase tracking-wide">
             <Download className="size-4" /> Export
           </Button>
         </div>

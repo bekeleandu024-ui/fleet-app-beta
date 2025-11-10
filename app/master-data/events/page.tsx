@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { DataTable, type DataTableColumn } from "@/components/data-table";
 import { PageSection } from "@/components/page-section";
+import { Select } from "@/components/ui/select";
 import { fetchEventsMasterData } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
 import { queryKeys } from "@/lib/query";
@@ -43,11 +44,11 @@ export default function EventsMasterDataPage() {
         <form className="grid gap-4 text-sm md:grid-cols-2 lg:grid-cols-3">
           <label className="grid gap-2">
             <span className="text-xs uppercase tracking-wide text-[var(--muted)]">Region</span>
-            <select className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2">
+            <Select>
               {data.filters.regions.map((region) => (
                 <option key={region}>{region}</option>
               ))}
-            </select>
+            </Select>
           </label>
           <label className="grid gap-2">
             <span className="text-xs uppercase tracking-wide text-[var(--muted)]">Status</span>

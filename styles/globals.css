@@ -15,6 +15,13 @@
   --alert: #f26d6d;
   --shadow-soft: 0 24px 48px rgba(6, 8, 12, 0.45);
   --radius-base: 0.75rem;
+  --radius: var(--radius-base);
+  --matte-bg: var(--surface-2);
+  --matte-border: color-mix(in srgb, var(--border) 88%, transparent);
+  --matte-border-strong: color-mix(in srgb, var(--border) 94%, transparent);
+  --shadow-matte: inset 0 1px 0 color-mix(in srgb, white 6%, transparent),
+    inset 0 -1px 0 color-mix(in srgb, black 48%, transparent);
+  --matte-hover: color-mix(in srgb, var(--surface-2) 90%, white 10%);
   --bg: var(--app);
   --surface-1-legacy: var(--surface-1);
   --surface-2-legacy: var(--surface-2);

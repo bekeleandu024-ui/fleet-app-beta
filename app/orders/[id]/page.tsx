@@ -7,6 +7,7 @@ import { CalendarClock, Gauge } from "lucide-react";
 import { RecommendationCallout } from "@/components/recommendation-callout";
 import { StatChip } from "@/components/stat-chip";
 import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/select";
 import { fetchOrderDetail } from "@/lib/api";
 import { formatDateTime, formatDurationHours } from "@/lib/format";
 import { queryKeys } from "@/lib/query";
@@ -162,31 +163,31 @@ export default function OrderDetailPage() {
             <form className="grid gap-4 text-sm">
               <label className="grid gap-2">
                 <span className="text-xs uppercase tracking-wide text-muted">Driver</span>
-                <select className="focus-ring-brand rounded-xl border border-subtle bg-surface-2 px-3 py-2 text-sm text-[var(--text)]" defaultValue={data.booking.recommendedDriverId}>
+                <Select defaultValue={data.booking.recommendedDriverId}>
                   {data.booking.driverOptions.map((driver) => (
                     <option key={driver.id} value={driver.id}>
                       {driver.name} • {driver.status} ({driver.hoursAvailable}h)
                     </option>
                   ))}
-                </select>
+                </Select>
               </label>
               <label className="grid gap-2">
                 <span className="text-xs uppercase tracking-wide text-muted">Unit</span>
-                <select className="focus-ring-brand rounded-xl border border-subtle bg-surface-2 px-3 py-2 text-sm text-[var(--text)]" defaultValue={data.booking.recommendedUnitId}>
+                <Select defaultValue={data.booking.recommendedUnitId}>
                   {data.booking.unitOptions.map((unit) => (
                     <option key={unit.id} value={unit.id}>
                       {unit.id} • {unit.type} ({unit.status})
                     </option>
                   ))}
-                </select>
+                </Select>
               </label>
               <label className="grid gap-2">
                 <span className="text-xs uppercase tracking-wide text-muted">Update Status</span>
-                <select className="focus-ring-brand rounded-xl border border-subtle bg-surface-2 px-3 py-2 text-sm text-[var(--text)]" defaultValue={data.status}>
+                <Select defaultValue={data.status}>
                   {data.booking.statusOptions.map((status) => (
                     <option key={status}>{status}</option>
                   ))}
-                </select>
+                </Select>
               </label>
               <label className="grid gap-2">
                 <span className="text-xs uppercase tracking-wide text-muted">Notes</span>
@@ -199,18 +200,18 @@ export default function OrderDetailPage() {
               <div className="flex flex-wrap justify-end gap-2 pt-2">
                 <Button
                   type="button"
-                  variant="ghost"
-                  className="rounded-xl border border-subtle bg-surface-2 text-xs uppercase tracking-wide text-[var(--text)]"
+                  variant="secondary"
+                  className="text-xs uppercase tracking-wide"
                 >
                   Calculate Cost
                 </Button>
-                <Button type="button" className="rounded-xl bg-[var(--brand)] text-xs uppercase tracking-wide text-black">
+                <Button type="button" className="text-xs uppercase tracking-wide">
                   Book Trip
                 </Button>
                 <Button
                   type="button"
                   variant="secondary"
-                  className="rounded-xl border border-subtle bg-surface-2 text-xs uppercase tracking-wide text-[var(--text)]"
+                  className="text-xs uppercase tracking-wide"
                 >
                   Update Status
                 </Button>

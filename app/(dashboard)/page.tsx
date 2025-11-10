@@ -6,6 +6,7 @@ import { AlertTriangle, PackageSearch, Route, TrendingUp } from "lucide-react";
 
 import { StatChip } from "@/components/stat-chip";
 import { HealthDot } from "@/components/health-dot";
+import { Select } from "@/components/ui/select";
 import { fetchDashboard } from "@/lib/api";
 import { formatNumber, formatPercent } from "@/lib/format";
 import { queryKeys } from "@/lib/query";
@@ -140,46 +141,43 @@ export default function DashboardPage() {
                 <label className="text-muted" htmlFor="live-network-date">
                   Date Range
                 </label>
-                <select
+                <Select
                   id="live-network-date"
-                  className="focus-ring-brand rounded-xl border border-subtle bg-surface-2 px-3 py-2 text-sm text-[var(--text)]"
                   defaultValue={data.liveNetwork.filterOptions.dateRanges[0]}
                   aria-label="Live network date range"
                 >
                   {data.liveNetwork.filterOptions.dateRanges.map((range) => (
                     <option key={range}>{range}</option>
                   ))}
-                </select>
+                </Select>
               </div>
               <div className="grid gap-2 text-xs">
                 <label className="text-muted" htmlFor="live-network-customer">
                   Customer
                 </label>
-                <select
+                <Select
                   id="live-network-customer"
-                  className="focus-ring-brand rounded-xl border border-subtle bg-surface-2 px-3 py-2 text-sm text-[var(--text)]"
                   defaultValue={data.liveNetwork.filterOptions.customers[0]}
                   aria-label="Live network customer filter"
                 >
                   {data.liveNetwork.filterOptions.customers.map((customer) => (
                     <option key={customer}>{customer}</option>
                   ))}
-                </select>
+                </Select>
               </div>
               <div className="grid gap-2 text-xs">
                 <label className="text-muted" htmlFor="live-network-lane">
                   Lane
                 </label>
-                <select
+                <Select
                   id="live-network-lane"
-                  className="focus-ring-brand rounded-xl border border-subtle bg-surface-2 px-3 py-2 text-sm text-[var(--text)]"
                   defaultValue={data.liveNetwork.filterOptions.lanes[0]}
                   aria-label="Live network lane filter"
                 >
                   {data.liveNetwork.filterOptions.lanes.map((lane) => (
                     <option key={lane}>{lane}</option>
                   ))}
-                </select>
+                </Select>
               </div>
               <div className="rounded-xl border border-subtle bg-surface-2 px-3 py-2 text-xs text-muted">
                 Hotspots:{" "}

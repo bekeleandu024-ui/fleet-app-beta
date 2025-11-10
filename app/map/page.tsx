@@ -5,6 +5,7 @@ import { Compass, MapPin } from "lucide-react";
 
 import { PageSection } from "@/components/page-section";
 import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/select";
 import { fetchMapPlan } from "@/lib/api";
 import { queryKeys } from "@/lib/query";
 
@@ -35,10 +36,10 @@ export default function MapPlannerPage() {
         description="Build and evaluate multi-stop routes with network guardrails."
         actions={
           <div className="flex items-center gap-2">
-            <Button variant="ghost" className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] text-xs uppercase tracking-wide text-[var(--text)]">
+            <Button variant="secondary" className="text-xs uppercase tracking-wide text-[var(--text)]">
               Reset
             </Button>
-            <Button className="rounded-md bg-[var(--accent)] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-black">
+            <Button className="text-xs font-semibold uppercase tracking-wide">
               Generate Route
             </Button>
           </div>
@@ -52,11 +53,11 @@ export default function MapPlannerPage() {
               <form className="grid gap-4 text-sm">
                 <label className="grid gap-2">
                   <span className="text-xs uppercase tracking-wide text-[var(--muted)]">Vehicle Profile</span>
-                  <select className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2">
+                  <Select>
                     {data.options.vehicleProfiles.map((profile) => (
                       <option key={profile}>{profile}</option>
                     ))}
-                  </select>
+                  </Select>
                 </label>
                 <div className="grid gap-2 text-xs text-[var(--muted)]">
                   <label className="flex items-center gap-2">

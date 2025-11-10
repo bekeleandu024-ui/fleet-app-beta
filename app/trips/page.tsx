@@ -7,6 +7,8 @@ import { DrawerFilter } from "@/components/drawer-filter";
 import { DataTable, type DataTableColumn } from "@/components/data-table";
 import { StatChip } from "@/components/stat-chip";
 import { Toolbar } from "@/components/toolbar";
+import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/select";
 import { fetchTrips } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
 import { queryKeys } from "@/lib/query";
@@ -104,11 +106,11 @@ export default function TripsPage() {
           {
             title: "Status",
             fields: (
-              <select className="focus-ring-brand rounded-xl border border-subtle bg-surface-2 px-3 py-2 text-sm text-[var(--text)]">
+              <Select>
                 {data.filters.statuses.map((status) => (
                   <option key={status}>{status}</option>
                 ))}
-              </select>
+              </Select>
             ),
           },
           {
@@ -127,11 +129,11 @@ export default function TripsPage() {
           {
             title: "Date Range",
             fields: (
-              <select className="focus-ring-brand rounded-xl border border-subtle bg-surface-2 px-3 py-2 text-sm text-[var(--text)]">
+              <Select>
                 {data.filters.dateRanges.map((range) => (
                   <option key={range}>{range}</option>
                 ))}
-              </select>
+              </Select>
             ),
           },
         ]}
@@ -150,16 +152,17 @@ export default function TripsPage() {
           getRowId={(row) => row.id}
           onRowClick={(row) => router.push(`/trips/${row.id}`)}
           rowActions={(row) => (
-            <button
+            <Button
               type="button"
-              className="text-xs text-muted hover:text-[var(--text)]"
+              variant="link"
+              className="text-xs"
               onClick={(event) => {
                 event.stopPropagation();
                 router.push(`/trips/${row.id}`);
               }}
             >
               View
-            </button>
+            </Button>
           )}
         />
       </div>

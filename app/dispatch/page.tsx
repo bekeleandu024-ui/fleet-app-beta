@@ -9,6 +9,10 @@ import { RecommendationCallout } from "@/components/recommendation-callout";
 import { HealthDot } from "@/components/health-dot";
 import { StatChip } from "@/components/stat-chip";
 import { Button } from "@/components/ui/button";
+import { Chip } from "@/components/ui/chip";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 import { fetchDispatch } from "@/lib/api";
 import { queryKeys } from "@/lib/query";
 
@@ -55,9 +59,9 @@ export default function DispatchPage() {
               <h3 className="text-sm font-semibold text-[var(--text)]">Qualified Orders</h3>
               <div className="flex gap-2 text-xs text-[var(--muted)]">
                 {data.filters.priorities.map((priority) => (
-                  <span key={priority} className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-2 py-1">
+                  <Chip key={priority} className="normal-case px-2 py-1 text-[var(--muted)]">
                     {priority}
-                  </span>
+                  </Chip>
                 ))}
               </div>
             </header>
@@ -65,15 +69,17 @@ export default function DispatchPage() {
               {orders.map((order) => {
                 const isActive = activeOrder?.id === order.id;
                 return (
-                  <button
+                  <Button
                     key={order.id}
                     type="button"
+                    variant="secondary"
                     onClick={() => setSelectedOrderId(order.id)}
-                    className={`rounded-md border px-3 py-3 text-left transition-colors ${
+                    className={cn(
+                      "w-full items-start justify-start px-3 py-3 text-left font-normal",
                       isActive
-                        ? "border-[var(--accent)] bg-[color-mix(in_srgb,var(--accent)_14%,transparent)]"
-                        : "border-[var(--border)] bg-[var(--surface-2)] hover:bg-[var(--surface-3)]"
-                    }`}
+                        ? "border-[color:var(--accent)] bg-[color-mix(in_srgb,var(--accent)_14%,transparent)]"
+                        : "hover:bg-[color-mix(in_srgb,var(--surface-2)_82%,white_18%)]"
+                    )}
                   >
                     <div className="flex items-center justify-between text-xs text-[var(--muted)]">
                       <span>{order.priority}</span>
@@ -86,7 +92,7 @@ export default function DispatchPage() {
                       <StatChip label="Miles" value={order.miles.toString()} />
                       <StatChip label="Window" value={`${order.pickupWindow} → ${order.deliveryWindow}`} />
                     </div>
-                  </button>
+                  </Button>
                 );
               })}
             </div>
@@ -102,55 +108,55 @@ export default function DispatchPage() {
             <form className="grid gap-4 text-sm">
               <label className="grid gap-2">
                 <span className="text-xs uppercase tracking-wide text-[var(--muted)]">Driver</span>
-                <select className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2">
+                <Select>
                   {data.crew.drivers.map((driver) => (
                     <option key={driver.id} value={driver.id}>
                       {driver.name} • {driver.status} ({driver.hoursAvailable}h)
                     </option>
                   ))}
-                </select>
+                </Select>
               </label>
               <label className="grid gap-2">
                 <span className="text-xs uppercase tracking-wide text-[var(--muted)]">Unit</span>
-                <select className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2">
+                <Select>
                   {data.crew.units.map((unit) => (
                     <option key={unit.id} value={unit.id}>
                       {unit.id} • {unit.type} ({unit.status})
                     </option>
                   ))}
-                </select>
+                </Select>
               </label>
               <div className="grid gap-4 md:grid-cols-2">
                 <label className="grid gap-2">
                   <span className="text-xs uppercase tracking-wide text-[var(--muted)]">Trip Type</span>
-                  <select className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2">
+                  <Select>
                     {data.tripForm.tripTypes.map((type) => (
                       <option key={type}>{type}</option>
                     ))}
-                  </select>
+                  </Select>
                 </label>
                 <label className="grid gap-2">
                   <span className="text-xs uppercase tracking-wide text-[var(--muted)]">Rate</span>
                   <div className="flex items-center gap-2">
-                    <input
+                    <Input
                       type="number"
                       defaultValue={activeOrder?.miles ? Math.round(activeOrder.miles * 3.9) : 0}
-                      className="w-full rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2"
+                      className="w-full"
                     />
-                    <select className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-2 py-2">
+                    <Select className="w-24 px-2">
                       {data.tripForm.rateUnits.map((unit) => (
                         <option key={unit}>{unit}</option>
                       ))}
-                    </select>
+                    </Select>
                   </div>
                 </label>
               </div>
               <label className="grid gap-2">
                 <span className="text-xs uppercase tracking-wide text-[var(--muted)]">Projected Miles</span>
-                <input
+                <Input
                   type="number"
                   defaultValue={activeOrder?.miles ?? 0}
-                  className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2"
+                  className="w-full"
                 />
               </label>
               <label className="grid gap-2">
