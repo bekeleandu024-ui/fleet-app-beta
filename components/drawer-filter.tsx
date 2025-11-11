@@ -27,12 +27,14 @@ export function DrawerFilter({ title, sections, onClear, onApply, className }: D
       <header className="flex items-center justify-between">
         <div>
           <h3 className="text-sm font-semibold text-[var(--text)]">{title}</h3>
-          <p className="text-xs text-muted">Refine the working set across the workspace.</p>
+          <p className="text-xs text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">
+            Refine the working set across the workspace.
+          </p>
         </div>
         <Button
-          variant="ghost"
+          variant="plain"
           size="sm"
-          className="text-xs text-muted hover:text-[var(--text)]"
+          className="text-xs text-[color-mix(in_srgb,var(--muted)_85%,transparent)] hover:text-[var(--text)]"
           onClick={() => {
             onClear?.();
           }}
@@ -44,8 +46,12 @@ export function DrawerFilter({ title, sections, onClear, onApply, className }: D
         {sections.map((section) => (
           <section key={section.title} className="space-y-3">
             <div>
-              <h4 className="text-xs font-semibold uppercase tracking-wide text-muted">{section.title}</h4>
-              {section.description ? <p className="mt-1 text-xs text-muted">{section.description}</p> : null}
+              <h4 className="text-xs font-semibold uppercase tracking-wide text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">
+                {section.title}
+              </h4>
+              {section.description ? (
+                <p className="mt-1 text-xs text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">{section.description}</p>
+              ) : null}
             </div>
             <div className="grid gap-3 text-sm text-[var(--text)]">{section.fields}</div>
           </section>
@@ -54,9 +60,9 @@ export function DrawerFilter({ title, sections, onClear, onApply, className }: D
       <footer className="flex justify-between gap-2 text-xs">
         <Button
           type="button"
-          variant="secondary"
+          variant="subtle"
           size="sm"
-          className="flex-1 rounded-xl border border-subtle bg-surface-2 text-xs uppercase tracking-wide text-muted"
+          className="flex-1"
           onClick={() => {
             onClear?.();
             setOpen(false);
@@ -67,7 +73,8 @@ export function DrawerFilter({ title, sections, onClear, onApply, className }: D
         <Button
           type="button"
           size="sm"
-          className="flex-1 rounded-xl bg-[var(--brand)] text-xs uppercase tracking-wide text-black"
+          variant="primary"
+          className="flex-1"
           onClick={() => {
             onApply?.();
             setOpen(false);
@@ -84,27 +91,22 @@ export function DrawerFilter({ title, sections, onClear, onApply, className }: D
       <div className="mb-4 flex items-center justify-between lg:hidden">
         <div>
           <h3 className="text-sm font-semibold text-[var(--text)]">{title}</h3>
-          <p className="text-xs text-muted">Filters</p>
+          <p className="text-xs text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">Filters</p>
         </div>
-        <Button
-          variant="secondary"
-          size="sm"
-          className="rounded-xl border border-subtle bg-surface-2 text-xs uppercase tracking-wide text-[var(--text)]"
-          onClick={() => setOpen(true)}
-        >
+        <Button variant="subtle" size="sm" className="text-xs uppercase tracking-wide" onClick={() => setOpen(true)}>
           Open
         </Button>
       </div>
-      <aside className="hidden h-full rounded-xl border border-subtle bg-surface-1 p-4 shadow-soft lg:block">
+      <aside className="hidden h-full rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface-1)] p-4 shadow-flat lg:block">
         {content}
       </aside>
       {open ? (
         <div className="fixed inset-0 z-50 flex bg-black/60 lg:hidden">
-          <div className="ml-auto flex h-full w-80 max-w-[85vw] flex-col gap-6 rounded-l-xl border border-subtle bg-surface-1 p-5 shadow-soft">
+          <div className="ml-auto flex h-full w-80 max-w-[85vw] flex-col gap-6 rounded-l-[var(--radius)] border border-[var(--border)] bg-[var(--surface-1)] p-5 shadow-flat">
             {content}
             <Button
-              variant="ghost"
-              className="text-xs text-muted hover:text-[var(--text)]"
+              variant="plain"
+              className="text-xs text-[color-mix(in_srgb,var(--muted)_85%,transparent)] hover:text-[var(--text)]"
               onClick={() => setOpen(false)}
             >
               Close

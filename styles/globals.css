@@ -2,49 +2,58 @@
 
 :root {
   color-scheme: dark;
-  --app: #0d0f12;
-  --surface-1: #12151a;
-  --surface-2: #171b22;
-  --surface-3: #1e222a;
-  --border: #252932;
-  --muted: #8d95a3;
-  --text: #f2f4f7;
-  --accent: #4b82ff;
-  --ok: #2bb673;
-  --warn: #f1b955;
-  --alert: #f26d6d;
-  --shadow-soft: 0 24px 48px rgba(6, 8, 12, 0.45);
-  --radius-base: 0.75rem;
-  --bg: var(--app);
+  --bg: #0D1016;
+  --surface-1: #11151D;
+  --surface-2: #151A22;
+  --surface-3: color-mix(in srgb, var(--surface-2) 92%, black 8%);
+  --border: #1D2430;
+  --muted: #9AA4B2;
+  --text: #E3E8EF;
+  --brand: #6EA8FF;
+  --radius: 6px;
+  --ok: #4FD1A1;
+  --warn: #F5B76B;
+  --alert: #F4727C;
+  --app: var(--bg);
+  --accent: var(--brand);
   --surface-1-legacy: var(--surface-1);
   --surface-2-legacy: var(--surface-2);
   --surface-3-legacy: var(--surface-3);
-  --brand: var(--accent);
   --border-subtle: var(--border);
+}
+
+.shadow-flat {
+  box-shadow: 0 0 0 1px var(--border);
+}
+
+html,
+body {
+  background: var(--bg);
+  color: var(--text);
 }
 
 @theme inline {
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  --color-background: var(--app);
+  --color-background: var(--bg);
   --color-foreground: var(--text);
   --color-card: var(--surface-1);
   --color-card-foreground: var(--text);
   --color-popover: var(--surface-1);
   --color-popover-foreground: var(--text);
-  --color-primary: var(--accent);
-  --color-primary-foreground: #071022;
-  --color-secondary: color-mix(in srgb, var(--surface-2) 82%, #000 18%);
+  --color-primary: var(--brand);
+  --color-primary-foreground: #030712;
+  --color-secondary: var(--surface-2);
   --color-secondary-foreground: var(--text);
-  --color-muted: color-mix(in srgb, var(--surface-2) 70%, #000 30%);
+  --color-muted: var(--surface-2);
   --color-muted-foreground: var(--muted);
-  --color-accent: var(--surface-3);
+  --color-accent: var(--surface-2);
   --color-accent-foreground: var(--text);
   --color-destructive: var(--alert);
   --color-destructive-foreground: var(--text);
   --color-border: var(--border);
   --color-input: var(--surface-2);
-  --color-ring: var(--accent);
+  --color-ring: var(--brand);
   --color-surface-1: var(--surface-1);
   --color-surface-2: var(--surface-2);
   --color-surface-3: var(--surface-3);
@@ -52,10 +61,9 @@
   --color-ok: var(--ok);
   --color-warn: var(--warn);
   --color-alert: var(--alert);
-  --radius-md: var(--radius-base);
-  --radius-lg: calc(var(--radius-base) + 0.25rem);
-  --radius-xl: calc(var(--radius-base) + 0.5rem);
-  --shadow-soft: var(--shadow-soft);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 4px);
+  --radius-xl: calc(var(--radius) + 8px);
 }
 
 @layer base {
@@ -63,34 +71,33 @@
   *::before,
   *::after {
     border-color: var(--border);
-    outline: none;
   }
 
   body {
-    background-color: var(--app);
+    background-color: var(--bg);
     color: var(--text);
     font-family: var(--font-geist-sans), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     -webkit-font-smoothing: antialiased;
-    line-height: 1.4;
+    line-height: 1.5;
   }
 
   a {
-    color: var(--accent);
+    color: var(--brand);
     text-underline-offset: 4px;
     transition: color 120ms ease;
   }
 
   a:hover {
-    color: color-mix(in srgb, var(--accent) 80%, white 20%);
+    color: color-mix(in srgb, var(--brand) 85%, white 15%);
   }
 
   :focus-visible {
-    outline: 2px solid var(--accent);
+    outline: 2px solid var(--brand);
     outline-offset: 2px;
   }
 
   ::selection {
-    background-color: color-mix(in srgb, var(--accent) 35%, transparent);
+    background-color: color-mix(in srgb, var(--brand) 35%, transparent);
     color: var(--text);
   }
 
@@ -100,7 +107,7 @@
   }
 
   ::-webkit-scrollbar-track {
-    background: color-mix(in srgb, var(--surface-2) 60%, transparent);
+    background: color-mix(in srgb, var(--surface-2) 65%, transparent);
   }
 
   ::-webkit-scrollbar-thumb {
@@ -112,11 +119,23 @@
 }
 
 @layer utilities {
-  .bg-surface-1 { background-color: var(--surface-1); }
-  .bg-surface-2 { background-color: var(--surface-2); }
-  .bg-surface-3 { background-color: var(--surface-3); }
-  .text-muted { color: var(--muted); }
-  .border-subtle { border-color: var(--border); }
-  .shadow-soft { box-shadow: var(--shadow-soft); }
-  .focus-ring-brand:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .bg-surface-1 {
+    background-color: var(--surface-1);
+  }
+
+  .bg-surface-2 {
+    background-color: var(--surface-2);
+  }
+
+  .bg-surface-3 {
+    background-color: var(--surface-3);
+  }
+
+  .text-muted {
+    color: var(--muted);
+  }
+
+  .border-subtle {
+    border-color: var(--border);
+  }
 }

@@ -1,11 +1,11 @@
 "use client";
 
-import { type ReactNode, useMemo } from "react";
+import * as React from "react";
 import { usePathname } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 
 import { SectionBanner } from "@/components/section-banner";
-import { HealthDot } from "@/components/health-dot";
+import { Chip } from "@/components/ui/chip";
 import {
   fetchCostingDefaults,
   fetchDashboard,
@@ -18,537 +18,424 @@ import {
   fetchTrips,
   fetchUnitsMasterData,
 } from "@/lib/api";
-import { formatPercent } from "@/lib/format";
+import { formatNumber, formatPercent } from "@/lib/format";
 import { queryKeys } from "@/lib/query";
-import type {
-  CostingDefaults,
-  DashboardResponse,
-  DispatchResponse,
-  MasterDataResponse,
-  MapPlanResponse,
-  OrdersResponse,
-  TripsResponse,
-} from "@/lib/types";
-
-interface BannerProps {
-  title: string;
-  description?: string;
-  children: ReactNode;
-  footer?: ReactNode;
-}
-
-interface StaticConfig {
-  type: "static";
-  content: BannerProps;
-}
-
-interface AsyncConfig {
-  type: "async";
-  queryKey: readonly unknown[];
-  queryFn: () => Promise<unknown>;
-  loading: BannerProps;
-  error: BannerProps;
-  build: (data: unknown) => BannerProps;
-}
-
-type RightConfig = StaticConfig | AsyncConfig;
-
-function loadingState(title: string): BannerProps {
-  return {
-    title,
-    description: "Loading contextual insights...",
-    children: (
-      <div className="space-y-3">
-        {Array.from({ length: 3 }).map((_, index) => (
-          <div key={index} className="h-3 w-full animate-pulse rounded bg-[var(--surface-3)]" />
-        ))}
-      </div>
-    ),
-  };
-}
-
-function errorState(title: string): BannerProps {
-  return {
-    title,
-    description: "We couldn't load the supporting context.",
-    children: <p className="text-xs text-[var(--muted)]">Retry shortly or refresh the page.</p>,
-  };
-}
-
-function buildDashboardConfig(): AsyncConfig {
-  return {
-    type: "async",
-    queryKey: queryKeys.dashboard,
-    queryFn: fetchDashboard,
-    loading: loadingState("Today at a Glance"),
-    error: errorState("Today at a Glance"),
-    build: (raw) => {
-      const data = raw as DashboardResponse;
-
-      return {
-        title: "Today at a Glance",
-        description: "Lane performance and resource readiness pulled into one brief.",
-        children: (
-          <div className="space-y-5">
-            <section className="space-y-3">
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">Top Lanes</h3>
-              <ul className="space-y-2 text-sm">
-                {data.glance.topLanes.map((lane) => (
-                  <li key={lane.lane} className="flex items-center justify-between">
-                    <span className="font-medium text-[var(--text)]">{lane.lane}</span>
-                    <span className="text-xs text-[var(--muted)]">
-                      {lane.orders} loads • {formatPercent(lane.onTimePercent)} on-time
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </section>
-            <section className="space-y-3">
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">Resources</h3>
-              <div className="grid gap-3">
-                <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-3 text-sm">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[var(--muted)]">Drivers available</span>
-                    <span className="font-semibold text-[var(--text)]">{data.glance.drivers.available}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-[var(--muted)]">Drivers booked</span>
-                    <span className="font-semibold text-[var(--text)]">{data.glance.drivers.booked}</span>
-                  </div>
-                </div>
-                <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-3 text-sm">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[var(--muted)]">Units available</span>
-                    <span className="font-semibold text-[var(--text)]">{data.glance.units.available}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-[var(--muted)]">Units down</span>
-                    <span className="font-semibold text-[var(--text)]">{data.glance.units.down}</span>
-                  </div>
-                </div>
-              </div>
-            </section>
-          </div>
-        ),
-      };
-    },
-  };
-}
-
-function buildOrdersConfig(): AsyncConfig {
-  return {
-    type: "async",
-    queryKey: queryKeys.orders(),
-    queryFn: fetchOrders,
-    loading: loadingState("Order Filters"),
-    error: errorState("Order Filters"),
-    build: (raw) => {
-      const data = raw as OrdersResponse;
-
-      return {
-        title: "Order Filters",
-        description: "Target the backlog by customer, status, and service window.",
-        children: (
-          <form className="grid gap-4 text-sm">
-            <label className="grid gap-2">
-              <span className="text-xs uppercase tracking-wide text-[var(--muted)]">Customer</span>
-              <select className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2">
-                {data.filters.customers.map((customer) => (
-                  <option key={customer}>{customer}</option>
-                ))}
-              </select>
-            </label>
-            <label className="grid gap-2">
-              <span className="text-xs uppercase tracking-wide text-[var(--muted)]">Status</span>
-              <div className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] p-3">
-                <div className="grid gap-2">
-                  {data.filters.statuses.map((status) => (
-                    <label key={status} className="flex items-center gap-2 text-sm text-[var(--text)]">
-                      <input type="checkbox" className="size-3 accent-[var(--accent)]" defaultChecked={status !== "Delivered"} />
-                      <span>{status}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            </label>
-            <label className="grid gap-2">
-              <span className="text-xs uppercase tracking-wide text-[var(--muted)]">Date Range</span>
-              <select className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2">
-                {data.filters.dateRanges.map((range) => (
-                  <option key={range}>{range}</option>
-                ))}
-              </select>
-            </label>
-            <label className="grid gap-2">
-              <span className="text-xs uppercase tracking-wide text-[var(--muted)]">Lane</span>
-              <select className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2">
-                {data.filters.lanes.map((lane) => (
-                  <option key={lane}>{lane}</option>
-                ))}
-              </select>
-            </label>
-          </form>
-        ),
-      };
-    },
-  };
-}
-
-function buildDispatchConfig(): AsyncConfig {
-  return {
-    type: "async",
-    queryKey: queryKeys.dispatch,
-    queryFn: fetchDispatch,
-    loading: loadingState("Crew & Assets"),
-    error: errorState("Crew & Assets"),
-    build: (raw) => {
-      const data = raw as DispatchResponse;
-
-      const driverStatus = (status: string) => {
-        if (status === "Ready") return "ok" as const;
-        if (status === "Off Duty" || status === "Standby") return "warn" as const;
-        return "alert" as const;
-      };
-
-      const unitStatus = (status: string) => {
-        if (status === "Available" || status === "Ready") return "ok" as const;
-        if (status === "Maintenance" || status === "Inspection") return "alert" as const;
-        return "warn" as const;
-      };
-
-      return {
-        title: "Crew & Assets",
-        description: "Live roster health to confirm launch readiness.",
-        children: (
-          <div className="space-y-4">
-            <section className="space-y-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">Drivers</h3>
-                <span className="text-xs text-[var(--muted)]">{data.crew.drivers.length} on roster</span>
-              </div>
-              <ul className="space-y-2 text-sm">
-                {data.crew.drivers.map((driver) => (
-                  <li key={driver.id} className="flex items-center justify-between rounded-md border border-[var(--border)] bg-[var(--surface-3)] px-3 py-2">
-                    <div>
-                      <p className="font-medium text-[var(--text)]">{driver.name}</p>
-                      <p className="text-xs text-[var(--muted)]">{driver.hoursAvailable} hrs available</p>
-                    </div>
-                    <HealthDot status={driverStatus(driver.status)} />
-                  </li>
-                ))}
-              </ul>
-            </section>
-            <section className="space-y-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">Units</h3>
-                <span className="text-xs text-[var(--muted)]">{data.crew.units.length} available</span>
-              </div>
-              <ul className="space-y-2 text-sm">
-                {data.crew.units.map((unit) => (
-                  <li key={unit.id} className="flex items-center justify-between rounded-md border border-[var(--border)] bg-[var(--surface-3)] px-3 py-2">
-                    <div>
-                      <p className="font-medium text-[var(--text)]">{unit.id}</p>
-                      <p className="text-xs text-[var(--muted)]">{unit.type} • {unit.location}</p>
-                    </div>
-                    <HealthDot status={unitStatus(unit.status)} />
-                  </li>
-                ))}
-              </ul>
-            </section>
-          </div>
-        ),
-      };
-    },
-  };
-}
-
-function buildTripsConfig(): AsyncConfig {
-  return {
-    type: "async",
-    queryKey: queryKeys.trips(),
-    queryFn: fetchTrips,
-    loading: loadingState("Trip Filters"),
-    error: errorState("Trip Filters"),
-    build: (raw) => {
-      const data = raw as TripsResponse;
-
-      return {
-        title: "Trip Filters",
-        description: "Refine the live grid by status, exception, and time horizon.",
-        children: (
-          <form className="grid gap-4 text-sm">
-            <label className="grid gap-2">
-              <span className="text-xs uppercase tracking-wide text-[var(--muted)]">Status</span>
-              <select className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2">
-                {data.filters.statuses.map((status) => (
-                  <option key={status}>{status}</option>
-                ))}
-              </select>
-            </label>
-            <label className="grid gap-2">
-              <span className="text-xs uppercase tracking-wide text-[var(--muted)]">Exception Type</span>
-              <div className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] p-3">
-                <div className="grid gap-2">
-                  {data.filters.exceptions.map((exception) => (
-                    <label key={exception} className="flex items-center gap-2 text-sm text-[var(--text)]">
-                      <input type="checkbox" className="size-3 accent-[var(--brand)]" />
-                      <span>{exception}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            </label>
-            <label className="grid gap-2">
-              <span className="text-xs uppercase tracking-wide text-[var(--muted)]">Date Range</span>
-              <select className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2">
-                {data.filters.dateRanges.map((range) => (
-                  <option key={range}>{range}</option>
-                ))}
-              </select>
-            </label>
-          </form>
-        ),
-      };
-    },
-  };
-}
-
-function buildCostingConfig(): AsyncConfig {
-  return {
-    type: "async",
-    queryKey: queryKeys.costing,
-    queryFn: fetchCostingDefaults,
-    loading: loadingState("Cost Targets"),
-    error: errorState("Cost Targets"),
-    build: (raw) => {
-      const data = raw as CostingDefaults;
-
-      return {
-        title: "Cost Targets",
-        description: "Guardrail metrics to validate before submitting the quote.",
-        children: (
-          <div className="space-y-4 text-sm">
-            <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-3">
-              <div className="flex items-center justify-between text-xs text-[var(--muted)]">
-                <span>Total Cost Benchmark</span>
-                <span>{data.breakdown.totalValue}</span>
-              </div>
-            </div>
-            <div className="grid gap-3">
-              <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-3">
-                <p className="text-xs text-[var(--muted)]">Recommended RPM</p>
-                <p className="text-sm font-semibold text-[var(--text)]">{data.targets.recommendedRPM}</p>
-              </div>
-              <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-3">
-                <p className="text-xs text-[var(--muted)]">Target Revenue</p>
-                <p className="text-sm font-semibold text-[var(--text)]">{data.targets.revenue}</p>
-              </div>
-              <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-3">
-                <p className="text-xs text-[var(--muted)]">Break-even RPM</p>
-                <p className="text-sm font-semibold text-[var(--text)]">{data.targets.breakEven}</p>
-              </div>
-            </div>
-          </div>
-        ),
-      };
-    },
-  };
-}
-
-function buildMasterDataConfig(title: string, description: string, queryKey: readonly unknown[], queryFn: () => Promise<MasterDataResponse>): AsyncConfig {
-  return {
-    type: "async",
-    queryKey,
-    queryFn,
-    loading: loadingState(title),
-    error: errorState(title),
-    build: (raw) => {
-      const data = raw as MasterDataResponse;
-
-      return {
-        title,
-        description,
-        children: (
-          <form className="grid gap-4 text-sm">
-            <label className="grid gap-2">
-              <span className="text-xs uppercase tracking-wide text-[var(--muted)]">Region</span>
-              <select className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2">
-                {data.filters.regions.map((region) => (
-                  <option key={region}>{region}</option>
-                ))}
-              </select>
-            </label>
-            <label className="grid gap-2">
-              <span className="text-xs uppercase tracking-wide text-[var(--muted)]">Status</span>
-              <div className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] p-3">
-                <div className="grid gap-2">
-                  {data.filters.statuses.map((status) => (
-                    <label key={status} className="flex items-center gap-2 text-sm text-[var(--text)]">
-                      <input type="checkbox" className="size-3 accent-[var(--accent)]" defaultChecked />
-                      <span>{status}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            </label>
-          </form>
-        ),
-      };
-    },
-  };
-}
-
-function buildMapConfig(): AsyncConfig {
-  return {
-    type: "async",
-    queryKey: queryKeys.map,
-    queryFn: fetchMapPlan,
-    loading: loadingState("Route Controls"),
-    error: errorState("Route Controls"),
-    build: (raw) => {
-      const data = raw as MapPlanResponse;
-
-      return {
-        title: "Route Controls",
-        description: "Adjust vehicle profile, avoidances, and review the step-by-step plan.",
-        children: (
-          <div className="space-y-5">
-            <section className="space-y-3">
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">Vehicle Profile</h3>
-              <select className="w-full rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2">
-                {data.options.vehicleProfiles.map((profile) => (
-                  <option key={profile}>{profile}</option>
-                ))}
-              </select>
-            </section>
-            <section className="space-y-3">
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">Avoidances</h3>
-              <div className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] p-3 text-sm">
-                <div className="grid gap-2">
-                  {data.options.avoidances.map((item) => (
-                    <label key={item} className="flex items-center gap-2">
-                      <input type="checkbox" className="size-3 accent-[var(--accent)]" />
-                      <span>{item}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            </section>
-            <section className="space-y-3">
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">Steps</h3>
-              <ul className="space-y-2 text-sm">
-                {data.steps.map((step) => (
-                  <li key={step.id} className="flex items-start gap-3 rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2">
-                    <span className="mt-1 flex size-6 items-center justify-center rounded-md bg-[var(--surface-3)] text-xs text-[var(--muted)]">
-                      {step.sequence}
-                    </span>
-                    <div>
-                      <p className="font-semibold text-[var(--text)]">{step.action}</p>
-                      <p className="text-xs text-[var(--muted)]">{step.location}</p>
-                      <p className="text-xs text-[var(--muted)]">ETA {new Date(step.eta).toLocaleString()}</p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          </div>
-        ),
-      };
-    },
-  };
-}
-
-function getRightConfig(pathname: string): RightConfig {
-  if (pathname === "/" || pathname.startsWith("/dashboard")) {
-    return buildDashboardConfig();
-  }
-
-  if (pathname.startsWith("/orders")) {
-    return buildOrdersConfig();
-  }
-
-  if (pathname.startsWith("/dispatch")) {
-    return buildDispatchConfig();
-  }
-
-  if (pathname.startsWith("/trips")) {
-    return buildTripsConfig();
-  }
-
-  if (pathname.startsWith("/costing")) {
-    return buildCostingConfig();
-  }
-
-  if (pathname.startsWith("/master-data/drivers")) {
-    return buildMasterDataConfig(
-      "Driver Filters",
-      "Narrow the roster by coverage region and readiness status.",
-      queryKeys.masterData.drivers,
-      fetchDriversMasterData
-    );
-  }
-
-  if (pathname.startsWith("/master-data/units")) {
-    return buildMasterDataConfig(
-      "Unit Filters",
-      "Segment tractors and trailers by location and availability.",
-      queryKeys.masterData.units,
-      fetchUnitsMasterData
-    );
-  }
-
-  if (pathname.startsWith("/master-data/rules")) {
-    return buildMasterDataConfig(
-      "Rule Filters",
-      "Segment policies by region and activation state.",
-      queryKeys.masterData.rules,
-      fetchRulesMasterData
-    );
-  }
-
-  if (pathname.startsWith("/master-data/events")) {
-    return buildMasterDataConfig(
-      "Event Filters",
-      "Focus on the event definitions and rule triggers that matter most.",
-      queryKeys.masterData.events,
-      fetchEventsMasterData
-    );
-  }
-
-  if (pathname.startsWith("/map")) {
-    return buildMapConfig();
-  }
-
-  return {
-    type: "static",
-    content: {
-      title: "Workspace Context",
-      description: "Navigate to a core workspace to load contextual guidance.",
-      children: <p className="text-xs text-[var(--muted)]">No additional context for this view.</p>,
-    },
-  };
-}
+import type { MasterDataResponse } from "@/lib/types";
 
 export function RightContextInsights() {
   const pathname = usePathname() ?? "/";
-  const config = useMemo(() => getRightConfig(pathname), [pathname]);
 
-  if (config.type === "static") {
-    return <SectionBanner {...config.content} />;
+  if (pathname === "/" || pathname.startsWith("/dashboard")) {
+    return <DashboardRight />;
   }
 
-  const { data, isLoading, isError } = useQuery({
-    queryKey: config.queryKey,
-    queryFn: config.queryFn,
-  });
+  if (pathname.startsWith("/orders")) {
+    return <OrdersRight />;
+  }
+
+  if (pathname.startsWith("/dispatch")) {
+    return <DispatchRight />;
+  }
+
+  if (pathname.startsWith("/trips")) {
+    return <TripsRight />;
+  }
+
+  if (pathname.startsWith("/costing")) {
+    return <CostingRight />;
+  }
+
+  if (pathname.startsWith("/master-data/drivers")) {
+    return <MasterDataRight title="Driver Maintenance" queryKey={queryKeys.masterData.drivers} queryFn={fetchDriversMasterData} />;
+  }
+
+  if (pathname.startsWith("/master-data/units")) {
+    return <MasterDataRight title="Unit Maintenance" queryKey={queryKeys.masterData.units} queryFn={fetchUnitsMasterData} />;
+  }
+
+  if (pathname.startsWith("/master-data/rules")) {
+    return <MasterDataRight title="Rule Compliance" queryKey={queryKeys.masterData.rules} queryFn={fetchRulesMasterData} />;
+  }
+
+  if (pathname.startsWith("/master-data/events")) {
+    return <MasterDataRight title="Event Compliance" queryKey={queryKeys.masterData.events} queryFn={fetchEventsMasterData} />;
+  }
+
+  if (pathname.startsWith("/map")) {
+    return <MapRight />;
+  }
+
+  return <GenericRight />;
+}
+
+function DashboardRight() {
+  const { data, isLoading, isError } = useQuery({ queryKey: queryKeys.dashboard, queryFn: fetchDashboard });
 
   if (isLoading && !data) {
-    return <SectionBanner {...config.loading} />;
+    return (
+      <SectionBanner title="Today at a Glance" subtitle="Lane and resource signal recap." aria-live="polite">
+        <LoadingBlock />
+      </SectionBanner>
+    );
   }
 
   if (isError || !data) {
-    return <SectionBanner {...config.error} />;
+    return (
+      <SectionBanner title="Today at a Glance" aria-live="polite">
+        <p className="text-sm text-[color-mix(in_srgb,var(--muted)_90%,transparent)]">Context unavailable. Refresh shortly.</p>
+      </SectionBanner>
+    );
   }
 
-  return <SectionBanner {...config.build(data)} />;
+  return (
+    <div className="flex flex-col gap-6">
+      <SectionBanner
+        title="Today at a Glance"
+        subtitle="Performance anchors for the live network."
+        aria-live="polite"
+      >
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <h3 className="text-xs uppercase tracking-wide text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">Top lanes</h3>
+            <ul className="space-y-2 text-sm">
+              {data.glance.topLanes.map((lane) => (
+                <li key={lane.lane} className="flex items-center justify-between gap-2">
+                  <span className="font-medium">{lane.lane}</span>
+                  <span className="text-xs text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">
+                    {lane.orders} loads • {formatPercent(lane.onTimePercent)} on-time
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="space-y-3">
+            <h3 className="text-xs uppercase tracking-wide text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">Resources</h3>
+            <div className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface-2)] p-4 text-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">Drivers available</span>
+                <span className="font-semibold">{data.glance.drivers.available}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">Drivers booked</span>
+                <span className="font-semibold">{data.glance.drivers.booked}</span>
+              </div>
+              <div className="mt-3 flex items-center justify-between">
+                <span className="text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">Units available</span>
+                <span className="font-semibold">{data.glance.units.available}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">Units down</span>
+                <span className="font-semibold">{data.glance.units.down}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </SectionBanner>
+    </div>
+  );
+}
+
+function OrdersRight() {
+  const costing = useQuery({ queryKey: queryKeys.costing, queryFn: fetchCostingDefaults });
+  const drivers = useQuery({ queryKey: queryKeys.masterData.drivers, queryFn: fetchDriversMasterData });
+
+  const loading = costing.isLoading || drivers.isLoading;
+
+  return (
+    <SectionBanner
+      title="Pricing & Assignment Hints"
+      subtitle="Finance and roster markers that influence orders."
+      aria-live="polite"
+    >
+      {loading ? (
+        <LoadingBlock />
+      ) : costing.isError || !costing.data || drivers.isError || !drivers.data ? (
+        <p className="text-sm text-[color-mix(in_srgb,var(--muted)_90%,transparent)]">
+          Unable to surface pricing hints. Refresh to try again.
+        </p>
+      ) : (
+        <div className="space-y-4">
+          <div className="flex flex-wrap gap-2">
+            <Chip tone="brand">Recommended RPM {costing.data.targets.recommendedRPM}</Chip>
+            <Chip tone="ok">Target revenue {costing.data.targets.revenue}</Chip>
+            <Chip tone="warn">Break-even {costing.data.targets.breakEven}</Chip>
+          </div>
+          <div className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface-2)] p-4 text-sm">
+            <h3 className="text-xs uppercase tracking-wide text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">Margin bands</h3>
+            <ul className="mt-2 space-y-2">
+              {costing.data.breakdown.sections[0]?.items.slice(0, 3).map((item) => (
+                <li key={item.label} className="flex items-center justify-between gap-3">
+                  <span>{item.label}</span>
+                  <span className="text-xs text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">{item.value}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="space-y-2">
+            <h3 className="text-xs uppercase tracking-wide text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">Recommended drivers</h3>
+            <ul className="space-y-2 text-sm">
+              {drivers.data.data.slice(0, 3).map((driver) => (
+                <li key={driver.id} className="flex items-center justify-between">
+                  <span>{driver.name}</span>
+                  <span className="text-xs text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">{driver.status}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
+    </SectionBanner>
+  );
+}
+
+function DispatchRight() {
+  const { data, isLoading, isError } = useQuery({ queryKey: queryKeys.dispatch, queryFn: fetchDispatch });
+
+  if (isLoading && !data) {
+    return (
+      <SectionBanner title="Crew & Assets" subtitle="Roster readiness for assignment." aria-live="polite">
+        <LoadingBlock />
+      </SectionBanner>
+    );
+  }
+
+  if (isError || !data) {
+    return (
+      <SectionBanner title="Crew & Assets" aria-live="polite">
+        <p className="text-sm text-[color-mix(in_srgb,var(--muted)_90%,transparent)]">Unable to load crew roster.</p>
+      </SectionBanner>
+    );
+  }
+
+  return (
+    <SectionBanner title="Crew & Assets" subtitle="Live roster mix supporting dispatch." aria-live="polite">
+      <div className="space-y-4 text-sm">
+        <div>
+          <h3 className="text-xs uppercase tracking-wide text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">Drivers</h3>
+          <ul className="mt-2 space-y-2">
+            {data.crew.drivers.slice(0, 4).map((driver) => (
+              <li key={driver.id} className="flex items-center justify-between">
+                <span>{driver.name}</span>
+                <span className="text-xs text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">{driver.status}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div>
+          <h3 className="text-xs uppercase tracking-wide text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">Units</h3>
+          <ul className="mt-2 space-y-2">
+            {data.crew.units.slice(0, 4).map((unit) => (
+              <li key={unit.id} className="flex items-center justify-between">
+                <span>{unit.id}</span>
+                <span className="text-xs text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">{unit.status}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </SectionBanner>
+  );
+}
+
+function TripsRight() {
+  const { data, isLoading, isError } = useQuery({ queryKey: queryKeys.trips(), queryFn: fetchTrips });
+
+  if (isLoading && !data) {
+    return (
+      <SectionBanner title="Trip Insights" subtitle="Exception filters and callouts." aria-live="polite">
+        <LoadingBlock />
+      </SectionBanner>
+    );
+  }
+
+  if (isError || !data) {
+    return (
+      <SectionBanner title="Trip Insights" aria-live="polite">
+        <p className="text-sm text-[color-mix(in_srgb,var(--muted)_90%,transparent)]">Unable to load trip summaries.</p>
+      </SectionBanner>
+    );
+  }
+
+  return (
+    <SectionBanner title="Trip Insights" subtitle="Exception mix by type." aria-live="polite">
+      <div className="space-y-4 text-sm">
+        <div className="flex flex-wrap gap-2">
+          {data.filters.exceptions.slice(0, 3).map((exception) => (
+            <Chip key={exception} tone="warn">
+              {exception}
+            </Chip>
+          ))}
+        </div>
+        <div className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface-2)] p-4">
+          <h3 className="text-xs uppercase tracking-wide text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">Status mix</h3>
+          <ul className="mt-2 space-y-2">
+            {data.filters.statuses.slice(0, 4).map((status) => (
+              <li key={status} className="flex items-center justify-between">
+                <span>{status}</span>
+                <span className="text-xs text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">
+                  {formatNumber(data.data.filter((trip) => trip.status === status).length)} trips
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </SectionBanner>
+  );
+}
+
+function CostingRight() {
+  const { data, isLoading, isError } = useQuery({ queryKey: queryKeys.costing, queryFn: fetchCostingDefaults });
+
+  if (isLoading && !data) {
+    return (
+      <SectionBanner title="Recent Calculations" subtitle="Latest costing work." aria-live="polite">
+        <LoadingBlock />
+      </SectionBanner>
+    );
+  }
+
+  if (isError || !data) {
+    return (
+      <SectionBanner title="Recent Calculations" aria-live="polite">
+        <p className="text-sm text-[color-mix(in_srgb,var(--muted)_90%,transparent)]">Unable to load costing summaries.</p>
+      </SectionBanner>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-6">
+      <SectionBanner title="Recent Calculations" subtitle="Form defaults and quick recalls." aria-live="polite">
+        <ul className="space-y-3 text-sm">
+          <li>Last scenario miles: {formatNumber(data.form.miles)}</li>
+          <li>
+            Route: {data.form.origin} → {data.form.destination}
+          </li>
+          <li>Order type: {data.form.orderType}</li>
+        </ul>
+      </SectionBanner>
+      <SectionBanner title="Anomalies" subtitle="Cost bands to monitor." aria-live="polite">
+        <ul className="space-y-2 text-sm">
+          {data.breakdown.sections.flatMap((section) => section.items.slice(0, 2)).map((item) => (
+            <li key={`${item.label}-${item.value}`} className="flex items-center justify-between">
+              <span>{item.label}</span>
+              <span className="text-xs text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">{item.value}</span>
+            </li>
+          ))}
+        </ul>
+        <div className="text-xs text-[color-mix(in_srgb,var(--muted)_80%,transparent)]">Total {data.breakdown.totalValue}</div>
+      </SectionBanner>
+    </div>
+  );
+}
+
+function MasterDataRight({
+  title,
+  queryKey,
+  queryFn,
+}: {
+  title: string;
+  queryKey: readonly unknown[];
+  queryFn: () => Promise<MasterDataResponse>;
+}) {
+  const { data, isLoading, isError } = useQuery({ queryKey, queryFn });
+
+  if (isLoading && !data) {
+    return (
+      <SectionBanner title={title} subtitle="Upcoming compliance checkpoints." aria-live="polite">
+        <LoadingBlock />
+      </SectionBanner>
+    );
+  }
+
+  if (isError || !data) {
+    return (
+      <SectionBanner title={title} aria-live="polite">
+        <p className="text-sm text-[color-mix(in_srgb,var(--muted)_90%,transparent)]">Unable to load upcoming maintenance.</p>
+      </SectionBanner>
+    );
+  }
+
+  return (
+    <SectionBanner title={title} subtitle="Due soon items across the catalog." aria-live="polite">
+      <ul className="space-y-3 text-sm">
+        {data.data.slice(0, 4).map((row) => (
+          <li key={row.id} className="flex items-center justify-between">
+            <span>{row.name}</span>
+            <span className="text-xs text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">{row.updated}</span>
+          </li>
+        ))}
+      </ul>
+    </SectionBanner>
+  );
+}
+
+function MapRight() {
+  const { data, isLoading, isError } = useQuery({ queryKey: queryKeys.map, queryFn: fetchMapPlan });
+
+  if (isLoading && !data) {
+    return (
+      <SectionBanner title="Route KPI Band" subtitle="Projected outcomes." aria-live="polite">
+        <LoadingBlock />
+      </SectionBanner>
+    );
+  }
+
+  if (isError || !data) {
+    return (
+      <SectionBanner title="Route KPI Band" aria-live="polite">
+        <p className="text-sm text-[color-mix(in_srgb,var(--muted)_90%,transparent)]">Unable to load route KPIs.</p>
+      </SectionBanner>
+    );
+  }
+
+  return (
+    <SectionBanner title="Route KPI Band" subtitle="Quick conversion metrics." aria-live="polite">
+      <div className="flex flex-col gap-2 text-sm">
+        <Chip tone="brand">Distance {data.summary.distance}</Chip>
+        <Chip tone="ok">ETA {data.summary.eta}</Chip>
+        <Chip tone="warn">Cost band {data.summary.costBand}</Chip>
+      </div>
+    </SectionBanner>
+  );
+}
+
+function GenericRight() {
+  const orders = useQuery({ queryKey: queryKeys.orders(), queryFn: fetchOrders });
+
+  if (orders.isLoading && !orders.data) {
+    return (
+      <SectionBanner title="Context Insights" subtitle="Supporting metrics for the workspace." aria-live="polite">
+        <LoadingBlock />
+      </SectionBanner>
+    );
+  }
+
+  if (orders.isError || !orders.data) {
+    return (
+      <SectionBanner title="Context Insights" aria-live="polite">
+        <p className="text-sm text-[color-mix(in_srgb,var(--muted)_90%,transparent)]">No supporting insights available.</p>
+      </SectionBanner>
+    );
+  }
+
+  return (
+    <SectionBanner title="Context Insights" subtitle="Order mix snapshot." aria-live="polite">
+      <ul className="space-y-2 text-sm">
+        <li>Total orders: {formatNumber(orders.data.stats.total)}</li>
+        <li>Delayed: {formatNumber(orders.data.stats.delayed)}</li>
+        <li>Active lanes: {orders.data.filters.lanes.length}</li>
+      </ul>
+    </SectionBanner>
+  );
+}
+
+function LoadingBlock() {
+  return (
+    <div className="space-y-3">
+      {Array.from({ length: 4 }).map((_, index) => (
+        <div key={index} className="h-3 w-full animate-pulse rounded-[var(--radius)] bg-[color-mix(in_srgb,var(--surface-2)_70%,transparent)]" />
+      ))}
+    </div>
+  );
 }

@@ -3,7 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { DataTable, type DataTableColumn } from "@/components/data-table";
-import { PageSection } from "@/components/page-section";
+import { SectionBanner } from "@/components/section-banner";
 import { fetchRulesMasterData } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
 import { queryKeys } from "@/lib/query";
@@ -15,17 +15,15 @@ export default function RulesMasterDataPage() {
     queryFn: fetchRulesMasterData,
   });
 
-  if (isLoading) {
-    return <MasterDataSkeleton title="Rules" />;
+  if (isLoading && !data) {
+    return <MasterDataSkeleton title="Rule Catalog" />;
   }
 
   if (isError || !data) {
     return (
-      <div className="space-y-6">
-        <PageSection title="Rules">
-          <p className="text-sm text-[var(--muted)]">Rules not available.</p>
-        </PageSection>
-      </div>
+      <SectionBanner title="Rule Catalog" subtitle="Read-only network policy matrix." aria-live="polite">
+        <p className="text-sm text-[color-mix(in_srgb,var(--muted)_90%,transparent)]">Rules not available.</p>
+      </SectionBanner>
     );
   }
 
@@ -38,22 +36,18 @@ export default function RulesMasterDataPage() {
   ];
 
   return (
-    <div className="space-y-6">
-      <PageSection title="Rule Catalog" description="Read-only network policy matrix." contentClassName="px-0 pb-0">
-        <div className="border-t border-[var(--border)]">
-          <DataTable columns={columns} data={data.data} getRowId={(row) => row.id} />
-        </div>
-      </PageSection>
-    </div>
+    <SectionBanner title="Rule Catalog" subtitle="Read-only network policy matrix." aria-live="polite">
+      <div className="-mx-6 overflow-hidden rounded-[calc(var(--radius)-2px)] border border-[var(--border)] bg-[var(--surface-2)]">
+        <DataTable columns={columns} data={data.data} getRowId={(row) => row.id} />
+      </div>
+    </SectionBanner>
   );
 }
 
 function MasterDataSkeleton({ title }: { title: string }) {
   return (
-    <div className="space-y-6">
-      <PageSection title={title} hideHeader>
-        <div className="h-[420px] animate-pulse rounded-md bg-[var(--surface-2)]" />
-      </PageSection>
-    </div>
+    <SectionBanner title={title} subtitle="Loading directory..." aria-live="polite">
+      <div className="h-[420px] animate-pulse rounded-[var(--radius)] bg-[color-mix(in_srgb,var(--surface-2)_70%,transparent)]" />
+    </SectionBanner>
   );
 }
