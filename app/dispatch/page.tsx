@@ -2,192 +2,222 @@
 
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Info } from "lucide-react";
+import { Info, Route } from "lucide-react";
 
-import { PageSection } from "@/components/page-section";
-import { RecommendationCallout } from "@/components/recommendation-callout";
-import { StatChip } from "@/components/stat-chip";
+import { SectionBanner } from "@/components/section-banner";
 import { Button } from "@/components/ui/button";
+import { Chip } from "@/components/ui/chip";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { fetchDispatch } from "@/lib/api";
 import { queryKeys } from "@/lib/query";
 
 export default function DispatchPage() {
-  const { data, isLoading, isError } = useQuery({
-    queryKey: queryKeys.dispatch,
-    queryFn: fetchDispatch,
-  });
-
+  const { data, isLoading, isError } = useQuery({ queryKey: queryKeys.dispatch, queryFn: fetchDispatch });
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
 
   const activeOrder = useMemo(() => {
     if (!data) return null;
-    const order = data.qualifiedOrders.find((item) => item.id === selectedOrderId);
-    return order ?? data.qualifiedOrders[0] ?? null;
+    const found = data.qualifiedOrders.find((item) => item.id === selectedOrderId);
+    return found ?? data.qualifiedOrders[0] ?? null;
   }, [data, selectedOrderId]);
 
-  if (isLoading) {
+  if (isLoading && !data) {
     return <DispatchSkeleton />;
   }
 
   if (isError || !data) {
     return (
-      <div className="space-y-6">
-        <PageSection title="Dispatch Console">
-          <p className="text-sm text-[var(--muted)]">Dispatch data unavailable.</p>
-        </PageSection>
-      </div>
+      <SectionBanner title="Dispatch Control" subtitle="Queue and assign qualified orders." aria-live="polite">
+        <p className="text-sm text-[color-mix(in_srgb,var(--muted)_90%,transparent)]">Dispatch data unavailable.</p>
+      </SectionBanner>
     );
   }
 
-  const orders = data.qualifiedOrders;
-
   return (
-    <div className="space-y-6">
-      <PageSection
-        title="Dispatch Control Center"
-        description="Stage qualified orders, apply guardrails, and confirm launch-ready crews."
-        contentClassName="p-0"
-      >
-        <div className="grid gap-0 border-t border-[var(--border)] lg:grid-cols-2">
-          <div className="space-y-5 border-b border-[var(--border)] px-6 py-6 lg:border-b-0 lg:border-r">
-            <header className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-[var(--text)]">Qualified Orders</h3>
-              <div className="flex gap-2 text-xs text-[var(--muted)]">
-                {data.filters.priorities.map((priority) => (
-                  <span key={priority} className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-2 py-1">
-                    {priority}
-                  </span>
-                ))}
-              </div>
-            </header>
-            <div className="flex max-h-[420px] flex-col gap-3 overflow-y-auto pr-2">
-              {orders.map((order) => {
-                const isActive = activeOrder?.id === order.id;
-                return (
-                  <button
-                    key={order.id}
-                    type="button"
-                    onClick={() => setSelectedOrderId(order.id)}
-                    className={`rounded-md border px-3 py-3 text-left transition-colors ${
-                      isActive
-                        ? "border-[var(--accent)] bg-[color-mix(in_srgb,var(--accent)_14%,transparent)]"
-                        : "border-[var(--border)] bg-[var(--surface-2)] hover:bg-[var(--surface-3)]"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between text-xs text-[var(--muted)]">
-                      <span>{order.priority}</span>
-                      <span>{order.status}</span>
-                    </div>
-                    <p className="mt-1 text-sm font-semibold text-[var(--text)]">{order.reference}</p>
-                    <p className="text-xs text-[var(--muted)]">{order.customer}</p>
-                    <p className="mt-2 text-xs text-[var(--muted)]">{order.lane}</p>
-                    <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-[var(--muted)]">
-                      <StatChip label="Miles" value={order.miles.toString()} />
-                      <StatChip label="Window" value={`${order.pickupWindow} → ${order.deliveryWindow}`} />
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="space-y-5 border-b border-[var(--border)] px-6 py-6 lg:border-b-0 lg:border-r">
-            <h3 className="text-sm font-semibold text-[var(--text)]">Assignment & Guardrails</h3>
-            <RecommendationCallout
-              title={data.recommendation.title}
-              description={data.recommendation.description}
-              bullets={data.recommendation.bullets}
-            />
-            <form className="grid gap-4 text-sm">
-              <label className="grid gap-2">
-                <span className="text-xs uppercase tracking-wide text-[var(--muted)]">Driver</span>
-                <select className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2">
-                  {data.crew.drivers.map((driver) => (
-                    <option key={driver.id} value={driver.id}>
-                      {driver.name} • {driver.status} ({driver.hoursAvailable}h)
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="grid gap-2">
-                <span className="text-xs uppercase tracking-wide text-[var(--muted)]">Unit</span>
-                <select className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2">
-                  {data.crew.units.map((unit) => (
-                    <option key={unit.id} value={unit.id}>
-                      {unit.id} • {unit.type} ({unit.status})
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <div className="grid gap-4 md:grid-cols-2">
-                <label className="grid gap-2">
-                  <span className="text-xs uppercase tracking-wide text-[var(--muted)]">Trip Type</span>
-                  <select className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2">
-                    {data.tripForm.tripTypes.map((type) => (
-                      <option key={type}>{type}</option>
-                    ))}
-                  </select>
-                </label>
-                <label className="grid gap-2">
-                  <span className="text-xs uppercase tracking-wide text-[var(--muted)]">Rate</span>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="number"
-                      defaultValue={activeOrder?.miles ? Math.round(activeOrder.miles * 3.9) : 0}
-                      className="w-full rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2"
-                    />
-                    <select className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-2 py-2">
-                      {data.tripForm.rateUnits.map((unit) => (
-                        <option key={unit}>{unit}</option>
-                      ))}
-                    </select>
-                  </div>
-                </label>
-              </div>
-              <label className="grid gap-2">
-                <span className="text-xs uppercase tracking-wide text-[var(--muted)]">Projected Miles</span>
-                <input
-                  type="number"
-                  defaultValue={activeOrder?.miles ?? 0}
-                  className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2"
-                />
-              </label>
-              <label className="grid gap-2">
-                <span className="text-xs uppercase tracking-wide text-[var(--muted)]">Notes</span>
-                <textarea
-                  rows={4}
-                  className="min-h-[120px] rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2"
-                  placeholder="Add assignment notes or guardrails"
-                />
-              </label>
-            </form>
-          </div>
-
-        </div>
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--border)] bg-[var(--surface-2)] px-6 py-4">
-          <div className="flex items-center gap-2 text-xs text-[var(--muted)]">
-            <Info className="size-4" /> Ensure guardrails satisfied before launch.
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Button variant="ghost" className="rounded-md border border-[var(--border)] bg-[var(--surface-1)] text-xs uppercase tracking-wide text-[var(--text)]">
-              Save Draft
-            </Button>
-            <Button className="rounded-md bg-[var(--accent)] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-black">
-              Launch Trip
-            </Button>
-          </div>
-        </div>
-      </PageSection>
+    <div className="flex flex-col gap-6">
+      <QualifiedOrdersBanner
+        data={data}
+        activeOrder={activeOrder}
+        onSelect={(id) => setSelectedOrderId(id)}
+      />
+      <AssignmentBanner data={data} activeOrder={activeOrder} />
     </div>
+  );
+}
+
+function QualifiedOrdersBanner({
+  data,
+  activeOrder,
+  onSelect,
+}: {
+  data: Awaited<ReturnType<typeof fetchDispatch>>;
+  activeOrder: Awaited<ReturnType<typeof fetchDispatch>>["qualifiedOrders"][number] | null;
+  onSelect: (id: string) => void;
+}) {
+  return (
+    <SectionBanner
+      title="Qualified Orders"
+      subtitle="Sequenced work items ready for dispatch confirmation."
+      aria-live="polite"
+      actions={
+        <div className="flex flex-wrap items-center gap-2 text-xs text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">
+          {data.filters.priorities.map((priority) => (
+            <Chip key={priority} className="text-xs" tone="default">
+              {priority}
+            </Chip>
+          ))}
+        </div>
+      }
+    >
+      <div className="flex max-h-[420px] flex-col gap-3 overflow-y-auto pr-1">
+        {data.qualifiedOrders.map((order) => {
+          const isActive = activeOrder?.id === order.id;
+          return (
+            <button
+              key={order.id}
+              type="button"
+              onClick={() => onSelect(order.id)}
+              className={`w-full rounded-[var(--radius)] border px-4 py-3 text-left transition-colors ${
+                isActive
+                  ? "border-[color-mix(in_srgb,var(--brand)_60%,transparent)] bg-[color-mix(in_srgb,var(--brand)_12%,transparent)]"
+                  : "border-[var(--border)] bg-[var(--surface-2)] hover:bg-[color-mix(in_srgb,var(--surface-2)_85%,black_15%)]"
+              }`}
+            >
+              <div className="flex items-center justify-between text-xs text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">
+                <span>{order.priority}</span>
+                <span>{order.status}</span>
+              </div>
+              <p className="mt-1 text-sm font-semibold text-[var(--text)]">{order.reference}</p>
+              <p className="text-xs text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">{order.customer}</p>
+              <p className="mt-2 text-xs text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">{order.lane}</p>
+              <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-[color-mix(in_srgb,var(--muted)_80%,transparent)]">
+                <Chip tone="default" className="text-xs">Miles {order.miles}</Chip>
+                <Chip tone="default" className="text-xs">
+                  Window {order.pickupWindow} → {order.deliveryWindow}
+                </Chip>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </SectionBanner>
+  );
+}
+
+function AssignmentBanner({
+  data,
+  activeOrder,
+}: {
+  data: Awaited<ReturnType<typeof fetchDispatch>>;
+  activeOrder: Awaited<ReturnType<typeof fetchDispatch>>["qualifiedOrders"][number] | null;
+}) {
+  return (
+    <SectionBanner
+      title="Assignment & Guardrails"
+      subtitle="Pair the right crew and confirm financial guardrails."
+      aria-live="polite"
+      footer={
+        <div className="flex flex-wrap items-center gap-2 text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">
+          <Info className="size-4" /> Ensure guardrails satisfied before launch.
+        </div>
+      }
+    >
+      <div className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface-2)] p-4 text-sm">
+        <h3 className="flex items-center gap-2 text-sm font-semibold text-[var(--text)]">
+          <Route className="size-4 text-[var(--brand)]" /> Recommended pairing
+        </h3>
+        <p className="mt-1 text-xs text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">{data.recommendation.description}</p>
+        <ul className="mt-3 list-disc space-y-1 pl-4 text-xs text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">
+          {data.recommendation.bullets.map((bullet) => (
+            <li key={bullet}>{bullet}</li>
+          ))}
+        </ul>
+      </div>
+
+      <form className="grid gap-4 text-sm">
+        <Field label="Driver">
+          <Select defaultValue={data.crew.drivers[0]?.id ?? ""}>
+            {data.crew.drivers.map((driver) => (
+              <option key={driver.id} value={driver.id}>
+                {driver.name} • {driver.status} ({driver.hoursAvailable}h)
+              </option>
+            ))}
+          </Select>
+        </Field>
+        <Field label="Unit">
+          <Select defaultValue={data.crew.units[0]?.id ?? ""}>
+            {data.crew.units.map((unit) => (
+              <option key={unit.id} value={unit.id}>
+                {unit.id} • {unit.type} ({unit.status})
+              </option>
+            ))}
+          </Select>
+        </Field>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Field label="Trip Type">
+            <Select defaultValue={data.tripForm.tripTypes[0] ?? ""}>
+              {data.tripForm.tripTypes.map((type) => (
+                <option key={type}>{type}</option>
+              ))}
+            </Select>
+          </Field>
+          <Field label="Rate">
+            <div className="grid grid-cols-[minmax(0,1fr)_minmax(120px,160px)] gap-2">
+              <Input
+                type="number"
+                defaultValue={activeOrder?.miles ? Math.round(activeOrder.miles * 3.9) : 0}
+                min={0}
+              />
+              <Select defaultValue={data.tripForm.rateUnits[0] ?? ""}>
+                {data.tripForm.rateUnits.map((unit) => (
+                  <option key={unit}>{unit}</option>
+                ))}
+              </Select>
+            </div>
+          </Field>
+        </div>
+        <Field label="Projected Miles">
+          <Input type="number" defaultValue={activeOrder?.miles ?? 0} min={0} />
+        </Field>
+        <Field label="Notes">
+          <textarea
+            rows={4}
+            className="min-h-[120px] rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface-2)] px-3 py-3 text-sm text-[var(--text)] placeholder-[var(--muted)] focus:outline-none focus:ring-2 focus:ring-[var(--brand)] focus:ring-offset-0"
+            placeholder="Add assignment notes or guardrails"
+          />
+        </Field>
+        <div className="flex flex-wrap items-center justify-end gap-3">
+          <Button size="sm" variant="subtle">
+            Save Draft
+          </Button>
+          <Button size="sm" variant="primary">
+            Launch Trip
+          </Button>
+        </div>
+      </form>
+    </SectionBanner>
   );
 }
 
 function DispatchSkeleton() {
   return (
-    <div className="space-y-6">
-      <PageSection title="Dispatch Control Center" hideHeader>
-        <div className="h-[520px] animate-pulse rounded-md bg-[var(--surface-2)]" />
-      </PageSection>
+    <div className="flex flex-col gap-6">
+      <SectionBanner title="Qualified Orders" subtitle="Sequenced work items ready for dispatch confirmation." aria-live="polite">
+        <div className="h-72 animate-pulse rounded-[var(--radius)] bg-[color-mix(in_srgb,var(--surface-2)_70%,transparent)]" />
+      </SectionBanner>
+      <SectionBanner title="Assignment & Guardrails" subtitle="Pair the right crew and confirm financial guardrails." aria-live="polite">
+        <div className="h-80 animate-pulse rounded-[var(--radius)] bg-[color-mix(in_srgb,var(--surface-2)_70%,transparent)]" />
+      </SectionBanner>
     </div>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="grid gap-2 text-sm">
+      <span className="text-xs uppercase tracking-wide text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">{label}</span>
+      {children}
+    </label>
   );
 }

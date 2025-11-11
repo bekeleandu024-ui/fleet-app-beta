@@ -6,15 +6,16 @@ import { useQuery } from "@tanstack/react-query";
 import { RefreshCw } from "lucide-react";
 
 import { DataTable, type DataTableColumn } from "@/components/data-table";
-import { PageSection } from "@/components/page-section";
+import { SectionBanner } from "@/components/section-banner";
 import { Button } from "@/components/ui/button";
+import { Chip } from "@/components/ui/chip";
 import { fetchOrders } from "@/lib/api";
 import { formatCurrency } from "@/lib/format";
 import { queryKeys } from "@/lib/query";
 import type { OrderListItem } from "@/lib/types";
 
 const statusTone: Record<string, string> = {
-  New: "text-[var(--accent)]",
+  New: "text-[var(--brand)]",
   Planning: "text-[var(--text)]",
   "In Transit": "text-[var(--ok)]",
   "At Risk": "text-[var(--warn)]",
@@ -37,7 +38,7 @@ export default function OrdersPage() {
         cell: (row) => (
           <div className="flex flex-col">
             <span className="font-semibold text-[var(--text)]">{row.id}</span>
-            <span className="text-xs text-[var(--muted)]">{row.reference}</span>
+            <span className="text-xs text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">{row.reference}</span>
           </div>
         ),
         widthClass: "min-w-[160px]",
@@ -49,12 +50,12 @@ export default function OrdersPage() {
         cell: (row) => (
           <div className="flex flex-col text-sm">
             <span>{row.pickup}</span>
-            <span className="text-xs text-[var(--muted)]">{row.delivery}</span>
+            <span className="text-xs text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">{row.delivery}</span>
           </div>
         ),
         widthClass: "min-w-[200px]",
       },
-      { key: "window", header: "Window", accessor: (row) => row.window, widthClass: "min-w-[120px]" },
+      { key: "window", header: "Window", accessor: (row) => row.window, widthClass: "min-w-[160px]" },
       {
         key: "status",
         header: "Status",
@@ -73,17 +74,15 @@ export default function OrdersPage() {
     []
   );
 
-  if (isLoading) {
+  if (isLoading && !data) {
     return <OrdersSkeleton />;
   }
 
   if (isError || !data) {
     return (
-      <div className="space-y-6">
-        <PageSection title="Orders">
-          <p className="text-sm text-[var(--muted)]">Unable to load orders. Try refreshing the page.</p>
-        </PageSection>
-      </div>
+      <SectionBanner title="Orders Workspace" subtitle="Review, price, and action the active order stack." aria-live="polite">
+        <p className="text-sm text-[color-mix(in_srgb,var(--muted)_90%,transparent)]">Unable to load orders. Refresh the page.</p>
+      </SectionBanner>
     );
   }
 
@@ -95,85 +94,76 @@ export default function OrdersPage() {
   ];
 
   return (
-    <div className="space-y-6">
-      <PageSection
-        title="Orders Workspace"
-        description="Review, price, and action the active order stack."
-        actions={
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] text-xs font-semibold uppercase tracking-wide text-[var(--text)]"
-              onClick={() => {
-                void refetch();
-              }}
-            >
-              <RefreshCw className="size-4" /> Refresh
-            </Button>
-            <Button
-              size="sm"
-              className="rounded-md bg-[var(--accent)] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-black"
-            >
-              Create Order
-            </Button>
-          </div>
-        }
-      >
+    <SectionBanner
+      title="Orders Workspace"
+      subtitle="Review, price, and action the active order stack."
+      aria-live="polite"
+      actions={
         <div className="flex flex-wrap items-center gap-3">
-          {stats.map((stat) => (
-            <span
-              key={stat.label}
-              className="inline-flex items-center gap-2 rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-1 text-xs uppercase tracking-wide text-[var(--muted)]"
-            >
-              <span className="text-base font-semibold text-[var(--text)]">{stat.value}</span>
+          <Button
+            size="sm"
+            variant="plain"
+            className="text-[color-mix(in_srgb,var(--muted)_85%,transparent)] hover:text-[var(--text)]"
+            onClick={() => {
+              void refetch();
+            }}
+          >
+            <RefreshCw className="size-4" /> Refresh
+          </Button>
+          <Button size="sm" variant="primary">
+            Create Order
+          </Button>
+        </div>
+      }
+    >
+      <div className="flex flex-wrap items-center gap-2">
+        {stats.map((stat) => (
+          <Chip key={stat.label} className="gap-3 text-sm">
+            <span className="text-base font-semibold text-[var(--text)]">{stat.value}</span>
+            <span className="text-xs uppercase tracking-wide text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">
               {stat.label}
             </span>
-          ))}
-        </div>
-      </PageSection>
-
-      <PageSection
-          title="Orders Ledger"
-          description="Sortable view of live and planned orders."
-          contentClassName="px-0 pb-0"
-        >
-          <div className="border-t border-[var(--border)]">
-            <DataTable
-              columns={columns}
-              data={data.data}
-              busy={isLoading}
-              getRowId={(row) => row.id}
-              onRowClick={(row) => router.push(`/orders/${row.id}`)}
-              rowActions={(row) => (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-xs text-[var(--muted)] hover:text-[var(--text)]"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    router.push(`/orders/${row.id}`);
-                  }}
-                >
-                  View
-                </Button>
-              )}
-            />
-          </div>
-        </PageSection>
-    </div>
+          </Chip>
+        ))}
+      </div>
+      <div className="-mx-6 mt-4 overflow-hidden rounded-[calc(var(--radius)-2px)] border border-[var(--border)] bg-[var(--surface-2)]">
+        <DataTable
+          columns={columns}
+          data={data.data}
+          busy={isLoading}
+          getRowId={(row) => row.id}
+          onRowClick={(row) => router.push(`/orders/${row.id}`)}
+          rowActions={(row) => (
+            <Button
+              size="sm"
+              variant="plain"
+              className="text-xs text-[color-mix(in_srgb,var(--muted)_85%,transparent)] hover:text-[var(--text)]"
+              onClick={(event) => {
+                event.stopPropagation();
+                router.push(`/orders/${row.id}`);
+              }}
+            >
+              View
+            </Button>
+          )}
+        />
+      </div>
+    </SectionBanner>
   );
 }
 
 function OrdersSkeleton() {
   return (
-    <div className="space-y-6">
-      <PageSection title="Orders Workspace" hideHeader>
-        <div className="h-24 animate-pulse rounded-md bg-[var(--surface-2)]" />
-      </PageSection>
-      <PageSection title="Orders" hideHeader>
-        <div className="h-96 animate-pulse rounded-md bg-[var(--surface-2)]" />
-      </PageSection>
-    </div>
+    <SectionBanner title="Orders Workspace" subtitle="Review, price, and action the active order stack." aria-live="polite">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, index) => (
+          <div
+            key={index}
+            className="h-10 animate-pulse rounded-[var(--radius)] bg-[color-mix(in_srgb,var(--surface-2)_70%,transparent)]"
+          />
+        ))}
+      </div>
+      <div className="mt-6 h-64 w-full animate-pulse rounded-[var(--radius)] bg-[color-mix(in_srgb,var(--surface-2)_70%,transparent)]" />
+    </SectionBanner>
   );
 }

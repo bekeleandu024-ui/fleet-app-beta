@@ -197,21 +197,13 @@ export default function OrderDetailPage() {
                 />
               </label>
               <div className="flex flex-wrap justify-end gap-2 pt-2">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="rounded-xl border border-subtle bg-surface-2 text-xs uppercase tracking-wide text-[var(--text)]"
-                >
+                <Button type="button" variant="subtle" size="sm" className="uppercase tracking-wide text-xs">
                   Calculate Cost
                 </Button>
-                <Button type="button" className="rounded-xl bg-[var(--brand)] text-xs uppercase tracking-wide text-black">
+                <Button type="button" variant="primary" size="sm" className="uppercase tracking-wide text-xs">
                   Book Trip
                 </Button>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="rounded-xl border border-subtle bg-surface-2 text-xs uppercase tracking-wide text-[var(--text)]"
-                >
+                <Button type="button" variant="subtle" size="sm" className="uppercase tracking-wide text-xs">
                   Update Status
                 </Button>
               </div>

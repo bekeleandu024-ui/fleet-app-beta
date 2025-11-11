@@ -1,78 +1,89 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { Compass, MapPin } from "lucide-react";
+import { Compass } from "lucide-react";
 
-import { PageSection } from "@/components/page-section";
+import { SectionBanner } from "@/components/section-banner";
 import { Button } from "@/components/ui/button";
+import { Chip } from "@/components/ui/chip";
+import { Select } from "@/components/ui/select";
 import { fetchMapPlan } from "@/lib/api";
 import { queryKeys } from "@/lib/query";
 
 export default function MapPlannerPage() {
-  const { data, isLoading, isError } = useQuery({
-    queryKey: queryKeys.map,
-    queryFn: fetchMapPlan,
-  });
+  const { data, isLoading, isError } = useQuery({ queryKey: queryKeys.map, queryFn: fetchMapPlan });
 
-  if (isLoading) {
+  if (isLoading && !data) {
     return <MapPlannerSkeleton />;
   }
 
   if (isError || !data) {
     return (
-      <div className="space-y-6">
-        <PageSection title="Map Planner">
-          <p className="text-sm text-[var(--muted)]">Map planner unavailable.</p>
-        </PageSection>
-      </div>
+      <SectionBanner title="Route Planning" subtitle="Build and evaluate multi-stop routes." aria-live="polite">
+        <p className="text-sm text-[color-mix(in_srgb,var(--muted)_90%,transparent)]">Map planner unavailable.</p>
+      </SectionBanner>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <PageSection
-        title="Route Planning Console"
-        description="Build and evaluate multi-stop routes with network guardrails."
-        actions={
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] text-xs uppercase tracking-wide text-[var(--text)]">
-              Reset
-            </Button>
-            <Button className="rounded-md bg-[var(--accent)] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-black">
-              Generate Route
-            </Button>
+    <SectionBanner
+      title="Route Planning"
+      subtitle="Build and evaluate multi-stop routes with network guardrails."
+      aria-live="polite"
+      actions={
+        <div className="flex flex-wrap items-center gap-2">
+          <Button size="sm" variant="subtle">
+            Reset
+          </Button>
+          <Button size="sm" variant="primary">
+            Generate Route
+          </Button>
+        </div>
+      }
+    >
+      <div className="grid gap-6 lg:grid-cols-[300px_minmax(0,1fr)]">
+        <div className="space-y-4">
+          <label className="grid gap-2 text-sm">
+            <span className="text-xs uppercase tracking-wide text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">Vehicle profile</span>
+            <Select defaultValue={data.options.vehicleProfiles[0] ?? ""}>
+              {data.options.vehicleProfiles.map((profile) => (
+                <option key={profile}>{profile}</option>
+              ))}
+            </Select>
+          </label>
+          <div className="space-y-2">
+            <span className="text-xs uppercase tracking-wide text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">Avoidances</span>
+            <div className="flex flex-wrap gap-2">
+              {data.options.avoidances.map((item) => (
+                <Chip key={item} className="text-xs">
+                  {item}
+                </Chip>
+              ))}
+            </div>
           </div>
-        }
-      >
-        <div className="space-y-5">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-[var(--text)]">Map View</h3>
-            <span className="flex items-center gap-2 text-xs text-[var(--muted)]">
-              <Compass className="size-4" /> Optimized for compliance
-            </span>
+          <div className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface-2)] p-4 text-xs text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">
+            <div className="flex items-center gap-2 text-sm text-[var(--text)]">
+              <Compass className="size-4 text-[var(--brand)]" /> Guidance
+            </div>
+            <p className="mt-2">
+              Optimized for compliance; adjust avoidances to enforce hazmat or low bridge restrictions.
+            </p>
           </div>
-          <div className="flex h-[420px] items-center justify-center rounded-md border border-dashed border-[var(--border)] bg-[var(--surface-2)] text-xs text-[var(--muted)]">
+        </div>
+        <div className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface-2)] p-4">
+          <div className="flex h-[420px] items-center justify-center rounded-[calc(var(--radius)-2px)] border border-dashed border-[var(--border)] bg-[color-mix(in_srgb,var(--surface-2)_70%,transparent)] text-sm text-[color-mix(in_srgb,var(--muted)_88%,transparent)]">
             Map viewport placeholder
           </div>
         </div>
-        <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--border)] bg-[var(--surface-2)] px-6 py-4 text-sm text-[var(--muted)]">
-          <div className="flex items-center gap-2">
-            <MapPin className="size-4" /> {data.summary.distance}
-          </div>
-          <div>{data.summary.eta}</div>
-          <div>Cost band {data.summary.costBand}</div>
-        </div>
-      </PageSection>
-    </div>
+      </div>
+    </SectionBanner>
   );
 }
 
 function MapPlannerSkeleton() {
   return (
-    <div className="space-y-6">
-      <PageSection title="Route Planning Console" hideHeader>
-        <div className="h-[520px] animate-pulse rounded-md bg-[var(--surface-2)]" />
-      </PageSection>
-    </div>
+    <SectionBanner title="Route Planning" subtitle="Build and evaluate multi-stop routes." aria-live="polite">
+      <div className="h-[420px] animate-pulse rounded-[var(--radius)] bg-[color-mix(in_srgb,var(--surface-2)_70%,transparent)]" />
+    </SectionBanner>
   );
 }
