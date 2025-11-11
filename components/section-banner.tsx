@@ -1,31 +1,57 @@
 "use client";
 
-import { type ReactNode } from "react";
+import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
-interface SectionBannerProps {
+export type SectionBannerProps = {
   title: string;
-  description?: string;
-  children: ReactNode;
-  footer?: ReactNode;
+  subtitle?: string;
+  actions?: React.ReactNode;
+  footer?: React.ReactNode;
+  dense?: boolean;
+  id?: string;
+  children: React.ReactNode;
   className?: string;
-}
+  "aria-live"?: React.AriaAttributes["aria-live"];
+};
 
-export function SectionBanner({ title, description, children, footer, className }: SectionBannerProps) {
+export function SectionBanner({
+  title,
+  subtitle,
+  actions,
+  footer,
+  dense = false,
+  id,
+  children,
+  className,
+  "aria-live": ariaLive,
+}: SectionBannerProps) {
   return (
-    <aside
+    <section
+      id={id}
       className={cn(
-        "flex flex-col gap-5 rounded-2xl border border-[var(--border)] bg-[var(--surface-1)] p-6 text-sm text-[var(--text)] shadow-soft",
+        "rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface-1)] text-[var(--text)] shadow-flat",
+        dense ? "p-4" : "p-6",
+        "flex flex-col gap-4",
         className
       )}
     >
-      <header className="space-y-1">
-        <h2 className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">{title}</h2>
-        {description ? <p className="text-xs text-[var(--muted)]/90">{description}</p> : null}
+      <header className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+        <div className="space-y-1">
+          <h2 className="text-base font-semibold text-[var(--text)]">{title}</h2>
+          {subtitle ? <p className="text-sm text-[color-mix(in_srgb,var(--muted)_90%,transparent)]">{subtitle}</p> : null}
+        </div>
+        {actions ? <div className="flex items-center gap-2 md:shrink-0">{actions}</div> : null}
       </header>
-      <div className="space-y-4 text-sm text-[var(--text)]">{children}</div>
-      {footer ? <footer className="border-t border-[var(--border)] pt-4 text-xs text-[var(--muted)]">{footer}</footer> : null}
-    </aside>
+      <div aria-live={ariaLive ?? undefined} className="space-y-4 text-sm leading-6 text-[var(--text)]">
+        {children}
+      </div>
+      {footer ? (
+        <footer className="border-t border-[var(--border)] pt-4 text-xs text-[color-mix(in_srgb,var(--muted)_82%,transparent)]">
+          {footer}
+        </footer>
+      ) : null}
+    </section>
   );
 }

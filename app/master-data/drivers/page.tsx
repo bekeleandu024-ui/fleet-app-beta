@@ -3,7 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { DataTable, type DataTableColumn } from "@/components/data-table";
-import { PageSection } from "@/components/page-section";
+import { SectionBanner } from "@/components/section-banner";
 import { fetchDriversMasterData } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
 import { queryKeys } from "@/lib/query";
@@ -15,17 +15,15 @@ export default function DriversMasterDataPage() {
     queryFn: fetchDriversMasterData,
   });
 
-  if (isLoading) {
-    return <MasterDataSkeleton title="Drivers" />;
+  if (isLoading && !data) {
+    return <MasterDataSkeleton title="Driver Directory" />;
   }
 
   if (isError || !data) {
     return (
-      <div className="space-y-6">
-        <PageSection title="Drivers">
-          <p className="text-sm text-[var(--muted)]">Drivers not available.</p>
-        </PageSection>
-      </div>
+      <SectionBanner title="Driver Directory" subtitle="Read-only roster for dispatch and planning teams." aria-live="polite">
+        <p className="text-sm text-[color-mix(in_srgb,var(--muted)_90%,transparent)]">Drivers not available.</p>
+      </SectionBanner>
     );
   }
 
@@ -38,22 +36,22 @@ export default function DriversMasterDataPage() {
   ];
 
   return (
-    <div className="space-y-6">
-      <PageSection title="Driver Directory" description="Read-only roster for dispatch and planning teams." contentClassName="px-0 pb-0">
-        <div className="border-t border-[var(--border)]">
-          <DataTable columns={columns} data={data.data} getRowId={(row) => row.id} />
-        </div>
-      </PageSection>
-    </div>
+    <SectionBanner
+      title="Driver Directory"
+      subtitle="Read-only roster for dispatch and planning teams."
+      aria-live="polite"
+    >
+      <div className="-mx-6 overflow-hidden rounded-[calc(var(--radius)-2px)] border border-[var(--border)] bg-[var(--surface-2)]">
+        <DataTable columns={columns} data={data.data} getRowId={(row) => row.id} />
+      </div>
+    </SectionBanner>
   );
 }
 
 function MasterDataSkeleton({ title }: { title: string }) {
   return (
-    <div className="space-y-6">
-      <PageSection title={title} hideHeader>
-        <div className="h-[420px] animate-pulse rounded-md bg-[var(--surface-2)]" />
-      </PageSection>
-    </div>
+    <SectionBanner title={title} subtitle="Loading directory..." aria-live="polite">
+      <div className="h-[420px] animate-pulse rounded-[var(--radius)] bg-[color-mix(in_srgb,var(--surface-2)_70%,transparent)]" />
+    </SectionBanner>
   );
 }

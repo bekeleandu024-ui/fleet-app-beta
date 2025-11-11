@@ -1,15 +1,17 @@
 "use client";
 
+import * as React from "react";
+
 import { LeftAiInsights } from "@/components/left-ai-insights";
 import { RightContextInsights } from "@/components/right-context-insights";
 import { TopNav } from "@/components/top-nav";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-[var(--app)] text-[var(--text)]">
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
       <TopNav />
-      <main className="mx-auto w-full max-w-7xl px-4 pb-12 pt-6">
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,260px)_minmax(0,1fr)_minmax(0,280px)] xl:grid-cols-[minmax(0,280px)_minmax(0,1fr)_minmax(0,320px)]">
+      <main className="mx-auto w-full max-w-[1600px] px-6 pb-12 pt-8 lg:px-8">
+        <div className="grid w-full gap-6 grid-cols-1 md:grid-cols-1 lg:grid-cols-[320px_1fr_360px]">
           <div className="order-2 flex flex-col gap-6 lg:order-1">
             <LeftAiInsights />
           </div>
