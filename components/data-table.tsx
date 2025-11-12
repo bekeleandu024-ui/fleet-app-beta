@@ -33,24 +33,34 @@ export function DataTable<T>({
   emptyMessage = "No records available.",
   className,
 }: DataTableProps<T>) {
+  const dataColumns = rowActions
+    ? columns.filter((column) => column.key !== "actions")
+    : columns;
+  const actionsColumn = rowActions
+    ? columns.find((column) => column.key === "actions")
+    : undefined;
+
   return (
     <div
       className={cn(
-        "col-span-12 w-full overflow-hidden rounded-xl border border-neutral-800 bg-neutral-900/60 shadow-lg shadow-black/40",
+        "w-full overflow-x-auto scrollbar-thin scrollbar-thumb-[var(--border)] scrollbar-track-transparent",
         className
       )}
     >
-      <div className="max-h-[70vh] overflow-auto">
-        <table className="w-full min-w-[720px] border-collapse text-sm" role="grid">
-          <thead className="sticky top-0 z-20 bg-neutral-950/60 text-left text-[11px] font-semibold uppercase tracking-wide text-neutral-500">
+      <div className="inline-block min-w-full align-middle">
+        <table
+          className="min-w-full table-auto divide-y divide-[var(--border)] text-sm"
+          role="grid"
+        >
+          <thead className="bg-[var(--surface-1)] text-left text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
             <tr>
-              {columns.map((column) => (
+              {dataColumns.map((column) => (
                 <th
                   key={column.key}
                   scope="col"
                   aria-sort={column.ariaSort ?? "none"}
                   className={cn(
-                    "border-b border-neutral-800 px-4 py-3 whitespace-nowrap",
+                    "px-4 py-3 whitespace-nowrap",
                     column.widthClass,
                     column.align === "center" && "text-center",
                     column.align === "right" && "text-right"
@@ -62,20 +72,26 @@ export function DataTable<T>({
               {rowActions ? (
                 <th
                   scope="col"
-                  className="border-b border-neutral-800 px-4 py-3 text-right whitespace-nowrap"
+                  className={cn(
+                    "px-4 py-3 text-right whitespace-nowrap",
+                    actionsColumn?.widthClass
+                  )}
                 >
-                  Actions
+                  {actionsColumn?.header ?? "Actions"}
                 </th>
               ) : null}
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-[var(--border)] bg-[var(--surface-1)]">
             {busy ? (
               <Fragment>
                 {Array.from({ length: 5 }).map((_, index) => (
-                  <tr key={`loading-${index}`} className="border-b border-neutral-800/70 last:border-0">
-                    <td colSpan={columns.length + (rowActions ? 1 : 0)} className="px-3 py-4">
-                      <div className="h-3 w-1/2 animate-pulse rounded bg-neutral-800" />
+                  <tr key={`loading-${index}`} className="transition-colors">
+                    <td
+                      colSpan={dataColumns.length + (rowActions ? 1 : 0)}
+                      className="px-4 py-4"
+                    >
+                      <div className="h-3 w-1/2 animate-pulse rounded bg-[var(--surface-2)]" />
                     </td>
                   </tr>
                 ))}
@@ -83,8 +99,8 @@ export function DataTable<T>({
             ) : data.length === 0 ? (
               <tr>
                 <td
-                  colSpan={columns.length + (rowActions ? 1 : 0)}
-                  className="px-4 py-8 text-center text-sm text-neutral-400"
+                  colSpan={dataColumns.length + (rowActions ? 1 : 0)}
+                  className="px-4 py-8 text-center text-sm text-[var(--muted)]"
                 >
                   {emptyMessage}
                 </td>
@@ -110,17 +126,17 @@ export function DataTable<T>({
                         : undefined
                     }
                     className={cn(
-                      "border-b border-neutral-800/70 last:border-0 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-0",
+                      "transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-0",
                       clickable
-                        ? "cursor-pointer hover:bg-neutral-900/70 focus-visible:bg-neutral-900/70"
-                        : "hover:bg-neutral-900/50"
+                        ? "cursor-pointer hover:bg-[var(--surface-2)] focus-visible:bg-[var(--surface-2)]"
+                        : "hover:bg-[color-mix(in_srgb,var(--surface-2)_70%,transparent)]"
                     )}
                   >
-                    {columns.map((column) => (
+                    {dataColumns.map((column) => (
                       <td
                         key={`${rowId}-${column.key}`}
                         className={cn(
-                          "px-4 py-3 align-middle text-sm text-neutral-200 whitespace-nowrap",
+                          "px-4 py-3 align-middle text-sm text-[var(--text)] whitespace-nowrap",
                           column.widthClass,
                           column.align === "center" && "text-center",
                           column.align === "right" && "text-right"
@@ -130,7 +146,12 @@ export function DataTable<T>({
                       </td>
                     ))}
                     {rowActions ? (
-                      <td className="px-4 py-3 text-right align-middle text-sm text-neutral-400 whitespace-nowrap">
+                      <td
+                        className={cn(
+                          "px-4 py-3 text-right align-middle text-sm text-[var(--text)] whitespace-nowrap",
+                          actionsColumn?.widthClass
+                        )}
+                      >
                         {rowActions(row)}
                       </td>
                     ) : null}
