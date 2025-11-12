@@ -3,6 +3,7 @@
 import * as React from "react";
 
 import { LeftAiInsights } from "@/components/left-ai-insights";
+import { NavigationRail } from "@/components/navigation-rail";
 import { RightContextInsights } from "@/components/right-context-insights";
 import { TopNav } from "@/components/top-nav";
 
@@ -13,6 +14,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <main className="mx-auto w-full max-w-[1600px] px-6 pb-12 pt-8 lg:px-10">
         <div className="grid w-full grid-cols-1 gap-6 lg:grid-cols-[320px_1fr_360px]">
           <div className="order-2 flex flex-col gap-6 lg:order-1">
+            <NavigationRail />
             <LeftAiInsights />
           </div>
           <div className="order-1 flex min-w-0 flex-col gap-6 lg:order-2">{children}</div>

@@ -12,5 +12,15 @@ export const queryKeys = {
     rules: ["master-data", "rules"] as const,
     events: ["master-data", "events"] as const,
   },
+  admin: {
+    drivers: ["admin", "drivers"] as const,
+    units: ["admin", "units"] as const,
+    rules: ["admin", "rules"] as const,
+    events: ["admin", "events"] as const,
+    lanes: ["admin", "lanes"] as const,
+    orders: ["admin", "orders"] as const,
+    trips: ["admin", "trips"] as const,
+    customers: ["admin", "customers"] as const,
+  },
   map: ["map-plan"] as const,
 };

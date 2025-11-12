@@ -1,57 +1,10 @@
 import { NextResponse } from "next/server";
 
-const trips = [
-  {
-    id: "TRP-9001",
-    tripNumber: "TRP-9001",
-    driver: "S. Redding",
-    unit: "TRK-48",
-    pickup: "Dallas, TX",
-    delivery: "Atlanta, GA",
-    eta: "2024-05-09T18:30:00Z",
-    status: "On Time",
-    exceptions: 0,
-    lastPing: "2024-05-08T22:10:00Z",
-  },
-  {
-    id: "TRP-9002",
-    tripNumber: "TRP-9002",
-    driver: "J. McCall",
-    unit: "TRK-67",
-    pickup: "Ontario, CA",
-    delivery: "Denver, CO",
-    eta: "2024-05-10T14:00:00Z",
-    status: "Running Late",
-    exceptions: 2,
-    lastPing: "2024-05-08T21:55:00Z",
-  },
-  {
-    id: "TRP-9003",
-    tripNumber: "TRP-9003",
-    driver: "N. Torres",
-    unit: "TRK-33",
-    pickup: "Chicago, IL",
-    delivery: "Kansas City, MO",
-    eta: "2024-05-09T04:30:00Z",
-    status: "On Time",
-    exceptions: 0,
-    lastPing: "2024-05-08T23:05:00Z",
-  },
-  {
-    id: "TRP-9004",
-    tripNumber: "TRP-9004",
-    driver: "P. Hooper",
-    unit: "TRK-09",
-    pickup: "Seattle, WA",
-    delivery: "Reno, NV",
-    eta: "2024-05-10T02:45:00Z",
-    status: "Exception",
-    exceptions: 1,
-    lastPing: "2024-05-08T20:40:00Z",
-  },
-];
+import { listTrips } from "@/lib/mock-data-store";
 
 export async function GET() {
+  const trips = listTrips();
+
   return NextResponse.json({
     stats: {
       active: trips.length,
@@ -59,7 +12,7 @@ export async function GET() {
       exception: trips.filter((trip) => trip.status === "Exception").length,
     },
     filters: {
-      statuses: ["On Time", "Running Late", "Exception", "Delivered"],
+      statuses: Array.from(new Set(trips.map((trip) => trip.status))).sort(),
       exceptions: ["Weather", "Mechanical", "Customer Hold"],
       dateRanges: ["Today", "48 Hours", "7 Days"],
     },

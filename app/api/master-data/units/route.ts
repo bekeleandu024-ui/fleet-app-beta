@@ -1,18 +1,25 @@
 import { NextResponse } from "next/server";
 
-const data = [
-  { id: "TRK-48", name: "TRK-48", status: "Available", region: "South", updated: "2024-05-08T06:00:00Z" },
-  { id: "TRK-67", name: "TRK-67", status: "Available", region: "West", updated: "2024-05-08T08:05:00Z" },
-  { id: "TRK-09", name: "TRK-09", status: "Maintenance", region: "South", updated: "2024-05-08T02:45:00Z" },
-  { id: "TRK-33", name: "TRK-33", status: "Available", region: "Mountain", updated: "2024-05-07T20:10:00Z" },
-];
+import { listUnits } from "@/lib/mock-data-store";
 
 export async function GET() {
+  const units = listUnits();
+  const regions = Array.from(new Set(units.map((unit) => unit.region))).sort();
+  const statuses = Array.from(new Set(units.map((unit) => unit.status))).sort();
+
   return NextResponse.json({
     filters: {
-      regions: ["All", "South", "West", "Mountain"],
-      statuses: ["Available", "Maintenance", "Out of Service"],
+      regions: ["All", ...regions],
+      statuses,
     },
-    data,
+    data: units.map((unit) => ({
+      id: unit.id,
+      name: unit.id,
+      status: unit.status,
+      region: unit.region,
+      updated: unit.updated,
+      type: unit.type,
+      location: unit.location,
+    })),
   });
 }
