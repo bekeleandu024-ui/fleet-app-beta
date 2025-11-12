@@ -3,10 +3,10 @@ import { cn } from "@/lib/utils";
 export type HealthStatus = "ok" | "warn" | "alert" | "offline";
 
 const styles: Record<HealthStatus, string> = {
-  ok: "bg-[var(--ok)]",
-  warn: "bg-[var(--warn)]",
-  alert: "bg-[var(--alert)]",
-  offline: "bg-muted",
+  ok: "bg-emerald-500",
+  warn: "bg-amber-500",
+  alert: "bg-rose-500",
+  offline: "bg-neutral-700",
 };
 
 interface HealthDotProps extends React.HTMLAttributes<HTMLSpanElement> {

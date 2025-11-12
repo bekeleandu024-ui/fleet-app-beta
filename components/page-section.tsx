@@ -22,17 +22,15 @@ export function PageSection({
   return (
     <section
       className={cn(
-        "rounded-lg border border-[var(--border)] bg-[var(--surface-1)] text-[var(--text)] shadow-sm",
+        "rounded-xl border border-neutral-800 bg-neutral-900/60 text-neutral-200 shadow-lg shadow-black/40",
         className
       )}
     >
       {!hideHeader ? (
-        <div className="flex flex-wrap items-end justify-between gap-4 border-b border-[var(--border)] px-6 py-4">
+        <div className="flex flex-wrap items-end justify-between gap-4 border-b border-neutral-800 px-6 py-4">
           <div className="space-y-1">
-            <h2 className="text-sm font-semibold tracking-wide text-[var(--text)]">{title}</h2>
-            {description ? (
-              <p className="text-xs text-[var(--muted)]">{description}</p>
-            ) : null}
+            <h2 className="text-sm font-semibold tracking-wide text-neutral-100">{title}</h2>
+            {description ? <p className="text-xs text-neutral-400">{description}</p> : null}
           </div>
           {actions ? <div className="flex items-center gap-2">{actions}</div> : null}
         </div>

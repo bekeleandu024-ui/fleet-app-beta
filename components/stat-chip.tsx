@@ -12,11 +12,10 @@ export interface StatChipProps {
 }
 
 const variantStyles: Record<Required<StatChipProps>["variant"], string> = {
-  default: "border-subtle bg-surface-3/60 text-[var(--text)]",
-  ok: "border-[color-mix(in_srgb,var(--ok)_35%,transparent)] bg-[color-mix(in_srgb,var(--ok)_18%,transparent)] text-[var(--ok)]",
-  warn: "border-[color-mix(in_srgb,var(--warn)_35%,transparent)] bg-[color-mix(in_srgb,var(--warn)_18%,transparent)] text-[var(--warn)]",
-  alert:
-    "border-[color-mix(in_srgb,var(--alert)_35%,transparent)] bg-[color-mix(in_srgb,var(--alert)_18%,transparent)] text-[var(--alert)]",
+  default: "border-neutral-800 bg-neutral-900/60 text-neutral-200",
+  ok: "border-emerald-500/60 bg-emerald-500/10 text-emerald-300",
+  warn: "border-amber-500/60 bg-amber-500/10 text-amber-300",
+  alert: "border-rose-500/60 bg-rose-500/10 text-rose-300",
 };
 
 export function StatChip({
@@ -32,14 +31,14 @@ export function StatChip({
       role="status"
       aria-label={ariaLabel ?? `${label}${value !== undefined ? `: ${value}` : ""}`}
       className={cn(
-        "inline-flex items-center gap-2 rounded-lg border px-3 py-1 text-[11px] font-semibold uppercase tracking-wide",
+        "inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-wide",
         variantStyles[variant],
         className
       )}
     >
-      {icon ? <span className="inline-flex items-center text-[var(--text)]">{icon}</span> : null}
-      <span className="text-muted">{label}</span>
-      {value !== undefined ? <span className="text-[var(--text)]">{value}</span> : null}
+      {icon ? <span className="inline-flex items-center text-current">{icon}</span> : null}
+      <span className="text-neutral-400">{label}</span>
+      {value !== undefined ? <span className="text-neutral-100">{value}</span> : null}
     </span>
   );
 }

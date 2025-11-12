@@ -21,7 +21,7 @@ export default function CostingPage() {
   if (isError || !data) {
     return (
       <SectionBanner title="Costing Workbench" subtitle="Adjust assumptions before submitting pricing." aria-live="polite">
-        <p className="text-sm text-[color-mix(in_srgb,var(--muted)_90%,transparent)]">Unable to load costing workbench.</p>
+        <p className="text-sm text-neutral-400">Unable to load costing workbench.</p>
       </SectionBanner>
     );
   }
@@ -70,8 +70,8 @@ export default function CostingPage() {
               ))}
             </Select>
           </Field>
-          <label className="flex items-center gap-2 pt-6 text-xs text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">
-            <input type="checkbox" defaultChecked={data.form.roundTrip} className="size-4 accent-[var(--brand)]" /> Round trip
+          <label className="flex items-center gap-2 pt-6 text-xs text-neutral-500">
+            <input type="checkbox" defaultChecked={data.form.roundTrip} className="size-4 accent-emerald-500" /> Round trip
           </label>
           <Field label="Border Crossings">
             <Input type="number" defaultValue={data.form.borderCrossings} min={0} />
@@ -100,10 +100,10 @@ export default function CostingPage() {
             </Select>
           </Field>
           <label className="md:col-span-2 grid gap-2 text-sm">
-            <span className="text-xs uppercase tracking-wide text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">Assumptions</span>
+            <span className="text-xs uppercase tracking-wide text-neutral-500">Assumptions</span>
             <textarea
               rows={4}
-              className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface-2)] px-3 py-3 text-sm text-[var(--text)] placeholder-[var(--muted)] focus:outline-none focus:ring-2 focus:ring-[var(--brand)] focus:ring-offset-0"
+              className="rounded-lg border border-neutral-800 bg-neutral-900/60 px-3 py-3 text-sm text-neutral-200 placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-0"
               placeholder="Add pricing assumptions or notes"
             />
           </label>
@@ -117,40 +117,40 @@ export default function CostingPage() {
       >
         <div className="space-y-4">
           {data.breakdown.sections.map((section) => (
-            <section key={section.title} className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface-2)]">
-              <header className="flex items-center justify-between border-b border-[var(--border)] px-4 py-2">
-                <h3 className="text-xs font-semibold uppercase tracking-wide text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">
+            <section key={section.title} className="rounded-lg border border-neutral-800 bg-neutral-900/60">
+              <header className="flex items-center justify-between border-b border-neutral-800 px-4 py-2">
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
                   {section.title}
                 </h3>
               </header>
-              <ul className="divide-y divide-[var(--border)] text-sm">
+              <ul className="divide-y divide-neutral-800 text-sm">
                 {section.items.map((item) => (
                   <li key={item.label} className="flex items-center justify-between px-4 py-2">
-                    <span className="text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">{item.label}</span>
-                    <span className="font-semibold text-[var(--text)]">{item.value}</span>
+                    <span className="text-neutral-500">{item.label}</span>
+                    <span className="font-semibold text-neutral-200">{item.value}</span>
                   </li>
                 ))}
               </ul>
             </section>
           ))}
         </div>
-        <div className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface-2)]">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] px-4 py-3 text-sm">
-            <span className="text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">{data.breakdown.totalLabel}</span>
-            <span className="text-base font-semibold text-[var(--text)]">{data.breakdown.totalValue}</span>
+        <div className="rounded-lg border border-neutral-800 bg-neutral-900/60">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-neutral-800 px-4 py-3 text-sm">
+            <span className="text-neutral-500">{data.breakdown.totalLabel}</span>
+            <span className="text-base font-semibold text-neutral-200">{data.breakdown.totalValue}</span>
           </div>
-          <div className="grid gap-3 px-4 py-3 text-xs text-[color-mix(in_srgb,var(--muted)_85%,transparent)] md:grid-cols-3">
+          <div className="grid gap-3 px-4 py-3 text-xs text-neutral-500 md:grid-cols-3">
             <div className="flex flex-col gap-1">
               <span>Recommended RPM</span>
-              <span className="text-sm font-semibold text-[var(--text)]">{data.targets.recommendedRPM}</span>
+              <span className="text-sm font-semibold text-neutral-200">{data.targets.recommendedRPM}</span>
             </div>
             <div className="flex flex-col gap-1">
               <span>Target Revenue</span>
-              <span className="text-sm font-semibold text-[var(--text)]">{data.targets.revenue}</span>
+              <span className="text-sm font-semibold text-neutral-200">{data.targets.revenue}</span>
             </div>
             <div className="flex flex-col gap-1">
               <span>Break-even RPM</span>
-              <span className="text-sm font-semibold text-[var(--text)]">{data.targets.breakEven}</span>
+              <span className="text-sm font-semibold text-neutral-200">{data.targets.breakEven}</span>
             </div>
           </div>
         </div>
@@ -163,10 +163,10 @@ function CostingSkeleton() {
   return (
     <div className="grid gap-6 lg:grid-cols-2">
       <SectionBanner title="Costing Workbench" subtitle="Adjust assumptions before submitting pricing." aria-live="polite">
-        <div className="h-96 animate-pulse rounded-[var(--radius)] bg-[color-mix(in_srgb,var(--surface-2)_70%,transparent)]" />
+        <div className="h-96 animate-pulse rounded-lg bg-neutral-900/50" />
       </SectionBanner>
       <SectionBanner title="Breakdown" subtitle="Fixed, variable, and accessorial cost components." aria-live="polite">
-        <div className="h-96 animate-pulse rounded-[var(--radius)] bg-[color-mix(in_srgb,var(--surface-2)_70%,transparent)]" />
+        <div className="h-96 animate-pulse rounded-lg bg-neutral-900/50" />
       </SectionBanner>
     </div>
   );
@@ -175,7 +175,7 @@ function CostingSkeleton() {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="grid gap-2 text-sm">
-      <span className="text-xs uppercase tracking-wide text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">{label}</span>
+      <span className="text-xs uppercase tracking-wide text-neutral-500">{label}</span>
       {children}
     </label>
   );

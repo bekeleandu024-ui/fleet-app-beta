@@ -17,20 +17,17 @@ export function Chip({
   ...props
 }: ChipProps) {
   const toneClass = {
-    default: "border-[var(--border)] bg-[var(--surface-2)] text-[var(--text)]",
-    brand:
-      "border-[color-mix(in_srgb,var(--brand)_60%,transparent)] bg-[color-mix(in_srgb,var(--brand)_12%,transparent)] text-[var(--brand)]",
-    ok: "border-[color-mix(in_srgb,var(--ok)_55%,transparent)] bg-[color-mix(in_srgb,var(--ok)_12%,transparent)] text-[var(--ok)]",
-    warn:
-      "border-[color-mix(in_srgb,var(--warn)_55%,transparent)] bg-[color-mix(in_srgb,var(--warn)_14%,transparent)] text-[var(--warn)]",
-    alert:
-      "border-[color-mix(in_srgb,var(--alert)_55%,transparent)] bg-[color-mix(in_srgb,var(--alert)_14%,transparent)] text-[var(--alert)]",
+    default: "border-neutral-800 bg-neutral-900/60 text-neutral-200",
+    brand: "border-emerald-500/60 bg-emerald-500/10 text-emerald-300",
+    ok: "border-emerald-400/60 bg-emerald-500/10 text-emerald-300",
+    warn: "border-amber-500/60 bg-amber-500/10 text-amber-300",
+    alert: "border-rose-500/60 bg-rose-500/10 text-rose-300",
   }[tone];
 
   return (
     <span
       className={cn(
-        "inline-flex min-h-8 items-center gap-2 rounded-[calc(var(--radius)-2px)] px-3 text-sm font-medium",
+        "inline-flex min-h-9 items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium",
         toneClass,
         className
       )}
