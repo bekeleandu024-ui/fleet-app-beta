@@ -6,6 +6,7 @@ export const queryKeys = {
   trips: () => ["trips"] as const,
   trip: (id: string) => ["trips", id] as const,
   costing: ["costing"] as const,
+  search: (query: string) => ["search", query] as const,
   masterData: {
     drivers: ["master-data", "drivers"] as const,
     units: ["master-data", "units"] as const,

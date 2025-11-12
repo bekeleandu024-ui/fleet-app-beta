@@ -7,6 +7,7 @@ import {
   CustomerAdminRecord,
   CustomerAdminUpdate,
   DashboardResponse,
+  GlobalSearchResponse,
   DriverAdminCreate,
   DriverAdminRecord,
   DriverAdminUpdate,
@@ -46,6 +47,7 @@ import {
   orderDetailSchema,
   ordersResponseSchema,
   ruleAdminSchema,
+  globalSearchResponseSchema,
   tripAdminSchema,
   tripDetailSchema,
   tripsResponseSchema,
@@ -102,6 +104,13 @@ export function fetchTripDetail(id: string): Promise<TripDetail> {
 
 export function fetchCostingDefaults(): Promise<CostingDefaults> {
   return parseResponse(api.get("/costing"), costingDefaultsSchema);
+}
+
+export function fetchGlobalSearch(query: string): Promise<GlobalSearchResponse> {
+  return parseResponse(
+    api.get("/search", { params: { q: query } }),
+    globalSearchResponseSchema
+  );
 }
 
 export function fetchDriversMasterData(): Promise<MasterDataResponse> {

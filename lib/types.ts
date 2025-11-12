@@ -446,3 +446,27 @@ export const customerAdminSchema = z.object({
 export type CustomerAdminRecord = z.infer<typeof customerAdminSchema>;
 export type CustomerAdminCreate = Omit<CustomerAdminRecord, "id"> & { id?: string };
 export type CustomerAdminUpdate = CustomerAdminRecord;
+
+const searchMetaSchema = z.object({
+  label: z.string(),
+  value: z.string(),
+});
+
+export const globalSearchTypeSchema = z.enum(["order", "trip", "driver", "unit", "customer"]);
+
+export const globalSearchResultSchema = z.object({
+  id: z.string(),
+  type: globalSearchTypeSchema,
+  title: z.string(),
+  description: z.string(),
+  href: z.string(),
+  meta: z.array(searchMetaSchema).default([]),
+});
+
+export const globalSearchResponseSchema = z.object({
+  query: z.string(),
+  results: z.array(globalSearchResultSchema),
+});
+
+export type GlobalSearchResult = z.infer<typeof globalSearchResultSchema>;
+export type GlobalSearchResponse = z.infer<typeof globalSearchResponseSchema>;
