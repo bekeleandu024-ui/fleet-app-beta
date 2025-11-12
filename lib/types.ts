@@ -71,6 +71,9 @@ export const orderListItemSchema = z.object({
   ageHours: z.number(),
   cost: z.number().optional(),
   lane: z.string(),
+  serviceLevel: z.string().optional(),
+  commodity: z.string().optional(),
+  laneMiles: z.number().optional(),
 });
 export type OrderListItem = z.infer<typeof orderListItemSchema>;
 
@@ -195,6 +198,9 @@ export const tripListItemSchema = z.object({
   status: z.string(),
   exceptions: z.number(),
   lastPing: z.string(),
+  orderId: z.string().optional(),
+  driverId: z.string().optional(),
+  unitId: z.string().optional(),
 });
 export type TripListItem = z.infer<typeof tripListItemSchema>;
 
@@ -295,6 +301,11 @@ export const masterDataRowSchema = z.object({
   status: z.string(),
   region: z.string(),
   updated: z.string(),
+  hoursAvailable: z.number().optional(),
+  type: z.string().optional(),
+  location: z.string().optional(),
+  owner: z.string().optional(),
+  severity: z.string().optional(),
 });
 
 export const masterDataResponseSchema = z.object({
@@ -327,3 +338,111 @@ export const mapPlanResponseSchema = z.object({
   }),
 });
 export type MapPlanResponse = z.infer<typeof mapPlanResponseSchema>;
+
+export const driverAdminSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  status: z.string(),
+  region: z.string(),
+  hoursAvailable: z.number(),
+  updated: z.string(),
+});
+export type DriverAdminRecord = z.infer<typeof driverAdminSchema>;
+export type DriverAdminCreate = Omit<DriverAdminRecord, "id" | "updated"> & { id?: string };
+export type DriverAdminUpdate = Omit<DriverAdminRecord, "updated">;
+
+export const unitAdminSchema = z.object({
+  id: z.string(),
+  type: z.string(),
+  status: z.string(),
+  location: z.string(),
+  region: z.string(),
+  updated: z.string(),
+});
+export type UnitAdminRecord = z.infer<typeof unitAdminSchema>;
+export type UnitAdminCreate = Omit<UnitAdminRecord, "id" | "updated"> & { id?: string };
+export type UnitAdminUpdate = Omit<UnitAdminRecord, "updated">;
+
+export const ruleAdminSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  status: z.string(),
+  region: z.string(),
+  owner: z.string(),
+  updated: z.string(),
+});
+export type RuleAdminRecord = z.infer<typeof ruleAdminSchema>;
+export type RuleAdminCreate = Omit<RuleAdminRecord, "id" | "updated"> & { id?: string };
+export type RuleAdminUpdate = Omit<RuleAdminRecord, "updated">;
+
+export const eventAdminSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  status: z.string(),
+  region: z.string(),
+  severity: z.string(),
+  updated: z.string(),
+});
+export type EventAdminRecord = z.infer<typeof eventAdminSchema>;
+export type EventAdminCreate = Omit<EventAdminRecord, "id" | "updated"> & { id?: string };
+export type EventAdminUpdate = Omit<EventAdminRecord, "updated">;
+
+export const laneAdminSchema = z.object({
+  id: z.string(),
+  origin: z.string(),
+  destination: z.string(),
+  miles: z.number(),
+  transitDays: z.number(),
+});
+export type LaneAdminRecord = z.infer<typeof laneAdminSchema>;
+export type LaneAdminCreate = Omit<LaneAdminRecord, "id"> & { id?: string };
+export type LaneAdminUpdate = LaneAdminRecord;
+
+export const orderAdminSchema = z.object({
+  id: z.string(),
+  reference: z.string(),
+  customer: z.string(),
+  pickup: z.string(),
+  delivery: z.string(),
+  window: z.string(),
+  status: z.string(),
+  ageHours: z.number(),
+  cost: z.number().optional(),
+  lane: z.string(),
+  serviceLevel: z.string(),
+  commodity: z.string(),
+  laneMiles: z.number(),
+});
+export type OrderAdminRecord = z.infer<typeof orderAdminSchema>;
+export type OrderAdminCreate = Omit<OrderAdminRecord, "id"> & { id?: string };
+export type OrderAdminUpdate = OrderAdminRecord;
+
+export const tripAdminSchema = z.object({
+  id: z.string(),
+  tripNumber: z.string(),
+  orderId: z.string(),
+  driverId: z.string(),
+  unitId: z.string(),
+  driver: z.string(),
+  unit: z.string(),
+  pickup: z.string(),
+  delivery: z.string(),
+  eta: z.string(),
+  status: z.string(),
+  exceptions: z.number(),
+  lastPing: z.string(),
+});
+export type TripAdminRecord = z.infer<typeof tripAdminSchema>;
+export type TripAdminCreate = Omit<TripAdminRecord, "id" | "tripNumber"> & { id?: string; tripNumber?: string };
+export type TripAdminUpdate = TripAdminRecord;
+
+export const customerAdminSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  status: z.string(),
+  primaryContact: z.string(),
+  primaryLane: z.string(),
+});
+export type CustomerAdminRecord = z.infer<typeof customerAdminSchema>;
+export type CustomerAdminCreate = Omit<CustomerAdminRecord, "id"> & { id?: string };
+export type CustomerAdminUpdate = CustomerAdminRecord;
