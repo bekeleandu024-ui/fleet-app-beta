@@ -22,7 +22,7 @@ export default function DriversMasterDataPage() {
   if (isError || !data) {
     return (
       <SectionBanner title="Driver Directory" subtitle="Read-only roster for dispatch and planning teams." aria-live="polite">
-        <p className="text-sm text-[color-mix(in_srgb,var(--muted)_90%,transparent)]">Drivers not available.</p>
+        <p className="text-sm text-neutral-400">Drivers not available.</p>
       </SectionBanner>
     );
   }
@@ -41,7 +41,7 @@ export default function DriversMasterDataPage() {
       subtitle="Read-only roster for dispatch and planning teams."
       aria-live="polite"
     >
-      <div className="-mx-6 overflow-hidden rounded-[calc(var(--radius)-2px)] border border-[var(--border)] bg-[var(--surface-2)]">
+      <div className="-mx-6 overflow-hidden rounded-lg border border-neutral-800 bg-neutral-900/60">
         <DataTable columns={columns} data={data.data} getRowId={(row) => row.id} />
       </div>
     </SectionBanner>
@@ -51,7 +51,7 @@ export default function DriversMasterDataPage() {
 function MasterDataSkeleton({ title }: { title: string }) {
   return (
     <SectionBanner title={title} subtitle="Loading directory..." aria-live="polite">
-      <div className="h-[420px] animate-pulse rounded-[var(--radius)] bg-[color-mix(in_srgb,var(--surface-2)_70%,transparent)]" />
+      <div className="h-[420px] animate-pulse rounded-lg bg-neutral-900/50" />
     </SectionBanner>
   );
 }

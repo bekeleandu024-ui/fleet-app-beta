@@ -8,10 +8,10 @@ import { TopNav } from "@/components/top-nav";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
+    <div className="min-h-screen bg-neutral-950 text-neutral-100">
       <TopNav />
-      <main className="mx-auto w-full max-w-[1600px] px-6 pb-12 pt-8 lg:px-8">
-        <div className="grid w-full gap-6 grid-cols-1 md:grid-cols-1 lg:grid-cols-[320px_1fr_360px]">
+      <main className="mx-auto w-full max-w-[1600px] px-6 pb-12 pt-8 lg:px-10">
+        <div className="grid w-full grid-cols-1 gap-6 lg:grid-cols-[320px_1fr_360px]">
           <div className="order-2 flex flex-col gap-6 lg:order-1">
             <LeftAiInsights />
           </div>

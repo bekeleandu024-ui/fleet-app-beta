@@ -15,12 +15,12 @@ import { queryKeys } from "@/lib/query";
 import type { OrderListItem } from "@/lib/types";
 
 const statusTone: Record<string, string> = {
-  New: "text-[var(--brand)]",
-  Planning: "text-[var(--text)]",
-  "In Transit": "text-[var(--ok)]",
-  "At Risk": "text-[var(--warn)]",
-  Delivered: "text-[var(--muted)]",
-  Exception: "text-[var(--alert)]",
+  New: "text-emerald-400",
+  Planning: "text-neutral-200",
+  "In Transit": "text-emerald-400",
+  "At Risk": "text-amber-400",
+  Delivered: "text-neutral-500",
+  Exception: "text-rose-400",
 };
 
 export default function OrdersPage() {
@@ -37,8 +37,8 @@ export default function OrdersPage() {
         header: "Order",
         cell: (row) => (
           <div className="flex flex-col">
-            <span className="font-semibold text-[var(--text)]">{row.id}</span>
-            <span className="text-xs text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">{row.reference}</span>
+            <span className="font-semibold text-neutral-200">{row.id}</span>
+            <span className="text-xs text-neutral-500">{row.reference}</span>
           </div>
         ),
         widthClass: "min-w-[160px]",
@@ -50,7 +50,7 @@ export default function OrdersPage() {
         cell: (row) => (
           <div className="flex flex-col text-sm">
             <span>{row.pickup}</span>
-            <span className="text-xs text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">{row.delivery}</span>
+            <span className="text-xs text-neutral-500">{row.delivery}</span>
           </div>
         ),
         widthClass: "min-w-[200px]",
@@ -60,7 +60,7 @@ export default function OrdersPage() {
         key: "status",
         header: "Status",
         cell: (row) => (
-          <span className={`text-sm font-semibold ${statusTone[row.status] ?? "text-[var(--text)]"}`}>{row.status}</span>
+          <span className={`text-sm font-semibold ${statusTone[row.status] ?? "text-neutral-200"}`}>{row.status}</span>
         ),
       },
       { key: "age", header: "Age", accessor: (row) => `${row.ageHours}h`, align: "right" },
@@ -81,7 +81,7 @@ export default function OrdersPage() {
   if (isError || !data) {
     return (
       <SectionBanner title="Orders Workspace" subtitle="Review, price, and action the active order stack." aria-live="polite">
-        <p className="text-sm text-[color-mix(in_srgb,var(--muted)_90%,transparent)]">Unable to load orders. Refresh the page.</p>
+        <p className="text-sm text-neutral-400">Unable to load orders. Refresh the page.</p>
       </SectionBanner>
     );
   }
@@ -103,7 +103,7 @@ export default function OrdersPage() {
           <Button
             size="sm"
             variant="plain"
-            className="text-[color-mix(in_srgb,var(--muted)_85%,transparent)] hover:text-[var(--text)]"
+            className="text-neutral-500 hover:text-neutral-200"
             onClick={() => {
               void refetch();
             }}
@@ -119,14 +119,14 @@ export default function OrdersPage() {
       <div className="flex flex-wrap items-center gap-2">
         {stats.map((stat) => (
           <Chip key={stat.label} className="gap-3 text-sm">
-            <span className="text-base font-semibold text-[var(--text)]">{stat.value}</span>
-            <span className="text-xs uppercase tracking-wide text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">
+            <span className="text-base font-semibold text-neutral-200">{stat.value}</span>
+            <span className="text-xs uppercase tracking-wide text-neutral-500">
               {stat.label}
             </span>
           </Chip>
         ))}
       </div>
-      <div className="-mx-6 mt-4 overflow-hidden rounded-[calc(var(--radius)-2px)] border border-[var(--border)] bg-[var(--surface-2)]">
+      <div className="-mx-6 mt-4 overflow-hidden rounded-lg border border-neutral-800 bg-neutral-900/60">
         <DataTable
           columns={columns}
           data={data.data}
@@ -137,7 +137,7 @@ export default function OrdersPage() {
             <Button
               size="sm"
               variant="plain"
-              className="text-xs text-[color-mix(in_srgb,var(--muted)_85%,transparent)] hover:text-[var(--text)]"
+              className="text-xs text-neutral-500 hover:text-neutral-200"
               onClick={(event) => {
                 event.stopPropagation();
                 router.push(`/orders/${row.id}`);
@@ -159,11 +159,11 @@ function OrdersSkeleton() {
         {Array.from({ length: 4 }).map((_, index) => (
           <div
             key={index}
-            className="h-10 animate-pulse rounded-[var(--radius)] bg-[color-mix(in_srgb,var(--surface-2)_70%,transparent)]"
+            className="h-10 animate-pulse rounded-lg bg-neutral-900/50"
           />
         ))}
       </div>
-      <div className="mt-6 h-64 w-full animate-pulse rounded-[var(--radius)] bg-[color-mix(in_srgb,var(--surface-2)_70%,transparent)]" />
+      <div className="mt-6 h-64 w-full animate-pulse rounded-lg bg-neutral-900/50" />
     </SectionBanner>
   );
 }

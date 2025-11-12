@@ -20,7 +20,7 @@ export default function MapPlannerPage() {
   if (isError || !data) {
     return (
       <SectionBanner title="Route Planning" subtitle="Build and evaluate multi-stop routes." aria-live="polite">
-        <p className="text-sm text-[color-mix(in_srgb,var(--muted)_90%,transparent)]">Map planner unavailable.</p>
+        <p className="text-sm text-neutral-400">Map planner unavailable.</p>
       </SectionBanner>
     );
   }
@@ -44,7 +44,7 @@ export default function MapPlannerPage() {
       <div className="grid gap-6 lg:grid-cols-[300px_minmax(0,1fr)]">
         <div className="space-y-4">
           <label className="grid gap-2 text-sm">
-            <span className="text-xs uppercase tracking-wide text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">Vehicle profile</span>
+            <span className="text-xs uppercase tracking-wide text-neutral-500">Vehicle profile</span>
             <Select defaultValue={data.options.vehicleProfiles[0] ?? ""}>
               {data.options.vehicleProfiles.map((profile) => (
                 <option key={profile}>{profile}</option>
@@ -52,7 +52,7 @@ export default function MapPlannerPage() {
             </Select>
           </label>
           <div className="space-y-2">
-            <span className="text-xs uppercase tracking-wide text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">Avoidances</span>
+            <span className="text-xs uppercase tracking-wide text-neutral-500">Avoidances</span>
             <div className="flex flex-wrap gap-2">
               {data.options.avoidances.map((item) => (
                 <Chip key={item} className="text-xs">
@@ -61,17 +61,17 @@ export default function MapPlannerPage() {
               ))}
             </div>
           </div>
-          <div className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface-2)] p-4 text-xs text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">
-            <div className="flex items-center gap-2 text-sm text-[var(--text)]">
-              <Compass className="size-4 text-[var(--brand)]" /> Guidance
+          <div className="rounded-lg border border-neutral-800 bg-neutral-900/60 p-4 text-xs text-neutral-500">
+            <div className="flex items-center gap-2 text-sm text-neutral-200">
+              <Compass className="size-4 text-emerald-400" /> Guidance
             </div>
             <p className="mt-2">
               Optimized for compliance; adjust avoidances to enforce hazmat or low bridge restrictions.
             </p>
           </div>
         </div>
-        <div className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface-2)] p-4">
-          <div className="flex h-[420px] items-center justify-center rounded-[calc(var(--radius)-2px)] border border-dashed border-[var(--border)] bg-[color-mix(in_srgb,var(--surface-2)_70%,transparent)] text-sm text-[color-mix(in_srgb,var(--muted)_88%,transparent)]">
+        <div className="rounded-lg border border-neutral-800 bg-neutral-900/60 p-4">
+          <div className="flex h-[420px] items-center justify-center rounded-lg border border-dashed border-neutral-800 bg-neutral-900/50 text-sm text-neutral-400">
             Map viewport placeholder
           </div>
         </div>
@@ -83,7 +83,7 @@ export default function MapPlannerPage() {
 function MapPlannerSkeleton() {
   return (
     <SectionBanner title="Route Planning" subtitle="Build and evaluate multi-stop routes." aria-live="polite">
-      <div className="h-[420px] animate-pulse rounded-[var(--radius)] bg-[color-mix(in_srgb,var(--surface-2)_70%,transparent)]" />
+      <div className="h-[420px] animate-pulse rounded-lg bg-neutral-900/50" />
     </SectionBanner>
   );
 }

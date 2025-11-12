@@ -29,7 +29,7 @@ export default function DispatchPage() {
   if (isError || !data) {
     return (
       <SectionBanner title="Dispatch Control" subtitle="Queue and assign qualified orders." aria-live="polite">
-        <p className="text-sm text-[color-mix(in_srgb,var(--muted)_90%,transparent)]">Dispatch data unavailable.</p>
+        <p className="text-sm text-neutral-400">Dispatch data unavailable.</p>
       </SectionBanner>
     );
   }
@@ -61,7 +61,7 @@ function QualifiedOrdersBanner({
       subtitle="Sequenced work items ready for dispatch confirmation."
       aria-live="polite"
       actions={
-        <div className="flex flex-wrap items-center gap-2 text-xs text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">
+        <div className="flex flex-wrap items-center gap-2 text-xs text-neutral-500">
           {data.filters.priorities.map((priority) => (
             <Chip key={priority} className="text-xs" tone="default">
               {priority}
@@ -78,20 +78,20 @@ function QualifiedOrdersBanner({
               key={order.id}
               type="button"
               onClick={() => onSelect(order.id)}
-              className={`w-full rounded-[var(--radius)] border px-4 py-3 text-left transition-colors ${
+              className={`w-full rounded-lg border px-4 py-3 text-left transition ${
                 isActive
-                  ? "border-[color-mix(in_srgb,var(--brand)_60%,transparent)] bg-[color-mix(in_srgb,var(--brand)_12%,transparent)]"
-                  : "border-[var(--border)] bg-[var(--surface-2)] hover:bg-[color-mix(in_srgb,var(--surface-2)_85%,black_15%)]"
+                  ? "border-emerald-500/60 bg-emerald-500/10"
+                  : "border-neutral-800 bg-neutral-900/60 hover:border-neutral-700 hover:bg-neutral-800"
               }`}
             >
-              <div className="flex items-center justify-between text-xs text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">
+              <div className="flex items-center justify-between text-xs text-neutral-500">
                 <span>{order.priority}</span>
                 <span>{order.status}</span>
               </div>
-              <p className="mt-1 text-sm font-semibold text-[var(--text)]">{order.reference}</p>
-              <p className="text-xs text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">{order.customer}</p>
-              <p className="mt-2 text-xs text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">{order.lane}</p>
-              <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-[color-mix(in_srgb,var(--muted)_80%,transparent)]">
+              <p className="mt-1 text-sm font-semibold text-neutral-200">{order.reference}</p>
+              <p className="text-xs text-neutral-500">{order.customer}</p>
+              <p className="mt-2 text-xs text-neutral-500">{order.lane}</p>
+              <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-neutral-400">
                 <Chip tone="default" className="text-xs">Miles {order.miles}</Chip>
                 <Chip tone="default" className="text-xs">
                   Window {order.pickupWindow} → {order.deliveryWindow}
@@ -118,17 +118,17 @@ function AssignmentBanner({
       subtitle="Pair the right crew and confirm financial guardrails."
       aria-live="polite"
       footer={
-        <div className="flex flex-wrap items-center gap-2 text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">
+        <div className="flex flex-wrap items-center gap-2 text-neutral-500">
           <Info className="size-4" /> Ensure guardrails satisfied before launch.
         </div>
       }
     >
-      <div className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface-2)] p-4 text-sm">
-        <h3 className="flex items-center gap-2 text-sm font-semibold text-[var(--text)]">
-          <Route className="size-4 text-[var(--brand)]" /> Recommended pairing
+      <div className="rounded-lg border border-neutral-800 bg-neutral-900/60 p-4 text-sm">
+        <h3 className="flex items-center gap-2 text-sm font-semibold text-neutral-200">
+          <Route className="size-4 text-emerald-400" /> Recommended pairing
         </h3>
-        <p className="mt-1 text-xs text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">{data.recommendation.description}</p>
-        <ul className="mt-3 list-disc space-y-1 pl-4 text-xs text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">
+        <p className="mt-1 text-xs text-neutral-500">{data.recommendation.description}</p>
+        <ul className="mt-3 list-disc space-y-1 pl-4 text-xs text-neutral-500">
           {data.recommendation.bullets.map((bullet) => (
             <li key={bullet}>{bullet}</li>
           ))}
@@ -183,7 +183,7 @@ function AssignmentBanner({
         <Field label="Notes">
           <textarea
             rows={4}
-            className="min-h-[120px] rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface-2)] px-3 py-3 text-sm text-[var(--text)] placeholder-[var(--muted)] focus:outline-none focus:ring-2 focus:ring-[var(--brand)] focus:ring-offset-0"
+            className="min-h-[120px] rounded-lg border border-neutral-800 bg-neutral-900/60 px-3 py-3 text-sm text-neutral-200 placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-0"
             placeholder="Add assignment notes or guardrails"
           />
         </Field>
@@ -204,10 +204,10 @@ function DispatchSkeleton() {
   return (
     <div className="flex flex-col gap-6">
       <SectionBanner title="Qualified Orders" subtitle="Sequenced work items ready for dispatch confirmation." aria-live="polite">
-        <div className="h-72 animate-pulse rounded-[var(--radius)] bg-[color-mix(in_srgb,var(--surface-2)_70%,transparent)]" />
+        <div className="h-72 animate-pulse rounded-lg bg-neutral-900/50" />
       </SectionBanner>
       <SectionBanner title="Assignment & Guardrails" subtitle="Pair the right crew and confirm financial guardrails." aria-live="polite">
-        <div className="h-80 animate-pulse rounded-[var(--radius)] bg-[color-mix(in_srgb,var(--surface-2)_70%,transparent)]" />
+        <div className="h-80 animate-pulse rounded-lg bg-neutral-900/50" />
       </SectionBanner>
     </div>
   );
@@ -216,7 +216,7 @@ function DispatchSkeleton() {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="grid gap-2 text-sm">
-      <span className="text-xs uppercase tracking-wide text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">{label}</span>
+      <span className="text-xs uppercase tracking-wide text-neutral-500">{label}</span>
       {children}
     </label>
   );

@@ -5,7 +5,7 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 const baseClasses =
-  "inline-flex items-center justify-center gap-2 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface-2)] text-[var(--text)] transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--brand)] focus:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-60";
+  "inline-flex items-center justify-center gap-2 rounded-lg border border-neutral-800 bg-neutral-900/60 text-neutral-100 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-70";
 
 const sizeClasses: Record<"sm" | "md" | "lg", string> = {
   sm: "h-10 px-3 text-sm",
@@ -14,11 +14,11 @@ const sizeClasses: Record<"sm" | "md" | "lg", string> = {
 };
 
 const variantClasses: Record<"subtle" | "primary" | "plain", string> = {
-  subtle: "hover:bg-[color-mix(in_srgb,var(--surface-2)_80%,black_20%)]",
+  subtle: "hover:border-neutral-700 hover:bg-neutral-800",
   primary:
-    "border-[color-mix(in_srgb,var(--brand)_70%,transparent)] bg-[color-mix(in_srgb,var(--brand)_12%,transparent)] text-[var(--brand)] hover:bg-[color-mix(in_srgb,var(--brand)_18%,transparent)]",
+    "border-emerald-400/70 bg-emerald-500 text-emerald-950 shadow-lg shadow-emerald-500/20 hover:bg-emerald-400",
   plain:
-    "border-transparent bg-transparent text-[color-mix(in_srgb,var(--muted)_85%,transparent)] hover:text-[var(--text)]",
+    "border-transparent bg-transparent text-neutral-400 hover:text-neutral-200 hover:bg-neutral-900/40",
 };
 
 export type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
