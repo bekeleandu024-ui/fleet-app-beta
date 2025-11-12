@@ -84,7 +84,8 @@ const detail = {
 };
 
 export async function GET(_request: Request, { params }: Params) {
-  const response = params.id === "TRP-9002"
+  const { id } = await params;
+  const response = id === "TRP-9002"
     ? {
         ...detail,
         id: "TRP-9002",

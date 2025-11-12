@@ -127,6 +127,7 @@ const detailById: Record<string, unknown> = {
 };
 
 export async function GET(_request: Request, { params }: Params) {
-  const detail = detailById[params.id] ?? detailById["ORD-10452"];
+  const { id } = await params;
+  const detail = detailById[id] ?? detailById["ORD-10452"];
   return NextResponse.json(detail);
 }
