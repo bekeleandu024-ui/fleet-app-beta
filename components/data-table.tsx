@@ -36,14 +36,12 @@ export function DataTable<T>({
   return (
     <div
       className={cn(
-        "col-span-12 rounded-xl border border-neutral-800 bg-neutral-900/60 shadow-lg shadow-black/40",
+        "col-span-12 w-full overflow-hidden rounded-xl border border-neutral-800 bg-neutral-900/60 shadow-lg shadow-black/40",
         className
       )}
     >
-      <div className="max-h-[70vh] overflow-y-auto">
-        <div className="inline-block min-w-full align-middle">
-          <div className="overflow-x-auto">
-            <table className="min-w-full border-collapse text-sm" role="grid">
+      <div className="max-h-[70vh] overflow-auto">
+        <table className="w-full min-w-[720px] border-collapse text-sm" role="grid">
           <thead className="sticky top-0 z-20 bg-neutral-950/60 text-left text-[11px] font-semibold uppercase tracking-wide text-neutral-500">
             <tr>
               {columns.map((column) => (
@@ -52,7 +50,7 @@ export function DataTable<T>({
                   scope="col"
                   aria-sort={column.ariaSort ?? "none"}
                   className={cn(
-                    "border-b border-neutral-800 px-3 py-3",
+                    "border-b border-neutral-800 px-4 py-3 whitespace-nowrap",
                     column.widthClass,
                     column.align === "center" && "text-center",
                     column.align === "right" && "text-right"
@@ -62,7 +60,12 @@ export function DataTable<T>({
                 </th>
               ))}
               {rowActions ? (
-                <th scope="col" className="border-b border-neutral-800 px-3 py-3 text-right">Actions</th>
+                <th
+                  scope="col"
+                  className="border-b border-neutral-800 px-4 py-3 text-right whitespace-nowrap"
+                >
+                  Actions
+                </th>
               ) : null}
             </tr>
           </thead>
@@ -81,7 +84,7 @@ export function DataTable<T>({
               <tr>
                 <td
                   colSpan={columns.length + (rowActions ? 1 : 0)}
-                  className="px-3 py-8 text-center text-sm text-neutral-400"
+                  className="px-4 py-8 text-center text-sm text-neutral-400"
                 >
                   {emptyMessage}
                 </td>
@@ -117,7 +120,7 @@ export function DataTable<T>({
                       <td
                         key={`${rowId}-${column.key}`}
                         className={cn(
-                          "px-3 py-3 align-middle text-sm text-neutral-200",
+                          "px-4 py-3 align-middle text-sm text-neutral-200 whitespace-nowrap",
                           column.widthClass,
                           column.align === "center" && "text-center",
                           column.align === "right" && "text-right"
@@ -127,7 +130,7 @@ export function DataTable<T>({
                       </td>
                     ))}
                     {rowActions ? (
-                      <td className="px-3 py-3 text-right align-middle text-sm text-neutral-400">
+                      <td className="px-4 py-3 text-right align-middle text-sm text-neutral-400 whitespace-nowrap">
                         {rowActions(row)}
                       </td>
                     ) : null}
@@ -136,9 +139,7 @@ export function DataTable<T>({
               })
             )}
           </tbody>
-            </table>
-          </div>
-        </div>
+        </table>
       </div>
     </div>
   );
