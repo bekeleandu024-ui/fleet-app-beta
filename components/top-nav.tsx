@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { ChangeEvent, FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { Search } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,67 @@ const navItems = [
 
 export function TopNav() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const desktopSearchRef = useRef<HTMLInputElement | null>(null);
+  const mobileSearchRef = useRef<HTMLInputElement | null>(null);
+  const [searchTerm, setSearchTerm] = useState(() => searchParams?.get("q") ?? "");
+
+  useEffect(() => {
+    const currentQuery = searchParams?.get("q") ?? "";
+    setSearchTerm((previous) => (previous === currentQuery ? previous : currentQuery));
+  }, [searchParams]);
+
+  const focusSearchInput = useCallback(() => {
+    if (desktopSearchRef.current) {
+      desktopSearchRef.current.focus();
+      desktopSearchRef.current.select();
+      return;
+    }
+
+    if (mobileSearchRef.current) {
+      mobileSearchRef.current.focus();
+      mobileSearchRef.current.select();
+    }
+  }, []);
+
+  useEffect(() => {
+    const handler = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        focusSearchInput();
+      }
+    };
+
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [focusSearchInput]);
+
+  const handleSearch = useCallback(
+    (value: string) => {
+      const trimmed = value.trim();
+
+      if (!trimmed) {
+        return;
+      }
+
+      setSearchTerm(trimmed);
+      router.push(`/search?q=${encodeURIComponent(trimmed)}`);
+    },
+    [router]
+  );
+
+  const handleSubmit = useCallback(
+    (event: FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      handleSearch(searchTerm);
+    },
+    [handleSearch, searchTerm]
+  );
+
+  const handleInputChange = useCallback((event: ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(event.target.value);
+  }, []);
 
   return (
     <header className="sticky top-0 z-50 border-b border-neutral-900/60 bg-neutral-950/80 backdrop-blur">
@@ -34,29 +96,35 @@ export function TopNav() {
             Fleet Console
           </Link>
           <div className="ml-auto hidden flex-1 items-center gap-3 md:flex">
-            <div className="relative flex-1 max-w-xl">
+            <form className="relative flex-1 max-w-xl" onSubmit={handleSubmit}>
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-neutral-500" />
               <Input
                 type="search"
                 placeholder="Search order # / driver / unit / customer"
                 className="h-11 w-full pl-10 text-sm"
                 aria-label="Global search"
+                value={searchTerm}
+                onChange={handleInputChange}
+                ref={desktopSearchRef}
               />
-            </div>
+            </form>
             <Button variant="primary" size="sm">
               New Order
             </Button>
           </div>
           <div className="flex w-full flex-col gap-3 md:hidden">
-            <div className="relative w-full">
+            <form className="relative w-full" onSubmit={handleSubmit}>
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-neutral-500" />
               <Input
                 type="search"
                 placeholder="Search"
                 className="h-11 w-full pl-10"
                 aria-label="Global search"
+                value={searchTerm}
+                onChange={handleInputChange}
+                ref={mobileSearchRef}
               />
-            </div>
+            </form>
             <Button variant="primary" size="md" className="w-full">
               New Order
             </Button>
