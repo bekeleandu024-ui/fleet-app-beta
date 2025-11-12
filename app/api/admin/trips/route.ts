@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { formatError } from "@/lib/api-errors";
-import { createTrip, listTrips, removeTrip, updateTrip } from "@/lib/mock-data-store";
+import { createTrip, listTrips, updateTrip } from "@/lib/mock-data-store";
 
 const tripStatuses = ["On Time", "Running Late", "Exception", "Delivered"] as const;
 
@@ -49,12 +49,3 @@ export async function PUT(request: Request) {
   }
 }
 
-export async function DELETE(request: Request) {
-  try {
-    const { id } = z.object({ id: z.string() }).parse(await request.json());
-    removeTrip(id);
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    return NextResponse.json({ error: formatError(error) }, { status: 400 });
-  }
-}

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { formatError } from "@/lib/api-errors";
-import { createDriver, listDrivers, removeDriver, updateDriver } from "@/lib/mock-data-store";
+import { createDriver, listDrivers, updateDriver } from "@/lib/mock-data-store";
 
 const driverStatusValues = ["Ready", "Booked", "Off Duty", "Leave"] as const;
 
@@ -40,12 +40,3 @@ export async function PUT(request: Request) {
   }
 }
 
-export async function DELETE(request: Request) {
-  try {
-    const { id } = z.object({ id: z.string() }).parse(await request.json());
-    removeDriver(id);
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    return NextResponse.json({ error: formatError(error) }, { status: 400 });
-  }
-}

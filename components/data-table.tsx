@@ -36,12 +36,14 @@ export function DataTable<T>({
   return (
     <div
       className={cn(
-        "col-span-12 overflow-hidden rounded-xl border border-neutral-800 bg-neutral-900/60 shadow-lg shadow-black/40",
+        "col-span-12 rounded-xl border border-neutral-800 bg-neutral-900/60 shadow-lg shadow-black/40",
         className
       )}
     >
-      <div className="max-h-[70vh] overflow-auto">
-        <table className="min-w-full border-collapse text-sm" role="grid">
+      <div className="max-h-[70vh] overflow-y-auto">
+        <div className="inline-block min-w-full align-middle">
+          <div className="overflow-x-auto">
+            <table className="min-w-full border-collapse text-sm" role="grid">
           <thead className="sticky top-0 z-20 bg-neutral-950/60 text-left text-[11px] font-semibold uppercase tracking-wide text-neutral-500">
             <tr>
               {columns.map((column) => (
@@ -134,7 +136,9 @@ export function DataTable<T>({
               })
             )}
           </tbody>
-        </table>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
   );

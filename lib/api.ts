@@ -72,8 +72,8 @@ function parseDataItem<T>(promise: Promise<{ data: unknown }>, itemSchema: z.Zod
 
 const successSchema = z.object({ success: z.boolean() });
 
-async function deleteWithPayload(url: string, payload: { id: string }): Promise<void> {
-  await parseResponse(api.delete(url, { data: payload }), successSchema);
+async function deleteById(url: string, id: string): Promise<void> {
+  await parseResponse(api.delete(`${url}/${id}`), successSchema);
 }
 
 export function fetchDashboard(): Promise<DashboardResponse> {
@@ -137,7 +137,7 @@ export function updateAdminDriver(payload: DriverAdminUpdate): Promise<DriverAdm
 }
 
 export function deleteAdminDriver(id: string): Promise<void> {
-  return deleteWithPayload("/admin/drivers", { id });
+  return deleteById("/admin/drivers", id);
 }
 
 export function fetchAdminUnits(): Promise<UnitAdminRecord[]> {
@@ -153,7 +153,7 @@ export function updateAdminUnit(payload: UnitAdminUpdate): Promise<UnitAdminReco
 }
 
 export function deleteAdminUnit(id: string): Promise<void> {
-  return deleteWithPayload("/admin/units", { id });
+  return deleteById("/admin/units", id);
 }
 
 export function fetchAdminRules(): Promise<RuleAdminRecord[]> {
@@ -169,7 +169,7 @@ export function updateAdminRule(payload: RuleAdminUpdate): Promise<RuleAdminReco
 }
 
 export function deleteAdminRule(id: string): Promise<void> {
-  return deleteWithPayload("/admin/rules", { id });
+  return deleteById("/admin/rules", id);
 }
 
 export function fetchAdminEvents(): Promise<EventAdminRecord[]> {
@@ -185,7 +185,7 @@ export function updateAdminEvent(payload: EventAdminUpdate): Promise<EventAdminR
 }
 
 export function deleteAdminEvent(id: string): Promise<void> {
-  return deleteWithPayload("/admin/events", { id });
+  return deleteById("/admin/events", id);
 }
 
 export function fetchAdminLanes(): Promise<LaneAdminRecord[]> {
@@ -201,7 +201,7 @@ export function updateAdminLane(payload: LaneAdminUpdate): Promise<LaneAdminReco
 }
 
 export function deleteAdminLane(id: string): Promise<void> {
-  return deleteWithPayload("/admin/lanes", { id });
+  return deleteById("/admin/lanes", id);
 }
 
 export function fetchAdminOrders(): Promise<OrderAdminRecord[]> {
@@ -217,7 +217,7 @@ export function updateAdminOrder(payload: OrderAdminUpdate): Promise<OrderAdminR
 }
 
 export function deleteAdminOrder(id: string): Promise<void> {
-  return deleteWithPayload("/admin/orders", { id });
+  return deleteById("/admin/orders", id);
 }
 
 export function fetchAdminTrips(): Promise<TripAdminRecord[]> {
@@ -233,7 +233,7 @@ export function updateAdminTrip(payload: TripAdminUpdate): Promise<TripAdminReco
 }
 
 export function deleteAdminTrip(id: string): Promise<void> {
-  return deleteWithPayload("/admin/trips", { id });
+  return deleteById("/admin/trips", id);
 }
 
 export function fetchAdminCustomers(): Promise<CustomerAdminRecord[]> {
@@ -249,5 +249,5 @@ export function updateAdminCustomer(payload: CustomerAdminUpdate): Promise<Custo
 }
 
 export function deleteAdminCustomer(id: string): Promise<void> {
-  return deleteWithPayload("/admin/customers", { id });
+  return deleteById("/admin/customers", id);
 }
