@@ -81,76 +81,113 @@ import type {
   UnitAdminUpdate,
 } from "@/lib/types";
 
-const driverColumns: DataTableColumn<DriverAdminRecord>[] = [
-  { key: "id", header: "Driver ID", accessor: (row) => row.id, widthClass: "min-w-[120px]" },
-  { key: "name", header: "Name", accessor: (row) => row.name, widthClass: "min-w-[160px]" },
-  { key: "status", header: "Status", accessor: (row) => row.status },
-  { key: "region", header: "Region", accessor: (row) => row.region },
-  { key: "hours", header: "Hours", accessor: (row) => formatNumber(row.hoursAvailable) },
-  { key: "updated", header: "Updated", accessor: (row) => formatDateTime(row.updated), widthClass: "min-w-[180px]" },
-];
-
-const unitColumns: DataTableColumn<UnitAdminRecord>[] = [
-  { key: "id", header: "Unit", accessor: (row) => row.id, widthClass: "min-w-[120px]" },
-  { key: "type", header: "Type", accessor: (row) => row.type },
-  { key: "status", header: "Status", accessor: (row) => row.status },
-  { key: "location", header: "Location", accessor: (row) => row.location, widthClass: "min-w-[160px]" },
-  { key: "region", header: "Region", accessor: (row) => row.region },
-  { key: "updated", header: "Updated", accessor: (row) => formatDateTime(row.updated), widthClass: "min-w-[180px]" },
-];
-
-const ruleColumns: DataTableColumn<RuleAdminRecord>[] = [
-  { key: "id", header: "Rule", accessor: (row) => row.id, widthClass: "min-w-[120px]" },
-  { key: "name", header: "Name", accessor: (row) => row.name, widthClass: "min-w-[200px]" },
-  { key: "status", header: "Status", accessor: (row) => row.status },
-  { key: "region", header: "Region", accessor: (row) => row.region },
-  { key: "owner", header: "Owner", accessor: (row) => row.owner, widthClass: "min-w-[140px]" },
-  { key: "updated", header: "Updated", accessor: (row) => formatDateTime(row.updated), widthClass: "min-w-[180px]" },
-];
-
-const eventColumns: DataTableColumn<EventAdminRecord>[] = [
-  { key: "id", header: "Event", accessor: (row) => row.id, widthClass: "min-w-[120px]" },
-  { key: "name", header: "Name", accessor: (row) => row.name, widthClass: "min-w-[200px]" },
-  { key: "status", header: "Status", accessor: (row) => row.status },
-  { key: "region", header: "Region", accessor: (row) => row.region },
-  { key: "severity", header: "Severity", accessor: (row) => row.severity },
-  { key: "updated", header: "Updated", accessor: (row) => formatDateTime(row.updated), widthClass: "min-w-[180px]" },
-];
-
 const laneColumns: DataTableColumn<LaneAdminRecord>[] = [
-  { key: "id", header: "Lane", accessor: (row) => row.id, widthClass: "min-w-[120px]" },
-  { key: "origin", header: "Origin", accessor: (row) => row.origin, widthClass: "min-w-[160px]" },
-  { key: "destination", header: "Destination", accessor: (row) => row.destination, widthClass: "min-w-[160px]" },
-  { key: "miles", header: "Miles", accessor: (row) => formatNumber(row.miles), align: "right" },
-  { key: "transit", header: "Transit Days", accessor: (row) => formatNumber(row.transitDays), align: "right" },
+  { key: "lane", header: "Lane", accessor: (row) => row.id, widthClass: "min-w-[120px]" },
+  { key: "origin", header: "Origin", accessor: (row) => row.origin, widthClass: "min-w-[140px]" },
+  { key: "destination", header: "Destination", accessor: (row) => row.destination, widthClass: "min-w-[140px]" },
+  {
+    key: "miles",
+    header: "Miles",
+    accessor: (row) => formatNumber(row.miles),
+    widthClass: "min-w-[100px]",
+    align: "right",
+  },
+  {
+    key: "transitDays",
+    header: "Transit Days",
+    accessor: (row) => formatNumber(row.transitDays),
+    widthClass: "min-w-[120px]",
+    align: "right",
+  },
+  { key: "actions", header: "Actions", widthClass: "min-w-[180px]" },
 ];
 
 const orderColumns: DataTableColumn<OrderAdminRecord>[] = [
-  { key: "id", header: "Order", accessor: (row) => row.id, widthClass: "min-w-[120px]" },
+  { key: "order", header: "Order", accessor: (row) => row.id, widthClass: "min-w-[140px]" },
   { key: "reference", header: "Reference", accessor: (row) => row.reference, widthClass: "min-w-[140px]" },
   { key: "customer", header: "Customer", accessor: (row) => row.customer, widthClass: "min-w-[180px]" },
-  { key: "status", header: "Status", accessor: (row) => row.status },
-  { key: "lane", header: "Lane", accessor: (row) => row.lane },
-  { key: "service", header: "Service Level", accessor: (row) => row.serviceLevel },
+  { key: "status", header: "Status", accessor: (row) => row.status, widthClass: "min-w-[120px]" },
+  { key: "lane", header: "Lane", accessor: (row) => row.lane, widthClass: "min-w-[200px]" },
+  {
+    key: "serviceLevel",
+    header: "Service Level",
+    accessor: (row) => row.serviceLevel,
+    widthClass: "min-w-[160px]",
+  },
   { key: "commodity", header: "Commodity", accessor: (row) => row.commodity, widthClass: "min-w-[160px]" },
   {
     key: "cost",
     header: "Cost",
     accessor: (row) => (row.cost !== undefined ? formatCurrency(row.cost) : "—"),
+    widthClass: "min-w-[120px]",
     align: "right",
   },
-  { key: "miles", header: "Miles", accessor: (row) => formatNumber(row.laneMiles), align: "right" },
+  {
+    key: "laneMiles",
+    header: "Lane Miles",
+    accessor: (row) => formatNumber(row.laneMiles),
+    widthClass: "min-w-[120px]",
+    align: "right",
+  },
+  { key: "actions", header: "Actions", widthClass: "min-w-[180px]" },
+];
+
+const driverColumns: DataTableColumn<DriverAdminRecord>[] = [
+  { key: "id", header: "Driver ID", accessor: (row) => row.id, widthClass: "min-w-[120px]" },
+  { key: "name", header: "Name", accessor: (row) => row.name, widthClass: "min-w-[160px]" },
+  { key: "status", header: "Status", accessor: (row) => row.status, widthClass: "min-w-[120px]" },
+  { key: "region", header: "Region", accessor: (row) => row.region, widthClass: "min-w-[140px]" },
+  {
+    key: "hoursAvailable",
+    header: "Hours Available",
+    accessor: (row) => formatNumber(row.hoursAvailable),
+    widthClass: "min-w-[140px]",
+    align: "right",
+  },
+  { key: "updated", header: "Updated", accessor: (row) => formatDateTime(row.updated), widthClass: "min-w-[180px]" },
+  { key: "actions", header: "Actions", widthClass: "min-w-[180px]" },
+];
+
+const unitColumns: DataTableColumn<UnitAdminRecord>[] = [
+  { key: "id", header: "Unit ID", accessor: (row) => row.id, widthClass: "min-w-[120px]" },
+  { key: "type", header: "Type", accessor: (row) => row.type, widthClass: "min-w-[140px]" },
+  { key: "status", header: "Status", accessor: (row) => row.status, widthClass: "min-w-[120px]" },
+  { key: "location", header: "Location", accessor: (row) => row.location, widthClass: "min-w-[160px]" },
+  { key: "region", header: "Region", accessor: (row) => row.region, widthClass: "min-w-[140px]" },
+  { key: "updated", header: "Updated", accessor: (row) => formatDateTime(row.updated), widthClass: "min-w-[180px]" },
+  { key: "actions", header: "Actions", widthClass: "min-w-[180px]" },
+];
+
+const ruleColumns: DataTableColumn<RuleAdminRecord>[] = [
+  { key: "id", header: "Rule", accessor: (row) => row.id, widthClass: "min-w-[120px]" },
+  { key: "name", header: "Name", accessor: (row) => row.name, widthClass: "min-w-[200px]" },
+  { key: "status", header: "Status", accessor: (row) => row.status, widthClass: "min-w-[120px]" },
+  { key: "region", header: "Region", accessor: (row) => row.region, widthClass: "min-w-[140px]" },
+  { key: "owner", header: "Owner", accessor: (row) => row.owner, widthClass: "min-w-[160px]" },
+  { key: "updated", header: "Updated", accessor: (row) => formatDateTime(row.updated), widthClass: "min-w-[180px]" },
+  { key: "actions", header: "Actions", widthClass: "min-w-[180px]" },
+];
+
+const eventColumns: DataTableColumn<EventAdminRecord>[] = [
+  { key: "id", header: "Event", accessor: (row) => row.id, widthClass: "min-w-[120px]" },
+  { key: "name", header: "Name", accessor: (row) => row.name, widthClass: "min-w-[200px]" },
+  { key: "status", header: "Status", accessor: (row) => row.status, widthClass: "min-w-[120px]" },
+  { key: "region", header: "Region", accessor: (row) => row.region, widthClass: "min-w-[140px]" },
+  { key: "severity", header: "Severity", accessor: (row) => row.severity, widthClass: "min-w-[120px]" },
+  { key: "updated", header: "Updated", accessor: (row) => formatDateTime(row.updated), widthClass: "min-w-[180px]" },
+  { key: "actions", header: "Actions", widthClass: "min-w-[180px]" },
 ];
 
 const tripColumns: DataTableColumn<TripAdminRecord>[] = [
   { key: "id", header: "Trip", accessor: (row) => row.tripNumber, widthClass: "min-w-[120px]" },
   { key: "order", header: "Order", accessor: (row) => row.orderId, widthClass: "min-w-[120px]" },
   { key: "driver", header: "Driver", accessor: (row) => row.driver, widthClass: "min-w-[160px]" },
-  { key: "unit", header: "Unit", accessor: (row) => row.unit },
-  { key: "status", header: "Status", accessor: (row) => row.status },
+  { key: "unit", header: "Unit", accessor: (row) => row.unit, widthClass: "min-w-[120px]" },
+  { key: "status", header: "Status", accessor: (row) => row.status, widthClass: "min-w-[120px]" },
   { key: "eta", header: "ETA", accessor: (row) => formatDateTime(row.eta), widthClass: "min-w-[180px]" },
   { key: "exceptions", header: "Exceptions", accessor: (row) => formatNumber(row.exceptions), align: "right" },
   { key: "lastPing", header: "Last Ping", accessor: (row) => formatDateTime(row.lastPing), widthClass: "min-w-[180px]" },
+  { key: "actions", header: "Actions", widthClass: "min-w-[180px]" },
 ];
 
 const customerColumns: DataTableColumn<CustomerAdminRecord>[] = [
@@ -159,6 +196,7 @@ const customerColumns: DataTableColumn<CustomerAdminRecord>[] = [
   { key: "status", header: "Status", accessor: (row) => row.status },
   { key: "contact", header: "Primary Contact", accessor: (row) => row.primaryContact, widthClass: "min-w-[200px]" },
   { key: "lane", header: "Primary Lane", accessor: (row) => row.primaryLane, widthClass: "min-w-[160px]" },
+  { key: "actions", header: "Actions", widthClass: "min-w-[180px]" },
 ];
 
 type FieldKind = "text" | "number" | "select" | "email";
@@ -573,42 +611,48 @@ function AdminSection<TRecord extends { id: string }, TCreate, TUpdate>({
             Unable to load data. Refresh the page to try again.
           </div>
         ) : null}
-        <DataTable
-          columns={columns}
-          data={records}
-          busy={busy}
-          getRowId={(row) => row.id}
-          emptyMessage="No records available."
-          rowActions={(row) => (
-            <div className="flex justify-end gap-2">
-              <Button
-                size="sm"
-                variant="plain"
-                className="text-xs"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  setFormError(null);
-                  setDialogState({ mode: "edit", record: row });
-                }}
-              >
-                Edit
-              </Button>
-              <Button
-                size="sm"
-                variant="plain"
-                className="text-xs text-rose-400 hover:text-rose-300"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  setFormError(null);
-                  setDialogState({ mode: "delete", record: row });
-                }}
-              >
-                <Trash2 aria-hidden="true" className="size-4" />
-                Delete
-              </Button>
-            </div>
-          )}
-        />
+        <div className="relative">
+          <DataTable
+            className="rounded-lg border border-[var(--border)] bg-[var(--surface-1)]"
+            columns={columns}
+            data={records}
+            busy={busy}
+            getRowId={(row) => row.id}
+            emptyMessage="No records available."
+            rowActions={(row) => (
+              <div className="flex justify-end gap-2">
+                <Button
+                  size="sm"
+                  variant="plain"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setFormError(null);
+                    setDialogState({ mode: "edit", record: row });
+                  }}
+                >
+                  Edit
+                </Button>
+                <Button
+                  size="sm"
+                  variant="plain"
+                  className="text-rose-400 hover:text-rose-300"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setFormError(null);
+                    setDialogState({ mode: "delete", record: row });
+                  }}
+                >
+                  <Trash2 aria-hidden="true" className="size-4" />
+                  Delete
+                </Button>
+              </div>
+            )}
+          />
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-y-0 right-0 w-12 rounded-r-lg bg-gradient-to-l from-[var(--surface-1)] to-transparent"
+          />
+        </div>
       </div>
       <Dialog open={dialogState !== null} onOpenChange={(open) => (!open ? setDialogState(null) : undefined)}>
         {dialogState ? (
