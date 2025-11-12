@@ -31,6 +31,20 @@ export default function AnalyticsPage() {
     queryFn: fetchAnalytics,
   });
 
+  // Move useMemo BEFORE early returns to maintain hook order
+  const revenueTotals = useMemo(
+    () => {
+      if (!data?.revenueTrend) {
+        return { revenue: 0, cost: 0 };
+      }
+      return {
+        revenue: data.revenueTrend.reduce((total, point) => total + point.revenue, 0),
+        cost: data.revenueTrend.reduce((total, point) => total + point.cost, 0),
+      };
+    },
+    [data?.revenueTrend]
+  );
+
   if (isLoading && !data) {
     return <AnalyticsSkeleton />;
   }
@@ -45,14 +59,6 @@ export default function AnalyticsPage() {
 
   const { summary, revenueTrend, marginByCategory, driverPerformance, lanePerformance, marginDistribution, alerts, updatedAt } =
     data;
-
-  const revenueTotals = useMemo(
-    () => ({
-      revenue: revenueTrend.reduce((total, point) => total + point.revenue, 0),
-      cost: revenueTrend.reduce((total, point) => total + point.cost, 0),
-    }),
-    [revenueTrend]
-  );
 
   return (
     <div className="grid gap-6 xl:grid-cols-[2fr,1fr]">
