@@ -1,5 +1,6 @@
 export const queryKeys = {
   dashboard: ["dashboard"] as const,
+  analytics: ["analytics"] as const,
   orders: () => ["orders"] as const,
   order: (id: string) => ["orders", id] as const,
   dispatch: ["dispatch"] as const,

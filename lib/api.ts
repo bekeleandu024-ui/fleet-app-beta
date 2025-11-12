@@ -2,6 +2,7 @@ import axios from "axios";
 import { z } from "zod";
 
 import {
+  AnalyticsResponse,
   CostingDefaults,
   CustomerAdminCreate,
   CustomerAdminRecord,
@@ -52,6 +53,8 @@ import {
   tripDetailSchema,
   tripsResponseSchema,
   unitAdminSchema,
+  analyticsResponseSchema,
+  costingDefaultsSchema,
   dispatchResponseSchema,
 } from "@/lib/types";
 
@@ -80,6 +83,10 @@ async function deleteById(url: string, id: string): Promise<void> {
 
 export function fetchDashboard(): Promise<DashboardResponse> {
   return parseResponse(api.get("/dashboard"), dashboardResponseSchema);
+}
+
+export function fetchAnalytics(): Promise<AnalyticsResponse> {
+  return parseResponse(api.get("/analytics"), analyticsResponseSchema);
 }
 
 export function fetchOrders(): Promise<OrdersResponse> {
