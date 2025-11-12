@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Trash2 } from "lucide-react";
 
 import { DataTable, type DataTableColumn } from "@/components/data-table";
 import { SectionBanner } from "@/components/section-banner";
@@ -415,6 +416,7 @@ interface AdminSectionProps<TRecord extends { id: string }, TCreate, TUpdate> {
   title: string;
   subtitle: string;
   addLabel: string;
+  entityName: string;
   queryKey: readonly unknown[];
   queryFn: () => Promise<TRecord[]>;
   columns: DataTableColumn<TRecord>[];
@@ -424,12 +426,14 @@ interface AdminSectionProps<TRecord extends { id: string }, TCreate, TUpdate> {
   deleteMutationFn: (id: string) => Promise<void>;
   createTransformer: (values: FormValues) => TCreate;
   updateTransformer: (values: FormValues, record: TRecord) => TUpdate;
+  getRecordLabel?: (record: TRecord) => string;
 }
 
 function AdminSection<TRecord extends { id: string }, TCreate, TUpdate>({
   title,
   subtitle,
   addLabel,
+  entityName,
   queryKey,
   queryFn,
   columns,
@@ -439,6 +443,7 @@ function AdminSection<TRecord extends { id: string }, TCreate, TUpdate>({
   deleteMutationFn,
   createTransformer,
   updateTransformer,
+  getRecordLabel = (record) => record.id,
 }: AdminSectionProps<TRecord, TCreate, TUpdate>) {
   const queryClient = useQueryClient();
   const { data, isLoading, isError } = useQuery({ queryKey, queryFn });
@@ -499,6 +504,24 @@ function AdminSection<TRecord extends { id: string }, TCreate, TUpdate>({
 
   const busy = isLoading || createMutation.isPending || updateMutation.isPending || deleteMutation.isPending;
 
+  const recordLabel = dialogState?.record ? getRecordLabel(dialogState.record) : "";
+
+  const dialogTitle = dialogState
+    ? dialogState.mode === "create"
+      ? addLabel
+      : dialogState.mode === "edit" && dialogState.record
+        ? `Edit ${recordLabel || entityName}`
+        : dialogState.mode === "view" && dialogState.record
+          ? `Details for ${recordLabel || entityName}`
+          : `Delete ${entityName}?`
+    : "";
+
+  const dialogDescription = dialogState
+    ? dialogState.mode === "delete"
+      ? `Are you sure you want to delete ${recordLabel || "this record"}? This action cannot be undone.`
+      : "Manage the underlying data record."
+    : "";
+
   const handleChange = (key: string, value: string) => {
     setFormValues((previous) => ({ ...previous, [key]: value }));
   };
@@ -532,7 +555,14 @@ function AdminSection<TRecord extends { id: string }, TCreate, TUpdate>({
       title={title}
       subtitle={subtitle}
       actions={
-        <Button size="sm" variant="primary" onClick={() => setDialogState({ mode: "create" })}>
+        <Button
+          size="sm"
+          variant="primary"
+          onClick={() => {
+            setFormError(null);
+            setDialogState({ mode: "create" });
+          }}
+        >
           {addLabel}
         </Button>
       }
@@ -550,22 +580,30 @@ function AdminSection<TRecord extends { id: string }, TCreate, TUpdate>({
           getRowId={(row) => row.id}
           emptyMessage="No records available."
           rowActions={(row) => (
-            <div className="flex justify-end gap-1">
-              <Button size="sm" variant="plain" className="text-xs" onClick={() => setDialogState({ mode: "view", record: row })}>
-                View
-              </Button>
-              <Button size="sm" variant="plain" className="text-xs" onClick={() => setDialogState({ mode: "edit", record: row })}>
+            <div className="flex justify-end gap-2">
+              <Button
+                size="sm"
+                variant="plain"
+                className="text-xs"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setFormError(null);
+                  setDialogState({ mode: "edit", record: row });
+                }}
+              >
                 Edit
               </Button>
               <Button
                 size="sm"
                 variant="plain"
-                className="text-xs text-rose-400 hover:text-rose-200"
-                onClick={() => {
+                className="text-xs text-rose-400 hover:text-rose-300"
+                onClick={(event) => {
+                  event.stopPropagation();
                   setFormError(null);
                   setDialogState({ mode: "delete", record: row });
                 }}
               >
+                <Trash2 aria-hidden="true" className="size-4" />
                 Delete
               </Button>
             </div>
@@ -576,41 +614,25 @@ function AdminSection<TRecord extends { id: string }, TCreate, TUpdate>({
         {dialogState ? (
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>
-                {dialogState.mode === "create"
-                  ? addLabel
-                  : dialogState.mode === "edit"
-                    ? `Edit ${dialogState.record?.id ?? "record"}`
-                    : dialogState.mode === "view"
-                      ? `Details for ${dialogState.record?.id ?? "record"}`
-                      : `Delete ${dialogState.record?.id ?? "record"}`}
-              </DialogTitle>
-              <DialogDescription>
-                {dialogState.mode === "delete"
-                  ? "Confirm this deletion to remove the record from active operations."
-                  : "Manage the underlying data record."}
-              </DialogDescription>
+              <DialogTitle>{dialogTitle}</DialogTitle>
+              {dialogDescription ? <DialogDescription>{dialogDescription}</DialogDescription> : null}
             </DialogHeader>
             {dialogState.mode === "delete" ? (
               <div className="space-y-4 text-sm">
-                <p>
-                  This action will permanently remove <span className="font-semibold">{dialogState.record?.id}</span>. This
-                  cannot be undone.
-                </p>
                 {formError ? (
                   <div className="rounded-md border border-rose-500/60 bg-rose-500/10 px-3 py-2 text-rose-200">{formError}</div>
                 ) : null}
                 <DialogFooter>
-                  <Button variant="plain" onClick={() => setDialogState(null)}>
+                  <Button variant="subtle" onClick={() => setDialogState(null)}>
                     Cancel
                   </Button>
                   <Button
                     variant="primary"
-                    className="bg-rose-500 text-white hover:bg-rose-400"
+                    className="border-rose-400/70 bg-rose-500 text-white hover:bg-rose-400"
                     onClick={handleDelete}
                     disabled={deleteMutation.isPending}
                   >
-                    Confirm Delete
+                    Delete
                   </Button>
                 </DialogFooter>
               </div>
@@ -712,6 +734,8 @@ export default function AdminPage() {
             title="Drivers"
             subtitle="Manage driver profiles and availability."
             addLabel="Add Driver"
+            entityName="Driver"
+            getRecordLabel={(record) => (record.name ? `${record.name} (${record.id})` : record.id)}
             queryKey={queryKeys.admin.drivers}
             queryFn={fetchAdminDrivers}
             columns={driverColumns}
@@ -735,6 +759,7 @@ export default function AdminPage() {
             title="Units"
             subtitle="Track fleet assets and maintenance availability."
             addLabel="Add Unit"
+            entityName="Unit"
             queryKey={queryKeys.admin.units}
             queryFn={fetchAdminUnits}
             columns={unitColumns}
@@ -758,6 +783,8 @@ export default function AdminPage() {
             title="Costing Rules"
             subtitle="Maintain business rules for pricing and compliance."
             addLabel="Add Rule"
+            entityName="Rule"
+            getRecordLabel={(record) => (record.name ? `${record.name} (${record.id})` : record.id)}
             queryKey={queryKeys.admin.rules}
             queryFn={fetchAdminRules}
             columns={ruleColumns}
@@ -781,6 +808,8 @@ export default function AdminPage() {
             title="Event Types"
             subtitle="Control operational event classifications and severity."
             addLabel="Add Event"
+            entityName="Event"
+            getRecordLabel={(record) => (record.name ? `${record.name} (${record.id})` : record.id)}
             queryKey={queryKeys.admin.events}
             queryFn={fetchAdminEvents}
             columns={eventColumns}
@@ -806,6 +835,8 @@ export default function AdminPage() {
             title="Lanes"
             subtitle="Define standard lanes for pricing and planning."
             addLabel="Add Lane"
+            entityName="Lane"
+            getRecordLabel={(record) => `${record.origin} → ${record.destination} (${record.id})`}
             queryKey={queryKeys.admin.lanes}
             queryFn={fetchAdminLanes}
             columns={laneColumns}
@@ -829,6 +860,8 @@ export default function AdminPage() {
             title="Orders"
             subtitle="Review and curate order master data used downstream."
             addLabel="Add Order"
+            entityName="Order"
+            getRecordLabel={(record) => (record.reference ? `${record.id} (${record.reference})` : record.id)}
             queryKey={queryKeys.admin.orders}
             queryFn={fetchAdminOrders}
             columns={orderColumns}
@@ -852,6 +885,8 @@ export default function AdminPage() {
             title="Trips"
             subtitle="Administer trip assignments and telemetry anchors."
             addLabel="Add Trip"
+            entityName="Trip"
+            getRecordLabel={(record) => record.tripNumber ?? record.id}
             queryKey={queryKeys.admin.trips}
             queryFn={fetchAdminTrips}
             columns={tripColumns}
@@ -875,6 +910,8 @@ export default function AdminPage() {
             title="Customers"
             subtitle="Maintain account master data and routing preferences."
             addLabel="Add Customer"
+            entityName="Customer"
+            getRecordLabel={(record) => (record.name ? `${record.name} (${record.id})` : record.id)}
             queryKey={queryKeys.admin.customers}
             queryFn={fetchAdminCustomers}
             columns={customerColumns}

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { formatError } from "@/lib/api-errors";
-import { createEvent, listEvents, removeEvent, updateEvent } from "@/lib/mock-data-store";
+import { createEvent, listEvents, updateEvent } from "@/lib/mock-data-store";
 
 const eventStatuses = ["Open", "Investigating", "Resolved"] as const;
 const severityLevels = ["Low", "Medium", "High"] as const;
@@ -42,12 +42,3 @@ export async function PUT(request: Request) {
   }
 }
 
-export async function DELETE(request: Request) {
-  try {
-    const { id } = z.object({ id: z.string() }).parse(await request.json());
-    removeEvent(id);
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    return NextResponse.json({ error: formatError(error) }, { status: 400 });
-  }
-}

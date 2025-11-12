@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { formatError } from "@/lib/api-errors";
-import { createLane, listLanes, removeLane, updateLane } from "@/lib/mock-data-store";
+import { createLane, listLanes, updateLane } from "@/lib/mock-data-store";
 
 const baseSchema = z.object({
   origin: z.string().min(1, "Origin is required"),
@@ -39,12 +39,3 @@ export async function PUT(request: Request) {
   }
 }
 
-export async function DELETE(request: Request) {
-  try {
-    const { id } = z.object({ id: z.string() }).parse(await request.json());
-    removeLane(id);
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    return NextResponse.json({ error: formatError(error) }, { status: 400 });
-  }
-}

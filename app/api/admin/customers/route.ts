@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { formatError } from "@/lib/api-errors";
-import { createCustomer, listCustomers, removeCustomer, updateCustomer } from "@/lib/mock-data-store";
+import { createCustomer, listCustomers, updateCustomer } from "@/lib/mock-data-store";
 
 const customerStatuses = ["Active", "Paused", "Prospect"] as const;
 
@@ -41,12 +41,3 @@ export async function PUT(request: Request) {
   }
 }
 
-export async function DELETE(request: Request) {
-  try {
-    const { id } = z.object({ id: z.string() }).parse(await request.json());
-    removeCustomer(id);
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    return NextResponse.json({ error: formatError(error) }, { status: 400 });
-  }
-}
