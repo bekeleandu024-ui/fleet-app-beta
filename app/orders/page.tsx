@@ -41,9 +41,9 @@ export default function OrdersPage() {
             <span className="text-xs text-neutral-500">{row.reference}</span>
           </div>
         ),
-        widthClass: "min-w-[160px]",
+        widthClass: "w-40",
       },
-      { key: "customer", header: "Customer", accessor: (row) => row.customer, widthClass: "min-w-[160px]" },
+      { key: "customer", header: "Customer", accessor: (row) => row.customer, widthClass: "w-44" },
       {
         key: "lane",
         header: "PU→DEL",
@@ -53,22 +53,24 @@ export default function OrdersPage() {
             <span className="text-xs text-neutral-500">{row.delivery}</span>
           </div>
         ),
-        widthClass: "min-w-[200px]",
+        widthClass: "w-52",
       },
-      { key: "window", header: "Window", accessor: (row) => row.window, widthClass: "min-w-[160px]" },
+      { key: "window", header: "Window", accessor: (row) => row.window, widthClass: "w-40" },
       {
         key: "status",
         header: "Status",
         cell: (row) => (
           <span className={`text-sm font-semibold ${statusTone[row.status] ?? "text-neutral-200"}`}>{row.status}</span>
         ),
+        widthClass: "w-32",
       },
-      { key: "age", header: "Age", accessor: (row) => `${row.ageHours}h`, align: "right" },
+      { key: "age", header: "Age", accessor: (row) => `${row.ageHours}h`, align: "right", widthClass: "w-20" },
       {
         key: "cost",
         header: "Cost",
         cell: (row) => (row.cost !== undefined ? formatCurrency(row.cost) : "—"),
         align: "right",
+        widthClass: "w-28",
       },
     ],
     []
@@ -126,27 +128,29 @@ export default function OrdersPage() {
           </Chip>
         ))}
       </div>
-      <div className="-mx-6 mt-4 overflow-hidden rounded-lg border border-neutral-800 bg-neutral-900/60">
-        <DataTable
-          columns={columns}
-          data={data.data}
-          busy={isLoading}
-          getRowId={(row) => row.id}
-          onRowClick={(row) => router.push(`/orders/${row.id}`)}
-          rowActions={(row) => (
-            <Button
-              size="sm"
-              variant="plain"
-              className="text-xs text-neutral-500 hover:text-neutral-200"
-              onClick={(event) => {
-                event.stopPropagation();
-                router.push(`/orders/${row.id}`);
-              }}
-            >
-              View
-            </Button>
-          )}
-        />
+      <div className="-mx-6 mt-4 overflow-x-auto rounded-lg border border-neutral-800 bg-neutral-900/60">
+        <div className="inline-block min-w-full align-middle">
+          <DataTable
+            columns={columns}
+            data={data.data}
+            busy={isLoading}
+            getRowId={(row) => row.id}
+            onRowClick={(row) => router.push(`/orders/${row.id}`)}
+            rowActions={(row) => (
+              <Button
+                size="sm"
+                variant="plain"
+                className="text-xs text-neutral-500 hover:text-neutral-200"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  router.push(`/orders/${row.id}`);
+                }}
+              >
+                View
+              </Button>
+            )}
+          />
+        </div>
       </div>
     </SectionBanner>
   );

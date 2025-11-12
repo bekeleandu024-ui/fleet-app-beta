@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { formatError } from "@/lib/api-errors";
-import { createRule, listRules, removeRule, updateRule } from "@/lib/mock-data-store";
+import { createRule, listRules, updateRule } from "@/lib/mock-data-store";
 
 const ruleStatuses = ["Active", "Draft", "Deprecated"] as const;
 
@@ -41,12 +41,3 @@ export async function PUT(request: Request) {
   }
 }
 
-export async function DELETE(request: Request) {
-  try {
-    const { id } = z.object({ id: z.string() }).parse(await request.json());
-    removeRule(id);
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    return NextResponse.json({ error: formatError(error) }, { status: 400 });
-  }
-}
