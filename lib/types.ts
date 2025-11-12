@@ -470,3 +470,69 @@ export const globalSearchResponseSchema = z.object({
 
 export type GlobalSearchResult = z.infer<typeof globalSearchResultSchema>;
 export type GlobalSearchResponse = z.infer<typeof globalSearchResponseSchema>;
+
+const analyticsSummarySchema = z.object({
+  periodLabel: z.string(),
+  totalRevenue: z.number(),
+  totalCost: z.number(),
+  marginPercent: z.number(),
+  avgRatePerMile: z.number(),
+  avgCostPerMile: z.number(),
+  totalMiles: z.number(),
+  profitableTrips: z.number(),
+  atRiskTrips: z.number(),
+});
+
+const analyticsTrendPointSchema = z.object({
+  label: z.string(),
+  revenue: z.number(),
+  cost: z.number(),
+  marginPercent: z.number(),
+  miles: z.number(),
+});
+
+const analyticsCategorySchema = z.object({
+  category: z.string(),
+  revenue: z.number(),
+  marginPercent: z.number(),
+});
+
+const analyticsDriverSchema = z.object({
+  driverId: z.string(),
+  driverName: z.string(),
+  trips: z.number(),
+  marginPercent: z.number(),
+  revenue: z.number(),
+});
+
+const analyticsLaneSchema = z.object({
+  lane: z.string(),
+  revenue: z.number(),
+  marginPercent: z.number(),
+  miles: z.number(),
+});
+
+const analyticsDistributionSchema = z.object({
+  band: z.string(),
+  trips: z.number(),
+});
+
+const analyticsAlertSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  description: z.string(),
+  severity: z.enum(["info", "warn", "alert"]),
+});
+
+export const analyticsResponseSchema = z.object({
+  summary: analyticsSummarySchema,
+  revenueTrend: z.array(analyticsTrendPointSchema),
+  marginByCategory: z.array(analyticsCategorySchema),
+  driverPerformance: z.array(analyticsDriverSchema),
+  lanePerformance: z.array(analyticsLaneSchema),
+  marginDistribution: z.array(analyticsDistributionSchema),
+  alerts: z.array(analyticsAlertSchema),
+  updatedAt: z.string(),
+});
+
+export type AnalyticsResponse = z.infer<typeof analyticsResponseSchema>;
