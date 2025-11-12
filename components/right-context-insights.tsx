@@ -82,7 +82,7 @@ function DashboardRight() {
   if (isError || !data) {
     return (
       <SectionBanner title="Today at a Glance" aria-live="polite">
-        <p className="text-sm text-[color-mix(in_srgb,var(--muted)_90%,transparent)]">Context unavailable. Refresh shortly.</p>
+        <p className="text-sm text-neutral-400">Context unavailable. Refresh shortly.</p>
       </SectionBanner>
     );
   }
@@ -96,12 +96,12 @@ function DashboardRight() {
       >
         <div className="space-y-4">
           <div className="space-y-2">
-            <h3 className="text-xs uppercase tracking-wide text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">Top lanes</h3>
+            <h3 className="text-xs uppercase tracking-wide text-neutral-500">Top lanes</h3>
             <ul className="space-y-2 text-sm">
               {data.glance.topLanes.map((lane) => (
                 <li key={lane.lane} className="flex items-center justify-between gap-2">
                   <span className="font-medium">{lane.lane}</span>
-                  <span className="text-xs text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">
+                  <span className="text-xs text-neutral-500">
                     {lane.orders} loads • {formatPercent(lane.onTimePercent)} on-time
                   </span>
                 </li>
@@ -109,22 +109,22 @@ function DashboardRight() {
             </ul>
           </div>
           <div className="space-y-3">
-            <h3 className="text-xs uppercase tracking-wide text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">Resources</h3>
-            <div className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface-2)] p-4 text-sm">
+            <h3 className="text-xs uppercase tracking-wide text-neutral-500">Resources</h3>
+            <div className="rounded-lg border border-neutral-800 bg-neutral-900/60 p-4 text-sm">
               <div className="flex items-center justify-between">
-                <span className="text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">Drivers available</span>
+                <span className="text-neutral-500">Drivers available</span>
                 <span className="font-semibold">{data.glance.drivers.available}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">Drivers booked</span>
+                <span className="text-neutral-500">Drivers booked</span>
                 <span className="font-semibold">{data.glance.drivers.booked}</span>
               </div>
               <div className="mt-3 flex items-center justify-between">
-                <span className="text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">Units available</span>
+                <span className="text-neutral-500">Units available</span>
                 <span className="font-semibold">{data.glance.units.available}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">Units down</span>
+                <span className="text-neutral-500">Units down</span>
                 <span className="font-semibold">{data.glance.units.down}</span>
               </div>
             </div>
@@ -150,7 +150,7 @@ function OrdersRight() {
       {loading ? (
         <LoadingBlock />
       ) : costing.isError || !costing.data || drivers.isError || !drivers.data ? (
-        <p className="text-sm text-[color-mix(in_srgb,var(--muted)_90%,transparent)]">
+        <p className="text-sm text-neutral-400">
           Unable to surface pricing hints. Refresh to try again.
         </p>
       ) : (
@@ -160,24 +160,24 @@ function OrdersRight() {
             <Chip tone="ok">Target revenue {costing.data.targets.revenue}</Chip>
             <Chip tone="warn">Break-even {costing.data.targets.breakEven}</Chip>
           </div>
-          <div className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface-2)] p-4 text-sm">
-            <h3 className="text-xs uppercase tracking-wide text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">Margin bands</h3>
+          <div className="rounded-lg border border-neutral-800 bg-neutral-900/60 p-4 text-sm">
+            <h3 className="text-xs uppercase tracking-wide text-neutral-500">Margin bands</h3>
             <ul className="mt-2 space-y-2">
               {costing.data.breakdown.sections[0]?.items.slice(0, 3).map((item) => (
                 <li key={item.label} className="flex items-center justify-between gap-3">
                   <span>{item.label}</span>
-                  <span className="text-xs text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">{item.value}</span>
+                  <span className="text-xs text-neutral-500">{item.value}</span>
                 </li>
               ))}
             </ul>
           </div>
           <div className="space-y-2">
-            <h3 className="text-xs uppercase tracking-wide text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">Recommended drivers</h3>
+            <h3 className="text-xs uppercase tracking-wide text-neutral-500">Recommended drivers</h3>
             <ul className="space-y-2 text-sm">
               {drivers.data.data.slice(0, 3).map((driver) => (
                 <li key={driver.id} className="flex items-center justify-between">
                   <span>{driver.name}</span>
-                  <span className="text-xs text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">{driver.status}</span>
+                  <span className="text-xs text-neutral-500">{driver.status}</span>
                 </li>
               ))}
             </ul>
@@ -202,7 +202,7 @@ function DispatchRight() {
   if (isError || !data) {
     return (
       <SectionBanner title="Crew & Assets" aria-live="polite">
-        <p className="text-sm text-[color-mix(in_srgb,var(--muted)_90%,transparent)]">Unable to load crew roster.</p>
+        <p className="text-sm text-neutral-400">Unable to load crew roster.</p>
       </SectionBanner>
     );
   }
@@ -211,23 +211,23 @@ function DispatchRight() {
     <SectionBanner title="Crew & Assets" subtitle="Live roster mix supporting dispatch." aria-live="polite">
       <div className="space-y-4 text-sm">
         <div>
-          <h3 className="text-xs uppercase tracking-wide text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">Drivers</h3>
+          <h3 className="text-xs uppercase tracking-wide text-neutral-500">Drivers</h3>
           <ul className="mt-2 space-y-2">
             {data.crew.drivers.slice(0, 4).map((driver) => (
               <li key={driver.id} className="flex items-center justify-between">
                 <span>{driver.name}</span>
-                <span className="text-xs text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">{driver.status}</span>
+                <span className="text-xs text-neutral-500">{driver.status}</span>
               </li>
             ))}
           </ul>
         </div>
         <div>
-          <h3 className="text-xs uppercase tracking-wide text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">Units</h3>
+          <h3 className="text-xs uppercase tracking-wide text-neutral-500">Units</h3>
           <ul className="mt-2 space-y-2">
             {data.crew.units.slice(0, 4).map((unit) => (
               <li key={unit.id} className="flex items-center justify-between">
                 <span>{unit.id}</span>
-                <span className="text-xs text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">{unit.status}</span>
+                <span className="text-xs text-neutral-500">{unit.status}</span>
               </li>
             ))}
           </ul>
@@ -251,7 +251,7 @@ function TripsRight() {
   if (isError || !data) {
     return (
       <SectionBanner title="Trip Insights" aria-live="polite">
-        <p className="text-sm text-[color-mix(in_srgb,var(--muted)_90%,transparent)]">Unable to load trip summaries.</p>
+        <p className="text-sm text-neutral-400">Unable to load trip summaries.</p>
       </SectionBanner>
     );
   }
@@ -266,13 +266,13 @@ function TripsRight() {
             </Chip>
           ))}
         </div>
-        <div className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface-2)] p-4">
-          <h3 className="text-xs uppercase tracking-wide text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">Status mix</h3>
+        <div className="rounded-lg border border-neutral-800 bg-neutral-900/60 p-4">
+          <h3 className="text-xs uppercase tracking-wide text-neutral-500">Status mix</h3>
           <ul className="mt-2 space-y-2">
             {data.filters.statuses.slice(0, 4).map((status) => (
               <li key={status} className="flex items-center justify-between">
                 <span>{status}</span>
-                <span className="text-xs text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">
+                <span className="text-xs text-neutral-500">
                   {formatNumber(data.data.filter((trip) => trip.status === status).length)} trips
                 </span>
               </li>
@@ -298,7 +298,7 @@ function CostingRight() {
   if (isError || !data) {
     return (
       <SectionBanner title="Recent Calculations" aria-live="polite">
-        <p className="text-sm text-[color-mix(in_srgb,var(--muted)_90%,transparent)]">Unable to load costing summaries.</p>
+        <p className="text-sm text-neutral-400">Unable to load costing summaries.</p>
       </SectionBanner>
     );
   }
@@ -319,11 +319,11 @@ function CostingRight() {
           {data.breakdown.sections.flatMap((section) => section.items.slice(0, 2)).map((item) => (
             <li key={`${item.label}-${item.value}`} className="flex items-center justify-between">
               <span>{item.label}</span>
-              <span className="text-xs text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">{item.value}</span>
+              <span className="text-xs text-neutral-500">{item.value}</span>
             </li>
           ))}
         </ul>
-        <div className="text-xs text-[color-mix(in_srgb,var(--muted)_80%,transparent)]">Total {data.breakdown.totalValue}</div>
+        <div className="text-xs text-neutral-400">Total {data.breakdown.totalValue}</div>
       </SectionBanner>
     </div>
   );
@@ -351,7 +351,7 @@ function MasterDataRight({
   if (isError || !data) {
     return (
       <SectionBanner title={title} aria-live="polite">
-        <p className="text-sm text-[color-mix(in_srgb,var(--muted)_90%,transparent)]">Unable to load upcoming maintenance.</p>
+        <p className="text-sm text-neutral-400">Unable to load upcoming maintenance.</p>
       </SectionBanner>
     );
   }
@@ -362,7 +362,7 @@ function MasterDataRight({
         {data.data.slice(0, 4).map((row) => (
           <li key={row.id} className="flex items-center justify-between">
             <span>{row.name}</span>
-            <span className="text-xs text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">{row.updated}</span>
+            <span className="text-xs text-neutral-500">{row.updated}</span>
           </li>
         ))}
       </ul>
@@ -384,7 +384,7 @@ function MapRight() {
   if (isError || !data) {
     return (
       <SectionBanner title="Route KPI Band" aria-live="polite">
-        <p className="text-sm text-[color-mix(in_srgb,var(--muted)_90%,transparent)]">Unable to load route KPIs.</p>
+        <p className="text-sm text-neutral-400">Unable to load route KPIs.</p>
       </SectionBanner>
     );
   }
@@ -414,7 +414,7 @@ function GenericRight() {
   if (orders.isError || !orders.data) {
     return (
       <SectionBanner title="Context Insights" aria-live="polite">
-        <p className="text-sm text-[color-mix(in_srgb,var(--muted)_90%,transparent)]">No supporting insights available.</p>
+        <p className="text-sm text-neutral-400">No supporting insights available.</p>
       </SectionBanner>
     );
   }
@@ -434,7 +434,7 @@ function LoadingBlock() {
   return (
     <div className="space-y-3">
       {Array.from({ length: 4 }).map((_, index) => (
-        <div key={index} className="h-3 w-full animate-pulse rounded-[var(--radius)] bg-[color-mix(in_srgb,var(--surface-2)_70%,transparent)]" />
+        <div key={index} className="h-3 w-full animate-pulse rounded-lg bg-neutral-900/50" />
       ))}
     </div>
   );

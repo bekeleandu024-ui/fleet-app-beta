@@ -26,8 +26,8 @@ export default function TripsPage() {
         header: "Trip",
         cell: (row) => (
           <div className="flex flex-col">
-            <span className="font-semibold text-[var(--text)]">{row.tripNumber}</span>
-            <span className="text-xs text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">{row.status}</span>
+            <span className="font-semibold text-neutral-200">{row.tripNumber}</span>
+            <span className="text-xs text-neutral-500">{row.status}</span>
           </div>
         ),
         widthClass: "min-w-[160px]",
@@ -40,7 +40,7 @@ export default function TripsPage() {
         cell: (row) => (
           <div className="flex flex-col">
             <span>{row.pickup}</span>
-            <span className="text-xs text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">{row.delivery}</span>
+            <span className="text-xs text-neutral-500">{row.delivery}</span>
           </div>
         ),
         widthClass: "min-w-[200px]",
@@ -68,7 +68,7 @@ export default function TripsPage() {
   if (isError || !data) {
     return (
       <SectionBanner title="Trips & Tracking" subtitle="Monitor live trips, exceptions, and telemetry pings." aria-live="polite">
-        <p className="text-sm text-[color-mix(in_srgb,var(--muted)_90%,transparent)]">Trips unavailable.</p>
+        <p className="text-sm text-neutral-400">Trips unavailable.</p>
       </SectionBanner>
     );
   }
@@ -88,7 +88,7 @@ export default function TripsPage() {
         <div className="flex flex-wrap items-center gap-2">
           {stats.map((stat) => (
             <Chip key={stat.label} tone={stat.tone} className="gap-2 text-xs">
-              <span className="text-base font-semibold text-[var(--text)]">{stat.value}</span>
+              <span className="text-base font-semibold text-neutral-200">{stat.value}</span>
               <span className="uppercase tracking-wide">{stat.label}</span>
             </Chip>
           ))}
@@ -118,7 +118,7 @@ export default function TripsPage() {
           </Select>
         </Filter>
       </div>
-      <div className="-mx-6 mt-4 overflow-hidden rounded-[calc(var(--radius)-2px)] border border-[var(--border)] bg-[var(--surface-2)]">
+      <div className="-mx-6 mt-4 overflow-hidden rounded-lg border border-neutral-800 bg-neutral-900/60">
         <DataTable
           columns={columns}
           data={data.data}
@@ -129,7 +129,7 @@ export default function TripsPage() {
             <Button
               size="sm"
               variant="plain"
-              className="text-xs text-[color-mix(in_srgb,var(--muted)_85%,transparent)] hover:text-[var(--text)]"
+              className="text-xs text-neutral-500 hover:text-neutral-200"
               onClick={(event) => {
                 event.stopPropagation();
                 router.push(`/trips/${row.id}`);
@@ -149,10 +149,10 @@ function TripsSkeleton() {
     <SectionBanner title="Trips & Tracking" subtitle="Monitor live trips, exceptions, and telemetry pings." aria-live="polite">
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         {Array.from({ length: 3 }).map((_, index) => (
-          <div key={index} className="h-11 animate-pulse rounded-[var(--radius)] bg-[color-mix(in_srgb,var(--surface-2)_70%,transparent)]" />
+          <div key={index} className="h-11 animate-pulse rounded-lg bg-neutral-900/50" />
         ))}
       </div>
-      <div className="mt-6 h-64 w-full animate-pulse rounded-[var(--radius)] bg-[color-mix(in_srgb,var(--surface-2)_70%,transparent)]" />
+      <div className="mt-6 h-64 w-full animate-pulse rounded-lg bg-neutral-900/50" />
     </SectionBanner>
   );
 }
@@ -160,7 +160,7 @@ function TripsSkeleton() {
 function Filter({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="grid gap-2 text-sm">
-      <span className="text-xs uppercase tracking-wide text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">{label}</span>
+      <span className="text-xs uppercase tracking-wide text-neutral-500">{label}</span>
       {children}
     </label>
   );

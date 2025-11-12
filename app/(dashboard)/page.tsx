@@ -39,7 +39,7 @@ export default function DashboardPage() {
     return (
       <div className="flex flex-col gap-6">
         <SectionBanner title="Network Pulse" subtitle="Key performance indicators for the fleet." aria-live="polite">
-          <p className="text-sm text-[color-mix(in_srgb,var(--muted)_90%,transparent)]">Unable to load dashboard metrics.</p>
+          <p className="text-sm text-neutral-400">Unable to load dashboard metrics.</p>
         </SectionBanner>
       </div>
     );
@@ -51,10 +51,10 @@ export default function DashboardPage() {
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           {kpis.map((kpi) => (
             <Chip key={kpi.label} tone="brand" leadingIcon={kpi.icon} className="justify-between">
-              <span className="text-xs uppercase tracking-wide text-[color-mix(in_srgb,var(--muted)_82%,transparent)]">
+              <span className="text-xs uppercase tracking-wide text-neutral-500">
                 {kpi.label}
               </span>
-              <span className="text-base font-semibold text-[var(--text)]">{kpi.value}</span>
+              <span className="text-base font-semibold text-neutral-200">{kpi.value}</span>
             </Chip>
           ))}
         </div>
@@ -95,8 +95,8 @@ export default function DashboardPage() {
               </Select>
             </FilterField>
           </div>
-          <div className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface-2)] p-4">
-            <div className="flex h-64 w-full items-center justify-center rounded-[calc(var(--radius)-2px)] border border-dashed border-[var(--border)] bg-[color-mix(in_srgb,var(--surface-2)_70%,transparent)] text-sm text-[color-mix(in_srgb,var(--muted)_88%,transparent)]">
+          <div className="rounded-lg border border-neutral-800 bg-neutral-900/60 p-4">
+            <div className="flex h-64 w-full items-center justify-center rounded-lg border border-dashed border-neutral-800 bg-neutral-900/50 text-sm text-neutral-400">
               Map viewport placeholder
             </div>
           </div>
@@ -114,7 +114,7 @@ function DashboardSkeleton() {
           {Array.from({ length: 4 }).map((_, index) => (
             <div
               key={index}
-              className="h-12 animate-pulse rounded-[var(--radius)] bg-[color-mix(in_srgb,var(--surface-2)_70%,transparent)]"
+              className="h-12 animate-pulse rounded-lg bg-neutral-900/50"
             />
           ))}
         </div>
@@ -124,12 +124,12 @@ function DashboardSkeleton() {
           <div className="space-y-4">
             {Array.from({ length: 3 }).map((_, index) => (
               <div key={index} className="space-y-2">
-                <div className="h-3 w-20 animate-pulse rounded-[var(--radius)] bg-[color-mix(in_srgb,var(--surface-2)_70%,transparent)]" />
-                <div className="h-11 w-full animate-pulse rounded-[var(--radius)] bg-[color-mix(in_srgb,var(--surface-2)_70%,transparent)]" />
+                <div className="h-3 w-20 animate-pulse rounded-lg bg-neutral-900/50" />
+                <div className="h-11 w-full animate-pulse rounded-lg bg-neutral-900/50" />
               </div>
             ))}
           </div>
-          <div className="h-64 animate-pulse rounded-[var(--radius)] bg-[color-mix(in_srgb,var(--surface-2)_70%,transparent)]" />
+          <div className="h-64 animate-pulse rounded-lg bg-neutral-900/50" />
         </div>
       </SectionBanner>
     </div>
@@ -139,7 +139,7 @@ function DashboardSkeleton() {
 function FilterField({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="grid gap-2 text-sm">
-      <span className="text-xs uppercase tracking-wide text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">{label}</span>
+      <span className="text-xs uppercase tracking-wide text-neutral-500">{label}</span>
       {children}
     </label>
   );

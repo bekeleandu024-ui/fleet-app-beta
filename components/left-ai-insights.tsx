@@ -106,7 +106,7 @@ function DashboardLeft() {
   if (isError || !data) {
     return (
       <SectionBanner title="AI Operations Briefing" aria-live="polite">
-        <p className="text-sm text-[color-mix(in_srgb,var(--muted)_90%,transparent)]">
+        <p className="text-sm text-neutral-400">
           Unable to surface the latest network insights. Refresh to try again.
         </p>
       </SectionBanner>
@@ -131,23 +131,23 @@ function DashboardLeft() {
     >
       <ul className="space-y-3 text-sm leading-6">
         <li>
-          <strong className="font-semibold text-[var(--text)]">{formatNumber(data.metrics.activeOrders)}</strong> active orders
-          with <strong className="font-semibold text-[var(--text)]">{formatNumber(data.metrics.inTransit)}</strong> currently in
+          <strong className="font-semibold text-neutral-200">{formatNumber(data.metrics.activeOrders)}</strong> active orders
+          with <strong className="font-semibold text-neutral-200">{formatNumber(data.metrics.inTransit)}</strong> currently in
           motion.
         </li>
         <li>
           On-time performance holding at {formatPercent(data.metrics.onTimePercent)} with {" "}
-          <strong className="font-semibold text-[var(--text)]">{formatNumber(data.metrics.exceptions)}</strong> exceptions on
+          <strong className="font-semibold text-neutral-200">{formatNumber(data.metrics.exceptions)}</strong> exceptions on
           deck.
         </li>
         {primaryLane ? (
           <li>
-            Watch lane <strong className="font-semibold text-[var(--text)]">{primaryLane.lane}</strong> ({primaryLane.orders} loads)
+            Watch lane <strong className="font-semibold text-neutral-200">{primaryLane.lane}</strong> ({primaryLane.orders} loads)
             trending {formatPercent(primaryLane.onTimePercent)} on-time.
           </li>
         ) : null}
       </ul>
-      <div className="flex flex-wrap gap-2 text-xs text-[color-mix(in_srgb,var(--muted)_80%,transparent)]">
+      <div className="flex flex-wrap gap-2 text-xs text-neutral-400">
         <span>{healthCounts.ok} stable</span>
         <span>• {healthCounts.warn} watch</span>
         <span>• {healthCounts.alert} alerts</span>
@@ -171,7 +171,7 @@ function OrdersLeft() {
         {loading ? (
           <LoadingForm />
         ) : isError || !data ? (
-          <p className="text-sm text-[color-mix(in_srgb,var(--muted)_90%,transparent)]">
+          <p className="text-sm text-neutral-400">
             Filters unavailable right now. Reload to continue.
           </p>
         ) : (
@@ -184,10 +184,10 @@ function OrdersLeft() {
               </Select>
             </Field>
             <Field label="Status (multi-select)">
-              <div className="space-y-2 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface-2)] p-3">
+              <div className="space-y-2 rounded-lg border border-neutral-800 bg-neutral-900/60 p-3">
                 {data.filters.statuses.slice(0, 4).map((status) => (
                   <label key={status} className="flex items-center gap-2 text-sm">
-                    <input type="checkbox" defaultChecked className="size-4 accent-[var(--brand)]" />
+                    <input type="checkbox" defaultChecked className="size-4 accent-emerald-500" />
                     <span>{status}</span>
                   </label>
                 ))}
@@ -219,25 +219,25 @@ function OrdersLeft() {
         {loading ? (
           <LoadingParagraph lines={3} />
         ) : isError || !data ? (
-          <p className="text-sm text-[color-mix(in_srgb,var(--muted)_90%,transparent)]">
+          <p className="text-sm text-neutral-400">
             Unable to synthesize order guidance at the moment.
           </p>
         ) : (
           <ul className="space-y-3 text-sm leading-6">
             <li>
-              Queue size <strong className="font-semibold text-[var(--text)]">{formatNumber(data.stats.total)}</strong> orders with
+              Queue size <strong className="font-semibold text-neutral-200">{formatNumber(data.stats.total)}</strong> orders with
               {" "}
-              <strong className="font-semibold text-[var(--text)]">{formatNumber(data.stats.new)}</strong> new today.
+              <strong className="font-semibold text-neutral-200">{formatNumber(data.stats.new)}</strong> new today.
             </li>
             <li>
-              <strong className="font-semibold text-[var(--text)]">{formatNumber(data.stats.delayed)}</strong> delayed loads require
+              <strong className="font-semibold text-neutral-200">{formatNumber(data.stats.delayed)}</strong> delayed loads require
               escalation; maintain {formatNumber(data.stats.inProgress)} in motion.
             </li>
             <li>Focus statuses: {data.filters.statuses.slice(0, 3).join(", ")}.</li>
           </ul>
         )}
         {!loading && data ? (
-          <div className="text-xs text-[color-mix(in_srgb,var(--muted)_80%,transparent)]">
+          <div className="text-xs text-neutral-400">
             Filters span {data.filters.customers.length} customers across {data.filters.lanes.length} lanes.
           </div>
         ) : null}
@@ -260,7 +260,7 @@ function DispatchLeft() {
   if (isError || !data) {
     return (
       <SectionBanner title="AI Launch Recommendation" aria-live="polite">
-        <p className="text-sm text-[color-mix(in_srgb,var(--muted)_90%,transparent)]">
+        <p className="text-sm text-neutral-400">
           Dispatch signals unavailable. Check connectivity and refresh.
         </p>
       </SectionBanner>
@@ -276,24 +276,24 @@ function DispatchLeft() {
       aria-live="polite"
     >
       {primary ? (
-        <div className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface-2)] p-4 text-sm">
-          <p className="text-xs uppercase tracking-wide text-[color-mix(in_srgb,var(--muted)_80%,transparent)]">Primary candidate</p>
+        <div className="rounded-lg border border-neutral-800 bg-neutral-900/60 p-4 text-sm">
+          <p className="text-xs uppercase tracking-wide text-neutral-400">Primary candidate</p>
           <p className="text-sm font-semibold">{primary.reference}</p>
-          <p className="text-xs text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">
+          <p className="text-xs text-neutral-500">
             {primary.customer} • {primary.lane} • {primary.priority} priority
           </p>
         </div>
       ) : null}
       <div className="space-y-2 text-sm leading-6">
         <p className="font-semibold">{data.recommendation.title}</p>
-        <p className="text-[color-mix(in_srgb,var(--muted)_88%,transparent)]">{data.recommendation.description}</p>
-        <ul className="list-disc space-y-1 pl-4 text-[color-mix(in_srgb,var(--muted)_88%,transparent)]">
+        <p className="text-neutral-400">{data.recommendation.description}</p>
+        <ul className="list-disc space-y-1 pl-4 text-neutral-400">
           {data.recommendation.bullets.map((bullet) => (
             <li key={bullet}>{bullet}</li>
           ))}
         </ul>
       </div>
-      <div className="text-xs text-[color-mix(in_srgb,var(--muted)_80%,transparent)]">
+      <div className="text-xs text-neutral-400">
         {data.qualifiedOrders.length} qualified orders in scope for assignment.
       </div>
     </SectionBanner>
@@ -314,7 +314,7 @@ function TripsLeft() {
   if (isError || !data) {
     return (
       <SectionBanner title="AI Trip Monitor" aria-live="polite">
-        <p className="text-sm text-[color-mix(in_srgb,var(--muted)_90%,transparent)]">
+        <p className="text-sm text-neutral-400">
           Trip telemetry unavailable right now. Refresh to continue.
         </p>
       </SectionBanner>
@@ -331,12 +331,12 @@ function TripsLeft() {
     >
       <ul className="space-y-3 text-sm leading-6">
         <li>
-          <strong className="font-semibold text-[var(--text)]">{formatNumber(data.stats.active)}</strong> active trips with
+          <strong className="font-semibold text-neutral-200">{formatNumber(data.stats.active)}</strong> active trips with
           {" "}
-          <strong className="font-semibold text-[var(--text)]">{formatNumber(data.stats.late)}</strong> running late.
+          <strong className="font-semibold text-neutral-200">{formatNumber(data.stats.late)}</strong> running late.
         </li>
         <li>
-          Exceptions in flight: <strong className="font-semibold text-[var(--text)]">{formatNumber(data.stats.exception)}</strong>.
+          Exceptions in flight: <strong className="font-semibold text-neutral-200">{formatNumber(data.stats.exception)}</strong>.
         </li>
         {exceptionTrip ? (
           <li>
@@ -345,7 +345,7 @@ function TripsLeft() {
           </li>
         ) : null}
       </ul>
-      <div className="text-xs text-[color-mix(in_srgb,var(--muted)_80%,transparent)]">
+      <div className="text-xs text-neutral-400">
         Last ping sample: {exceptionTrip ? new Date(exceptionTrip.lastPing).toLocaleString() : "All trips healthy"}
       </div>
     </SectionBanner>
@@ -366,7 +366,7 @@ function CostingLeft() {
   if (isError || !data) {
     return (
       <SectionBanner title="AI Pricing Guardrails" aria-live="polite">
-        <p className="text-sm text-[color-mix(in_srgb,var(--muted)_90%,transparent)]">
+        <p className="text-sm text-neutral-400">
           Pricing guardrails unavailable. Reopen after refreshing the costing data.
         </p>
       </SectionBanner>
@@ -381,17 +381,17 @@ function CostingLeft() {
     >
       <ul className="space-y-3 text-sm leading-6">
         <li>
-          Recommended RPM: <strong className="font-semibold text-[var(--text)]">{data.targets.recommendedRPM}</strong> with
+          Recommended RPM: <strong className="font-semibold text-neutral-200">{data.targets.recommendedRPM}</strong> with
           revenue target {data.targets.revenue}.
         </li>
         <li>
-          Break-even RPM sits at <strong className="font-semibold text-[var(--text)]">{data.targets.breakEven}</strong>.
+          Break-even RPM sits at <strong className="font-semibold text-neutral-200">{data.targets.breakEven}</strong>.
         </li>
         <li>
           Base scenario assumes {formatNumber(data.form.miles)} mi, {data.form.pickups} pickups, {data.form.deliveries} deliveries.
         </li>
       </ul>
-      <div className="text-xs text-[color-mix(in_srgb,var(--muted)_80%,transparent)]">Total cost benchmark: {data.breakdown.totalValue}</div>
+      <div className="text-xs text-neutral-400">Total cost benchmark: {data.breakdown.totalValue}</div>
     </SectionBanner>
   );
 }
@@ -420,7 +420,7 @@ function MasterDataLeft({
   if (isError || !data) {
     return (
       <SectionBanner title={title} subtitle={subtitle} aria-live="polite">
-        <p className="text-sm text-[color-mix(in_srgb,var(--muted)_90%,transparent)]">
+        <p className="text-sm text-neutral-400">
           Filters unavailable right now. Refresh to continue.
         </p>
       </SectionBanner>
@@ -443,17 +443,17 @@ function MasterDataLeft({
           </Select>
         </Field>
         <Field label="Status">
-          <div className="space-y-2 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface-2)] p-3">
+          <div className="space-y-2 rounded-lg border border-neutral-800 bg-neutral-900/60 p-3">
             {data.filters.statuses.map((status) => (
               <label key={status} className="flex items-center gap-2 text-sm">
-                <input type="checkbox" defaultChecked className="size-4 accent-[var(--brand)]" />
+                <input type="checkbox" defaultChecked className="size-4 accent-emerald-500" />
                 <span>{status}</span>
               </label>
             ))}
           </div>
         </Field>
-        <div className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface-2)] p-3 text-sm">
-          Catalog size <strong className="font-semibold text-[var(--text)]">{formatNumber(data.data.length)}</strong> entries •
+        <div className="rounded-lg border border-neutral-800 bg-neutral-900/60 p-3 text-sm">
+          Catalog size <strong className="font-semibold text-neutral-200">{formatNumber(data.data.length)}</strong> entries •
           tracking {Object.keys(statusCounts).length} statuses.
         </div>
       </div>
@@ -475,7 +475,7 @@ function MapLeft() {
   if (isError || !data) {
     return (
       <SectionBanner title="AI Route Notes" aria-live="polite">
-        <p className="text-sm text-[color-mix(in_srgb,var(--muted)_90%,transparent)]">
+        <p className="text-sm text-neutral-400">
           Unable to score the proposed route. Try again shortly.
         </p>
       </SectionBanner>
@@ -490,14 +490,14 @@ function MapLeft() {
     >
       <ul className="space-y-3 text-sm leading-6">
         <li>
-          Estimated distance <strong className="font-semibold text-[var(--text)]">{data.summary.distance}</strong> with ETA
+          Estimated distance <strong className="font-semibold text-neutral-200">{data.summary.distance}</strong> with ETA
           {" "}
-          <strong className="font-semibold text-[var(--text)]">{data.summary.eta}</strong>.
+          <strong className="font-semibold text-neutral-200">{data.summary.eta}</strong>.
         </li>
         <li>Cost band classified as {data.summary.costBand}.</li>
         <li>Vehicle profiles: {data.options.vehicleProfiles.join(", ")}.</li>
       </ul>
-      <div className="text-xs text-[color-mix(in_srgb,var(--muted)_80%,transparent)]">Route steps evaluated: {data.steps.length}</div>
+      <div className="text-xs text-neutral-400">Route steps evaluated: {data.steps.length}</div>
     </SectionBanner>
   );
 }
@@ -505,7 +505,7 @@ function MapLeft() {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="grid gap-2 text-sm">
-      <span className="text-xs uppercase tracking-wide text-[color-mix(in_srgb,var(--muted)_85%,transparent)]">{label}</span>
+      <span className="text-xs uppercase tracking-wide text-neutral-500">{label}</span>
       {children}
     </label>
   );
@@ -515,7 +515,7 @@ function LoadingParagraph({ lines }: { lines: number }) {
   return (
     <div className="space-y-3">
       {Array.from({ length: lines }).map((_, index) => (
-        <div key={index} className="h-3 w-full animate-pulse rounded-[var(--radius)] bg-[color-mix(in_srgb,var(--surface-2)_70%,transparent)]" />
+        <div key={index} className="h-3 w-full animate-pulse rounded-lg bg-neutral-900/50" />
       ))}
     </div>
   );
@@ -526,8 +526,8 @@ function LoadingForm() {
     <div className="space-y-4">
       {Array.from({ length: 4 }).map((_, index) => (
         <div key={index} className="space-y-2">
-          <div className="h-3 w-24 animate-pulse rounded-[var(--radius)] bg-[color-mix(in_srgb,var(--surface-2)_70%,transparent)]" />
-          <div className="h-11 w-full animate-pulse rounded-[var(--radius)] bg-[color-mix(in_srgb,var(--surface-2)_70%,transparent)]" />
+          <div className="h-3 w-24 animate-pulse rounded-lg bg-neutral-900/50" />
+          <div className="h-11 w-full animate-pulse rounded-lg bg-neutral-900/50" />
         </div>
       ))}
     </div>
