@@ -12,6 +12,7 @@ export enum TripStatus {
   
   // In transit
   IN_TRANSIT = "in_transit",              // Between pickup and delivery
+  CUSTOMS_HOLD = "customs_hold",          // Border documentation hold
   
   // Delivery phase
   EN_ROUTE_TO_DELIVERY = "en_route_to_delivery",  // Heading to consignee
