@@ -5,6 +5,7 @@ import { PORT, SERVICE_NAME } from "./config/config";
 import tripsRouter from "./routes/trips";
 import telemetryRouter from "./routes/telemetry";
 import viewsRouter from "./routes/views";
+import customsRouter from "./routes/customs";
 import { startConsumer } from "./services/kafkaConsumer";
 import { handleKafkaMessage } from "./services/eventProcessor";
 
@@ -18,6 +19,7 @@ app.get("/healthz", (_req, res) => res.send("ok"));
 app.use("/api/trips", tripsRouter);
 app.use("/api/telemetry", telemetryRouter);
 app.use("/api/views", viewsRouter);
+app.use("/api/customs", customsRouter);
 
 async function bootstrap() {
   try {

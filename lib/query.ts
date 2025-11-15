@@ -25,4 +25,6 @@ export const queryKeys = {
     customers: ["admin", "customers"] as const,
   },
   map: ["map-plan"] as const,
+  customs: () => ["customs"] as const,
+  customsDetail: (id: string) => ["customs", id] as const,
 };
