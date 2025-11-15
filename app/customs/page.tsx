@@ -14,7 +14,7 @@ import { queryKeys } from "@/lib/query";
 import type { CustomsClearanceListItem, CustomsResponse } from "@/lib/types";
 
 async function fetchCustomsClearances(): Promise<CustomsResponse> {
-  const response = await fetch("/api/customs");
+  const response = await fetch("/api/customs", { cache: "no-store" });
   if (!response.ok) {
     throw new Error("Failed to fetch customs clearances");
   }
@@ -29,7 +29,7 @@ export default function CustomsPage() {
   const { data, isLoading, isError } = useQuery({
     queryKey: queryKeys.customs(),
     queryFn: fetchCustomsClearances,
-    refetchInterval: 30_000,
+    refetchInterval: 30000,
   });
 
   const columns: DataTableColumn<CustomsClearanceListItem>[] = useMemo(
@@ -122,7 +122,9 @@ export default function CustomsPage() {
         key: "eta",
         header: "Est. Crossing",
         accessor: (row) =>
-          row.estimatedCrossingTime ? formatDateTime(row.estimatedCrossingTime) : "TBD",
+          row.estimatedCrossingTime
+            ? formatDateTime(row.estimatedCrossingTime)
+            : "TBD",
         widthClass: "min-w-[200px]",
       },
     ],
