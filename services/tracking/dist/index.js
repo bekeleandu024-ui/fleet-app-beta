@@ -10,6 +10,7 @@ const config_1 = require("./config/config");
 const trips_1 = __importDefault(require("./routes/trips"));
 const telemetry_1 = __importDefault(require("./routes/telemetry"));
 const views_1 = __importDefault(require("./routes/views"));
+const customs_1 = __importDefault(require("./routes/customs"));
 const kafkaConsumer_1 = require("./services/kafkaConsumer");
 const eventProcessor_1 = require("./services/eventProcessor");
 const app = (0, express_1.default)();
@@ -20,6 +21,7 @@ app.get("/healthz", (_req, res) => res.send("ok"));
 app.use("/api/trips", trips_1.default);
 app.use("/api/telemetry", telemetry_1.default);
 app.use("/api/views", views_1.default);
+app.use("/api/customs", customs_1.default);
 async function bootstrap() {
     try {
         await (0, init_1.runMigrations)();

@@ -14,6 +14,7 @@ var TripStatus;
     TripStatus["DEPARTED_PICKUP"] = "departed_pickup";
     // In transit
     TripStatus["IN_TRANSIT"] = "in_transit";
+    TripStatus["CUSTOMS_HOLD"] = "customs_hold";
     // Delivery phase
     TripStatus["EN_ROUTE_TO_DELIVERY"] = "en_route_to_delivery";
     TripStatus["AT_DELIVERY"] = "at_delivery";
