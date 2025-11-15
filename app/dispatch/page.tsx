@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { Info, Route } from "lucide-react";
 
@@ -112,6 +113,7 @@ function AssignmentBanner({
   data: Awaited<ReturnType<typeof fetchDispatch>>;
   activeOrder: Awaited<ReturnType<typeof fetchDispatch>>["qualifiedOrders"][number] | null;
 }) {
+  const router = useRouter();
   return (
     <SectionBanner
       title="Assignment & Guardrails"
@@ -191,7 +193,7 @@ function AssignmentBanner({
           <Button size="sm" variant="subtle">
             Save Draft
           </Button>
-          <Button size="sm" variant="primary">
+          <Button size="sm" variant="primary" onClick={() => router.push("/trips/new")}>
             Launch Trip
           </Button>
         </div>
