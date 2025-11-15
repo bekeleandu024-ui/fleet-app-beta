@@ -408,6 +408,9 @@ export const customsStatusSchema = z.enum([
 ]);
 export type CustomsStatus = z.infer<typeof customsStatusSchema>;
 
+export const customsPrioritySchema = z.enum(["URGENT", "HIGH", "NORMAL", "LOW"]);
+export type CustomsPriority = z.infer<typeof customsPrioritySchema>;
+
 export const customsDocumentTypeSchema = z.enum([
   "COMMERCIAL_INVOICE",
   "BILL_OF_LADING",
@@ -427,7 +430,7 @@ export const customsClearanceListItemSchema = z.object({
   driverName: z.string(),
   unitNumber: z.string(),
   status: customsStatusSchema,
-  priority: z.enum(["URGENT", "HIGH", "NORMAL", "LOW"]),
+  priority: customsPrioritySchema,
   borderCrossingPoint: z.string(),
   crossingDirection: z.string(),
   estimatedCrossingTime: z.string(),
@@ -460,7 +463,7 @@ export const customsActivitySchema = z.object({
   action: z.string(),
   actor: z.string(),
   actorType: z.enum(["DRIVER", "AGENT", "SYSTEM"]),
-  details: z.record(z.string(), z.any()).optional(),
+  details: z.record(z.any()).optional(),
   notes: z.string().optional(),
   createdAt: z.string(),
 });
@@ -474,7 +477,7 @@ export const customsClearanceDetailSchema = z.object({
   driverName: z.string(),
   unitNumber: z.string(),
   status: customsStatusSchema,
-  priority: z.enum(["URGENT", "HIGH", "NORMAL", "LOW"]),
+  priority: customsPrioritySchema,
   borderCrossingPoint: z.string(),
   crossingDirection: z.string(),
   estimatedCrossingTime: z.string(),

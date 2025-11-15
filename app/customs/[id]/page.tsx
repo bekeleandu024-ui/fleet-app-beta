@@ -14,7 +14,7 @@ import { queryKeys } from "@/lib/query";
 import type { CustomsClearanceDetail } from "@/lib/types";
 
 async function fetchCustomsDetail(id: string): Promise<CustomsClearanceDetail> {
-  const response = await fetch(`http://localhost:4004/api/customs/${id}`);
+  const response = await fetch(`/api/customs/${id}`, { cache: "no-store" });
   if (!response.ok) {
     throw new Error("Failed to fetch customs detail");
   }
@@ -22,7 +22,7 @@ async function fetchCustomsDetail(id: string): Promise<CustomsClearanceDetail> {
 }
 
 async function submitDocuments(id: string) {
-  const response = await fetch(`http://localhost:4004/api/customs/${id}/submit`, {
+  const response = await fetch(`/api/customs/${id}/submit`, {
     method: "POST",
   });
   if (!response.ok) {
@@ -32,7 +32,7 @@ async function submitDocuments(id: string) {
 }
 
 async function approveCustoms(id: string, payload: { agentName: string; notes: string }) {
-  const response = await fetch(`http://localhost:4004/api/customs/${id}/approve`, {
+  const response = await fetch(`/api/customs/${id}/approve`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -44,7 +44,7 @@ async function approveCustoms(id: string, payload: { agentName: string; notes: s
 }
 
 async function rejectCustoms(id: string, payload: { agentName: string; reason: string }) {
-  const response = await fetch(`http://localhost:4004/api/customs/${id}/reject`, {
+  const response = await fetch(`/api/customs/${id}/reject`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -56,7 +56,7 @@ async function rejectCustoms(id: string, payload: { agentName: string; reason: s
 }
 
 async function clearForBorder(id: string) {
-  const response = await fetch(`http://localhost:4004/api/customs/${id}/clear`, {
+  const response = await fetch(`/api/customs/${id}/clear`, {
     method: "POST",
   });
   if (!response.ok) {
