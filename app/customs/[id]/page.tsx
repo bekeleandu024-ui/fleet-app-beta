@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { use, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertCircle, CheckCircle2, FileText, Upload, XCircle } from "lucide-react";
@@ -67,30 +67,31 @@ async function clearForBorder(id: string) {
 
 const formatMaybeDate = (value?: string | null) => (value ? formatDateTime(value) : "—");
 
-export default function CustomsDetailPage({ params }: { params: { id: string } }) {
+export default function CustomsDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const router = useRouter();
   const queryClient = useQueryClient();
   const [approvalNotes, setApprovalNotes] = useState("");
   const [rejectionReason, setRejectionReason] = useState("");
 
   const { data, isLoading } = useQuery({
-    queryKey: queryKeys.customsDetail(params.id),
-    queryFn: () => fetchCustomsDetail(params.id),
+    queryKey: queryKeys.customsDetail(id),
+    queryFn: () => fetchCustomsDetail(id),
     refetchInterval: 15_000,
   });
 
   const invalidateQueries = () => {
     queryClient.invalidateQueries({ queryKey: queryKeys.customs() });
-    queryClient.invalidateQueries({ queryKey: queryKeys.customsDetail(params.id) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.customsDetail(id) });
   };
 
   const submitMutation = useMutation({
-    mutationFn: () => submitDocuments(params.id),
+    mutationFn: () => submitDocuments(id),
     onSuccess: invalidateQueries,
   });
 
   const approveMutation = useMutation({
-    mutationFn: () => approveCustoms(params.id, { agentName: "Agent Smith", notes: approvalNotes }),
+    mutationFn: () => approveCustoms(id, { agentName: "Agent Smith", notes: approvalNotes }),
     onSuccess: () => {
       setApprovalNotes("");
       invalidateQueries();
@@ -98,7 +99,7 @@ export default function CustomsDetailPage({ params }: { params: { id: string } }
   });
 
   const rejectMutation = useMutation({
-    mutationFn: () => rejectCustoms(params.id, { agentName: "Agent Smith", reason: rejectionReason }),
+    mutationFn: () => rejectCustoms(id, { agentName: "Agent Smith", reason: rejectionReason }),
     onSuccess: () => {
       setRejectionReason("");
       invalidateQueries();
@@ -106,7 +107,7 @@ export default function CustomsDetailPage({ params }: { params: { id: string } }
   });
 
   const clearMutation = useMutation({
-    mutationFn: () => clearForBorder(params.id),
+    mutationFn: () => clearForBorder(id),
     onSuccess: () => {
       invalidateQueries();
       router.push("/trips");
