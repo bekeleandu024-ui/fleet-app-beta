@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS customs_agents (
 CREATE TABLE IF NOT EXISTS customs_clearances (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     trip_id UUID NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
-    order_id UUID NOT NULL REFERENCES orders(id),
+    order_id UUID NOT NULL,
     driver_id UUID NOT NULL REFERENCES driver_profiles(driver_id),
     unit_id UUID REFERENCES unit_profiles(unit_id),
     status VARCHAR(50) NOT NULL DEFAULT 'PENDING_DOCS',
