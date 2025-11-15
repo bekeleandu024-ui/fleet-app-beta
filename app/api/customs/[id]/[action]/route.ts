@@ -1,61 +1,76 @@
 import { NextResponse } from "next/server";
 
-const TRACKING_SERVICE_URL =
-  process.env.TRACKING_SERVICE_URL || "http://localhost:4004";
+import {
+  approveCustomsClearance,
+  assignCustomsAgent,
+  clearCustomsHold,
+  rejectCustomsClearance,
+  submitCustomsDocuments,
+  uploadCustomsDocument,
+} from "@/lib/customs-store";
 
-const SUPPORTED_ACTIONS = new Set([
-  "documents",
-  "submit",
-  "assign-agent",
-  "approve",
-  "reject",
-  "clear",
-]);
+const ACTION_HANDLERS = {
+  submit: async (id: string, _request: Request) => submitCustomsDocuments(id),
+  clear: async (id: string, _request: Request) => clearCustomsHold(id),
+  approve: async (id: string, request: Request) => {
+    const body = await request.json();
+    if (!body?.agentName) {
+      throw new Error("Agent name is required");
+    }
+    return approveCustomsClearance(id, {
+      agentName: body.agentName,
+      notes: body.notes ?? "",
+    });
+  },
+  reject: async (id: string, request: Request) => {
+    const body = await request.json();
+    if (!body?.agentName || !body?.reason) {
+      throw new Error("Agent name and reason are required");
+    }
+    return rejectCustomsClearance(id, {
+      agentName: body.agentName,
+      reason: body.reason,
+    });
+  },
+  "assign-agent": async (id: string, request: Request) => {
+    const body = await request.json();
+    if (!body?.agentName) {
+      throw new Error("Agent name is required");
+    }
+    return assignCustomsAgent(id, { agentName: body.agentName });
+  },
+  documents: async (id: string, request: Request) => {
+    const body = await request.json();
+    if (!body?.documentType || !body?.documentName) {
+      throw new Error("Document type and name are required");
+    }
+    return uploadCustomsDocument(id, {
+      documentType: body.documentType,
+      documentName: body.documentName,
+    });
+  },
+} as const;
 
 export async function POST(
   request: Request,
-  { params }: { params: { id: string; action: string } }
+  { params }: { params: { id: string; action: keyof typeof ACTION_HANDLERS } }
 ) {
-  if (!SUPPORTED_ACTIONS.has(params.action)) {
+  const handler = ACTION_HANDLERS[params.action];
+
+  if (!handler) {
     return NextResponse.json({ error: "Unsupported action" }, { status: 404 });
   }
 
   try {
-    const contentType = request.headers.get("content-type");
-    const bodyText = await request.text();
-    const hasBody = bodyText.length > 0;
-
-    const response = await fetch(
-      `${TRACKING_SERVICE_URL}/api/customs/${params.id}/${params.action}`,
-      {
-        method: "POST",
-        headers: hasBody && contentType ? { "Content-Type": contentType } : undefined,
-        body: hasBody ? bodyText : undefined,
-        cache: "no-store",
-      }
-    );
-
-    if (!response.ok) {
-      console.error(
-        "Tracking service action error:",
-        params.action,
-        params.id,
-        response.status,
-        response.statusText
-      );
-      return NextResponse.json(
-        { error: `Failed to ${params.action} customs clearance` },
-        { status: response.status }
-      );
-    }
-
-    const data = await response.json();
+    const data = await handler(params.id, request);
     return NextResponse.json(data);
   } catch (error) {
     console.error("Customs Action API Error:", error);
     return NextResponse.json(
-      { error: "Failed to connect to tracking service" },
-      { status: 500 }
+      {
+        error: error instanceof Error ? error.message : "Failed to process customs action",
+      },
+      { status: 400 }
     );
   }
 }
