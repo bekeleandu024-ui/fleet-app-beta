@@ -4,9 +4,10 @@ import { getCustomsClearance } from "@/lib/customs-store";
 
 export async function GET(
   _request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const clearance = getCustomsClearance(params.id);
+  const { id } = await params;
+  const clearance = getCustomsClearance(id);
 
   if (!clearance) {
     return NextResponse.json(
