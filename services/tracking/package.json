@@ -4,25 +4,28 @@
   "private": true,
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
-    "build": "tsc -p tsconfig.json",
+    "clean": "rimraf dist node_modules/.cache",
+    "build": "npm run clean && tsc -p tsconfig.json",
     "postbuild": "node -e \"const fs=require('fs'),p=require('path');const src=p.join('src','db','migrations');const dst=p.join('dist','db','migrations');if(fs.existsSync(src)){fs.mkdirSync(dst,{recursive:true});for(const f of fs.readdirSync(src))fs.copyFileSync(p.join(src,f),p.join(dst,f));}\"",
+    "prestart": "npm run build",
     "start": "node dist/index.js",
     "migrate": "ts-node src/db/init.ts"
   },
   "dependencies": {
-  "express": "^4.21.2",
-  "cors": "^2.8.5",
-    "pg": "^8.11.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.2",
     "kafkajs": "^2.2.4",
-    "ws": "^8.14.2",
-    "dotenv": "^16.4.5"
+    "pg": "^8.11.3",
+    "ws": "^8.14.2"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.17",
     "@types/express": "^4.17.25",
     "@types/node": "^20.19.24",
     "@types/pg": "^8.10.9",
     "@types/ws": "^8.5.10",
-    "@types/cors": "^2.8.17",
+    "rimraf": "^2.7.1",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.9.3"
   }
