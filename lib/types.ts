@@ -398,6 +398,131 @@ export type LaneAdminRecord = z.infer<typeof laneAdminSchema>;
 export type LaneAdminCreate = Omit<LaneAdminRecord, "id"> & { id?: string };
 export type LaneAdminUpdate = LaneAdminRecord;
 
+export const customsStatusSchema = z.enum([
+  "PENDING_DOCS",
+  "DOCS_SUBMITTED",
+  "UNDER_REVIEW",
+  "APPROVED",
+  "REJECTED",
+  "CLEARED",
+]);
+export type CustomsStatus = z.infer<typeof customsStatusSchema>;
+
+export const customsDocumentTypeSchema = z.enum([
+  "COMMERCIAL_INVOICE",
+  "BILL_OF_LADING",
+  "PAPS",
+  "ACE_MANIFEST",
+  "PACKING_LIST",
+  "CERTIFICATE_OF_ORIGIN",
+  "CUSTOMS_DECLARATION",
+  "CARRIER_BOND",
+  "OTHER",
+]);
+export type CustomsDocumentType = z.infer<typeof customsDocumentTypeSchema>;
+
+export const customsClearanceListItemSchema = z.object({
+  id: z.string(),
+  tripNumber: z.string(),
+  driverName: z.string(),
+  unitNumber: z.string(),
+  status: customsStatusSchema,
+  priority: z.enum(["URGENT", "HIGH", "NORMAL", "LOW"]),
+  borderCrossingPoint: z.string(),
+  crossingDirection: z.string(),
+  estimatedCrossingTime: z.string(),
+  assignedAgent: z.string().optional(),
+  flaggedAt: z.string(),
+  docsSubmittedAt: z.string().optional(),
+  requiredDocsCount: z.number(),
+  submittedDocsCount: z.number(),
+});
+export type CustomsClearanceListItem = z.infer<typeof customsClearanceListItemSchema>;
+
+export const customsDocumentSchema = z.object({
+  id: z.string(),
+  documentType: customsDocumentTypeSchema,
+  documentName: z.string(),
+  fileUrl: z.string().optional(),
+  fileSizeKb: z.number().optional(),
+  fileType: z.string().optional(),
+  status: z.enum(["UPLOADED", "VERIFIED", "REJECTED", "EXPIRED"]),
+  verificationNotes: z.string().optional(),
+  uploadedBy: z.string(),
+  uploadedAt: z.string(),
+  verifiedBy: z.string().optional(),
+  verifiedAt: z.string().optional(),
+});
+export type CustomsDocument = z.infer<typeof customsDocumentSchema>;
+
+export const customsActivitySchema = z.object({
+  id: z.string(),
+  action: z.string(),
+  actor: z.string(),
+  actorType: z.enum(["DRIVER", "AGENT", "SYSTEM"]),
+  details: z.record(z.string(), z.any()).optional(),
+  notes: z.string().optional(),
+  createdAt: z.string(),
+});
+export type CustomsActivity = z.infer<typeof customsActivitySchema>;
+
+export const customsClearanceDetailSchema = z.object({
+  id: z.string(),
+  tripId: z.string(),
+  orderId: z.string(),
+  tripNumber: z.string(),
+  driverName: z.string(),
+  unitNumber: z.string(),
+  status: customsStatusSchema,
+  priority: z.enum(["URGENT", "HIGH", "NORMAL", "LOW"]),
+  borderCrossingPoint: z.string(),
+  crossingDirection: z.string(),
+  estimatedCrossingTime: z.string(),
+  actualCrossingTime: z.string().optional(),
+  requiredDocuments: z.array(customsDocumentTypeSchema),
+  submittedDocuments: z.array(customsDocumentSchema),
+  assignedAgent: z.string().optional(),
+  agentName: z.string().optional(),
+  reviewStartedAt: z.string().optional(),
+  reviewCompletedAt: z.string().optional(),
+  reviewNotes: z.string().optional(),
+  rejectionReason: z.string().optional(),
+  activityLog: z.array(customsActivitySchema),
+  flaggedAt: z.string(),
+  docsSubmittedAt: z.string().optional(),
+  approvedAt: z.string().optional(),
+  clearedAt: z.string().optional(),
+});
+export type CustomsClearanceDetail = z.infer<typeof customsClearanceDetailSchema>;
+
+export const customsResponseSchema = z.object({
+  stats: z.object({
+    pendingDocs: z.number(),
+    underReview: z.number(),
+    approved: z.number(),
+    urgent: z.number(),
+  }),
+  filters: z.object({
+    statuses: z.array(customsStatusSchema),
+    priorities: z.array(z.string()),
+    crossingPoints: z.array(z.string()),
+    agents: z.array(z.string()),
+  }),
+  data: z.array(customsClearanceListItemSchema),
+});
+export type CustomsResponse = z.infer<typeof customsResponseSchema>;
+
+export const customsAgentSchema = z.object({
+  id: z.string(),
+  agentName: z.string(),
+  company: z.enum(["BUCKLAND", "LIVINGSTON"]),
+  email: z.string().optional(),
+  specialization: z.string().optional(),
+  currentWorkload: z.number(),
+  maxConcurrentReviews: z.number(),
+});
+export type CustomsAgent = z.infer<typeof customsAgentSchema>;
+
 export const orderAdminSchema = z.object({
   id: z.string(),
   reference: z.string(),

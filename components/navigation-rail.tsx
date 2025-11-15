@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   ActivitySquare,
+  FileCheck,
   LayoutDashboard,
   MapPinned,
   PackageSearch,
@@ -17,6 +18,7 @@ const primaryItems = [
   { label: "Dashboard", href: "/", icon: LayoutDashboard },
   { label: "Orders", href: "/orders", icon: PackageSearch },
   { label: "Trips", href: "/trips", icon: Route },
+  { label: "Customs", href: "/customs", icon: FileCheck },
   { label: "Dispatch", href: "/dispatch", icon: ActivitySquare },
   { label: "Map", href: "/map", icon: MapPinned },
 ];

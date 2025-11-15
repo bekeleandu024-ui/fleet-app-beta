@@ -179,7 +179,10 @@ export async function createTrip(input: CreateTripInput): Promise<Trip> {
     reason: "Trip created",
   });
 
-  return mapTripRow(trip);
+  const mappedTrip = mapTripRow(trip);
+  await maybeFlagTripForCustoms(mappedTrip);
+  const refreshed = await getTrip(mappedTrip.id);
+  return refreshed ?? mappedTrip;
 }
 
 export async function getTrip(tripId: string): Promise<Trip | null> {
@@ -355,7 +358,10 @@ export async function updateTripFields(
   values.push(tripId);
   const sql = `UPDATE trips SET ${updatesSql.join(", ")}, updated_at = NOW() WHERE id = $${values.length} RETURNING *`;
   const result = await pool.query(sql, values);
-  return mapTripRow(result.rows[0]);
+  const mappedTrip = mapTripRow(result.rows[0]);
+  await maybeFlagTripForCustoms(mappedTrip);
+  const refreshed = await getTrip(mappedTrip.id);
+  return refreshed ?? mappedTrip;
 }
 
 export async function applyLocationUpdate(
@@ -397,4 +403,182 @@ async function markStopTimestamp(
       )`,
     [timestamp, tripId, type]
   );
+}
+
+const DEFAULT_REQUIRED_DOCUMENTS = [
+  "COMMERCIAL_INVOICE",
+  "BILL_OF_LADING",
+  "PAPS",
+  "ACE_MANIFEST",
+];
+
+async function maybeFlagTripForCustoms(trip: Trip): Promise<void> {
+  if (!checkBorderCrossing(trip.pickup_location, trip.dropoff_location)) {
+    return;
+  }
+
+  if (!trip.order_id || !trip.driver_id) {
+    return;
+  }
+
+  const existing = await pool.query<{ id: string }>(
+    `SELECT id FROM customs_clearances WHERE trip_id = $1 LIMIT 1`,
+    [trip.id]
+  );
+  if (existing.rowCount) {
+    return;
+  }
+
+  const borderPoint = detectBorderPoint(trip.pickup_location, trip.dropoff_location);
+  const direction = detectDirection(trip.pickup_location, trip.dropoff_location);
+  const eta = calculateCrossingETA(trip);
+
+  const insertResult = await pool.query<{ id: string }>(
+    `INSERT INTO customs_clearances (
+        trip_id,
+        order_id,
+        driver_id,
+        unit_id,
+        border_crossing_point,
+        crossing_direction,
+        estimated_crossing_time,
+        required_documents,
+        priority
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8::jsonb,$9)
+      RETURNING id`,
+    [
+      trip.id,
+      trip.order_id,
+      trip.driver_id,
+      trip.unit_id ?? null,
+      borderPoint,
+      direction,
+      eta,
+      JSON.stringify(DEFAULT_REQUIRED_DOCUMENTS),
+      "NORMAL",
+    ]
+  );
+
+  const clearanceId = insertResult.rows[0]?.id;
+
+  if (clearanceId) {
+    await pool.query(
+      `INSERT INTO customs_activity_log (clearance_id, action, actor, actor_type, details)
+       VALUES ($1, 'FLAGGED', 'System', 'SYSTEM', $2::jsonb)`,
+      [
+        clearanceId,
+        JSON.stringify({ borderCrossingPoint: borderPoint, crossingDirection: direction }),
+      ]
+    );
+  }
+
+  if (trip.status !== TripStatus.CUSTOMS_HOLD) {
+    await pool.query(
+      `UPDATE trips SET status = $1, updated_at = NOW() WHERE id = $2`,
+      [TripStatus.CUSTOMS_HOLD, trip.id]
+    );
+    await recordStatusEvent(trip.id, TripStatus.CUSTOMS_HOLD, {
+      triggeredBy: "system",
+      reason: "Border crossing requires customs clearance",
+    });
+  }
+}
+
+function checkBorderCrossing(origin: string, destination: string): boolean {
+  if (!origin || !destination) {
+    return false;
+  }
+
+  const originCa = isCanadianLocation(origin);
+  const destinationCa = isCanadianLocation(destination);
+  const originUs = isUsLocation(origin);
+  const destinationUs = isUsLocation(destination);
+
+  if (originCa === destinationCa) {
+    return false;
+  }
+
+  return (originCa || destinationCa) && (originUs || destinationUs);
+}
+
+function detectBorderPoint(origin: string, destination: string): string {
+  const combined = `${normalizeLocation(origin)} ${normalizeLocation(destination)}`;
+  const mappings: Array<{ keywords: string[]; label: string }> = [
+    { keywords: ["detroit", "windsor", "michigan", "ontario"], label: "Ambassador Bridge - Detroit/Windsor" },
+    { keywords: ["port huron", "sarnia", "blue water"], label: "Blue Water Bridge - Port Huron/Sarnia" },
+    { keywords: ["buffalo", "fort erie", "peace bridge"], label: "Peace Bridge - Buffalo/Fort Erie" },
+    { keywords: ["niagara", "rainbow"], label: "Rainbow Bridge - Niagara Falls" },
+  ];
+
+  for (const mapping of mappings) {
+    if (mapping.keywords.some((keyword) => combined.includes(keyword))) {
+      return mapping.label;
+    }
+  }
+
+  return "Ambassador Bridge - Detroit/Windsor";
+}
+
+function detectDirection(origin: string, destination: string): string {
+  const originCa = isCanadianLocation(origin);
+  const destinationCa = isCanadianLocation(destination);
+  if (originCa && !destinationCa) {
+    return "CANADA_TO_USA";
+  }
+  return "USA_TO_CANADA";
+}
+
+function calculateCrossingETA(trip: Trip): Date {
+  const base =
+    trip.delivery_window_start ??
+    trip.pickup_window_end ??
+    trip.planned_start ??
+    new Date();
+  const baseDate = base instanceof Date ? base : new Date(base);
+  return new Date(baseDate.getTime() + 4 * 60 * 60 * 1000);
+}
+
+function isCanadianLocation(value: string): boolean {
+  const normalized = normalizeLocation(value);
+  return [
+    "canada",
+    "ontario",
+    "qc",
+    "quebec",
+    "mb",
+    "manitoba",
+    "bc",
+    "british columbia",
+    "alberta",
+    "saskatchewan",
+  ].some((token) => normalized.includes(token));
+}
+
+function isUsLocation(value: string): boolean {
+  const normalized = normalizeLocation(value);
+  return [
+    "usa",
+    "united states",
+    "united states of america",
+    "mi",
+    "michigan",
+    "ny",
+    "new york",
+    "oh",
+    "ohio",
+    "pa",
+    "pennsylvania",
+    "il",
+    "illinois",
+    "wa",
+    "washington",
+    "nd",
+    "north dakota",
+    "mn",
+    "minnesota",
+  ].some((token) => normalized.includes(token));
+}
+
+function normalizeLocation(value: string): string {
+  return value?.toLowerCase?.() ?? "";
 }
