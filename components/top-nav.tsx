@@ -13,9 +13,20 @@ const navItems = [
   { label: "Dashboard", href: "/", match: (pathname: string) => pathname === "/" },
   { label: "Analytics", href: "/analytics", match: (pathname: string) => pathname.startsWith("/analytics") },
   { label: "Dispatch", href: "/dispatch", match: (pathname: string) => pathname.startsWith("/dispatch") },
-  { label: "Orders", href: "/orders", match: (pathname: string) => pathname.startsWith("/orders") },
+  {
+    label: "Orders",
+    href: "/orders",
+    match: (pathname: string) => pathname.startsWith("/orders") && pathname !== "/orders/new",
+  },
+  { label: "New Order", href: "/orders/new", match: (pathname: string) => pathname === "/orders/new" },
   { label: "Trips", href: "/trips", match: (pathname: string) => pathname === "/trips" },
-  { label: "Trip Detail", href: "/trips/TRP-9001", match: (pathname: string) => pathname.startsWith("/trips/") },
+  { label: "New Trip", href: "/trips/new", match: (pathname: string) => pathname === "/trips/new" },
+  {
+    label: "Trip Detail",
+    href: "/trips/TRP-9001",
+    match: (pathname: string) => pathname.startsWith("/trips/") && pathname !== "/trips" && pathname !== "/trips/new",
+  },
+  { label: "Customs", href: "/customs", match: (pathname: string) => pathname.startsWith("/customs") },
   { label: "Costing Dashboard", href: "/costing", match: (pathname: string) => pathname.startsWith("/costing") },
   { label: "Map", href: "/map", match: (pathname: string) => pathname.startsWith("/map") },
   { label: "Fleet", href: "/master-data/units", match: (pathname: string) => pathname.startsWith("/master-data/units") },
@@ -108,7 +119,7 @@ export function TopNav() {
                 ref={desktopSearchRef}
               />
             </form>
-            <Button variant="primary" size="sm">
+            <Button variant="primary" size="sm" onClick={() => router.push("/orders/new")}>
               New Order
             </Button>
           </div>
@@ -125,7 +136,12 @@ export function TopNav() {
                 ref={mobileSearchRef}
               />
             </form>
-            <Button variant="primary" size="md" className="w-full">
+            <Button
+              variant="primary"
+              size="md"
+              className="w-full"
+              onClick={() => router.push("/orders/new")}
+            >
               New Order
             </Button>
           </div>
