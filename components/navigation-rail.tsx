@@ -8,6 +8,7 @@ import {
   LayoutDashboard,
   MapPinned,
   PackageSearch,
+  PlusCircle,
   Route,
   Settings2,
 } from "lucide-react";
@@ -18,6 +19,7 @@ const primaryItems = [
   { label: "Dashboard", href: "/", icon: LayoutDashboard },
   { label: "Orders", href: "/orders", icon: PackageSearch },
   { label: "Trips", href: "/trips", icon: Route },
+  { label: "Create Trip", href: "/trips/new", icon: PlusCircle },
   { label: "Customs", href: "/customs", icon: FileCheck },
   { label: "Dispatch", href: "/dispatch", icon: ActivitySquare },
   { label: "Map", href: "/map", icon: MapPinned },

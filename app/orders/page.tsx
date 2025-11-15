@@ -112,7 +112,7 @@ export default function OrdersPage() {
           >
             <RefreshCw className="size-4" /> Refresh
           </Button>
-          <Button size="sm" variant="primary">
+          <Button size="sm" variant="primary" onClick={() => router.push("/orders/new")}>
             Create Order
           </Button>
         </div>
