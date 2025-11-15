@@ -7,21 +7,16 @@ import { updateTripStatus } from "../services/tripService";
 
 const router = Router();
 
-const DEFAULT_FILTERS = {
-  statuses: ["PENDING_DOCS", "DOCS_SUBMITTED", "UNDER_REVIEW", "APPROVED", "REJECTED"],
-  priorities: ["URGENT", "HIGH", "NORMAL", "LOW"],
-  crossingPoints: [
-    "Ambassador Bridge",
-    "Blue Water Bridge",
-    "Peace Bridge",
-    "Rainbow Bridge",
-  ],
-  agents: [
-    "Buckland - John Smith",
-    "Buckland - Sarah Johnson",
-    "Livingston - Mike Davis",
-  ],
-};
+const CUSTOMS_STATUSES = [
+  "PENDING_DOCS",
+  "DOCS_SUBMITTED",
+  "UNDER_REVIEW",
+  "APPROVED",
+  "REJECTED",
+  "CLEARED",
+] as const;
+
+const CUSTOMS_PRIORITIES = ["URGENT", "HIGH", "NORMAL", "LOW"] as const;
 
 const toIsoString = (value: unknown | null | undefined): string | undefined => {
   if (!value) {
@@ -34,14 +29,44 @@ const toIsoString = (value: unknown | null | undefined): string | undefined => {
   return date.toISOString();
 };
 
-const buildTripNumber = (tripId: string) => `TRIP-${tripId.replace(/-/g, "").slice(0, 8).toUpperCase()}`;
+const buildTripNumber = (tripId: string | number | null | undefined) => {
+  const normalized =
+    typeof tripId === "string"
+      ? tripId
+      : typeof tripId === "number"
+      ? String(tripId)
+      : tripId ?? "";
+  if (!normalized) {
+    return "TRIP-UNKNOWN";
+  }
+  const sanitized = normalized.replace(/[^a-zA-Z0-9]/g, "");
+  return `TRIP-${sanitized.slice(0, 8).padEnd(8, "0").toUpperCase()}`;
+};
+
+const parseJsonValue = (
+  value: unknown
+): Record<string, unknown> | undefined => {
+  if (value === null || value === undefined) {
+    return undefined;
+  }
+  if (typeof value === "string") {
+    try {
+      return JSON.parse(value);
+    } catch (_error) {
+      return undefined;
+    }
+  }
+  return value as Record<string, unknown>;
+};
 
 router.get("/", async (_req: Request, res: Response) => {
   try {
-    const result = await pool.query(`
+    const [clearancesResult, agentsResult] = await Promise.all([
+      pool.query(`
       SELECT
         cc.id,
         cc.trip_id,
+        cc.order_id,
         cc.status,
         cc.priority,
         cc.border_crossing_point,
@@ -69,25 +94,33 @@ router.get("/", async (_req: Request, res: Response) => {
           WHEN 'LOW' THEN 4
         END,
         cc.estimated_crossing_time ASC NULLS LAST
-    `);
+    `),
+      pool.query<{ agent_name: string }>(
+        `SELECT agent_name FROM customs_agents WHERE is_active = true ORDER BY agent_name`
+      ),
+    ]);
 
-    const clearances = result.rows.map((row) => {
+    const clearances = clearancesResult.rows.map((row) => {
       const requiredDocs = Array.isArray(row.required_documents)
         ? row.required_documents
         : [];
       const submittedDocs = Array.isArray(row.submitted_documents)
         ? row.submitted_documents
         : [];
+      const status = typeof row.status === "string" ? row.status : "PENDING_DOCS";
+      const priority = typeof row.priority === "string" ? row.priority : "NORMAL";
+      const borderCrossingPoint = row.border_crossing_point ?? "Unknown Crossing";
+      const crossingDirection = row.crossing_direction ?? "UNKNOWN_DIRECTION";
 
       return {
-        id: row.id,
+        id: String(row.id),
         tripNumber: buildTripNumber(row.trip_identifier ?? row.trip_id),
         driverName: row.driver_name ?? "Unassigned",
         unitNumber: row.unit_number ?? "Pending",
-        status: row.status,
-        priority: row.priority,
-        borderCrossingPoint: row.border_crossing_point,
-        crossingDirection: row.crossing_direction,
+        status,
+        priority,
+        borderCrossingPoint,
+        crossingDirection,
         estimatedCrossingTime: toIsoString(row.estimated_crossing_time) ?? "",
         assignedAgent: row.agent_name ?? undefined,
         flaggedAt: toIsoString(row.flagged_at) ?? new Date().toISOString(),
@@ -99,14 +132,42 @@ router.get("/", async (_req: Request, res: Response) => {
 
     const stats = {
       pendingDocs: clearances.filter((c) => c.status === "PENDING_DOCS").length,
-      underReview: clearances.filter((c) => c.status === "UNDER_REVIEW").length,
+      underReview: clearances.filter((c) =>
+        c.status === "UNDER_REVIEW" || c.status === "DOCS_SUBMITTED"
+      ).length,
       approved: clearances.filter((c) => c.status === "APPROVED").length,
       urgent: clearances.filter((c) => c.priority === "URGENT").length,
     };
 
+    const crossingPointSet = new Set<string>();
+    for (const clearance of clearances) {
+      if (clearance.borderCrossingPoint) {
+        crossingPointSet.add(clearance.borderCrossingPoint);
+      }
+    }
+
+    const agentSet = new Set<string>();
+    for (const agentRow of agentsResult.rows) {
+      if (agentRow.agent_name) {
+        agentSet.add(agentRow.agent_name);
+      }
+    }
+    for (const clearance of clearances) {
+      if (clearance.assignedAgent) {
+        agentSet.add(clearance.assignedAgent);
+      }
+    }
+
+    const filters = {
+      statuses: [...CUSTOMS_STATUSES],
+      priorities: [...CUSTOMS_PRIORITIES],
+      crossingPoints: Array.from(crossingPointSet).sort((a, b) => a.localeCompare(b)),
+      agents: Array.from(agentSet).sort((a, b) => a.localeCompare(b)),
+    };
+
     res.json({
       stats,
-      filters: DEFAULT_FILTERS,
+      filters,
       data: clearances,
     });
   } catch (error) {
@@ -151,49 +212,70 @@ router.get("/:id", async (req: Request, res: Response) => {
     );
 
     const requiredDocs = Array.isArray(clearance.required_documents)
-      ? clearance.required_documents
+      ? clearance.required_documents.map((doc: unknown) => String(doc).toUpperCase())
       : [];
 
+    const allowedDocumentStatuses = ["UPLOADED", "VERIFIED", "REJECTED", "EXPIRED"] as const;
+
+    const normalizeDocumentStatus = (value: unknown) => {
+      const status = typeof value === "string" ? value.toUpperCase() : "UPLOADED";
+      return allowedDocumentStatuses.includes(status as (typeof allowedDocumentStatuses)[number])
+        ? status
+        : "UPLOADED";
+    };
+
+    const normalizeActorType = (value: unknown) => {
+      const actorType = typeof value === "string" ? value.toUpperCase() : "SYSTEM";
+      return ["DRIVER", "AGENT", "SYSTEM"].includes(actorType)
+        ? actorType
+        : "SYSTEM";
+    };
+
     res.json({
-      id: clearance.id,
-      tripId: clearance.trip_id,
-      orderId: clearance.order_id,
+      id: String(clearance.id),
+      tripId: clearance.trip_id ? String(clearance.trip_id) : "",
+      orderId: clearance.order_id ? String(clearance.order_id) : "",
       tripNumber: buildTripNumber(clearance.trip_identifier ?? clearance.trip_id),
       driverName: clearance.driver_name ?? "Unassigned",
       unitNumber: clearance.unit_number ?? "Pending",
       status: clearance.status,
       priority: clearance.priority,
-      borderCrossingPoint: clearance.border_crossing_point,
-      crossingDirection: clearance.crossing_direction,
+      borderCrossingPoint: clearance.border_crossing_point ?? "Unknown Crossing",
+      crossingDirection: clearance.crossing_direction ?? "UNKNOWN_DIRECTION",
       estimatedCrossingTime: toIsoString(clearance.estimated_crossing_time) ?? "",
       actualCrossingTime: toIsoString(clearance.actual_crossing_time),
       requiredDocuments: requiredDocs,
-      submittedDocuments: docsResult.rows.map((doc) => ({
-        id: doc.id,
-        documentType: doc.document_type,
-        documentName: doc.document_name,
-        fileUrl: doc.file_url ?? undefined,
-        fileSizeKb: doc.file_size_kb ?? undefined,
-        fileType: doc.file_type ?? undefined,
-        status: doc.status,
-        verificationNotes: doc.verification_notes ?? undefined,
-        uploadedBy: doc.uploaded_by ?? "DRIVER",
-        uploadedAt: toIsoString(doc.uploaded_at) ?? new Date().toISOString(),
-        verifiedBy: doc.verified_by ?? undefined,
-        verifiedAt: toIsoString(doc.verified_at),
-      })),
-      assignedAgent: clearance.assigned_agent_id ?? undefined,
+      submittedDocuments: docsResult.rows.map((doc) => {
+        const documentType = (doc.document_type ?? "OTHER").toString().toUpperCase();
+        return {
+          id: String(doc.id),
+          documentType,
+          documentName: doc.document_name,
+          fileUrl: doc.file_url ?? undefined,
+          fileSizeKb: doc.file_size_kb ?? undefined,
+          fileType: doc.file_type ?? undefined,
+          status: normalizeDocumentStatus(doc.status),
+          verificationNotes: doc.verification_notes ?? undefined,
+          uploadedBy: doc.uploaded_by ?? "DRIVER",
+          uploadedAt: toIsoString(doc.uploaded_at) ?? new Date().toISOString(),
+          verifiedBy: doc.verified_by ?? undefined,
+          verifiedAt: toIsoString(doc.verified_at),
+        };
+      }),
+      assignedAgent: clearance.assigned_agent_id
+        ? String(clearance.assigned_agent_id)
+        : undefined,
       agentName: clearance.agent_name ?? undefined,
       reviewStartedAt: toIsoString(clearance.review_started_at),
       reviewCompletedAt: toIsoString(clearance.review_completed_at),
       reviewNotes: clearance.review_notes ?? undefined,
       rejectionReason: clearance.rejection_reason ?? undefined,
       activityLog: logResult.rows.map((log) => ({
-        id: log.id,
-        action: log.action,
-        actor: log.actor ?? "System",
-        actorType: log.actor_type ?? "SYSTEM",
-        details: log.details ?? undefined,
+        id: String(log.id),
+        action: typeof log.action === "string" ? log.action : "SYSTEM_EVENT",
+        actor: log.actor ? String(log.actor) : "System",
+        actorType: normalizeActorType(log.actor_type),
+        details: parseJsonValue(log.details),
         notes: log.notes ?? undefined,
         createdAt: toIsoString(log.created_at) ?? new Date().toISOString(),
       })),

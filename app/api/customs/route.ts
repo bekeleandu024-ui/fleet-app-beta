@@ -6,9 +6,15 @@ export async function GET() {
   try {
     const response = await fetch(`${TRACKING_SERVICE_URL}/api/customs`, {
       headers: { "Content-Type": "application/json" },
+      cache: "no-store",
     });
 
     if (!response.ok) {
+      console.error(
+        "Tracking service error:",
+        response.status,
+        response.statusText
+      );
       return NextResponse.json(
         { error: "Failed to fetch customs clearances" },
         { status: response.status }
@@ -20,7 +26,10 @@ export async function GET() {
   } catch (error) {
     console.error("Customs API Error:", error);
     return NextResponse.json(
-      { error: "Failed to connect to tracking service" },
+      {
+        error: "Failed to connect to tracking service",
+        details: error instanceof Error ? error.message : String(error),
+      },
       { status: 500 }
     );
   }
