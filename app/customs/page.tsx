@@ -14,7 +14,7 @@ import { queryKeys } from "@/lib/query";
 import type { CustomsClearanceListItem, CustomsResponse } from "@/lib/types";
 
 async function fetchCustomsClearances(): Promise<CustomsResponse> {
-  const response = await fetch("http://localhost:4004/api/customs");
+  const response = await fetch("/api/customs");
   if (!response.ok) {
     throw new Error("Failed to fetch customs clearances");
   }
