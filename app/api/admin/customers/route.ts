@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { formatError } from "@/lib/api-errors";
-import { createCustomer, listCustomers, updateCustomer } from "@/lib/mock-data-store";
+import { serviceFetch } from "@/lib/service-client";
+import { mapCustomerRecord } from "@/lib/transformers";
 
 const customerStatuses = ["Active", "Paused", "Prospect"] as const;
 
@@ -17,14 +18,25 @@ const createSchema = baseSchema.extend({ id: z.string().optional() });
 const updateSchema = baseSchema.extend({ id: z.string() });
 
 export async function GET() {
-  return NextResponse.json({ data: listCustomers() });
+  try {
+    const orders = await serviceFetch<Array<Record<string, any>>>("orders", "/api/orders");
+    const customers = Array.from(
+      new Map(orders.map((order) => {
+        const record = mapCustomerRecord(order);
+        return [record.id, record];
+      })).values()
+    );
+    return NextResponse.json({ data: customers });
+  } catch (error) {
+    console.error("Admin customers fetch failed", error);
+    return NextResponse.json({ data: [] });
+  }
 }
 
 export async function POST(request: Request) {
   try {
-    const payload = createSchema.parse(await request.json());
-    const record = createCustomer(payload);
-    return NextResponse.json({ data: record }, { status: 201 });
+    createSchema.parse(await request.json());
+    return NextResponse.json({ error: "Customer creation is disabled against live services" }, { status: 503 });
   } catch (error) {
     return NextResponse.json({ error: formatError(error) }, { status: 400 });
   }
@@ -32,10 +44,8 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
   try {
-    const payload = updateSchema.parse(await request.json());
-    const { id, ...changes } = payload;
-    const record = updateCustomer(id, changes);
-    return NextResponse.json({ data: record });
+    updateSchema.parse(await request.json());
+    return NextResponse.json({ error: "Customer updates are disabled against live services" }, { status: 503 });
   } catch (error) {
     return NextResponse.json({ error: formatError(error) }, { status: 400 });
   }

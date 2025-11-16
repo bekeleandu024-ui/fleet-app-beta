@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { formatError } from "@/lib/api-errors";
-import { createDriver, listDrivers, updateDriver } from "@/lib/mock-data-store";
+import { serviceFetch } from "@/lib/service-client";
+import { mapDriverRecord } from "@/lib/transformers";
 
 const driverStatusValues = ["Ready", "Booked", "Off Duty", "Leave"] as const;
 
@@ -16,14 +17,19 @@ const createSchema = baseSchema.extend({ id: z.string().optional() });
 const updateSchema = baseSchema.extend({ id: z.string() });
 
 export async function GET() {
-  return NextResponse.json({ data: listDrivers() });
+  try {
+    const payload = await serviceFetch<{ drivers?: Array<Record<string, any>> }>("masterData", "/api/metadata/drivers");
+    return NextResponse.json({ data: (payload.drivers ?? []).map(mapDriverRecord) });
+  } catch (error) {
+    console.error("Admin drivers fetch failed", error);
+    return NextResponse.json({ error: "Unable to load drivers" }, { status: 500 });
+  }
 }
 
 export async function POST(request: Request) {
   try {
-    const payload = createSchema.parse(await request.json());
-    const record = createDriver(payload);
-    return NextResponse.json({ data: record }, { status: 201 });
+    createSchema.parse(await request.json());
+    return NextResponse.json({ error: "Driver creation is disabled against live services" }, { status: 503 });
   } catch (error) {
     return NextResponse.json({ error: formatError(error) }, { status: 400 });
   }
@@ -31,10 +37,8 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
   try {
-    const payload = updateSchema.parse(await request.json());
-    const { id, ...changes } = payload;
-    const record = updateDriver(id, changes);
-    return NextResponse.json({ data: record });
+    updateSchema.parse(await request.json());
+    return NextResponse.json({ error: "Driver updates are disabled against live services" }, { status: 503 });
   } catch (error) {
     return NextResponse.json({ error: formatError(error) }, { status: 400 });
   }

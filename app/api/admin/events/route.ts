@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { formatError } from "@/lib/api-errors";
-import { createEvent, listEvents, updateEvent } from "@/lib/mock-data-store";
+import { serviceFetch } from "@/lib/service-client";
+import { mapEventRecord } from "@/lib/transformers";
 
 const eventStatuses = ["Open", "Investigating", "Resolved"] as const;
 const severityLevels = ["Low", "Medium", "High"] as const;
@@ -18,14 +19,19 @@ const createSchema = baseSchema.extend({ id: z.string().optional() });
 const updateSchema = baseSchema.extend({ id: z.string() });
 
 export async function GET() {
-  return NextResponse.json({ data: listEvents() });
+  try {
+    const payload = await serviceFetch<{ events?: Array<Record<string, any>> }>("masterData", "/api/metadata/events");
+    return NextResponse.json({ data: (payload.events ?? []).map(mapEventRecord) });
+  } catch (error) {
+    console.error("Admin events fetch failed", error);
+    return NextResponse.json({ data: [] });
+  }
 }
 
 export async function POST(request: Request) {
   try {
-    const payload = createSchema.parse(await request.json());
-    const record = createEvent(payload);
-    return NextResponse.json({ data: record }, { status: 201 });
+    createSchema.parse(await request.json());
+    return NextResponse.json({ error: "Event creation is disabled against live services" }, { status: 503 });
   } catch (error) {
     return NextResponse.json({ error: formatError(error) }, { status: 400 });
   }
@@ -33,10 +39,8 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
   try {
-    const payload = updateSchema.parse(await request.json());
-    const { id, ...changes } = payload;
-    const record = updateEvent(id, changes);
-    return NextResponse.json({ data: record });
+    updateSchema.parse(await request.json());
+    return NextResponse.json({ error: "Event updates are disabled against live services" }, { status: 503 });
   } catch (error) {
     return NextResponse.json({ error: formatError(error) }, { status: 400 });
   }

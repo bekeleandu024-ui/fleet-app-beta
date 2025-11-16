@@ -27,19 +27,21 @@ export async function GET(_request: Request, { params }: Params) {
   try {
     const order = await serviceFetch<Record<string, any>>("orders", `/api/orders/${id}`);
 
-    const [driversResult, unitsResult, costResult, customerViewResult] = await Promise.allSettled([
+    const [driversResult, unitsResult, costResult, customerViewResult, tripsResult] = await Promise.allSettled([
       serviceFetch<{ drivers?: Array<Record<string, any>> }>("masterData", "/api/metadata/drivers"),
       serviceFetch<{ units?: Array<Record<string, any>> }>("masterData", "/api/metadata/units"),
       serviceFetch<Record<string, any>>("orders", `/api/orders/${id}/cost-breakdown`),
       serviceFetch<Record<string, any>>("tracking", `/api/views/customer/${id}`),
+      serviceFetch<Array<Record<string, any>>>("tracking", `/api/trips?orderId=${id}`),
     ]);
 
     const drivers = extractRecords(driversResult, "drivers");
     const units = extractRecords(unitsResult, "units");
     const cost = costResult.status === "fulfilled" ? costResult.value : undefined;
     const customerView = customerViewResult.status === "fulfilled" ? customerViewResult.value : undefined;
+    const trips = tripsResult.status === "fulfilled" ? tripsResult.value : [];
 
-    const detail = buildOrderDetail(order, { drivers, units, cost, customerView });
+    const detail = buildOrderDetail(order, { drivers, units, cost, customerView, trips });
 
     return NextResponse.json(detail);
   } catch (error) {
@@ -58,6 +60,7 @@ function buildOrderDetail(
     units: Array<Record<string, any>>;
     cost?: Record<string, any>;
     customerView?: Record<string, any>;
+    trips?: Array<Record<string, any>>;
   }
 ) {
   const stops = buildStops(order, context.customerView);
@@ -80,7 +83,7 @@ function buildOrderDetail(
       notes: order.special_instructions ?? extractCustomerNote(context.customerView),
     },
     pricing: buildPricing(context.cost, order),
-    booking: buildBooking(order, context.drivers, context.units),
+    booking: buildBooking(order, context.drivers, context.units, context.trips ?? []),
   };
 }
 
@@ -222,7 +225,12 @@ function buildPricing(cost: Record<string, any> | undefined, order: Record<strin
   };
 }
 
-function buildBooking(order: Record<string, any>, drivers: Array<Record<string, any>>, units: Array<Record<string, any>>) {
+function buildBooking(
+  order: Record<string, any>,
+  drivers: Array<Record<string, any>>,
+  units: Array<Record<string, any>>,
+  trips: Array<Record<string, any>>
+) {
   const driverOptions = drivers.slice(0, 5).map((driver) => ({
     id: driver.driver_id ?? driver.id ?? randomUUID(),
     name: driver.driver_name ?? driver.name ?? "Driver",
@@ -237,8 +245,9 @@ function buildBooking(order: Record<string, any>, drivers: Array<Record<string, 
     location: unit.location ?? unit.current_location ?? "Fleet Yard",
   }));
 
-  const recommendedDriver = order.driver_id ?? driverOptions[0]?.id;
-  const recommendedUnit = order.unit_id ?? unitOptions[0]?.id;
+  const primaryTrip = trips[0];
+  const recommendedDriver = order.driver_id ?? primaryTrip?.driver_id ?? driverOptions[0]?.id;
+  const recommendedUnit = order.unit_id ?? primaryTrip?.unit_id ?? unitOptions[0]?.id;
 
   return {
     guardrails: BOOKING_GUARDRAILS,

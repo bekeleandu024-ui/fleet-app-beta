@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 
 import { formatError } from "@/lib/api-errors";
-import { removeUnit } from "@/lib/mock-data-store";
 
 export async function DELETE(
   _request: Request,
@@ -10,8 +9,10 @@ export async function DELETE(
   const { id } = await params;
 
   try {
-    removeUnit(id);
-    return NextResponse.json({ success: true });
+    return NextResponse.json(
+      { error: "Unit deletion is not supported against live services" },
+      { status: 503 }
+    );
   } catch (error) {
     const message = formatError(error);
     const status = message === "Record not found" ? 404 : 400;
