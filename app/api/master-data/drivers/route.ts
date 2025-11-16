@@ -26,14 +26,19 @@ export async function GET() {
 }
 
 function transformDrivers(records: Array<Record<string, any>>): DriverRecord[] {
-  return records.map((driver) => ({
-    id: String(driver.driver_id ?? driver.id ?? ""),
-    name: driver.driver_name ?? driver.name ?? "Driver",
-    status: driver.is_active === false ? "Off Duty" : "Ready",
-    region: driver.region ?? "Unknown",
-    hoursAvailable: Number(driver.hoursAvailable ?? driver.hours_available ?? 8),
-    updated: driver.updated ?? new Date().toISOString(),
-  }));
+  return records.map((driver, index) => {
+    const rawId = driver.driver_id ?? driver.id ?? driver.driver_name ?? driver.name;
+    const id = rawId && String(rawId).trim() !== "" ? String(rawId) : `driver-${index}`;
+
+    return {
+      id,
+      name: driver.driver_name ?? driver.name ?? "Driver",
+      status: driver.is_active === false ? "Off Duty" : "Ready",
+      region: driver.region ?? "Unknown",
+      hoursAvailable: Number(driver.hoursAvailable ?? driver.hours_available ?? 8),
+      updated: driver.updated ?? new Date().toISOString(),
+    };
+  });
 }
 
 function buildDriverResponse(drivers: DriverRecord[]) {
