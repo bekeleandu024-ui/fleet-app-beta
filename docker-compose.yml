@@ -79,6 +79,26 @@ services:
     environment:
       - PORT=4004
 
+  mcp-fleet-connector:
+    build: ./services/mcp-fleet-connector
+    container_name: mcp-fleet-connector
+    ports:
+      - "6001:6001"
+    environment:
+      - PORT=6001
+      - ORDERS_SERVICE=http://orders:4002
+      - MASTER_DATA_SERVICE=http://master-data:4001
+      - DISPATCH_SERVICE=http://dispatch:4003
+      - TRACKING_SERVICE=http://tracking:4004
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/fleet
+    depends_on:
+      - postgres
+      - kafka
+      - orders
+      - master-data
+      - dispatch
+      - tracking
+
 volumes:
   pgdata:
 
