@@ -14,17 +14,18 @@ export const costingTools = {
       },
     },
     handler: async (params: any) => {
-      const response = await fetch(`${MASTER_DATA_SERVICE}/api/master-data/rules`);
+      const response = await fetch(`${MASTER_DATA_SERVICE}/api/metadata/rules`);
       if (!response.ok) {
         throw new Error(`Failed to fetch costing rules: ${response.statusText}`);
       }
-      let rules = await response.json() as any[];
+      const data = await response.json() as any;
+      let rules = data.rules || [];
       
       if (params.category) {
-        rules = rules.filter((r: any) => r.category === params.category);
+        rules = rules.filter((r: any) => r.rule_type === params.category);
       }
       
-      return rules;
+      return { count: rules.length, rules };
     },
   },
 
@@ -56,11 +57,12 @@ export const costingTools = {
     },
     handler: async (params: any) => {
       // Fetch costing rules
-      const rulesResponse = await fetch(`${MASTER_DATA_SERVICE}/api/master-data/rules`);
+      const rulesResponse = await fetch(`${MASTER_DATA_SERVICE}/api/metadata/rules`);
       if (!rulesResponse.ok) {
         throw new Error(`Failed to fetch costing rules: ${rulesResponse.statusText}`);
       }
-      const rules = await rulesResponse.json() as any[];
+      const rulesData = await rulesResponse.json() as any;
+      const rules = rulesData.rules || [];
 
       // Simple cost calculation logic
       const baseRateRule = rules.find((r: any) => r.name === 'Base Rate per Mile');
@@ -116,20 +118,21 @@ export const costingTools = {
       },
     },
     handler: async (params: any) => {
-      const response = await fetch(`${MASTER_DATA_SERVICE}/api/master-data/units`);
+      const response = await fetch(`${MASTER_DATA_SERVICE}/api/metadata/units`);
       if (!response.ok) {
         throw new Error(`Failed to fetch units: ${response.statusText}`);
       }
-      let units = await response.json() as any[];
+      const data = await response.json() as any;
+      let units = data.units || [];
       
       if (params.status) {
-        units = units.filter((u: any) => u.status === params.status);
+        units = units.filter((u: any) => u.is_active === (params.status === 'Available'));
       }
       if (params.type) {
-        units = units.filter((u: any) => u.type?.includes(params.type));
+        units = units.filter((u: any) => u.driver_type?.includes(params.type));
       }
       
-      return units;
+      return { count: units.length, units };
     },
   },
 };
