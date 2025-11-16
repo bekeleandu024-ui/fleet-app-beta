@@ -102,11 +102,26 @@ export const orderTools = {
         throw new Error(`Failed to fetch order stats: ${response.statusText}`);
       }
       const data = await response.json() as any;
+      const orders = data.value || data || [];
+      const total = data.Count || orders.length || 0;
+      
+      // Count by status
+      const statusCounts: Record<string, number> = {};
+      orders.forEach((order: any) => {
+        const status = order.status || 'unknown';
+        statusCounts[status] = (statusCounts[status] || 0) + 1;
+      });
+      
       return {
-        total: data.stats?.total || 0,
-        new: data.stats?.new || 0,
-        inProgress: data.stats?.inProgress || 0,
-        delayed: data.stats?.delayed || 0,
+        total,
+        byStatus: statusCounts,
+        orders: orders.map((o: any) => ({
+          id: o.id,
+          status: o.status,
+          customer: o.customer_id,
+          pickup: o.pickup_location,
+          dropoff: o.dropoff_location,
+        })),
       };
     },
   },

@@ -105,7 +105,7 @@ app.get('/health', (_req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`MCP HTTP endpoint listening on port ${PORT}`);
+  console.error(`MCP HTTP endpoint listening on port ${PORT}`);
 });
 
 // Start MCP server
