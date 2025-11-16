@@ -19,11 +19,12 @@ export const driverTools = {
       },
     },
     handler: async (params: any) => {
-      const response = await fetch(`${MASTER_DATA_SERVICE}/api/master-data/drivers`);
+      const response = await fetch(`${MASTER_DATA_SERVICE}/api/metadata/drivers`);
       if (!response.ok) {
         throw new Error(`Failed to fetch drivers: ${response.statusText}`);
       }
-      let drivers = await response.json() as any[];
+      const data: any = await response.json();
+      let drivers = data.drivers || [];
 
       // Apply filters
       if (params.status) {
@@ -33,7 +34,10 @@ export const driverTools = {
         drivers = drivers.filter((d: any) => d.hoursAvailable >= params.minHours);
       }
 
-      return drivers;
+      return {
+        count: drivers.length,
+        drivers: drivers
+      };
     },
   },
 
@@ -51,12 +55,13 @@ export const driverTools = {
       required: ['driverId'],
     },
     handler: async (params: any) => {
-      const response = await fetch(`${MASTER_DATA_SERVICE}/api/master-data/drivers`);
+      const response = await fetch(`${MASTER_DATA_SERVICE}/api/metadata/drivers`);
       if (!response.ok) {
         throw new Error(`Failed to fetch drivers: ${response.statusText}`);
       }
-      const drivers = await response.json() as any[];
-      const driver = drivers.find((d: any) => d.id === params.driverId);
+      const data: any = await response.json();
+      const drivers = data.drivers || [];
+      const driver = drivers.find((d: any) => d.driver_id === params.driverId || d.unit_number === params.driverId);
       
       if (!driver) {
         throw new Error(`Driver ${params.driverId} not found`);

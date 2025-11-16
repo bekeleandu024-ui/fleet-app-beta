@@ -26,11 +26,12 @@ export const dispatchTools = {
     handler: async (params: any) => {
       // This is a simplified recommendation engine
       // In production, this would use more sophisticated logic
-      const driversResponse = await fetch('http://master-data:4001/api/master-data/drivers');
+      const driversResponse = await fetch('http://master-data:4001/api/metadata/drivers');
       if (!driversResponse.ok) {
         throw new Error('Failed to fetch drivers');
       }
-      const drivers = await driversResponse.json() as any[];
+      const data: any = await driversResponse.json();
+      const drivers = data.drivers || [];
       
       // Filter available drivers
       const available = drivers.filter((d: any) => d.status === 'Ready' && d.hoursAvailable > 5);
