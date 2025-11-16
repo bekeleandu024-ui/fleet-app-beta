@@ -52,7 +52,7 @@ export const orderTools = {
 
         // Get frontend orders (mock data)
         if (frontendResponse.status === 'fulfilled' && frontendResponse.value.ok) {
-          const frontendData = await frontendResponse.value.json();
+          const frontendData: any = await frontendResponse.value.json();
           const frontendOrders = frontendData.data || [];
           allOrders.push(...frontendOrders.map((o: any) => ({
             id: o.id,
@@ -122,14 +122,14 @@ export const orderTools = {
         // Try frontend API first (handles ORD-XXXXX format)
         const frontendResponse = await fetch(`${FRONTEND_API}/api/orders/${params.orderId}`);
         if (frontendResponse.ok) {
-          const data = await frontendResponse.json();
+          const data: any = await frontendResponse.json();
           return { ...data, source: 'frontend' };
         }
 
         // Try database API (handles UUID format)
         const dbResponse = await fetch(`${ORDERS_SERVICE}/api/orders/${params.orderId}`);
         if (dbResponse.ok) {
-          const data = await dbResponse.json();
+          const data: any = await dbResponse.json();
           return { ...data, source: 'database' };
         }
 
