@@ -1,40 +1,48 @@
 import { NextResponse } from "next/server";
 
-const MASTER_DATA_SERVICE = process.env.MASTER_DATA_SERVICE || 'http://localhost:4001';
+import { listUnits } from "@/lib/mock-data-store";
+import { serviceFetch } from "@/lib/service-client";
+
+type UnitRecord = ReturnType<typeof listUnits>[number];
 
 export async function GET() {
-  try {
-    const response = await fetch(`${MASTER_DATA_SERVICE}/api/metadata/units`);
-    if (!response.ok) {
-      throw new Error('Failed to fetch units');
-    }
-    
-    const data = await response.json();
-    const units = data.units || [];
-    
-    // Transform to frontend format
-    const transformedUnits = units.map((u: any) => ({
-      id: u.unit_id,
-      name: u.unit_number,
-      status: u.is_active ? 'Available' : 'Maintenance',
-      region: u.region || 'Unknown',
-      updated: new Date().toISOString(),
-      type: u.unit_type || 'Unknown',
-      location: u.current_location || 'Fleet Yard',
-    }));
-    
-    const regions = Array.from(new Set(transformedUnits.map((unit: any) => unit.region))).sort();
-    const statuses = Array.from(new Set(transformedUnits.map((unit: any) => unit.status))).sort();
+  let units: UnitRecord[];
 
-    return NextResponse.json({
-      filters: {
-        regions: ["All", ...regions],
-        statuses,
-      },
-      data: transformedUnits,
-    });
+  try {
+    const data = await serviceFetch<{ units?: Array<Record<string, any>> }>(
+      "masterData",
+      "/api/metadata/units"
+    );
+    units = transformUnits(data.units ?? []);
   } catch (error) {
-    console.error('Error fetching units:', error);
-    return NextResponse.json({ error: 'Failed to load units' }, { status: 500 });
+    console.warn("Error fetching units from service, using mock data", error);
+    units = listUnits();
   }
+
+  return NextResponse.json(buildUnitResponse(units));
+}
+
+function transformUnits(records: Array<Record<string, any>>): UnitRecord[] {
+  return records.map((unit) => ({
+    id: String(unit.unit_id ?? unit.id ?? unit.unit_number ?? ""),
+    name: unit.unit_number ?? unit.name ?? String(unit.id ?? "Unit"),
+    status: unit.is_active === false ? "Maintenance" : "Available",
+    region: unit.region ?? "Unknown",
+    updated: unit.updated ?? new Date().toISOString(),
+    type: unit.unit_type ?? unit.type ?? "Unknown",
+    location: unit.current_location ?? unit.location ?? "Fleet Yard",
+  }));
+}
+
+function buildUnitResponse(units: UnitRecord[]) {
+  const regions = Array.from(new Set(units.map((unit) => unit.region))).sort();
+  const statuses = Array.from(new Set(units.map((unit) => unit.status))).sort();
+
+  return {
+    filters: {
+      regions: ["All", ...regions],
+      statuses,
+    },
+    data: units,
+  };
 }
