@@ -86,6 +86,7 @@ services:
       - "6001:6001"
     environment:
       - PORT=6001
+      - DOCKER=true
       - ORDERS_SERVICE=http://orders:4002
       - MASTER_DATA_SERVICE=http://master-data:4001
       - DISPATCH_SERVICE=http://dispatch:4003

@@ -87,26 +87,31 @@ async function startMCPServer() {
   console.error('Fleet Management MCP server running on stdio');
 }
 
-// Also expose HTTP endpoint for health checks
-const app = express();
-app.use(cors());
-app.use(express.json());
+// Check if running in Docker or directly (for Claude Desktop)
+const isDocker = process.env.DOCKER === 'true';
 
-app.get('/', (_req, res) => {
-  res.json({
-    name: 'Fleet Management MCP Server',
-    version: '1.0.0',
-    tools: Object.keys(allTools),
+if (isDocker) {
+  // Also expose HTTP endpoint for health checks in Docker
+  const app = express();
+  app.use(cors());
+  app.use(express.json());
+
+  app.get('/', (_req, res) => {
+    res.json({
+      name: 'Fleet Management MCP Server',
+      version: '1.0.0',
+      tools: Object.keys(allTools),
+    });
   });
-});
 
-app.get('/health', (_req, res) => {
-  res.json({ status: 'healthy' });
-});
+  app.get('/health', (_req, res) => {
+    res.json({ status: 'healthy' });
+  });
 
-app.listen(PORT, () => {
-  console.error(`MCP HTTP endpoint listening on port ${PORT}`);
-});
+  app.listen(PORT, () => {
+    console.error(`MCP HTTP endpoint listening on port ${PORT}`);
+  });
+}
 
 // Start MCP server
 startMCPServer().catch(console.error);

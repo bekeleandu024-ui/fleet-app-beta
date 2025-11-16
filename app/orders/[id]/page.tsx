@@ -2,12 +2,15 @@
 
 import { useParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { CalendarClock, Gauge } from "lucide-react";
+import { CalendarClock, Gauge, Sparkles } from "lucide-react";
+import { useState } from "react";
 
 import { RecommendationCallout } from "@/components/recommendation-callout";
+import { AIInsightsPanel } from "@/components/ai-insights-panel";
 import { StatChip } from "@/components/stat-chip";
 import { Button } from "@/components/ui/button";
 import { fetchOrderDetail } from "@/lib/api";
+import { getRouteOptimization } from "@/lib/ai-service";
 import { formatDateTime, formatDurationHours } from "@/lib/format";
 import { queryKeys } from "@/lib/query";
 import type { OrderDetail } from "@/lib/types";
@@ -24,12 +27,34 @@ const statusVariant: Record<string, "default" | "ok" | "warn" | "alert"> = {
 export default function OrderDetailPage() {
   const params = useParams<{ id: string }>();
   const orderId = params?.id ?? "";
+  const [showAIInsights, setShowAIInsights] = useState(false);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: queryKeys.order(orderId),
     queryFn: () => fetchOrderDetail(orderId),
     enabled: Boolean(orderId),
   });
+
+  const { data: aiInsights, isLoading: aiLoading, refetch: fetchAIInsights } = useQuery({
+    queryKey: ['ai-insights', orderId],
+    queryFn: async () => {
+      if (!data) return null;
+      const pickup = data.snapshot.stops.find(s => s.type === 'PICKUP')?.location || '';
+      const delivery = data.snapshot.stops.find(s => s.type === 'DELIVERY')?.location || '';
+      return getRouteOptimization({
+        origin: pickup,
+        destination: delivery,
+        orderId,
+        miles: data.laneMiles,
+      });
+    },
+    enabled: false,
+  });
+
+  const handleGetAIRecommendation = async () => {
+    setShowAIInsights(true);
+    await fetchAIInsights();
+  };
 
   if (isLoading) {
     return <OrderDetailSkeleton />;
@@ -149,6 +174,40 @@ export default function OrderDetailPage() {
         </div>
 
         <aside className="lg:col-span-5 space-y-6">
+          {/* AI Insights Section */}
+          {!showAIInsights && (
+            <article className="rounded-xl border border-violet-700 bg-gradient-to-br from-violet-900/40 to-purple-900/40 p-4 shadow-lg shadow-black/40">
+              <div className="flex items-center gap-3 mb-3">
+                <Sparkles className="w-5 h-5 text-violet-400" />
+                <h2 className="text-sm font-semibold text-violet-200">AI Route Optimization</h2>
+              </div>
+              <p className="text-xs text-violet-300 mb-4">
+                Get AI-powered driver recommendations and cost analysis for this route
+              </p>
+              <Button
+                onClick={handleGetAIRecommendation}
+                disabled={aiLoading}
+                variant="primary"
+                size="sm"
+                className="w-full bg-violet-600 hover:bg-violet-700"
+              >
+                {aiLoading ? 'Analyzing...' : 'Get AI Recommendation'}
+              </Button>
+            </article>
+          )}
+
+          {showAIInsights && aiInsights && (
+            <AIInsightsPanel
+              recommendation={aiInsights.recommendation}
+              driverRecommendations={aiInsights.driverRecommendations}
+              costComparison={aiInsights.costComparison}
+              insights={aiInsights.insights}
+              totalDistance={aiInsights.totalDistance}
+              estimatedTime={aiInsights.estimatedTime}
+              borderCrossings={aiInsights.borderCrossings}
+            />
+          )}
+
           <RecommendationCallout
             title="Guardrail summary"
             description="Key constraints enforced before booking."
