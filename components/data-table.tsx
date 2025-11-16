@@ -107,11 +107,29 @@ export function DataTable<T>({
               </tr>
             ) : (
               data.map((row, index) => {
-                const rowId = getRowId?.(row, index) ?? `row-${index}`;
+                const original = row as Record<string, unknown>;
+                const preferredId = getRowId?.(row, index);
+                const rowKey =
+                  (typeof preferredId === "string" && preferredId.trim() !== ""
+                    ? preferredId
+                    : undefined) ??
+                  (typeof original?.id === "string" && original.id.trim() !== ""
+                    ? original.id
+                    : undefined) ??
+                  (typeof original?.ruleId === "string" && original.ruleId.trim() !== ""
+                    ? original.ruleId
+                    : undefined) ??
+                  (typeof original?.tripId === "string" && original.tripId.trim() !== ""
+                    ? original.tripId
+                    : undefined) ??
+                  (typeof row === "object" && row !== null && "id" in row
+                    ? String((row as { id?: string | number }).id)
+                    : undefined) ??
+                  `row-${index}`;
                 const clickable = Boolean(onRowClick);
                 return (
                   <tr
-                    key={rowId}
+                    key={rowKey}
                     role={clickable ? "button" : undefined}
                     tabIndex={clickable ? 0 : -1}
                     onClick={clickable ? () => onRowClick?.(row) : undefined}
@@ -130,17 +148,17 @@ export function DataTable<T>({
                       clickable
                         ? "cursor-pointer hover:bg-(--surface-2) focus-visible:bg-(--surface-2)"
                         : "hover:bg-[color-mix(in_srgb,var(--surface-2)_70%,transparent)]"
-                    )}
-                  >
-                    {dataColumns.map((column) => (
-                      <td
-                        key={`${rowId}-${column.key}`}
-                        className={cn(
-                          "px-4 py-3 align-middle text-sm text-(--text) whitespace-nowrap",
-                          column.widthClass,
-                          column.align === "center" && "text-center",
-                          column.align === "right" && "text-right"
-                        )}
+                  )}
+                >
+                  {dataColumns.map((column) => (
+                    <td
+                      key={`${rowKey}-${column.key}`}
+                      className={cn(
+                        "px-4 py-3 align-middle text-sm text-(--text) whitespace-nowrap",
+                        column.widthClass,
+                        column.align === "center" && "text-center",
+                        column.align === "right" && "text-right"
+                      )}
                       >
                         {column.cell ? column.cell(row) : column.accessor ? column.accessor(row) : null}
                       </td>

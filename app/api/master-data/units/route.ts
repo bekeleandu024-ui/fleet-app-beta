@@ -27,15 +27,20 @@ export async function GET() {
 }
 
 function transformUnits(records: Array<Record<string, any>>): UnitRecord[] {
-  return records.map((unit) => ({
-    id: String(unit.unit_id ?? unit.id ?? unit.unit_number ?? ""),
-    name: unit.unit_number ?? unit.name ?? String(unit.id ?? "Unit"),
-    status: unit.is_active === false ? "Maintenance" : "Available",
-    region: unit.region ?? "Unknown",
-    updated: unit.updated ?? new Date().toISOString(),
-    type: unit.unit_type ?? unit.type ?? "Unknown",
-    location: unit.current_location ?? unit.location ?? "Fleet Yard",
-  }));
+  return records.map((unit, index) => {
+    const rawId = unit.unit_id ?? unit.id ?? unit.unit_number ?? unit.name;
+    const id = rawId && String(rawId).trim() !== "" ? String(rawId) : `unit-${index}`;
+
+    return {
+      id,
+      name: unit.unit_number ?? unit.name ?? String(unit.id ?? "Unit"),
+      status: unit.is_active === false ? "Maintenance" : "Available",
+      region: unit.region ?? "Unknown",
+      updated: unit.updated ?? new Date().toISOString(),
+      type: unit.unit_type ?? unit.type ?? "Unknown",
+      location: unit.current_location ?? unit.location ?? "Fleet Yard",
+    };
+  });
 }
 
 function buildUnitResponse(units: UnitRecord[]) {

@@ -359,12 +359,19 @@ function MasterDataRight({
   return (
     <SectionBanner title={title} subtitle="Due soon items across the catalog." aria-live="polite">
       <ul className="space-y-3 text-sm">
-        {data.data.slice(0, 4).map((row) => (
-          <li key={row.id} className="flex items-center justify-between">
-            <span>{row.name}</span>
-            <span className="text-xs text-neutral-500">{row.updated}</span>
-          </li>
-        ))}
+        {data.data.slice(0, 4).map((row, index) => {
+          const key =
+            (row.id && row.id.trim() !== "" ? row.id : undefined) ??
+            (row.name && row.name.trim() !== "" ? `name-${row.name}` : undefined) ??
+            `master-data-${index}`;
+
+          return (
+            <li key={key} className="flex items-center justify-between">
+              <span>{row.name}</span>
+              <span className="text-xs text-neutral-500">{row.updated}</span>
+            </li>
+          );
+        })}
       </ul>
     </SectionBanner>
   );

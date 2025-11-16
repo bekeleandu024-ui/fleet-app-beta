@@ -23,14 +23,19 @@ export async function GET() {
 }
 
 function transformRules(records: Array<Record<string, any>>): RuleRecord[] {
-  return records.map((record) => ({
-    id: String(record.rule_id ?? record.id ?? ""),
-    name: record.rule_key ?? record.name ?? "Rule",
-    status: record.status ?? (record.is_active === false ? "Draft" : "Active"),
-    region: record.region ?? record.rule_type ?? "Network",
-    owner: record.owner ?? "Costing",
-    updated: new Date(record.updated_at ?? Date.now()).toISOString(),
-  }));
+  return records.map((record, index) => {
+    const rawId = record.rule_id ?? record.id ?? record.rule_key ?? record.name;
+    const id = rawId && String(rawId).trim() !== "" ? String(rawId) : `rule-${index}`;
+
+    return {
+      id,
+      name: record.rule_key ?? record.name ?? "Rule",
+      status: record.status ?? (record.is_active === false ? "Draft" : "Active"),
+      region: record.region ?? record.rule_type ?? "Network",
+      owner: record.owner ?? "Costing",
+      updated: new Date(record.updated_at ?? Date.now()).toISOString(),
+    };
+  });
 }
 
 function buildRuleResponse(rules: RuleRecord[]) {
