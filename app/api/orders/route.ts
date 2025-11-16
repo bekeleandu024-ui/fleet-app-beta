@@ -29,14 +29,18 @@ export async function GET() {
       
       return {
         id: order.id,
+        reference: order.id.substring(0, 8),
         customer: order.customer_id,
         status: statusMap[order.status] || 'New',
+        pickup: order.pickup_location,
+        delivery: order.dropoff_location,
+        window: order.pickup_time ? new Date(order.pickup_time).toLocaleDateString() : 'TBD',
         lane: `${order.pickup_location} → ${order.dropoff_location}`,
         laneMiles: 0, // Will be calculated
         ageHours,
         created: order.created_at,
         cost: order.estimated_cost || 0,
-        revenue: 0, // Will be calculated
+        revenue: (order.estimated_cost || 0) * 1.15, // 15% markup
       };
     });
 
