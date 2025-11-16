@@ -1,25 +1,28 @@
 import { NextResponse } from "next/server";
 
-import { listDrivers } from "@/lib/mock-data-store";
 import { serviceFetch } from "@/lib/service-client";
 
-type DriverRecord = ReturnType<typeof listDrivers>[number];
+type DriverRecord = {
+  id: string;
+  name: string;
+  status: string;
+  region: string;
+  hoursAvailable: number;
+  updated: string;
+};
 
 export async function GET() {
-  let drivers: DriverRecord[];
-
   try {
     const data = await serviceFetch<{ drivers?: Array<Record<string, any>> }>(
       "masterData",
       "/api/metadata/drivers"
     );
-    drivers = transformDrivers(data.drivers ?? []);
+    const drivers = transformDrivers(data.drivers ?? []);
+    return NextResponse.json(buildDriverResponse(drivers));
   } catch (error) {
-    console.warn("Error fetching drivers from service, using mock data", error);
-    drivers = listDrivers();
+    console.error("Error fetching drivers from service", error);
+    return NextResponse.json({ error: "Failed to load drivers" }, { status: 500 });
   }
-
-  return NextResponse.json(buildDriverResponse(drivers));
 }
 
 function transformDrivers(records: Array<Record<string, any>>): DriverRecord[] {

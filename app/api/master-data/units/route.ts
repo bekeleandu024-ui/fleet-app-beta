@@ -1,25 +1,29 @@
 import { NextResponse } from "next/server";
 
-import { listUnits } from "@/lib/mock-data-store";
 import { serviceFetch } from "@/lib/service-client";
 
-type UnitRecord = ReturnType<typeof listUnits>[number];
+type UnitRecord = {
+  id: string;
+  name: string;
+  status: string;
+  region: string;
+  updated: string;
+  type: string;
+  location: string;
+};
 
 export async function GET() {
-  let units: UnitRecord[];
-
   try {
     const data = await serviceFetch<{ units?: Array<Record<string, any>> }>(
       "masterData",
       "/api/metadata/units"
     );
-    units = transformUnits(data.units ?? []);
+    const units = transformUnits(data.units ?? []);
+    return NextResponse.json(buildUnitResponse(units));
   } catch (error) {
-    console.warn("Error fetching units from service, using mock data", error);
-    units = listUnits();
+    console.error("Error fetching units from service", error);
+    return NextResponse.json({ error: "Failed to load units" }, { status: 500 });
   }
-
-  return NextResponse.json(buildUnitResponse(units));
 }
 
 function transformUnits(records: Array<Record<string, any>>): UnitRecord[] {
