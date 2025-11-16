@@ -1,70 +1,47 @@
 import { NextResponse } from "next/server";
 
-import { listOrders } from "@/lib/mock-data-store";
 import { serviceFetch } from "@/lib/service-client";
+import { buildLane, mapOrderStatus } from "@/lib/transformers";
+import type { OrderListItem } from "@/lib/types";
 
-type OrderRecord = ReturnType<typeof listOrders>[number];
-type OrderResponse = OrderRecord & { revenue: number; created?: string };
-
-const STATUS_MAP: Record<string, string> = {
-  pending: "New",
-  planning: "Planning",
-  in_transit: "In Transit",
-  at_risk: "At Risk",
-  delivered: "Delivered",
-  exception: "Exception",
-  cancelled: "Exception",
-};
+type OrderResponse = OrderListItem & { revenue: number; created?: string };
 
 export async function GET() {
-  let orders: OrderResponse[];
-
   try {
     const dbOrders = await serviceFetch<Array<Record<string, any>>>("orders", "/api/orders");
-    orders = dbOrders.map(transformOrderFromService);
+    const orders = dbOrders.map(transformOrderFromService);
+    return NextResponse.json(buildOrdersResponse(orders));
   } catch (error) {
-    console.warn("Error fetching orders from service, using mock data", error);
-    orders = listOrders().map(enrichOrderRecord);
+    console.error("Error fetching orders from service", error);
+    return NextResponse.json({ error: "Failed to load orders" }, { status: 500 });
   }
-
-  return NextResponse.json(buildOrdersResponse(orders));
 }
 
 function transformOrderFromService(order: Record<string, any>): OrderResponse {
+  const id = String(order.id ?? order.order_id ?? "");
+  const pickup = order.pickup_location ?? order.pickupLocation ?? "";
+  const delivery = order.delivery_location ?? order.dropoff_location ?? order.dropoffLocation ?? "";
+  const reference = id ? `ORD-${id.slice(0, 8).toUpperCase()}` : "ORDER";
   const createdAt = order.created_at ?? order.createdAt ?? new Date().toISOString();
-  const pickupTime = order.pickup_time ?? order.pickupTime;
-  const pickupLocation = order.pickup_location ?? order.pickupLocation ?? "TBD";
-  const dropoffLocation = order.dropoff_location ?? order.dropoffLocation ?? "TBD";
+  const ageHours = calculateAgeHours(createdAt);
+  const window = resolveWindow(order.pickup_window_start ?? order.pickup_time);
 
-  const ageMs = Date.now() - new Date(createdAt).getTime();
-  const ageHours = Math.max(0, Math.floor(ageMs / (1000 * 60 * 60)));
-
-  const cost = Number(order.estimated_cost ?? order.cost ?? 0) || 0;
-
-  return enrichOrderRecord({
-    id: String(order.id ?? order.order_id ?? order.reference ?? ""),
-    reference: String(order.reference ?? order.id ?? "").toUpperCase().slice(0, 8) || "ORDER",
-    customer: order.customer ?? order.customer_name ?? order.customer_id ?? "Customer",
-    status: STATUS_MAP[String(order.status ?? "").toLowerCase()] ?? "New",
-    pickup: pickupLocation,
-    delivery: dropoffLocation,
-    window: pickupTime ? new Date(pickupTime).toLocaleDateString() : "TBD",
-    lane: `${pickupLocation} → ${dropoffLocation}`,
-    laneMiles: Number(order.lane_miles ?? order.laneMiles ?? 0) || 0,
-    ageHours,
-    cost,
-    serviceLevel: order.service_level ?? order.serviceLevel ?? "Standard",
-    commodity: order.commodity ?? "General Freight",
-    created: createdAt,
-  });
-}
-
-function enrichOrderRecord(order: OrderRecord): OrderResponse {
-  const cost = Number(order.cost ?? 0) || 0;
   return {
-    ...order,
-    cost,
-    revenue: Number((order as Record<string, any>).revenue ?? cost * 1.15),
+    id,
+    reference,
+    customer: order.customer_name ?? order.customer ?? order.customer_id ?? "Customer",
+    pickup,
+    delivery,
+    window,
+    status: mapOrderStatus(order.status),
+    ageHours,
+    cost: Number(order.cost ?? order.estimated_cost ?? 0) || 0,
+    lane: buildLane(pickup, delivery),
+    serviceLevel: order.service_level ?? "Standard",
+    commodity: order.commodity ?? "General",
+    laneMiles: Number(order.lane_miles ?? order.laneMiles ?? 0) || 0,
+    revenue: Number(order.revenue ?? 0),
+    created: createdAt,
   };
 }
 
@@ -90,4 +67,32 @@ function buildOrdersResponse(orders: OrderResponse[]) {
     },
     data: orders,
   };
+}
+
+function resolveWindow(dateValue?: string | Date | null) {
+  if (!dateValue) {
+    return "Scheduled";
+  }
+  const date = new Date(dateValue);
+  if (Number.isNaN(date.getTime())) {
+    return "Scheduled";
+  }
+  return date.toLocaleString("en-US", {
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function calculateAgeHours(dateValue?: string | Date | null) {
+  if (!dateValue) {
+    return 0;
+  }
+  const created = new Date(dateValue);
+  if (Number.isNaN(created.getTime())) {
+    return 0;
+  }
+  const diff = Date.now() - created.getTime();
+  return Math.max(0, Math.floor(diff / (1000 * 60 * 60)));
 }

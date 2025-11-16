@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { formatError } from "@/lib/api-errors";
-import { createTrip, listTrips, updateTrip } from "@/lib/mock-data-store";
+import { serviceFetch } from "@/lib/service-client";
+import { mapTripAdminRecord } from "@/lib/transformers";
 
 const tripStatuses = ["On Time", "Running Late", "Exception", "Delivered"] as const;
 
@@ -25,14 +26,19 @@ const createSchema = baseSchema.extend({ id: z.string().optional() });
 const updateSchema = baseSchema.extend({ id: z.string() });
 
 export async function GET() {
-  return NextResponse.json({ data: listTrips() });
+  try {
+    const payload = await serviceFetch<{ value?: Array<Record<string, any>> }>("tracking", "/api/trips");
+    return NextResponse.json({ data: (payload.value ?? []).map((trip) => mapTripAdminRecord(trip)) });
+  } catch (error) {
+    console.error("Admin trips fetch failed", error);
+    return NextResponse.json({ error: "Unable to load trips" }, { status: 500 });
+  }
 }
 
 export async function POST(request: Request) {
   try {
-    const payload = createSchema.parse(await request.json());
-    const record = createTrip(payload);
-    return NextResponse.json({ data: record }, { status: 201 });
+    createSchema.parse(await request.json());
+    return NextResponse.json({ error: "Trip creation is disabled against live services" }, { status: 503 });
   } catch (error) {
     return NextResponse.json({ error: formatError(error) }, { status: 400 });
   }
@@ -40,10 +46,8 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
   try {
-    const payload = updateSchema.parse(await request.json());
-    const { id, ...changes } = payload;
-    const record = updateTrip(id, changes);
-    return NextResponse.json({ data: record });
+    updateSchema.parse(await request.json());
+    return NextResponse.json({ error: "Trip updates are disabled against live services" }, { status: 503 });
   } catch (error) {
     return NextResponse.json({ error: formatError(error) }, { status: 400 });
   }

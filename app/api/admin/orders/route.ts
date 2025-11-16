@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { formatError } from "@/lib/api-errors";
-import { createOrder, listOrders, updateOrder } from "@/lib/mock-data-store";
+import { serviceFetch } from "@/lib/service-client";
+import { mapOrderAdminRecord } from "@/lib/transformers";
 
 const orderStatuses = ["New", "Planning", "In Transit", "At Risk", "Delivered", "Exception"] as const;
 
@@ -25,14 +26,19 @@ const createSchema = baseSchema.extend({ id: z.string().optional() });
 const updateSchema = baseSchema.extend({ id: z.string() });
 
 export async function GET() {
-  return NextResponse.json({ data: listOrders() });
+  try {
+    const records = await serviceFetch<Array<Record<string, any>>>("orders", "/api/orders");
+    return NextResponse.json({ data: records.map(mapOrderAdminRecord) });
+  } catch (error) {
+    console.error("Admin orders fetch failed", error);
+    return NextResponse.json({ error: "Unable to load orders" }, { status: 500 });
+  }
 }
 
 export async function POST(request: Request) {
   try {
-    const payload = createSchema.parse(await request.json());
-    const record = createOrder(payload);
-    return NextResponse.json({ data: record }, { status: 201 });
+    createSchema.parse(await request.json());
+    return NextResponse.json({ error: "Order creation is not available against live services" }, { status: 503 });
   } catch (error) {
     return NextResponse.json({ error: formatError(error) }, { status: 400 });
   }
@@ -40,10 +46,8 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
   try {
-    const payload = updateSchema.parse(await request.json());
-    const { id, ...changes } = payload;
-    const record = updateOrder(id, changes);
-    return NextResponse.json({ data: record });
+    updateSchema.parse(await request.json());
+    return NextResponse.json({ error: "Order updates are not enabled against live services" }, { status: 503 });
   } catch (error) {
     return NextResponse.json({ error: formatError(error) }, { status: 400 });
   }
