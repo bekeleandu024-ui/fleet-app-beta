@@ -176,7 +176,7 @@ export default function OrderDetailPage() {
         <aside className="lg:col-span-5 space-y-6">
           {/* AI Insights Section */}
           {!showAIInsights && (
-            <article className="rounded-xl border border-violet-700 bg-gradient-to-br from-violet-900/40 to-purple-900/40 p-4 shadow-lg shadow-black/40">
+            <article className="rounded-xl border border-violet-700 bg-linear-to-br from-violet-900/40 to-purple-900/40 p-4 shadow-lg shadow-black/40">
               <div className="flex items-center gap-3 mb-3">
                 <Sparkles className="w-5 h-5 text-violet-400" />
                 <h2 className="text-sm font-semibold text-violet-200">AI Route Optimization</h2>

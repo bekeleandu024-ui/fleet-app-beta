@@ -39,7 +39,7 @@ export function AIInsightsPanel({
   return (
     <div className="space-y-4">
       {/* Main Recommendation */}
-      <Card className="p-6 bg-gradient-to-br from-violet-50 to-purple-50 dark:from-violet-950/20 dark:to-purple-950/20 border-violet-200 dark:border-violet-800">
+      <Card className="p-6 bg-linear-to-br from-violet-50 to-purple-50 dark:from-violet-950/20 dark:to-purple-950/20 border-violet-200 dark:border-violet-800">
         <div className="flex items-start gap-3">
           <div className="p-2 bg-violet-100 dark:bg-violet-900/30 rounded-lg">
             <Sparkles className="w-5 h-5 text-violet-600 dark:text-violet-400" />
@@ -214,13 +214,13 @@ export function AIInsightsPanel({
                   }`}
                 >
                   {isWarning && (
-                    <AlertTriangle className="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" />
+                    <AlertTriangle className="w-5 h-5 text-orange-600 shrink-0 mt-0.5" />
                   )}
                   {isSuccess && (
-                    <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                    <CheckCircle className="w-5 h-5 text-green-600 shrink-0 mt-0.5" />
                   )}
                   {isInfo && (
-                    <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                    <Info className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
                   )}
                   <span
                     className={`text-sm ${
