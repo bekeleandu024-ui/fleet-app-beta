@@ -147,19 +147,27 @@ function mapOrderToWorkspace(order: Order): WorkspaceOrder {
   };
 }
 
-function mapStatus(status: OrderStatus): WorkspaceOrderStatus {
-  switch (status) {
-    case OrderStatus.PENDING:
-      return "New";
+function mapStatus(status: OrderStatus | string): WorkspaceOrderStatus {
+  // Handle string statuses from database
+  const statusStr = typeof status === 'string' ? status.toLowerCase() : status;
+  
+  switch (statusStr) {
+    case 'planning':
     case OrderStatus.CONFIRMED:
     case OrderStatus.ASSIGNED:
       return "Planning";
+    case 'in_transit':
     case OrderStatus.IN_PROGRESS:
       return "In Transit";
+    case 'delivered':
     case OrderStatus.COMPLETED:
       return "Delivered";
+    case 'at_risk':
+      return "At Risk";
+    case 'exception':
     case OrderStatus.CANCELLED:
       return "Exception";
+    case OrderStatus.PENDING:
     default:
       return "New";
   }
