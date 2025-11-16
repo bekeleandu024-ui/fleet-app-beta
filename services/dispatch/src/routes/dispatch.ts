@@ -1,7 +1,17 @@
 import { Router } from "express";
-import { assignDriver, getDispatch, updateDispatchStatus } from "../services/dispatchService";
+import { assignDriver, getDispatch, updateDispatchStatus, getAllDispatches } from "../services/dispatchService";
 
 const router = Router();
+
+// Get all dispatches
+router.get("/", async (req, res) => {
+  try {
+    const dispatches = await getAllDispatches();
+    res.json(dispatches);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 // Assign a driver to an order
 router.post("/assign", async (req, res) => {

@@ -58,3 +58,11 @@ export async function updateDispatchStatus(id: string, status: DispatchStatus): 
 
   return dispatch;
 }
+
+export async function getAllDispatches(): Promise<Dispatch[]> {
+  const result = await pool.query(`
+    SELECT * FROM dispatches 
+    ORDER BY assigned_at DESC
+  `);
+  return result.rows;
+}
