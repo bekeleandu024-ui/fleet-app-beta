@@ -23,14 +23,19 @@ export async function GET() {
 }
 
 function transformEvents(records: Array<Record<string, any>>): EventRecord[] {
-  return records.map((record) => ({
-    id: String(record.event_id ?? record.id ?? ""),
-    name: record.event_name ?? record.name ?? "Event",
-    status: record.status ?? "Open",
-    region: record.region ?? "Network",
-    severity: record.severity ?? "Low",
-    updated: new Date(record.updated_at ?? Date.now()).toISOString(),
-  }));
+  return records.map((record, index) => {
+    const rawId = record.event_id ?? record.id ?? record.event_name ?? record.name;
+    const id = rawId && String(rawId).trim() !== "" ? String(rawId) : `event-${index}`;
+
+    return {
+      id,
+      name: record.event_name ?? record.name ?? "Event",
+      status: record.status ?? "Open",
+      region: record.region ?? "Network",
+      severity: record.severity ?? "Low",
+      updated: new Date(record.updated_at ?? Date.now()).toISOString(),
+    };
+  });
 }
 
 function buildEventResponse(events: EventRecord[]) {
