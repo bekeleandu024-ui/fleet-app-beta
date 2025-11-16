@@ -2,19 +2,24 @@ import { NextResponse } from "next/server";
 
 type Params = { params: { id: string } };
 
-const ORDERS_SERVICE = process.env.ORDERS_SERVICE || 'http://localhost:4002';
-const MASTER_DATA_SERVICE = process.env.MASTER_DATA_SERVICE || 'http://localhost:4001';
-
 const baseDetail = {
   statusOptions: ["New", "Planning", "In Transit", "At Risk", "Delivered", "Exception"],
   booking: {
     guardrails: [
-      "Driver must have valid CDL",
-      "Unit must be inspected within 30 days",
-      "Driver hours of service must be available",
+      "Driver must have hazmat endorsement",
+      "Team required for >650 miles",
+      "Unit must support temperature control",
     ],
-    driverOptions: [] as any[],
-    unitOptions: [] as any[],
+    driverOptions: [
+      { id: "DRV-101", name: "S. Redding", status: "Ready", hoursAvailable: 9 },
+      { id: "DRV-204", name: "J. McCall", status: "Ready", hoursAvailable: 7.5 },
+      { id: "DRV-311", name: "N. Torres", status: "Booked", hoursAvailable: 3 },
+    ],
+    unitOptions: [
+      { id: "TRK-48", type: "53' Reefer", status: "Available", location: "Dallas, TX" },
+      { id: "TRK-67", type: "53' Dry Van", status: "Available", location: "Oklahoma City, OK" },
+      { id: "TRK-09", type: "53' Reefer", status: "Maintenance", location: "Dallas, TX" },
+    ],
   },
 };
 
@@ -122,108 +127,7 @@ const detailById: Record<string, unknown> = {
 };
 
 export async function GET(_request: Request, { params }: Params) {
-  try {
-    const { id } = await params;
-    
-    // Fetch order from database
-    const orderResponse = await fetch(`${ORDERS_SERVICE}/api/orders/${id}`);
-    if (!orderResponse.ok) {
-      return NextResponse.json({ error: 'Order not found' }, { status: 404 });
-    }
-    
-    const order = await orderResponse.json();
-    
-    // Fetch drivers
-    const driversResponse = await fetch(`${MASTER_DATA_SERVICE}/api/metadata/drivers`);
-    const driversData = await driversResponse.json();
-    const drivers = driversData.drivers || [];
-    
-    // Fetch units
-    const unitsResponse = await fetch(`${MASTER_DATA_SERVICE}/api/metadata/units`);
-    const unitsData = await unitsResponse.json();
-    const units = unitsData.units || [];
-    
-    // Map database status to frontend status
-    const statusMap: Record<string, string> = {
-      'pending': 'New',
-      'planning': 'Planning',
-      'in_transit': 'In Transit',
-      'at_risk': 'At Risk',
-      'delivered': 'Delivered',
-      'exception': 'Exception',
-      'cancelled': 'Exception',
-    };
-    
-    // Transform to frontend format
-    const detail = {
-      ...baseDetail,
-      id: order.id,
-      status: statusMap[order.status] || 'New',
-      customer: order.customer_id,
-      lane: `${order.pickup_location} → ${order.dropoff_location}`,
-      laneMiles: 500, // Default, calculate based on route
-      ageHours: Math.floor((new Date().getTime() - new Date(order.created_at).getTime()) / (1000 * 60 * 60)),
-      serviceLevel: "Standard",
-      snapshot: {
-        commodity: "General Freight",
-        stops: [
-          {
-            id: "STP-1",
-            type: "Pickup",
-            location: order.pickup_location,
-            windowStart: order.pickup_time || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-            windowEnd: new Date(new Date(order.pickup_time || Date.now() + 24 * 60 * 60 * 1000).getTime() + 4 * 60 * 60 * 1000).toISOString(),
-            instructions: "Standard pickup",
-          },
-          {
-            id: "STP-2",
-            type: "Delivery",
-            location: order.dropoff_location,
-            windowStart: new Date(new Date(order.pickup_time || Date.now() + 24 * 60 * 60 * 1000).getTime() + 24 * 60 * 60 * 1000).toISOString(),
-            windowEnd: new Date(new Date(order.pickup_time || Date.now() + 24 * 60 * 60 * 1000).getTime() + 28 * 60 * 60 * 1000).toISOString(),
-            instructions: "Standard delivery",
-          },
-        ],
-        windows: [
-          { label: "Pickup", value: new Date(order.pickup_time || Date.now()).toLocaleDateString() },
-          { label: "Delivery", value: new Date(Date.now() + 24 * 60 * 60 * 1000).toLocaleDateString() },
-        ],
-        notes: order.special_instructions || "",
-      },
-      pricing: {
-        items: [
-          { label: "Linehaul", value: `$${((order.estimated_cost || 0) * 0.7).toFixed(2)}`, helper: "Base transportation cost" },
-          { label: "Fuel Surcharge", value: `$${((order.estimated_cost || 0) * 0.2).toFixed(2)}`, helper: "Variable fuel cost" },
-          { label: "Accessorials", value: `$${((order.estimated_cost || 0) * 0.1).toFixed(2)}`, helper: "Additional services" },
-        ],
-        totals: {
-          label: "Total Cost",
-          value: `$${(order.estimated_cost || 0).toFixed(2)}`,
-          helper: "Estimated total cost for this shipment",
-        },
-      },
-      booking: {
-        ...baseDetail.booking,
-        recommendedDriverId: drivers[0]?.driver_id,
-        recommendedUnitId: units[0]?.unit_id,
-        driverOptions: drivers.slice(0, 5).map((d: any) => ({
-          id: d.driver_id,
-          name: d.driver_name,
-          status: d.is_active ? "Ready" : "Off Duty",
-          hoursAvailable: 8,
-        })),
-        unitOptions: units.slice(0, 5).map((u: any) => ({
-          id: u.unit_id,
-          type: u.unit_number,
-          status: u.is_active ? "Available" : "Maintenance",
-          location: "Fleet Yard",
-        })),
-      },
-    };
-    
-    return NextResponse.json(detail);
-  } catch (error) {
-    console.error('Error fetching order detail:', error);
-    return NextResponse.json({ error: 'Failed to load order' }, { status: 500 });
-  }
+  const { id } = await params;
+  const detail = detailById[id] ?? detailById["ORD-10452"];
+  return NextResponse.json(detail);
 }
