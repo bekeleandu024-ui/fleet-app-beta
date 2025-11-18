@@ -50,6 +50,14 @@ export default function TripDetailPage() {
     refetchInterval: 30000, // Refresh every 30 seconds
   });
 
+  const handleAddNote = () => {
+    if (!noteText.trim()) return;
+    // TODO: Implement note creation API call
+    console.log("Adding note:", noteText);
+    setNoteText("");
+    // queryClient.invalidateQueries({ queryKey: queryKeys.trip(tripId) });
+  };
+
   if (isLoading) {
     return <TripDetailSkeleton />;
   }
@@ -73,20 +81,20 @@ export default function TripDetailPage() {
   const activeExceptions = data.exceptions.filter(e => e.severity === "alert" || e.severity === "warn");
 
   return (
-    <div className="space-y-6">
+    <>
       {/* Header with Actions */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div className="flex items-center gap-3">
           <Button size="sm" variant="subtle" onClick={() => router.back()}>
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back
           </Button>
           <div>
-            <h1 className="text-2xl font-bold text-neutral-200">Trip {data.tripNumber}</h1>
-            <p className="text-sm text-neutral-500">ID: {data.id}</p>
+            <h1 className="text-xl font-bold text-neutral-200">Trip {data.tripNumber}</h1>
+            <p className="text-xs text-neutral-500">ID: {data.id}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <StatChip label={data.status} variant={getStatusVariant(data.status) as any} />
           {activeExceptions.length > 0 && (
             <StatChip label={`${activeExceptions.length} Exceptions`} variant="alert" />
@@ -98,15 +106,13 @@ export default function TripDetailPage() {
         </div>
       </div>
 
-      <section className="grid gap-6 lg:grid-cols-12">
-      {/* Main Content */}
-      <article className="space-y-6 lg:col-span-8">
+      <div className="space-y-6">
         {/* Quick Stats */}
-        <div className="grid gap-4 md:grid-cols-3">
-          <Card className="p-4">
-            <div className="flex items-center gap-3">
+        <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
+          <Card className="p-3">
+            <div className="flex items-center gap-2">
               <div className="p-2 rounded-lg bg-blue-500/10">
-                <Clock className="w-5 h-5 text-blue-400" />
+                <Clock className="w-4 h-4 text-blue-400" />
               </div>
               <div>
                 <p className="text-xs text-neutral-500">ETA</p>
@@ -114,10 +120,10 @@ export default function TripDetailPage() {
               </div>
             </div>
           </Card>
-          <Card className="p-4">
-            <div className="flex items-center gap-3">
+          <Card className="p-3">
+            <div className="flex items-center gap-2">
               <div className="p-2 rounded-lg bg-emerald-500/10">
-                <MapPin className="w-5 h-5 text-emerald-400" />
+                <MapPin className="w-4 h-4 text-emerald-400" />
               </div>
               <div>
                 <p className="text-xs text-neutral-500">Last Location</p>
@@ -127,10 +133,10 @@ export default function TripDetailPage() {
               </div>
             </div>
           </Card>
-          <Card className="p-4">
-            <div className="flex items-center gap-3">
+          <Card className="p-3">
+            <div className="flex items-center gap-2">
               <div className="p-2 rounded-lg bg-amber-500/10">
-                <Activity className="w-5 h-5 text-amber-400" />
+                <Activity className="w-4 h-4 text-amber-400" />
               </div>
               <div>
                 <p className="text-xs text-neutral-500">Last Update</p>
@@ -143,21 +149,21 @@ export default function TripDetailPage() {
         </div>
 
         {/* Driver & Unit Info */}
-        <div className="grid gap-4 md:grid-cols-2">
-          <Card className="p-4">
-            <div className="flex items-start gap-3">
+        <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
+          <Card className="p-3">
+            <div className="flex items-start gap-2">
               <div className="p-2 rounded-lg bg-neutral-800">
-                <User className="w-5 h-5 text-neutral-400" />
+                <User className="w-4 h-4 text-neutral-400" />
               </div>
               <div className="flex-1">
                 <p className="text-xs text-neutral-500">Driver</p>
-                <p className="text-base font-semibold text-neutral-200 mb-2">{data.driver}</p>
+                <p className="text-sm font-semibold text-neutral-200 mb-2">{data.driver}</p>
                 <div className="flex gap-2">
-                  <Button size="sm" variant="subtle" className="text-xs">
+                  <Button size="sm" variant="subtle" className="text-xs px-2 py-1">
                     <Phone className="w-3 h-3 mr-1" />
                     Contact
                   </Button>
-                  <Button size="sm" variant="subtle" className="text-xs">
+                  <Button size="sm" variant="subtle" className="text-xs px-2 py-1">
                     <MessageSquare className="w-3 h-3 mr-1" />
                     Message
                   </Button>
@@ -165,16 +171,16 @@ export default function TripDetailPage() {
               </div>
             </div>
           </Card>
-          <Card className="p-4">
-            <div className="flex items-start gap-3">
+          <Card className="p-3">
+            <div className="flex items-start gap-2">
               <div className="p-2 rounded-lg bg-neutral-800">
-                <Truck className="w-5 h-5 text-neutral-400" />
+                <Truck className="w-4 h-4 text-neutral-400" />
               </div>
               <div className="flex-1">
                 <p className="text-xs text-neutral-500">Unit</p>
-                <p className="text-base font-semibold text-neutral-200 mb-2">{data.unit}</p>
+                <p className="text-sm font-semibold text-neutral-200 mb-2">{data.unit}</p>
                 <div className="flex gap-2">
-                  <Button size="sm" variant="subtle" className="text-xs">
+                  <Button size="sm" variant="subtle" className="text-xs px-2 py-1">
                     View Details
                   </Button>
                 </div>
@@ -184,7 +190,7 @@ export default function TripDetailPage() {
         </div>
 
         {/* Tabs */}
-        <Card className="p-6">
+        <Card className="p-4">
         <Tabs defaultValue="timeline" className="space-y-4">
           <TabsList className="bg-neutral-900/50 text-neutral-500">
             <TabsTrigger value="timeline">
@@ -209,7 +215,7 @@ export default function TripDetailPage() {
                       <div className="absolute left-4 top-10 bottom-0 w-px bg-neutral-800" />
                     )}
                     <div className="flex gap-4">
-                      <div className="relative flex-shrink-0">
+                      <div className="relative shrink-0">
                         <div className="w-8 h-8 rounded-full bg-neutral-800 flex items-center justify-center border-2 border-neutral-900">
                           <div className="w-3 h-3 rounded-full bg-emerald-500" />
                         </div>
@@ -319,10 +325,7 @@ export default function TripDetailPage() {
           </TabsContent>
         </Tabs>
         </Card>
-      </article>
 
-      {/* Sidebar */}
-      <aside className="space-y-6 lg:col-span-4">
         {/* Add Note */}
         <Card className="p-4">
           <h2 className="text-sm font-semibold text-neutral-200 mb-3">Add Note</h2>
@@ -338,6 +341,7 @@ export default function TripDetailPage() {
             variant="primary" 
             className="w-full mt-2"
             disabled={!noteText.trim()}
+            onClick={handleAddNote}
           >
             <MessageSquare className="w-4 h-4 mr-2" />
             Add Note
@@ -392,17 +396,21 @@ export default function TripDetailPage() {
           )}
         </section>
         </Card>
-      </aside>
-    </section>
-    </div>
+      </div>
+    </>
   );
 }
 
 function TripDetailSkeleton() {
   return (
-    <section className="col-span-12 grid gap-6 lg:grid-cols-12">
-      <div className="h-[520px] animate-pulse rounded-xl border border-neutral-800 bg-neutral-900/60 lg:col-span-8" />
-      <div className="h-[520px] animate-pulse rounded-xl border border-neutral-800 bg-neutral-900/60 lg:col-span-4" />
-    </section>
+    <div className="space-y-6">
+      <div className="h-[100px] animate-pulse rounded-xl border border-neutral-800 bg-neutral-900/60" />
+      <div className="grid gap-3 grid-cols-3">
+        <div className="h-[80px] animate-pulse rounded-xl border border-neutral-800 bg-neutral-900/60" />
+        <div className="h-[80px] animate-pulse rounded-xl border border-neutral-800 bg-neutral-900/60" />
+        <div className="h-[80px] animate-pulse rounded-xl border border-neutral-800 bg-neutral-900/60" />
+      </div>
+      <div className="h-[400px] animate-pulse rounded-xl border border-neutral-800 bg-neutral-900/60" />
+    </div>
   );
 }
