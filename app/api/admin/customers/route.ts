@@ -19,9 +19,12 @@ const updateSchema = baseSchema.extend({ id: z.string() });
 
 export async function GET() {
   try {
-    const orders = await serviceFetch<Array<Record<string, any>>>("orders", "/api/orders");
+    const response = await serviceFetch<any>("orders", "/api/orders");
+    // Handle both array and structured response {data: [...]}
+    const orders = Array.isArray(response) ? response : (response.data || []);
+    
     const customers = Array.from(
-      new Map(orders.map((order) => {
+      new Map(orders.map((order: Record<string, any>) => {
         const record = mapCustomerRecord(order);
         return [record.id, record];
       })).values()
