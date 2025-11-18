@@ -13,7 +13,14 @@ type EventRecord = {
 
 export async function GET() {
   try {
-    const payload = await serviceFetch<{ events?: Array<Record<string, any>> }>("masterData", "/api/metadata/events");
+    const payload = await serviceFetch<any>("masterData", "/api/metadata/events");
+    
+    // Return the raw structure for event types API consumers
+    if (payload.event_types && payload.event_rules) {
+      return NextResponse.json(payload);
+    }
+    
+    // Fallback to transformed format for legacy consumers
     const events = transformEvents(payload.events ?? []);
     return NextResponse.json(buildEventResponse(events));
   } catch (error) {

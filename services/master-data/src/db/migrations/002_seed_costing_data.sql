@@ -43,18 +43,26 @@ INSERT INTO costing_rules (rule_key, rule_type, rule_value, description) VALUES
 
 -- Event types
 INSERT INTO event_types (event_code, event_name, cost_per_event, is_automatic) VALUES
-('BC', 'Border Crossing', 150.00, true),
-('DH', 'Drop/Hook', 50.00, false),
-('PICKUP', 'Pickup Stop', 35.00, true),
-('DELIVERY', 'Delivery Stop', 35.00, true),
+('START', 'Trip Started', 0.00, true),
+('PICKUP_ARRIVE', 'Arrived at Pickup', 25.00, true),
+('PICKUP_DEPART', 'Departed Pickup / Loaded', 35.00, true),
+('BORDER_ARRIVE', 'Arrived at Border', 75.00, true),
+('BORDER_CLEAR', 'Border Cleared', 150.00, true),
+('DELIVERY_ARRIVE', 'Arrived at Delivery', 25.00, true),
+('DELIVERY_COMPLETE', 'Delivery Complete', 35.00, true),
 ('LAYOVER', 'Layover/Detention', 100.00, false),
-('EXTRA_STOP', 'Extra Stop', 50.00, false);
+('EXTRA_STOP', 'Extra Stop', 50.00, false),
+('DROP_HOOK', 'Drop/Hook', 50.00, false);
 
 -- Event detection rules
 INSERT INTO event_rules (event_code, trigger_type, trigger_condition) VALUES
-('BC', 'BORDER_CROSSING', '{"countries": ["USA", "CANADA"], "detect_by": "location"}'),
-('PICKUP', 'ORDER_TYPE', '{"order_types": ["pickup", "round_trip"], "count": 1}'),
-('DELIVERY', 'ORDER_TYPE', '{"order_types": ["delivery", "round_trip"], "count": 1}');
+('START', 'TRIP_STATUS', '{"status_change": "Planning->In Transit"}'),
+('PICKUP_ARRIVE', 'LOCATION', '{"proximity_to": "pickup_location", "radius_miles": 1}'),
+('PICKUP_DEPART', 'LOCATION', '{"departed_from": "pickup_location", "radius_miles": 1}'),
+('BORDER_ARRIVE', 'LOCATION', '{"proximity_to": "border_crossing", "radius_miles": 5}'),
+('BORDER_CLEAR', 'BORDER_CROSSING', '{"countries": ["USA", "CANADA"], "cleared": true}'),
+('DELIVERY_ARRIVE', 'LOCATION', '{"proximity_to": "delivery_location", "radius_miles": 1}'),
+('DELIVERY_COMPLETE', 'TRIP_STATUS', '{"status_change": "At Delivery->Completed"}');
 
 -- Sample driver profiles
 INSERT INTO driver_profiles (driver_name, unit_number, driver_type, oo_zone, base_wage_cpm, benefits_pct, performance_pct, safety_pct, step_pct, effective_wage_cpm, is_active) VALUES

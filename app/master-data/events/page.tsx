@@ -79,19 +79,14 @@ export default function EventsMasterDataPage() {
   });
   const [successMessage, setSuccessMessage] = useState("");
   
-  const { data, isLoading, isError } = useQuery({
-    queryKey: queryKeys.masterData.events,
-    queryFn: fetchEventsMasterData,
+  const { data: eventTypesData, isLoading, isError } = useQuery({
+    queryKey: ["event-types"],
+    queryFn: fetchEventTypes,
   });
 
   const { data: trips } = useQuery({
     queryKey: ["admin-trips"],
     queryFn: fetchAdminTrips,
-  });
-
-  const { data: eventTypesRaw } = useQuery({
-    queryKey: ["event-types"],
-    queryFn: fetchEventTypes,
   });
 
   const createEventMutation = useMutation({
@@ -111,11 +106,11 @@ export default function EventsMasterDataPage() {
     },
   });
 
-  if (isLoading && !data) {
+  if (isLoading && !eventTypesData) {
     return <MasterDataSkeleton />;
   }
 
-  if (isError || !data) {
+  if (isError || !eventTypesData) {
     return (
       <SectionBanner 
         title="Event Types & Tracking" 
@@ -127,14 +122,14 @@ export default function EventsMasterDataPage() {
     );
   }
 
-  const eventTypes: EventType[] = (data as any).event_types?.types || [];
-  const eventRules: EventRule[] = (data as any).event_rules?.rules || [];
+  const eventTypes: EventType[] = eventTypesData || [];
+  const eventRules: EventRule[] = [];
 
   const totalCostImpact = eventTypes.reduce((sum, event) => sum + (event.cost_per_event || 0), 0);
   const automaticEvents = eventTypes.filter(e => e.is_automatic).length;
 
   const handleEventLogSubmit = () => {
-    const eventType = eventTypesRaw?.find((e) => e.event_code === eventLogForm.eventType);
+    const eventType = eventTypesData?.find((e) => e.event_code === eventLogForm.eventType);
     
     const payload = {
       note: `${eventType?.event_name || eventLogForm.eventType}: ${eventLogForm.note}`,
@@ -147,7 +142,7 @@ export default function EventsMasterDataPage() {
   };
 
   const selectedTrip = trips?.find((t) => t.id === eventLogForm.tripId);
-  const selectedEventType = eventTypesRaw?.find((e) => e.event_code === eventLogForm.eventType);
+  const selectedEventType = eventTypesData?.find((e) => e.event_code === eventLogForm.eventType);
   const isEventLogValid = !!eventLogForm.tripId && !!eventLogForm.eventType && !!eventLogForm.note;
 
   return (
@@ -400,7 +395,7 @@ export default function EventsMasterDataPage() {
                         }}
                       >
                         <option value="">Select event type</option>
-                        {eventTypesRaw?.map((event) => (
+                        {eventTypesData?.map((event) => (
                           <option key={event.event_code} value={event.event_code}>
                             {event.event_name}
                             {event.cost_per_event > 0 && ` (+ $${event.cost_per_event})`}
