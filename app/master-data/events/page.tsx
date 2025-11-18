@@ -66,6 +66,14 @@ const EVENT_STATUS_MAP: Record<string, string> = {
   DELIVERY_COMPLETE: "Completed"
 };
 
+// Helper to parse cost values that come as strings from database
+function parseCost(cost: number | string | undefined): number {
+  if (typeof cost === 'string') {
+    return parseFloat(cost) || 0;
+  }
+  return cost || 0;
+}
+
 export default function EventsMasterDataPage() {
   const [selectedTab, setSelectedTab] = useState("types");
   const queryClient = useQueryClient();
@@ -125,7 +133,7 @@ export default function EventsMasterDataPage() {
   const eventTypes: EventType[] = eventTypesData || [];
   const eventRules: EventRule[] = [];
 
-  const totalCostImpact = eventTypes.reduce((sum, event) => sum + (event.cost_per_event || 0), 0);
+  const totalCostImpact = eventTypes.reduce((sum, event) => sum + parseCost(event.cost_per_event), 0);
   const automaticEvents = eventTypes.filter(e => e.is_automatic).length;
 
   const handleEventLogSubmit = () => {
@@ -282,7 +290,7 @@ export default function EventsMasterDataPage() {
                             <div className="flex items-center gap-4 text-xs text-neutral-500">
                               <div className="flex items-center gap-1">
                                 <DollarSign className="w-3 h-3" />
-                                <span>Cost: ${event.cost_per_event?.toFixed(2) || '0.00'}</span>
+                                <span>Cost: ${parseCost(event.cost_per_event).toFixed(2)}</span>
                               </div>
                               <div className="flex items-center gap-1">
                                 <Clock className="w-3 h-3" />
@@ -398,7 +406,7 @@ export default function EventsMasterDataPage() {
                         {eventTypesData?.map((event) => (
                           <option key={event.event_code} value={event.event_code}>
                             {event.event_name}
-                            {event.cost_per_event > 0 && ` (+ $${event.cost_per_event})`}
+                            {parseCost(event.cost_per_event) > 0 && ` (+ $${parseCost(event.cost_per_event).toFixed(2)})`}
                           </option>
                         ))}
                       </Select>
@@ -415,9 +423,9 @@ export default function EventsMasterDataPage() {
                                 ? "Auto-triggered event"
                                 : "Manual event"}
                             </p>
-                            {selectedEventType.cost_per_event > 0 && (
-                              <p className="text-blue-300/80">
-                                Cost Impact: ${selectedEventType.cost_per_event}
+                            {parseCost(selectedEventType.cost_per_event) > 0 && (
+                              <p className="text-xs text-blue-300/80">
+                                Cost Impact: ${parseCost(selectedEventType.cost_per_event).toFixed(2)}
                               </p>
                             )}
                           </div>
@@ -489,8 +497,8 @@ export default function EventsMasterDataPage() {
                         <p className="text-xs text-amber-300">
                           This event will {selectedEventType.is_automatic && "automatically "}
                           update the trip status
-                          {selectedEventType.cost_per_event > 0 &&
-                            ` and add $${selectedEventType.cost_per_event} to trip cost`}
+                          {parseCost(selectedEventType.cost_per_event) > 0 &&
+                            ` and add $${parseCost(selectedEventType.cost_per_event).toFixed(2)} to trip cost`}
                           .
                         </p>
                       </div>
@@ -572,7 +580,7 @@ export default function EventsMasterDataPage() {
             <Card className="p-6">
               <h3 className="text-sm font-semibold text-neutral-200 mb-4">Event-Triggered Costs</h3>
               <div className="space-y-3">
-                {eventTypes.filter(e => e.cost_per_event > 0).map((event) => (
+                {eventTypes.filter(e => parseCost(e.cost_per_event) > 0).map((event) => (
                   <div key={event.event_id} className="flex items-center justify-between p-3 rounded-lg border border-neutral-800 bg-neutral-900/60">
                     <div>
                       <p className="text-sm font-medium text-neutral-200">{event.event_name}</p>
@@ -582,7 +590,7 @@ export default function EventsMasterDataPage() {
                     </div>
                     <div className="text-right">
                       <p className="text-lg font-bold text-emerald-400">
-                        ${event.cost_per_event.toFixed(2)}
+                        ${parseCost(event.cost_per_event).toFixed(2)}
                       </p>
                       <p className="text-xs text-neutral-500">per event</p>
                     </div>
@@ -590,7 +598,7 @@ export default function EventsMasterDataPage() {
                 ))}
               </div>
 
-              {eventTypes.filter(e => e.cost_per_event > 0).length === 0 && (
+              {eventTypes.filter(e => parseCost(e.cost_per_event) > 0).length === 0 && (
                 <p className="text-sm text-neutral-500 text-center py-8">
                   No cost triggers configured yet
                 </p>
