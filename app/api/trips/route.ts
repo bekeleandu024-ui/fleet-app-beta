@@ -29,7 +29,7 @@ interface BackendTripsResponse {
 export async function GET() {
   try {
     const response = await serviceFetch<BackendTripsResponse>("tracking", "/api/trips");
-    const trips = response.value.map(transformTrip);
+    const trips = (response.value || []).map(transformTrip);
     return NextResponse.json(buildTripsResponse(trips));
   } catch (error) {
     console.error("Error fetching trips from tracking service:", error);

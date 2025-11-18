@@ -7,13 +7,16 @@ type HealthStatus = "ok" | "warn" | "alert";
 
 export async function GET() {
   try {
-    const [orders, tripsPayload, driversPayload, unitsPayload, serviceHealth] = await Promise.all([
-      serviceFetch<Array<Record<string, any>>>("orders", "/api/orders"),
+    const [ordersResponse, tripsPayload, driversPayload, unitsPayload, serviceHealth] = await Promise.all([
+      serviceFetch<{ data?: Array<Record<string, any>> } | Array<Record<string, any>>>("orders", "/api/orders"),
       serviceFetch<{ value?: Array<Record<string, any>> }>("tracking", "/api/trips"),
       serviceFetch<{ drivers?: Array<Record<string, any>> }>("masterData", "/api/metadata/drivers"),
       serviceFetch<{ units?: Array<Record<string, any>> }>("masterData", "/api/metadata/units"),
       fetchServiceHealth(),
     ]);
+
+    // Handle both structured response (from real service) and array response (from demo data)
+    const orders = Array.isArray(ordersResponse) ? ordersResponse : (ordersResponse.data || []);
 
     const normalizedOrders = orders.map((order) => ({
       status: mapOrderStatus(order.status),

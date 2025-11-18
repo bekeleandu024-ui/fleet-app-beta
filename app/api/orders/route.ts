@@ -8,7 +8,10 @@ type OrderResponse = OrderListItem & { revenue: number; created?: string };
 
 export async function GET() {
   try {
-    const dbOrders = await serviceFetch<Array<Record<string, any>>>("orders", "/api/orders");
+    const response = await serviceFetch<{ data?: Array<Record<string, any>>; stats?: any; filters?: any }>("orders", "/api/orders");
+    
+    // Handle both structured response (from real service) and array response (from demo data)
+    const dbOrders = Array.isArray(response) ? response : (response.data || []);
     const orders = dbOrders.map(transformOrderFromService);
     return NextResponse.json(buildOrdersResponse(orders));
   } catch (error) {
