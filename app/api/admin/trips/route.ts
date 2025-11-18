@@ -27,8 +27,10 @@ const updateSchema = baseSchema.extend({ id: z.string() });
 
 export async function GET() {
   try {
-    const payload = await serviceFetch<{ value?: Array<Record<string, any>> }>("tracking", "/api/trips");
-    return NextResponse.json({ data: (payload.value ?? []).map((trip) => mapTripAdminRecord(trip)) });
+    const response = await serviceFetch<any>("tracking", "/api/trips");
+    // Handle both array and object responses
+    const trips = Array.isArray(response) ? response : (response.value || []);
+    return NextResponse.json({ data: trips.map((trip) => mapTripAdminRecord(trip)) });
   } catch (error) {
     console.error("Admin trips fetch failed", error);
     return NextResponse.json({ error: "Unable to load trips" }, { status: 500 });
@@ -37,9 +39,35 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    createSchema.parse(await request.json());
-    return NextResponse.json({ error: "Trip creation is disabled against live services" }, { status: 503 });
+    const body = await request.json();
+    const validated = createSchema.parse(body);
+    
+    // Create trip via tracking service
+    const tripPayload = {
+      orderId: validated.orderId,
+      driverId: validated.driverId,
+      unitId: validated.unitId,
+      pickup: {
+        location: validated.pickup,
+        windowStart: validated.eta,
+        windowEnd: new Date(new Date(validated.eta).getTime() + 4 * 60 * 60 * 1000).toISOString(),
+      },
+      delivery: {
+        location: validated.delivery,
+        windowStart: new Date(new Date(validated.eta).getTime() + 24 * 60 * 60 * 1000).toISOString(),
+        windowEnd: new Date(new Date(validated.eta).getTime() + 28 * 60 * 60 * 1000).toISOString(),
+      },
+      notes: body.notes || '',
+    };
+    
+    const trip = await serviceFetch("tracking", "/api/trips", {
+      method: "POST",
+      body: JSON.stringify(tripPayload),
+    });
+    
+    return NextResponse.json({ data: mapTripAdminRecord(trip) }, { status: 201 });
   } catch (error) {
+    console.error("Error creating trip:", error);
     return NextResponse.json({ error: formatError(error) }, { status: 400 });
   }
 }

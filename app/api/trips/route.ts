@@ -7,6 +7,7 @@ interface BackendTrip {
   dispatch_id: string;
   order_id: string;
   driver_id: string;
+  unit_id?: string;
   status: string;
   pickup_location: string;
   dropoff_location: string;
@@ -81,8 +82,21 @@ export async function POST(request: Request) {
 
 export async function GET() {
   try {
-    const response = await serviceFetch<BackendTripsResponse>("tracking", "/api/trips");
-    const trips = (response.value || []).map(transformTrip);
+    const response = await serviceFetch<BackendTripsResponse | BackendTrip[]>("tracking", "/api/trips");
+    
+    // Handle both array and object responses
+    const tripsArray = Array.isArray(response) ? response : (response.value || []);
+    
+    // Fetch driver and unit data for mapping
+    const [driversResult, unitsResult] = await Promise.allSettled([
+      serviceFetch<{ drivers?: Array<Record<string, any>> }>("masterData", "/api/metadata/drivers"),
+      serviceFetch<{ units?: Array<Record<string, any>> }>("masterData", "/api/metadata/units"),
+    ]);
+
+    const drivers = driversResult.status === "fulfilled" && driversResult.value?.drivers ? driversResult.value.drivers : [];
+    const units = unitsResult.status === "fulfilled" && unitsResult.value?.units ? unitsResult.value.units : [];
+
+    const trips = tripsArray.map(trip => transformTrip(trip, drivers, units));
     return NextResponse.json(buildTripsResponse(trips));
   } catch (error) {
     console.error("Error fetching trips from tracking service:", error);
@@ -93,25 +107,38 @@ export async function GET() {
   }
 }
 
-function transformTrip(trip: BackendTrip): TripListItem {
+function transformTrip(trip: BackendTrip, drivers: Array<Record<string, any>>, units: Array<Record<string, any>>): TripListItem {
   const statusMap: Record<string, string> = {
+    planned: "Assigned",
     assigned: "Assigned",
     in_transit: "In Transit",
+    en_route_to_pickup: "In Transit",
+    at_pickup: "At Pickup",
+    departed_pickup: "In Transit",
+    at_delivery: "At Delivery",
+    delivered: "Delivered",
     completed: "Completed",
     cancelled: "Cancelled",
   };
+
+  // Find driver and unit names
+  const driver = drivers.find(d => d.driver_id === trip.driver_id || d.id === trip.driver_id);
+  const unit = units.find(u => u.unit_id === trip.unit_id || u.id === trip.unit_id);
+
+  const driverName = driver?.driver_name || driver?.name || `Driver ${trip.driver_id.slice(0, 6).toUpperCase()}`;
+  const unitName = unit?.unit_number || unit?.unit_id?.slice(0, 8).toUpperCase() || trip.unit_id?.slice(0, 8).toUpperCase() || "N/A";
 
   const eta = trip.completed_at || trip.planned_start || new Date().toISOString();
 
   return {
     id: trip.id,
     tripNumber: trip.id.slice(0, 8).toUpperCase(),
-    driver: `DRV-${trip.driver_id.slice(0, 6).toUpperCase()}`,
-    unit: `UNIT-${trip.driver_id.slice(0, 6).toUpperCase()}`,
+    driver: driverName,
+    unit: unitName,
     pickup: trip.pickup_location,
     delivery: trip.dropoff_location,
     eta,
-    status: statusMap[trip.status] || "Unknown",
+    status: statusMap[trip.status.toLowerCase()] || trip.status,
     exceptions: 0,
     lastPing: trip.updated_at,
     orderId: trip.order_id,

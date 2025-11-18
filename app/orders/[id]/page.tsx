@@ -112,8 +112,13 @@ export default function OrderDetailPage() {
       }
 
       const trip = await response.json();
-      alert(`Trip ${trip.id.slice(0, 8)} booked successfully!`);
+      alert(`Trip ${trip.id.slice(0, 8)} booked successfully! Redirecting to trips page...`);
       setNotes("");
+      
+      // Redirect to trips page after successful booking
+      setTimeout(() => {
+        window.location.href = "/trips";
+      }, 1500);
     } catch (error: any) {
       console.error("Error booking trip:", error);
       alert(error.message || "Failed to book trip");

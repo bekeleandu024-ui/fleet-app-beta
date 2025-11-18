@@ -27,7 +27,9 @@ const updateSchema = baseSchema.extend({ id: z.string() });
 
 export async function GET() {
   try {
-    const records = await serviceFetch<Array<Record<string, any>>>("orders", "/api/orders");
+    const response = await serviceFetch<any>("orders", "/api/orders");
+    // Handle both array and structured response
+    const records = Array.isArray(response) ? response : (response.data || []);
     return NextResponse.json({ data: records.map(mapOrderAdminRecord) });
   } catch (error) {
     console.error("Admin orders fetch failed", error);
@@ -37,9 +39,28 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    createSchema.parse(await request.json());
-    return NextResponse.json({ error: "Order creation is not available against live services" }, { status: 503 });
+    const body = await request.json();
+    const validated = createSchema.parse(body);
+    
+    // Transform to backend CreateOrderRequest format
+    // Backend expects: customer_id, order_type, pickup_location, dropoff_location, pickup_time?, special_instructions?
+    const orderPayload = {
+      customer_id: validated.customer, // Frontend sends customer name as ID
+      order_type: "round_trip", // Default order type
+      pickup_location: validated.pickup,
+      dropoff_location: validated.delivery,
+      pickup_time: validated.window?.split(" - ")[0] || undefined, // Extract from window if available
+      special_instructions: `Service Level: ${validated.serviceLevel}, Commodity: ${validated.commodity}`,
+    };
+    
+    const order = await serviceFetch("orders", "/api/orders", {
+      method: "POST",
+      body: JSON.stringify(orderPayload),
+    });
+    
+    return NextResponse.json({ data: mapOrderAdminRecord(order) }, { status: 201 });
   } catch (error) {
+    console.error("Error creating order:", error);
     return NextResponse.json({ error: formatError(error) }, { status: 400 });
   }
 }
