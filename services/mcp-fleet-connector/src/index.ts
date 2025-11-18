@@ -9,6 +9,7 @@ import {
 import { orderTools } from './tools/orders.js';
 import { driverTools } from './tools/drivers.js';
 import { tripTools } from './tools/trips.js';
+import { unitTools } from './tools/units.js';
 import { costingTools } from './tools/costing.js';
 import { dispatchTools } from './tools/dispatch.js';
 
@@ -32,6 +33,7 @@ const allTools = {
   ...orderTools,
   ...driverTools,
   ...tripTools,
+  ...unitTools,
   ...costingTools,
   ...dispatchTools,
 };

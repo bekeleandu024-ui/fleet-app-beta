@@ -4,22 +4,38 @@ const FRONTEND_API = 'http://localhost:3000';
 export const orderTools = {
   search_orders: {
     name: 'search_orders',
-    description: 'Search and filter orders by customer, status, or location. Returns orders from both the database and the frontend system. Use this to find orders when you only know the customer name or route.',
+    description: 'Search and filter orders by customer, status, location, date range, or lane. Returns orders from both the database and the frontend system. Use this to find orders when you only know the customer name or route.',
     inputSchema: {
       type: 'object',
       properties: {
         customer: {
           type: 'string',
-          description: 'Customer ID to filter by (e.g., cust-123, cust-789, cust-demo)',
+          description: 'Customer ID or customer name to filter by (e.g., cust-123, Brightline Retail)',
         },
         status: {
           type: 'string',
-          enum: ['pending', 'in_transit', 'delivered', 'cancelled'],
+          enum: ['pending', 'in_transit', 'delivered', 'cancelled', 'at_risk'],
           description: 'Order status to filter by',
         },
         location: {
           type: 'string',
           description: 'Search in pickup or dropoff location (e.g., Chicago, Toronto, Buffalo)',
+        },
+        lane: {
+          type: 'string',
+          description: 'Search by lane/route (e.g., "Chicago → Toronto")',
+        },
+        dateFrom: {
+          type: 'string',
+          description: 'Filter orders created after this date (ISO format: YYYY-MM-DD)',
+        },
+        dateTo: {
+          type: 'string',
+          description: 'Filter orders created before this date (ISO format: YYYY-MM-DD)',
+        },
+        limit: {
+          type: 'number',
+          description: 'Maximum number of orders to return (default: 50)',
         },
       },
     },
@@ -89,14 +105,41 @@ export const orderTools = {
             o.dropoff_location?.toLowerCase().includes(loc)
           );
         }
+        if (params.lane) {
+          const laneLower = params.lane.toLowerCase();
+          allOrders = allOrders.filter((o: any) =>
+            o.route?.toLowerCase().includes(laneLower) ||
+            o.lane?.toLowerCase().includes(laneLower)
+          );
+        }
+        if (params.dateFrom) {
+          const fromDate = new Date(params.dateFrom);
+          allOrders = allOrders.filter((o: any) => {
+            const orderDate = new Date(o.created_at || o.created);
+            return orderDate >= fromDate;
+          });
+        }
+        if (params.dateTo) {
+          const toDate = new Date(params.dateTo);
+          allOrders = allOrders.filter((o: any) => {
+            const orderDate = new Date(o.created_at || o.created);
+            return orderDate <= toDate;
+          });
+        }
+
+        // Apply limit
+        const limit = params.limit || 50;
+        const limitedOrders = allOrders.slice(0, limit);
 
         return {
-          count: allOrders.length,
+          count: limitedOrders.length,
+          total: allOrders.length,
+          showing: limitedOrders.length < allOrders.length ? `Showing ${limitedOrders.length} of ${allOrders.length}` : 'All orders',
           sources: {
             database: allOrders.filter(o => o.source === 'database').length,
             frontend: allOrders.filter(o => o.source === 'frontend').length,
           },
-          orders: allOrders,
+          orders: limitedOrders,
         };
       } catch (error: any) {
         throw new Error(error.message || 'Failed to search orders');
