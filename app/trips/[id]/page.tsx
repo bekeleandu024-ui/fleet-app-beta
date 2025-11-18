@@ -1,70 +1,58 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { 
-  Activity, 
-  FileText, 
-  Map as MapIcon, 
-  Package, 
-  User, 
-  Truck, 
-  Clock, 
-  MapPin, 
-  DollarSign,
+import { useQuery } from "@tanstack/react-query";
+import {
+  Activity,
   AlertTriangle,
-  CheckCircle2,
-  MessageSquare,
-  Edit,
   ArrowLeft,
-  Phone,
-  Mail,
-  Sparkles
+  CheckCircle2,
+  Edit,
+  FileText,
+  Info,
+  MessageSquare,
+  NotebookPen,
+  Package,
+  Sparkles,
 } from "lucide-react";
 
-import { StatChip } from "@/components/stat-chip";
+import { TripTicket } from "@/components/trips/trip-ticket";
+import { AiTripInsightPanel } from "@/components/trips/ai-trip-insight-panel";
+import { DriverCostComparison } from "@/components/trips/driver-cost-comparison";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AIInsightsPanel } from "@/components/ai-insights-panel";
+import { StatChip } from "@/components/stat-chip";
 import { fetchTripDetail } from "@/lib/api";
 import { getTripInsights } from "@/lib/ai-service";
-import { formatDateTime } from "@/lib/format";
+import { formatCurrency, formatDateTime } from "@/lib/format";
 import { queryKeys } from "@/lib/query";
-
-const severityTone: Record<string, "default" | "warn" | "alert"> = {
-  info: "default",
-  warn: "warn",
-  alert: "alert",
-};
 
 export default function TripDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
-  const queryClient = useQueryClient();
   const tripId = params?.id ?? "";
   const [noteText, setNoteText] = useState("");
-  
+
   const { data, isLoading, isError } = useQuery({
     queryKey: queryKeys.trip(tripId),
     queryFn: () => fetchTripDetail(tripId),
     enabled: Boolean(tripId),
-    refetchInterval: 30000, // Refresh every 30 seconds
+    refetchInterval: 30000,
   });
 
   const { data: aiInsights, isLoading: aiLoading } = useQuery({
-    queryKey: ['tripInsights', tripId],
+    queryKey: ["tripInsights", tripId],
     queryFn: () => getTripInsights(tripId),
     enabled: Boolean(tripId),
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
 
   const handleAddNote = () => {
     if (!noteText.trim()) return;
-    // TODO: Implement note creation API call
     console.log("Adding note:", noteText);
     setNoteText("");
+    // TODO: Implement note creation API call and invalidation
     // queryClient.invalidateQueries({ queryKey: queryKeys.trip(tripId) });
   };
 
@@ -80,23 +68,15 @@ export default function TripDetailPage() {
     );
   }
 
-  const getStatusVariant = (status: string) => {
-    if (status.toLowerCase().includes("completed") || status.toLowerCase().includes("delivered")) return "ok";
-    if (status.toLowerCase().includes("late") || status.toLowerCase().includes("risk")) return "warn";
-    if (status.toLowerCase().includes("exception") || status.toLowerCase().includes("alert")) return "alert";
-    return "default";
-  };
-
-  const latestEvent = data.timeline[0];
-  const activeExceptions = data.exceptions.filter(e => e.severity === "alert" || e.severity === "warn");
+  const distanceMiles = aiInsights?.routeOptimization.distance ?? data.metrics?.distanceMiles ?? 120;
+  const activeExceptions = data.exceptions.filter((e) => e.severity === "alert" || e.severity === "warn");
 
   return (
-    <>
-      {/* Header with Actions */}
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <Button size="sm" variant="subtle" onClick={() => router.back()}>
-            <ArrowLeft className="w-4 h-4 mr-2" />
+            <ArrowLeft className="mr-2 h-4 w-4" />
             Back
           </Button>
           <div>
@@ -105,413 +85,233 @@ export default function TripDetailPage() {
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <StatChip label={data.status} variant={getStatusVariant(data.status) as any} />
-          {activeExceptions.length > 0 && (
-            <StatChip label={`${activeExceptions.length} Exceptions`} variant="alert" />
-          )}
+          <StatChip label={data.status} variant="default" />
+          {activeExceptions.length > 0 && <StatChip label={`${activeExceptions.length} Exceptions`} variant="alert" />}
           <Button size="sm" variant="primary">
-            <Edit className="w-4 h-4 mr-2" />
-            Update Status
+            <Edit className="mr-2 h-4 w-4" /> Update Status
           </Button>
         </div>
       </div>
 
-      <div className="space-y-6">
-        {/* Quick Stats */}
-        <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
-          <Card className="p-3">
-            <div className="flex items-center gap-2">
-              <div className="p-2 rounded-lg bg-blue-500/10">
-                <Clock className="w-4 h-4 text-blue-400" />
-              </div>
-              <div>
-                <p className="text-xs text-neutral-500">ETA</p>
-                <p className="text-sm font-semibold text-neutral-200">{formatDateTime(data.eta)}</p>
-              </div>
-            </div>
-          </Card>
-          <Card className="p-3">
-            <div className="flex items-center gap-2">
-              <div className="p-2 rounded-lg bg-emerald-500/10">
-                <MapPin className="w-4 h-4 text-emerald-400" />
-              </div>
-              <div>
-                <p className="text-xs text-neutral-500">Last Location</p>
-                <p className="text-sm font-semibold text-neutral-200">
-                  {latestEvent?.location || "En Route"}
-                </p>
-              </div>
-            </div>
-          </Card>
-          <Card className="p-3">
-            <div className="flex items-center gap-2">
-              <div className="p-2 rounded-lg bg-amber-500/10">
-                <Activity className="w-4 h-4 text-amber-400" />
-              </div>
-              <div>
-                <p className="text-xs text-neutral-500">Last Update</p>
-                <p className="text-sm font-semibold text-neutral-200">
-                  {formatDateTime(data.telemetry.lastPing)}
-                </p>
-              </div>
-            </div>
-          </Card>
-        </div>
+      <TripTicket trip={data} aiInsights={aiInsights} />
 
-        {/* Driver & Unit Info */}
-        <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
-          <Card className="p-3">
-            <div className="flex items-start gap-2">
-              <div className="p-2 rounded-lg bg-neutral-800">
-                <User className="w-4 h-4 text-neutral-400" />
-              </div>
-              <div className="flex-1">
-                <p className="text-xs text-neutral-500">Driver</p>
-                <p className="text-sm font-semibold text-neutral-200 mb-2">{data.driver}</p>
-                <div className="flex gap-2">
-                  <Button size="sm" variant="subtle" className="text-xs px-2 py-1">
-                    <Phone className="w-3 h-3 mr-1" />
-                    Contact
-                  </Button>
-                  <Button size="sm" variant="subtle" className="text-xs px-2 py-1">
-                    <MessageSquare className="w-3 h-3 mr-1" />
-                    Message
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </Card>
-          <Card className="p-3">
-            <div className="flex items-start gap-2">
-              <div className="p-2 rounded-lg bg-neutral-800">
-                <Truck className="w-4 h-4 text-neutral-400" />
-              </div>
-              <div className="flex-1">
-                <p className="text-xs text-neutral-500">Unit</p>
-                <p className="text-sm font-semibold text-neutral-200 mb-2">{data.unit}</p>
-                <div className="flex gap-2">
-                  <Button size="sm" variant="subtle" className="text-xs px-2 py-1">
-                    View Details
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </Card>
-        </div>
+      <div className="grid gap-4 lg:grid-cols-[2fr,1fr]">
+        <AiTripInsightPanel trip={data} aiInsights={aiInsights} loading={aiLoading} />
 
-        {/* Tabs */}
-        <Card className="p-4">
-        <Tabs defaultValue="ai-insights" className="space-y-4">
-          <TabsList className="bg-neutral-900/50 text-neutral-500">
-            <TabsTrigger value="ai-insights">
-              <Sparkles className="size-4" /> AI Insights
-            </TabsTrigger>
-            <TabsTrigger value="timeline">
-              <Activity className="size-4" /> Timeline
-            </TabsTrigger>
-            <TabsTrigger value="exceptions">
-              <FileText className="size-4" /> Exceptions
-            </TabsTrigger>
-            <TabsTrigger value="telemetry">
-              <MapIcon className="size-4" /> Telemetry
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="ai-insights" className="space-y-4">
-            {aiLoading ? (
-              <div className="space-y-4">
-                <div className="h-48 animate-pulse rounded-xl border border-neutral-800 bg-neutral-900/60" />
-                <div className="h-64 animate-pulse rounded-xl border border-neutral-800 bg-neutral-900/60" />
-              </div>
-            ) : aiInsights ? (
-              <>
-                <AIInsightsPanel
-                  recommendation={aiInsights.recommendation}
-                  driverRecommendations={aiInsights.alternativeDrivers}
-                  insights={aiInsights.insights}
-                  totalDistance={aiInsights.routeOptimization.distance}
-                  estimatedTime={aiInsights.routeOptimization.duration}
-                />
-                
-                {/* Current Assignment Details */}
-                <Card className="p-6">
-                  <h3 className="font-semibold text-neutral-100 mb-4">Current Assignment</h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-xs text-neutral-500">Driver</p>
-                      <p className="text-sm font-semibold text-neutral-200">
-                        {aiInsights.currentAssignment.driver}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-neutral-500">Driver Type</p>
-                      <p className="text-sm font-semibold text-neutral-200">
-                        {aiInsights.currentAssignment.driverType}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-neutral-500">Unit</p>
-                      <p className="text-sm font-semibold text-neutral-200">
-                        {aiInsights.currentAssignment.unit}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-neutral-500">Effective Rate</p>
-                      <p className="text-sm font-semibold text-neutral-200">
-                        ${aiInsights.currentAssignment.effectiveRate}/mile
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-neutral-500">Estimated Cost</p>
-                      <p className="text-sm font-semibold text-neutral-200">
-                        ${aiInsights.currentAssignment.estimatedCost}
-                      </p>
-                    </div>
-                  </div>
-                </Card>
-
-                {/* Cost Breakdown */}
-                <Card className="p-6">
-                  <h3 className="font-semibold text-neutral-100 mb-4">Cost Analysis</h3>
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-neutral-400">Linehaul Cost</span>
-                      <span className="text-sm font-semibold text-neutral-200">
-                        ${aiInsights.costAnalysis.linehaulCost.toLocaleString()}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-neutral-400">Fuel Cost</span>
-                      <span className="text-sm font-semibold text-neutral-200">
-                        ${aiInsights.costAnalysis.fuelCost.toLocaleString()}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-neutral-400">Driver Cost</span>
-                      <span className="text-sm font-semibold text-neutral-200">
-                        ${aiInsights.costAnalysis.driverCost.toLocaleString()}
-                      </span>
-                    </div>
-                    <div className="border-t border-neutral-800 pt-3 flex justify-between items-center">
-                      <span className="text-sm font-semibold text-neutral-200">Total Cost</span>
-                      <span className="text-lg font-bold text-neutral-100">
-                        ${aiInsights.costAnalysis.totalCost.toLocaleString()}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-neutral-400">Recommended Revenue</span>
-                      <span className="text-sm font-semibold text-emerald-400">
-                        ${aiInsights.costAnalysis.recommendedRevenue.toLocaleString()}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-neutral-400">Margin</span>
-                      <span className="text-sm font-semibold text-emerald-400">
-                        {aiInsights.costAnalysis.margin}%
-                      </span>
-                    </div>
-                  </div>
-                </Card>
-
-                {/* Route Optimization */}
-                {aiInsights.routeOptimization.warnings.length > 0 && (
-                  <Card className="p-6 bg-amber-500/5 border-amber-500/20">
-                    <div className="flex items-start gap-3">
-                      <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-amber-200 mb-2">Route Warnings</h3>
-                        {aiInsights.routeOptimization.warnings.map((warning, idx) => (
-                          <p key={idx} className="text-sm text-amber-300/90">
-                            {warning.replace('⚠️', '').trim()}
-                          </p>
-                        ))}
-                      </div>
-                    </div>
-                  </Card>
-                )}
-              </>
-            ) : (
-              <div className="text-center py-8">
-                <Sparkles className="w-12 h-12 text-neutral-600 mx-auto mb-2" />
-                <p className="text-sm text-neutral-400">No AI insights available</p>
-              </div>
-            )}
-          </TabsContent>
-
-          <TabsContent value="timeline" className="space-y-3">
-            {data.timeline.length === 0 ? (
-              <p className="text-sm text-neutral-500 text-center py-8">No timeline events yet.</p>
-            ) : (
-              <div className="space-y-3">
-                {data.timeline.map((event, index) => (
-                  <div key={event.id} className="relative">
-                    {index < data.timeline.length - 1 && (
-                      <div className="absolute left-4 top-10 bottom-0 w-px bg-neutral-800" />
-                    )}
-                    <div className="flex gap-4">
-                      <div className="relative shrink-0">
-                        <div className="w-8 h-8 rounded-full bg-neutral-800 flex items-center justify-center border-2 border-neutral-900">
-                          <div className="w-3 h-3 rounded-full bg-emerald-500" />
-                        </div>
-                      </div>
-                      <div className="flex-1 rounded-lg border border-neutral-800 bg-neutral-900/60 p-4">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex-1">
-                            <p className="text-sm font-semibold text-neutral-200">{event.summary}</p>
-                            {event.location && (
-                              <div className="flex items-center gap-1 mt-1">
-                                <MapPin className="w-3 h-3 text-neutral-500" />
-                                <p className="text-xs text-neutral-500">{event.location}</p>
-                              </div>
-                            )}
-                          </div>
-                          <StatChip label={event.status} variant="default" />
-                        </div>
-                        <p className="text-xs text-neutral-500 mt-2">{formatDateTime(event.timestamp)}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </TabsContent>
-
-          <TabsContent value="exceptions" className="space-y-3">
-            {data.exceptions.length === 0 ? (
-              <div className="text-center py-8">
-                <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto mb-2" />
-                <p className="text-sm text-neutral-400">No active exceptions</p>
-                <p className="text-xs text-neutral-500">All systems normal</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {data.exceptions.map((exception) => (
-                  <div key={exception.id} className="rounded-lg border border-neutral-800 bg-neutral-900/60 p-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex gap-3 flex-1">
-                        <div className={`p-2 rounded-lg ${
-                          exception.severity === "alert" ? "bg-red-500/10" :
-                          exception.severity === "warn" ? "bg-amber-500/10" :
-                          "bg-blue-500/10"
-                        }`}>
-                          <AlertTriangle className={`w-5 h-5 ${
-                            exception.severity === "alert" ? "text-red-400" :
-                            exception.severity === "warn" ? "text-amber-400" :
-                            "text-blue-400"
-                          }`} />
-                        </div>
-                        <div className="flex-1">
-                          <p className="font-semibold text-neutral-200">{exception.type}</p>
-                          <p className="text-xs text-neutral-500 mt-1">
-                            Opened {formatDateTime(exception.opened)} • {exception.owner}
-                          </p>
-                          {exception.notes && (
-                            <p className="text-sm text-neutral-300 mt-2">{exception.notes}</p>
-                          )}
-                          <div className="flex gap-2 mt-3">
-                            <Button size="sm" variant="subtle" className="text-xs">
-                              Resolve
-                            </Button>
-                            <Button size="sm" variant="subtle" className="text-xs">
-                              Escalate
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                      <StatChip label={exception.severity.toUpperCase()} variant={severityTone[exception.severity]} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </TabsContent>
-
-          <TabsContent value="telemetry" className="space-y-4">
-            <div className="rounded-lg border border-dashed border-neutral-800 bg-neutral-900/30 p-8 text-center">
-              <MapIcon className="w-12 h-12 text-neutral-600 mx-auto mb-2" />
-              <p className="text-sm text-neutral-500">Live route map</p>
-              <p className="text-xs text-neutral-600">Map visualization coming soon</p>
-            </div>
-            
+        <Card className="flex h-full flex-col gap-4 border-neutral-800/70 bg-neutral-900/60 p-6">
+          <div className="flex items-start justify-between gap-3">
             <div>
-              <h3 className="text-sm font-semibold text-neutral-200 mb-3">Location History</h3>
-              {data.telemetry.breadcrumb.length === 0 ? (
-                <p className="text-sm text-neutral-500 text-center py-4">No tracking data available</p>
-              ) : (
-                <div className="space-y-2">
-                  {data.telemetry.breadcrumb.map((point) => (
-                    <div key={point.id} className="flex items-center justify-between rounded-lg border border-neutral-800 bg-neutral-900/60 px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        <MapPin className="w-4 h-4 text-neutral-500" />
-                        <div>
-                          <p className="text-sm text-neutral-200">{point.location || "Unknown"}</p>
-                          <p className="text-xs text-neutral-500">{formatDateTime(point.timestamp)}</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-semibold text-neutral-200">{point.speed} mph</p>
+              <p className="text-sm font-semibold text-neutral-100">Network Context</p>
+              <p className="text-xs text-neutral-500">Exceptions and recent movement</p>
+            </div>
+            <Sparkles className="h-4 w-4 text-neutral-500" />
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-xs uppercase tracking-wide text-neutral-500">Active Exceptions</p>
+            <div className="flex flex-wrap gap-2">
+              {activeExceptions.length === 0 && (
+                <span className="text-xs text-neutral-500">No active exceptions</span>
+              )}
+              {activeExceptions.map((exception) => (
+                <span
+                  key={exception.id}
+                  className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold ${
+                    exception.severity === "alert"
+                      ? "border-red-500/40 bg-red-500/10 text-red-200"
+                      : "border-amber-500/40 bg-amber-500/10 text-amber-200"
+                  }`}
+                >
+                  <AlertTriangle className="h-3.5 w-3.5" />
+                  {exception.type}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-xs uppercase tracking-wide text-neutral-500">Recent Activity</p>
+            {data.timeline.length === 0 ? (
+              <p className="text-sm text-neutral-500">No timeline events yet.</p>
+            ) : (
+              <div className="space-y-2">
+                {data.timeline.slice(0, 3).map((event) => (
+                  <div
+                    key={event.id}
+                    className="flex items-center justify-between rounded-lg border border-neutral-800/80 bg-neutral-900/50 px-3 py-2"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Activity className="h-4 w-4 text-neutral-500" />
+                      <div>
+                        <p className="text-sm text-neutral-200">{event.summary}</p>
+                        <p className="text-xs text-neutral-500">{event.location || "Location TBD"}</p>
                       </div>
                     </div>
-                  ))}
-                </div>
+                    <p className="text-[11px] text-neutral-500">{formatDateTime(event.timestamp)}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </Card>
+      </div>
+
+      <div className="space-y-4">
+        <DriverCostComparison distanceMiles={typeof distanceMiles === "number" ? distanceMiles : Number(distanceMiles)} />
+
+        <div className="grid gap-4 lg:grid-cols-3">
+          <Card className="border-neutral-800/70 bg-neutral-900/60 p-5">
+            <div className="mb-3 flex items-center gap-2 text-xs uppercase tracking-wide text-neutral-500">
+              <NotebookPen className="h-4 w-4" /> Key Insights
+            </div>
+            <div className="space-y-3 text-sm text-neutral-200">
+              <InsightRow
+                icon={<CheckCircle2 className="h-4 w-4 text-emerald-400" />}
+                text={`${data.driver} is assigned and offers good value for standard freight.`}
+              />
+              <InsightRow
+                icon={<Info className="h-4 w-4 text-amber-400" />}
+                text="Short cross-border trip; COM or RNR drivers keep margin healthy."
+              />
+              {typeof distanceMiles === "number" && distanceMiles > 300 && (
+                <InsightRow
+                  icon={<AlertTriangle className="h-4 w-4 text-red-400" />}
+                  text="Verify route distance – estimate appears high for this lane."
+                />
+              )}
+              {typeof (aiInsights?.costAnalysis.margin ?? data.metrics?.marginPct) === "number" && (
+                <InsightRow
+                  icon={<Sparkles className="h-4 w-4 text-blue-400" />}
+                  text={`Current margin of ${aiInsights?.costAnalysis.margin ?? data.metrics?.marginPct}% is tracking well for this route type.`}
+                />
               )}
             </div>
-          </TabsContent>
-        </Tabs>
-        </Card>
+          </Card>
 
-        {/* Add Note */}
-        <Card className="p-4">
-          <h2 className="text-sm font-semibold text-neutral-200 mb-3">Add Note</h2>
-          <textarea
-            className="w-full rounded-lg border border-neutral-800 bg-neutral-900/60 px-3 py-2 text-sm text-neutral-200 placeholder-neutral-500 resize-none"
-            rows={3}
-            placeholder="Add a note about this trip..."
-            value={noteText}
-            onChange={(e) => setNoteText(e.target.value)}
-          />
-          <Button 
-            size="sm" 
-            variant="primary" 
-            className="w-full mt-2"
-            disabled={!noteText.trim()}
-            onClick={handleAddNote}
-          >
-            <MessageSquare className="w-4 h-4 mr-2" />
-            Add Note
-          </Button>
-        </Card>
+          <div className="lg:col-span-2 grid gap-4 md:grid-cols-2">
+            <Card className="border-neutral-800/70 bg-neutral-900/60 p-5">
+              <div className="mb-3 flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-neutral-100">Current Assignment</p>
+                  <p className="text-xs text-neutral-500">Driver and unit on the load</p>
+                </div>
+                <Package className="h-4 w-4 text-neutral-500" />
+              </div>
+              <div className="space-y-2 text-sm text-neutral-200">
+                <DetailRow label="Driver" value={aiInsights?.currentAssignment.driver ?? data.driver} />
+                <DetailRow label="Driver Type" value={aiInsights?.currentAssignment.driverType ?? data.driverType ?? "—"} />
+                <DetailRow label="Unit" value={aiInsights?.currentAssignment.unit ?? data.unit} />
+                <DetailRow
+                  label="Effective Rate"
+                  value={aiInsights?.currentAssignment.effectiveRate ? `${aiInsights.currentAssignment.effectiveRate}/mile` : "—"}
+                />
+                <DetailRow
+                  label="Estimated Driver Cost"
+                  value={
+                    aiInsights?.currentAssignment.estimatedCost
+                      ? formatCurrency(aiInsights.currentAssignment.estimatedCost)
+                      : data.metrics?.totalCost
+                        ? formatCurrency(data.metrics.totalCost)
+                        : "—"
+                  }
+                />
+              </div>
+            </Card>
 
-        {/* Notes */}
-        <Card className="p-4">
-        <section>
-          <h2 className="text-sm font-semibold text-neutral-200 mb-3">Notes</h2>
-          {data.notes.length === 0 ? (
-            <p className="text-xs text-neutral-500 text-center py-4">No notes yet</p>
-          ) : (
-            <ul className="space-y-3 text-sm">
-              {data.notes.map((note) => (
-                <li key={note.id} className="rounded-lg border border-neutral-800 bg-neutral-900/50 p-3">
-                  <div className="flex items-center justify-between text-xs text-neutral-500 mb-2">
-                    <span className="font-medium">{note.author}</span>
-                    <span>{formatDateTime(note.timestamp)}</span>
+            <Card className="border-neutral-800/70 bg-neutral-900/60 p-5">
+              <div className="mb-3 flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-neutral-100">Cost Analysis</p>
+                  <p className="text-xs text-neutral-500">Trip-level costs and recommended revenue</p>
+                </div>
+                <DollarChip />
+              </div>
+              <div className="space-y-2 text-sm text-neutral-200">
+                <DetailRow
+                  label="Linehaul Cost"
+                  value={formatCurrency(aiInsights?.costAnalysis.linehaulCost ?? data.metrics?.linehaul ?? null)}
+                />
+                <DetailRow
+                  label="Fuel Cost"
+                  value={formatCurrency(aiInsights?.costAnalysis.fuelCost ?? data.metrics?.fuel ?? null)}
+                />
+                <DetailRow
+                  label="Driver Cost"
+                  value={formatCurrency(aiInsights?.costAnalysis.driverCost ?? null)}
+                />
+                <div className="border-t border-neutral-800 pt-2">
+                  <DetailRow
+                    label="Total Cost"
+                    value={formatCurrency(aiInsights?.costAnalysis.totalCost ?? data.metrics?.totalCost ?? null)}
+                    emphasize
+                  />
+                </div>
+                <DetailRow
+                  label="Recommended Revenue"
+                  value={formatCurrency(aiInsights?.costAnalysis.recommendedRevenue ?? data.metrics?.recommendedRevenue ?? null)}
+                />
+                <DetailRow
+                  label="Margin"
+                  value={
+                    aiInsights?.costAnalysis.margin !== undefined
+                      ? `${aiInsights.costAnalysis.margin}%`
+                      : data.metrics?.marginPct !== undefined
+                        ? `${data.metrics.marginPct}%`
+                        : "—"
+                  }
+                />
+              </div>
+            </Card>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card className="border-neutral-800/70 bg-neutral-900/60 p-5">
+          <div className="mb-3 flex items-center justify-between">
+            <p className="text-sm font-semibold text-neutral-100">Notes</p>
+            <MessageSquare className="h-4 w-4 text-neutral-500" />
+          </div>
+          <div className="space-y-3">
+            <textarea
+              className="w-full rounded-lg border border-neutral-800 bg-neutral-900/60 px-3 py-2 text-sm text-neutral-200 placeholder-neutral-500"
+              rows={3}
+              placeholder="Add a note about this trip..."
+              value={noteText}
+              onChange={(e) => setNoteText(e.target.value)}
+            />
+            <Button size="sm" variant="primary" className="w-full" disabled={!noteText.trim()} onClick={handleAddNote}>
+              <MessageSquare className="mr-2 h-4 w-4" /> Add Note
+            </Button>
+            <div className="space-y-2">
+              {data.notes.length === 0 ? (
+                <p className="text-xs text-neutral-500">No notes yet</p>
+              ) : (
+                data.notes.map((note) => (
+                  <div
+                    key={note.id}
+                    className="rounded-lg border border-neutral-800/70 bg-neutral-900/50 px-3 py-2 text-sm text-neutral-200"
+                  >
+                    <div className="flex items-center justify-between text-[11px] text-neutral-500">
+                      <span className="font-medium">{note.author}</span>
+                      <span>{formatDateTime(note.timestamp)}</span>
+                    </div>
+                    <p className="mt-1 text-neutral-200">{note.body}</p>
                   </div>
-                  <p className="text-sm text-neutral-200">{note.body}</p>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+                ))
+              )}
+            </div>
+          </div>
         </Card>
 
-        {/* Attachments */}
-        <Card className="p-4">
-        <section>
-          <h2 className="text-sm font-semibold text-neutral-200 mb-3">Attachments</h2>
+        <Card className="border-neutral-800/70 bg-neutral-900/60 p-5">
+          <div className="mb-3 flex items-center justify-between">
+            <p className="text-sm font-semibold text-neutral-100">Attachments</p>
+            <FileText className="h-4 w-4 text-neutral-500" />
+          </div>
           {data.attachments.length === 0 ? (
-            <div className="text-center py-6">
-              <FileText className="w-8 h-8 text-neutral-600 mx-auto mb-2" />
-              <p className="text-xs text-neutral-500">No attachments</p>
+            <div className="text-center">
+              <p className="text-sm text-neutral-500">No attachments</p>
               <Button size="sm" variant="subtle" className="mt-2">
                 Upload File
               </Button>
@@ -519,32 +319,61 @@ export default function TripDetailPage() {
           ) : (
             <ul className="space-y-2 text-sm">
               {data.attachments.map((file) => (
-                <li key={file.id} className="flex items-center justify-between rounded-lg border border-neutral-800 bg-neutral-900/50 px-3 py-2">
+                <li
+                  key={file.id}
+                  className="flex items-center justify-between rounded-lg border border-neutral-800/70 bg-neutral-900/50 px-3 py-2"
+                >
                   <div className="flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-neutral-500" />
+                    <FileText className="h-4 w-4 text-neutral-500" />
                     <span className="text-neutral-200">{file.name}</span>
                   </div>
                   <span className="text-xs text-neutral-500">{file.size}</span>
                 </li>
-              ))}\n            </ul>
+              ))}
+            </ul>
           )}
-        </section>
         </Card>
       </div>
-    </>
+    </div>
+  );
+}
+
+function DetailRow({ label, value, emphasize }: { label: string; value: string | null; emphasize?: boolean }) {
+  return (
+    <div className="flex items-center justify-between text-sm">
+      <span className="text-neutral-500">{label}</span>
+      <span className={`text-right ${emphasize ? "text-neutral-100 font-semibold" : "text-neutral-200"}`}>{value ?? "—"}</span>
+    </div>
+  );
+}
+
+function InsightRow({ icon, text }: { icon: ReactNode; text: string }) {
+  return (
+    <div className="flex items-start gap-3 rounded-lg border border-neutral-800/70 bg-neutral-900/50 p-3">
+      {icon}
+      <p className="text-neutral-200">{text}</p>
+    </div>
+  );
+}
+
+function DollarChip() {
+  return (
+    <div className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-emerald-200">
+      Cost
+    </div>
   );
 }
 
 function TripDetailSkeleton() {
   return (
     <div className="space-y-6">
-      <div className="h-[100px] animate-pulse rounded-xl border border-neutral-800 bg-neutral-900/60" />
-      <div className="grid gap-3 grid-cols-3">
-        <div className="h-20 animate-pulse rounded-xl border border-neutral-800 bg-neutral-900/60" />
-        <div className="h-20 animate-pulse rounded-xl border border-neutral-800 bg-neutral-900/60" />
-        <div className="h-20 animate-pulse rounded-xl border border-neutral-800 bg-neutral-900/60" />
+      <div className="h-12 animate-pulse rounded-xl border border-neutral-800 bg-neutral-900/60" />
+      <div className="h-[160px] animate-pulse rounded-xl border border-neutral-800 bg-neutral-900/60" />
+      <div className="grid gap-4 lg:grid-cols-[2fr,1fr]">
+        <div className="h-72 animate-pulse rounded-xl border border-neutral-800 bg-neutral-900/60" />
+        <div className="h-72 animate-pulse rounded-xl border border-neutral-800 bg-neutral-900/60" />
       </div>
-      <div className="h-[400px] animate-pulse rounded-xl border border-neutral-800 bg-neutral-900/60" />
+      <div className="h-[360px] animate-pulse rounded-xl border border-neutral-800 bg-neutral-900/60" />
     </div>
   );
 }
