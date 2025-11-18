@@ -44,15 +44,15 @@ INSERT INTO costing_rules (rule_key, rule_type, rule_value, description) VALUES
 -- Event types
 INSERT INTO event_types (event_code, event_name, cost_per_event, is_automatic) VALUES
 ('START', 'Trip Started', 0.00, true),
-('PICKUP_ARRIVE', 'Arrived at Pickup', 25.00, true),
-('PICKUP_DEPART', 'Departed Pickup / Loaded', 35.00, true),
-('BORDER_ARRIVE', 'Arrived at Border', 75.00, true),
-('BORDER_CLEAR', 'Border Cleared', 150.00, true),
-('DELIVERY_ARRIVE', 'Arrived at Delivery', 25.00, true),
-('DELIVERY_COMPLETE', 'Delivery Complete', 35.00, true),
-('LAYOVER', 'Layover/Detention', 100.00, false),
-('EXTRA_STOP', 'Extra Stop', 50.00, false),
-('DROP_HOOK', 'Drop/Hook', 50.00, false);
+('PICKUP_ARRIVE', 'Arrived at Pickup', 0.00, true),
+('PICKUP_DEPART', 'Departed Pickup / Loaded', 30.00, true),
+('BORDER_ARRIVE', 'Arrived at Border', 0.00, true),
+('BORDER_CLEAR', 'Border Cleared', 15.00, true),
+('DELIVERY_ARRIVE', 'Arrived at Delivery', 0.00, true),
+('DELIVERY_COMPLETE', 'Delivery Complete', 30.00, true),
+('LAYOVER', 'Layover/Detention', 0.00, false),
+('EXTRA_STOP', 'Extra Stop', 0.00, false),
+('DROP_HOOK', 'Drop/Hook', 15.00, false);
 
 -- Event detection rules
 INSERT INTO event_rules (event_code, trigger_type, trigger_condition) VALUES
