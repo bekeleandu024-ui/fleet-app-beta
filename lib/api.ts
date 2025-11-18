@@ -268,3 +268,30 @@ export function updateAdminCustomer(payload: CustomerAdminUpdate): Promise<Custo
 export function deleteAdminCustomer(id: string): Promise<void> {
   return deleteById("/admin/customers", id);
 }
+
+export interface EventType {
+  event_id: string;
+  event_code: string;
+  event_name: string;
+  cost_per_event: number;
+  is_automatic: boolean;
+  created_at: string;
+}
+
+export interface EventLogPayload {
+  note: string;
+  triggeredBy?: string;
+  eventType?: string;
+  location?: string;
+}
+
+export async function fetchEventTypes(): Promise<EventType[]> {
+  const response = await api.get("/master-data/events");
+  const data = response.data;
+  return data.event_types?.types || [];
+}
+
+export async function createTripEvent(tripId: string, payload: EventLogPayload): Promise<any> {
+  const response = await api.post(`/trips/${tripId}/events`, payload);
+  return response.data;
+}
