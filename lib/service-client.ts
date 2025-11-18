@@ -1,3 +1,5 @@
+import { demoServiceHealth, resolveDemoResponse } from "@/lib/demo-data";
+
 const ORDERS_SERVICE = process.env.ORDERS_SERVICE ?? "http://localhost:4002";
 const MASTER_DATA_SERVICE = process.env.MASTER_DATA_SERVICE ?? "http://localhost:4001";
 const DISPATCH_SERVICE = process.env.DISPATCH_SERVICE ?? "http://localhost:4003";
@@ -45,17 +47,28 @@ export async function serviceFetch<T>(service: ServiceName, path: string, option
     };
   }
 
-  const response = await fetch(url, init);
-  if (!response.ok) {
-    const message = await safeReadErrorMessage(response);
-    throw new ServiceError(message, response.status);
-  }
+  try {
+    const response = await fetch(url, init);
+    if (!response.ok) {
+      const message = await safeReadErrorMessage(response);
+      throw new ServiceError(message, response.status);
+    }
 
-  if (response.status === 204) {
-    return undefined as T;
-  }
+    if (response.status === 204) {
+      return undefined as T;
+    }
 
-  return (await response.json()) as T;
+    return (await response.json()) as T;
+  } catch (error) {
+    const fallback = resolveDemoResponse(service, path);
+    if (fallback !== undefined) {
+      console.warn(`Using demo data for ${service}${path}`);
+      if (service === "orders" || service === "masterData" || service === "dispatch" || service === "tracking") {
+        return fallback as T;
+      }
+    }
+    throw error;
+  }
 }
 
 async function safeReadErrorMessage(response: Response): Promise<string> {
@@ -78,4 +91,5 @@ export const serviceUrls = {
   MASTER_DATA_SERVICE,
   DISPATCH_SERVICE,
   TRACKING_SERVICE,
+  SERVICE_HEALTH: demoServiceHealth,
 };
