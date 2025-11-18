@@ -1,10 +1,30 @@
 "use client";
 
-import { useParams } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
-import { Activity, FileText, Map as MapIcon } from "lucide-react";
+import { useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { 
+  Activity, 
+  FileText, 
+  Map as MapIcon, 
+  Package, 
+  User, 
+  Truck, 
+  Clock, 
+  MapPin, 
+  DollarSign,
+  AlertTriangle,
+  CheckCircle2,
+  MessageSquare,
+  Edit,
+  ArrowLeft,
+  Phone,
+  Mail
+} from "lucide-react";
 
 import { StatChip } from "@/components/stat-chip";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { fetchTripDetail } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
@@ -18,11 +38,16 @@ const severityTone: Record<string, "default" | "warn" | "alert"> = {
 
 export default function TripDetailPage() {
   const params = useParams<{ id: string }>();
+  const router = useRouter();
+  const queryClient = useQueryClient();
   const tripId = params?.id ?? "";
+  const [noteText, setNoteText] = useState("");
+  
   const { data, isLoading, isError } = useQuery({
     queryKey: queryKeys.trip(tripId),
     queryFn: () => fetchTripDetail(tripId),
     enabled: Boolean(tripId),
+    refetchInterval: 30000, // Refresh every 30 seconds
   });
 
   if (isLoading) {
@@ -37,28 +62,130 @@ export default function TripDetailPage() {
     );
   }
 
-  const headerChips = [
-    { label: data.status, variant: data.status === "On Time" ? "ok" : data.status === "Running Late" ? "warn" : "alert" },
-    { label: data.driver },
-    { label: data.unit },
-  ];
+  const getStatusVariant = (status: string) => {
+    if (status.toLowerCase().includes("completed") || status.toLowerCase().includes("delivered")) return "ok";
+    if (status.toLowerCase().includes("late") || status.toLowerCase().includes("risk")) return "warn";
+    if (status.toLowerCase().includes("exception") || status.toLowerCase().includes("alert")) return "alert";
+    return "default";
+  };
+
+  const latestEvent = data.timeline[0];
+  const activeExceptions = data.exceptions.filter(e => e.severity === "alert" || e.severity === "warn");
 
   return (
-    <section className="col-span-12 grid gap-6 lg:grid-cols-12">
-      <article className="space-y-6 rounded-xl border border-neutral-800 bg-neutral-900/60 p-4 shadow-lg shadow-black/40 lg:col-span-8">
-        <header className="flex flex-wrap items-center justify-between gap-3">
+    <div className="space-y-6">
+      {/* Header with Actions */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Button size="sm" variant="subtle" onClick={() => router.back()}>
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back
+          </Button>
           <div>
-            <h1 className="text-lg font-semibold text-neutral-200">Trip {data.tripNumber}</h1>
-            <p className="text-xs text-neutral-500">ETA {formatDateTime(data.eta)}</p>
+            <h1 className="text-2xl font-bold text-neutral-200">Trip {data.tripNumber}</h1>
+            <p className="text-sm text-neutral-500">ID: {data.id}</p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {headerChips.map((chip) => (
-              <StatChip key={chip.label} label={chip.label} variant={(chip.variant ?? "default") as any} />
-            ))}
-          </div>
-        </header>
+        </div>
+        <div className="flex items-center gap-2">
+          <StatChip label={data.status} variant={getStatusVariant(data.status) as any} />
+          {activeExceptions.length > 0 && (
+            <StatChip label={`${activeExceptions.length} Exceptions`} variant="alert" />
+          )}
+          <Button size="sm" variant="primary">
+            <Edit className="w-4 h-4 mr-2" />
+            Update Status
+          </Button>
+        </div>
+      </div>
 
-        <Tabs defaultValue="timeline" className="grid gap-4">
+      <section className="grid gap-6 lg:grid-cols-12">
+      {/* Main Content */}
+      <article className="space-y-6 lg:col-span-8">
+        {/* Quick Stats */}
+        <div className="grid gap-4 md:grid-cols-3">
+          <Card className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-blue-500/10">
+                <Clock className="w-5 h-5 text-blue-400" />
+              </div>
+              <div>
+                <p className="text-xs text-neutral-500">ETA</p>
+                <p className="text-sm font-semibold text-neutral-200">{formatDateTime(data.eta)}</p>
+              </div>
+            </div>
+          </Card>
+          <Card className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-emerald-500/10">
+                <MapPin className="w-5 h-5 text-emerald-400" />
+              </div>
+              <div>
+                <p className="text-xs text-neutral-500">Last Location</p>
+                <p className="text-sm font-semibold text-neutral-200">
+                  {latestEvent?.location || "En Route"}
+                </p>
+              </div>
+            </div>
+          </Card>
+          <Card className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-amber-500/10">
+                <Activity className="w-5 h-5 text-amber-400" />
+              </div>
+              <div>
+                <p className="text-xs text-neutral-500">Last Update</p>
+                <p className="text-sm font-semibold text-neutral-200">
+                  {formatDateTime(data.telemetry.lastPing)}
+                </p>
+              </div>
+            </div>
+          </Card>
+        </div>
+
+        {/* Driver & Unit Info */}
+        <div className="grid gap-4 md:grid-cols-2">
+          <Card className="p-4">
+            <div className="flex items-start gap-3">
+              <div className="p-2 rounded-lg bg-neutral-800">
+                <User className="w-5 h-5 text-neutral-400" />
+              </div>
+              <div className="flex-1">
+                <p className="text-xs text-neutral-500">Driver</p>
+                <p className="text-base font-semibold text-neutral-200 mb-2">{data.driver}</p>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="subtle" className="text-xs">
+                    <Phone className="w-3 h-3 mr-1" />
+                    Contact
+                  </Button>
+                  <Button size="sm" variant="subtle" className="text-xs">
+                    <MessageSquare className="w-3 h-3 mr-1" />
+                    Message
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </Card>
+          <Card className="p-4">
+            <div className="flex items-start gap-3">
+              <div className="p-2 rounded-lg bg-neutral-800">
+                <Truck className="w-5 h-5 text-neutral-400" />
+              </div>
+              <div className="flex-1">
+                <p className="text-xs text-neutral-500">Unit</p>
+                <p className="text-base font-semibold text-neutral-200 mb-2">{data.unit}</p>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="subtle" className="text-xs">
+                    View Details
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </Card>
+        </div>
+
+        {/* Tabs */}
+        <Card className="p-6">
+        <Tabs defaultValue="timeline" className="space-y-4">
           <TabsList className="bg-neutral-900/50 text-neutral-500">
             <TabsTrigger value="timeline">
               <Activity className="size-4" /> Timeline
@@ -71,95 +198,203 @@ export default function TripDetailPage() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="timeline" className="rounded-xl border border-neutral-800 bg-neutral-900/50 p-4">
-            <ul className="space-y-3 text-sm">
-              {data.timeline.map((event) => (
-                <li key={event.id} className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-3">
-                  <div className="flex items-center justify-between text-xs text-neutral-500">
-                    <span>{formatDateTime(event.timestamp)}</span>
-                    <span>{event.status}</span>
-                  </div>
-                  <p className="mt-1 text-sm font-semibold text-neutral-200">{event.summary}</p>
-                  <p className="text-xs text-neutral-500">{event.location}</p>
-                </li>
-              ))}
-            </ul>
-          </TabsContent>
-
-          <TabsContent value="exceptions" className="rounded-xl border border-neutral-800 bg-neutral-900/50 p-4">
-            {data.exceptions.length === 0 ? (
-              <p className="text-sm text-neutral-500">No active exceptions.</p>
+          <TabsContent value="timeline" className="space-y-3">
+            {data.timeline.length === 0 ? (
+              <p className="text-sm text-neutral-500 text-center py-8">No timeline events yet.</p>
             ) : (
-              <ul className="space-y-3 text-sm">
-                {data.exceptions.map((exception) => (
-                  <li key={exception.id} className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-3">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-semibold text-neutral-200">{exception.type}</p>
-                        <p className="text-xs text-neutral-500">Opened {formatDateTime(exception.opened)} • {exception.owner}</p>
+              <div className="space-y-3">
+                {data.timeline.map((event, index) => (
+                  <div key={event.id} className="relative">
+                    {index < data.timeline.length - 1 && (
+                      <div className="absolute left-4 top-10 bottom-0 w-px bg-neutral-800" />
+                    )}
+                    <div className="flex gap-4">
+                      <div className="relative flex-shrink-0">
+                        <div className="w-8 h-8 rounded-full bg-neutral-800 flex items-center justify-center border-2 border-neutral-900">
+                          <div className="w-3 h-3 rounded-full bg-emerald-500" />
+                        </div>
                       </div>
-                      <StatChip label={exception.severity.toUpperCase()} variant={severityTone[exception.severity]} />
+                      <div className="flex-1 rounded-lg border border-neutral-800 bg-neutral-900/60 p-4">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1">
+                            <p className="text-sm font-semibold text-neutral-200">{event.summary}</p>
+                            {event.location && (
+                              <div className="flex items-center gap-1 mt-1">
+                                <MapPin className="w-3 h-3 text-neutral-500" />
+                                <p className="text-xs text-neutral-500">{event.location}</p>
+                              </div>
+                            )}
+                          </div>
+                          <StatChip label={event.status} variant="default" />
+                        </div>
+                        <p className="text-xs text-neutral-500 mt-2">{formatDateTime(event.timestamp)}</p>
+                      </div>
                     </div>
-                    <p className="mt-2 text-sm text-neutral-200">{exception.notes}</p>
-                  </li>
+                  </div>
                 ))}
-              </ul>
+              </div>
             )}
           </TabsContent>
 
-          <TabsContent value="telemetry" className="rounded-xl border border-neutral-800 bg-neutral-900/50 p-4">
-            <div className="space-y-3 text-sm">
-              <div className="flex items-center justify-between rounded-xl border border-neutral-800 bg-neutral-900/60 px-3 py-2 text-xs text-neutral-500">
-                <span>Last ping</span>
-                <span>{formatDateTime(data.telemetry.lastPing)}</span>
+          <TabsContent value="exceptions" className="space-y-3">
+            {data.exceptions.length === 0 ? (
+              <div className="text-center py-8">
+                <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto mb-2" />
+                <p className="text-sm text-neutral-400">No active exceptions</p>
+                <p className="text-xs text-neutral-500">All systems normal</p>
               </div>
-              <div className="rounded-xl border border-dashed border-neutral-800 bg-neutral-900/60 p-6 text-center text-xs text-neutral-500">
-                Telemetry map placeholder
+            ) : (
+              <div className="space-y-3">
+                {data.exceptions.map((exception) => (
+                  <div key={exception.id} className="rounded-lg border border-neutral-800 bg-neutral-900/60 p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex gap-3 flex-1">
+                        <div className={`p-2 rounded-lg ${
+                          exception.severity === "alert" ? "bg-red-500/10" :
+                          exception.severity === "warn" ? "bg-amber-500/10" :
+                          "bg-blue-500/10"
+                        }`}>
+                          <AlertTriangle className={`w-5 h-5 ${
+                            exception.severity === "alert" ? "text-red-400" :
+                            exception.severity === "warn" ? "text-amber-400" :
+                            "text-blue-400"
+                          }`} />
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-semibold text-neutral-200">{exception.type}</p>
+                          <p className="text-xs text-neutral-500 mt-1">
+                            Opened {formatDateTime(exception.opened)} • {exception.owner}
+                          </p>
+                          {exception.notes && (
+                            <p className="text-sm text-neutral-300 mt-2">{exception.notes}</p>
+                          )}
+                          <div className="flex gap-2 mt-3">
+                            <Button size="sm" variant="subtle" className="text-xs">
+                              Resolve
+                            </Button>
+                            <Button size="sm" variant="subtle" className="text-xs">
+                              Escalate
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                      <StatChip label={exception.severity.toUpperCase()} variant={severityTone[exception.severity]} />
+                    </div>
+                  </div>
+                ))}
               </div>
-              <div>
-                <h3 className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Breadcrumb</h3>
-                <ul className="mt-2 space-y-2 text-xs text-neutral-500">
+            )}
+          </TabsContent>
+
+          <TabsContent value="telemetry" className="space-y-4">
+            <div className="rounded-lg border border-dashed border-neutral-800 bg-neutral-900/30 p-8 text-center">
+              <MapIcon className="w-12 h-12 text-neutral-600 mx-auto mb-2" />
+              <p className="text-sm text-neutral-500">Live route map</p>
+              <p className="text-xs text-neutral-600">Map visualization coming soon</p>
+            </div>
+            
+            <div>
+              <h3 className="text-sm font-semibold text-neutral-200 mb-3">Location History</h3>
+              {data.telemetry.breadcrumb.length === 0 ? (
+                <p className="text-sm text-neutral-500 text-center py-4">No tracking data available</p>
+              ) : (
+                <div className="space-y-2">
                   {data.telemetry.breadcrumb.map((point) => (
-                    <li key={point.id} className="flex items-center justify-between rounded-xl border border-neutral-800 bg-neutral-900/60 px-3 py-2">
-                      <span>{formatDateTime(point.timestamp)}</span>
-                      <span>{point.location} • {point.speed} mph</span>
-                    </li>
+                    <div key={point.id} className="flex items-center justify-between rounded-lg border border-neutral-800 bg-neutral-900/60 px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <MapPin className="w-4 h-4 text-neutral-500" />
+                        <div>
+                          <p className="text-sm text-neutral-200">{point.location || "Unknown"}</p>
+                          <p className="text-xs text-neutral-500">{formatDateTime(point.timestamp)}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-semibold text-neutral-200">{point.speed} mph</p>
+                      </div>
+                    </div>
                   ))}
-                </ul>
-              </div>
+                </div>
+              )}
             </div>
           </TabsContent>
         </Tabs>
+        </Card>
       </article>
 
-      <aside className="space-y-6 rounded-xl border border-neutral-800 bg-neutral-900/60 p-4 shadow-lg shadow-black/40 lg:col-span-4">
+      {/* Sidebar */}
+      <aside className="space-y-6 lg:col-span-4">
+        {/* Add Note */}
+        <Card className="p-4">
+          <h2 className="text-sm font-semibold text-neutral-200 mb-3">Add Note</h2>
+          <textarea
+            className="w-full rounded-lg border border-neutral-800 bg-neutral-900/60 px-3 py-2 text-sm text-neutral-200 placeholder-neutral-500 resize-none"
+            rows={3}
+            placeholder="Add a note about this trip..."
+            value={noteText}
+            onChange={(e) => setNoteText(e.target.value)}
+          />
+          <Button 
+            size="sm" 
+            variant="primary" 
+            className="w-full mt-2"
+            disabled={!noteText.trim()}
+          >
+            <MessageSquare className="w-4 h-4 mr-2" />
+            Add Note
+          </Button>
+        </Card>
+
+        {/* Notes */}
+        <Card className="p-4">
         <section>
-          <h2 className="text-sm font-semibold text-neutral-200">Notes</h2>
-          <ul className="mt-3 space-y-3 text-sm">
-            {data.notes.map((note) => (
-              <li key={note.id} className="rounded-xl border border-neutral-800 bg-neutral-900/50 p-3">
-                <div className="flex items-center justify-between text-xs text-neutral-500">
-                  <span>{note.author}</span>
-                  <span>{formatDateTime(note.timestamp)}</span>
-                </div>
-                <p className="mt-1 text-sm text-neutral-200">{note.body}</p>
-              </li>
-            ))}
-          </ul>
+          <h2 className="text-sm font-semibold text-neutral-200 mb-3">Notes</h2>
+          {data.notes.length === 0 ? (
+            <p className="text-xs text-neutral-500 text-center py-4">No notes yet</p>
+          ) : (
+            <ul className="space-y-3 text-sm">
+              {data.notes.map((note) => (
+                <li key={note.id} className="rounded-lg border border-neutral-800 bg-neutral-900/50 p-3">
+                  <div className="flex items-center justify-between text-xs text-neutral-500 mb-2">
+                    <span className="font-medium">{note.author}</span>
+                    <span>{formatDateTime(note.timestamp)}</span>
+                  </div>
+                  <p className="text-sm text-neutral-200">{note.body}</p>
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
+        </Card>
+
+        {/* Attachments */}
+        <Card className="p-4">
         <section>
-          <h2 className="text-sm font-semibold text-neutral-200">Attachments</h2>
-          <ul className="mt-3 space-y-2 text-sm">
-            {data.attachments.map((file) => (
-              <li key={file.id} className="flex items-center justify-between rounded-xl border border-neutral-800 bg-neutral-900/50 px-3 py-2">
-                <span>{file.name}</span>
-                <span className="text-xs text-neutral-500">{file.size}</span>
-              </li>
-            ))}
-          </ul>
+          <h2 className="text-sm font-semibold text-neutral-200 mb-3">Attachments</h2>
+          {data.attachments.length === 0 ? (
+            <div className="text-center py-6">
+              <FileText className="w-8 h-8 text-neutral-600 mx-auto mb-2" />
+              <p className="text-xs text-neutral-500">No attachments</p>
+              <Button size="sm" variant="subtle" className="mt-2">
+                Upload File
+              </Button>
+            </div>
+          ) : (
+            <ul className="space-y-2 text-sm">
+              {data.attachments.map((file) => (
+                <li key={file.id} className="flex items-center justify-between rounded-lg border border-neutral-800 bg-neutral-900/50 px-3 py-2">
+                  <div className="flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-neutral-500" />
+                    <span className="text-neutral-200">{file.name}</span>
+                  </div>
+                  <span className="text-xs text-neutral-500">{file.size}</span>
+                </li>
+              ))}\n            </ul>
+          )}
         </section>
+        </Card>
       </aside>
     </section>
+    </div>
   );
 }
 
