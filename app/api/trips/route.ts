@@ -26,6 +26,59 @@ interface BackendTripsResponse {
   Count: number;
 }
 
+interface CreateTripPayload {
+  orderId: string;
+  driverId: string;
+  unitId?: string;
+  pickup: {
+    location: string;
+    windowStart?: string;
+    windowEnd?: string;
+  };
+  delivery: {
+    location: string;
+    windowStart?: string;
+    windowEnd?: string;
+  };
+  notes?: string;
+}
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json() as CreateTripPayload;
+    
+    const tripPayload = {
+      orderId: body.orderId,
+      driverId: body.driverId,
+      unitId: body.unitId,
+      pickup: {
+        location: body.pickup.location,
+        windowStart: body.pickup.windowStart,
+        windowEnd: body.pickup.windowEnd,
+      },
+      delivery: {
+        location: body.delivery.location,
+        windowStart: body.delivery.windowStart,
+        windowEnd: body.delivery.windowEnd,
+      },
+      notes: body.notes,
+    };
+
+    const trip = await serviceFetch("tracking", "/api/trips", {
+      method: "POST",
+      body: JSON.stringify(tripPayload),
+    });
+
+    return NextResponse.json(trip, { status: 201 });
+  } catch (error: any) {
+    console.error("Error creating trip:", error);
+    return NextResponse.json(
+      { error: error.message || "Failed to create trip" },
+      { status: 500 }
+    );
+  }
+}
+
 export async function GET() {
   try {
     const response = await serviceFetch<BackendTripsResponse>("tracking", "/api/trips");

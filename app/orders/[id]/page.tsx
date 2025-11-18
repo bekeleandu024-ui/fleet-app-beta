@@ -3,7 +3,7 @@
 import { useParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { CalendarClock, Gauge, Sparkles } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 import { RecommendationCallout } from "@/components/recommendation-callout";
 import { AIInsightsPanel } from "@/components/ai-insights-panel";
@@ -28,12 +28,26 @@ export default function OrderDetailPage() {
   const params = useParams<{ id: string }>();
   const orderId = params?.id ?? "";
   const [showAIInsights, setShowAIInsights] = useState(false);
+  const [selectedDriver, setSelectedDriver] = useState("");
+  const [selectedUnit, setSelectedUnit] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState("");
+  const [notes, setNotes] = useState("");
+  const [isBooking, setIsBooking] = useState(false);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: queryKeys.order(orderId),
     queryFn: () => fetchOrderDetail(orderId),
     enabled: Boolean(orderId),
   });
+
+  // Initialize form values when data loads
+  useEffect(() => {
+    if (data) {
+      setSelectedDriver(data.booking.recommendedDriverId || "");
+      setSelectedUnit(data.booking.recommendedUnitId || "");
+      setSelectedStatus(data.status || "");
+    }
+  }, [data]);
 
   const { data: aiInsights, isLoading: aiLoading, refetch: fetchAIInsights } = useQuery({
     queryKey: ['ai-insights', orderId],
@@ -54,6 +68,66 @@ export default function OrderDetailPage() {
   const handleGetAIRecommendation = async () => {
     setShowAIInsights(true);
     await fetchAIInsights();
+  };
+
+  const handleBookTrip = async () => {
+    if (!data || !selectedDriver || !selectedUnit) {
+      alert("Please select both a driver and unit");
+      return;
+    }
+
+    setIsBooking(true);
+    try {
+      const pickup = data.snapshot.stops.find(s => s.type === "Pickup");
+      const delivery = data.snapshot.stops.find(s => s.type === "Delivery");
+
+      if (!pickup || !delivery) {
+        throw new Error("Missing pickup or delivery information");
+      }
+
+      const response = await fetch("/api/trips", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orderId: data.id,
+          driverId: selectedDriver,
+          unitId: selectedUnit,
+          pickup: {
+            location: pickup.location,
+            windowStart: pickup.windowStart,
+            windowEnd: pickup.windowEnd,
+          },
+          delivery: {
+            location: delivery.location,
+            windowStart: delivery.windowStart,
+            windowEnd: delivery.windowEnd,
+          },
+          notes,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to book trip");
+      }
+
+      const trip = await response.json();
+      alert(`Trip ${trip.id.slice(0, 8)} booked successfully!`);
+      setNotes("");
+    } catch (error: any) {
+      console.error("Error booking trip:", error);
+      alert(error.message || "Failed to book trip");
+    } finally {
+      setIsBooking(false);
+    }
+  };
+
+  const handleCalculateCost = async () => {
+    alert("Cost calculation feature coming soon");
+  };
+
+  const handleUpdateStatus = async () => {
+    alert("Status update feature coming soon");
   };
 
   if (isLoading) {
@@ -218,10 +292,14 @@ export default function OrderDetailPage() {
               <h2 className="text-sm font-semibold text-neutral-200">Booking Console</h2>
               <p className="text-xs text-neutral-500">Pair qualified driver and equipment, then commit.</p>
             </header>
-            <form className="grid gap-4 text-sm">
-              <label className="grid gap-2">
-                <span className="text-xs uppercase tracking-wide text-neutral-500">Driver</span>
-                <select className="rounded-md border border-neutral-800 bg-neutral-900/60 px-3 py-2 text-sm text-neutral-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-0" defaultValue={data.booking.recommendedDriverId}>
+            <div className="space-y-4">
+              <label className="block">
+                <span className="block text-xs font-medium uppercase tracking-wide text-neutral-500 mb-2">Driver</span>
+                <select 
+                  className="w-full rounded-md border border-neutral-800 bg-neutral-900/60 px-3 py-2 text-sm text-neutral-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
+                  value={selectedDriver}
+                  onChange={(e) => setSelectedDriver(e.target.value)}
+                >
                   {data.booking.driverOptions.map((driver) => (
                     <option key={driver.id} value={driver.id}>
                       {driver.name} • {driver.status} ({driver.hoursAvailable}h)
@@ -229,9 +307,14 @@ export default function OrderDetailPage() {
                   ))}
                 </select>
               </label>
-              <label className="grid gap-2">
-                <span className="text-xs uppercase tracking-wide text-neutral-500">Unit</span>
-                <select className="rounded-md border border-neutral-800 bg-neutral-900/60 px-3 py-2 text-sm text-neutral-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-0" defaultValue={data.booking.recommendedUnitId}>
+              
+              <label className="block">
+                <span className="block text-xs font-medium uppercase tracking-wide text-neutral-500 mb-2">Unit</span>
+                <select 
+                  className="w-full rounded-md border border-neutral-800 bg-neutral-900/60 px-3 py-2 text-sm text-neutral-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
+                  value={selectedUnit}
+                  onChange={(e) => setSelectedUnit(e.target.value)}
+                >
                   {data.booking.unitOptions.map((unit) => (
                     <option key={unit.id} value={unit.id}>
                       {unit.id} • {unit.type} ({unit.status})
@@ -239,34 +322,62 @@ export default function OrderDetailPage() {
                   ))}
                 </select>
               </label>
-              <label className="grid gap-2">
-                <span className="text-xs uppercase tracking-wide text-neutral-500">Update Status</span>
-                <select className="rounded-md border border-neutral-800 bg-neutral-900/60 px-3 py-2 text-sm text-neutral-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-0" defaultValue={data.status}>
+              
+              <label className="block">
+                <span className="block text-xs font-medium uppercase tracking-wide text-neutral-500 mb-2">Update Status</span>
+                <select 
+                  className="w-full rounded-md border border-neutral-800 bg-neutral-900/60 px-3 py-2 text-sm text-neutral-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
+                  value={selectedStatus}
+                  onChange={(e) => setSelectedStatus(e.target.value)}
+                >
                   {data.booking.statusOptions.map((status) => (
-                    <option key={status}>{status}</option>
+                    <option key={status} value={status}>{status}</option>
                   ))}
                 </select>
               </label>
-              <label className="grid gap-2">
-                <span className="text-xs uppercase tracking-wide text-neutral-500">Notes</span>
+              
+              <label className="block">
+                <span className="block text-xs font-medium uppercase tracking-wide text-neutral-500 mb-2">Notes</span>
                 <textarea
                   rows={3}
-                  className="rounded-md border border-neutral-800 bg-neutral-900/60 px-3 py-2 text-sm text-neutral-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-0"
+                  className="w-full rounded-md border border-neutral-800 bg-neutral-900/60 px-3 py-2 text-sm text-neutral-200 placeholder:text-neutral-600 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors resize-none"
                   placeholder="Add dispatcher notes"
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
                 />
               </label>
-              <div className="flex flex-wrap justify-end gap-2 pt-2">
-                <Button type="button" variant="subtle" size="sm" className="uppercase tracking-wide text-xs">
-                  Calculate Cost
+              
+              <div className="flex flex-col gap-2 pt-2">
+                <Button 
+                  type="button" 
+                  variant="primary" 
+                  size="sm" 
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium"
+                  onClick={handleBookTrip}
+                  disabled={isBooking || !selectedDriver || !selectedUnit}
+                >
+                  {isBooking ? "Booking..." : "Book Trip"}
                 </Button>
-                <Button type="button" variant="primary" size="sm" className="uppercase tracking-wide text-xs">
-                  Book Trip
-                </Button>
-                <Button type="button" variant="subtle" size="sm" className="uppercase tracking-wide text-xs">
-                  Update Status
-                </Button>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button 
+                    type="button" 
+                    variant="subtle" 
+                    size="sm"
+                    onClick={handleCalculateCost}
+                  >
+                    Calculate Cost
+                  </Button>
+                  <Button 
+                    type="button" 
+                    variant="subtle" 
+                    size="sm"
+                    onClick={handleUpdateStatus}
+                  >
+                    Update Status
+                  </Button>
+                </div>
               </div>
-            </form>
+            </div>
           </article>
         </aside>
       </section>
