@@ -213,7 +213,7 @@ export default function CreateTripPage() {
                   <Select value={formData.driverId} onChange={(e) => handleDriverSelect(e.target.value)}>
                     <option value="">Select Driver</option>
                     {drivers
-                      ?.filter((d) => d.status === "Available")
+                      ?.filter((d) => d.status !== "Off Duty" && d.status !== "Leave")
                       .map((driver) => (
                         <option key={driver.id} value={driver.id}>
                           {driver.name} ({driver.hoursAvailable}h available)
@@ -226,7 +226,7 @@ export default function CreateTripPage() {
                   <Select value={formData.unitId} onChange={(e) => handleUnitSelect(e.target.value)}>
                     <option value="">Select Unit</option>
                     {units
-                      ?.filter((u) => u.status === "Available")
+                      ?.filter((u) => u.status !== "Maintenance" && u.status !== "Out of Service")
                       .map((unit) => (
                         <option key={unit.id} value={unit.id}>
                           {unit.type} - {unit.location}
