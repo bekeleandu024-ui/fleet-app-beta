@@ -19,14 +19,17 @@ import {
   Edit,
   ArrowLeft,
   Phone,
-  Mail
+  Mail,
+  Sparkles
 } from "lucide-react";
 
 import { StatChip } from "@/components/stat-chip";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AIInsightsPanel } from "@/components/ai-insights-panel";
 import { fetchTripDetail } from "@/lib/api";
+import { getTripInsights } from "@/lib/ai-service";
 import { formatDateTime } from "@/lib/format";
 import { queryKeys } from "@/lib/query";
 
@@ -48,6 +51,13 @@ export default function TripDetailPage() {
     queryFn: () => fetchTripDetail(tripId),
     enabled: Boolean(tripId),
     refetchInterval: 30000, // Refresh every 30 seconds
+  });
+
+  const { data: aiInsights, isLoading: aiLoading } = useQuery({
+    queryKey: ['tripInsights', tripId],
+    queryFn: () => getTripInsights(tripId),
+    enabled: Boolean(tripId),
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
 
   const handleAddNote = () => {
@@ -191,8 +201,11 @@ export default function TripDetailPage() {
 
         {/* Tabs */}
         <Card className="p-4">
-        <Tabs defaultValue="timeline" className="space-y-4">
+        <Tabs defaultValue="ai-insights" className="space-y-4">
           <TabsList className="bg-neutral-900/50 text-neutral-500">
+            <TabsTrigger value="ai-insights">
+              <Sparkles className="size-4" /> AI Insights
+            </TabsTrigger>
             <TabsTrigger value="timeline">
               <Activity className="size-4" /> Timeline
             </TabsTrigger>
@@ -203,6 +216,127 @@ export default function TripDetailPage() {
               <MapIcon className="size-4" /> Telemetry
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="ai-insights" className="space-y-4">
+            {aiLoading ? (
+              <div className="space-y-4">
+                <div className="h-48 animate-pulse rounded-xl border border-neutral-800 bg-neutral-900/60" />
+                <div className="h-64 animate-pulse rounded-xl border border-neutral-800 bg-neutral-900/60" />
+              </div>
+            ) : aiInsights ? (
+              <>
+                <AIInsightsPanel
+                  recommendation={aiInsights.recommendation}
+                  driverRecommendations={aiInsights.alternativeDrivers}
+                  insights={aiInsights.insights}
+                  totalDistance={aiInsights.routeOptimization.distance}
+                  estimatedTime={aiInsights.routeOptimization.duration}
+                />
+                
+                {/* Current Assignment Details */}
+                <Card className="p-6">
+                  <h3 className="font-semibold text-neutral-100 mb-4">Current Assignment</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-xs text-neutral-500">Driver</p>
+                      <p className="text-sm font-semibold text-neutral-200">
+                        {aiInsights.currentAssignment.driver}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-neutral-500">Driver Type</p>
+                      <p className="text-sm font-semibold text-neutral-200">
+                        {aiInsights.currentAssignment.driverType}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-neutral-500">Unit</p>
+                      <p className="text-sm font-semibold text-neutral-200">
+                        {aiInsights.currentAssignment.unit}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-neutral-500">Effective Rate</p>
+                      <p className="text-sm font-semibold text-neutral-200">
+                        ${aiInsights.currentAssignment.effectiveRate}/mile
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-neutral-500">Estimated Cost</p>
+                      <p className="text-sm font-semibold text-neutral-200">
+                        ${aiInsights.currentAssignment.estimatedCost}
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+
+                {/* Cost Breakdown */}
+                <Card className="p-6">
+                  <h3 className="font-semibold text-neutral-100 mb-4">Cost Analysis</h3>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-neutral-400">Linehaul Cost</span>
+                      <span className="text-sm font-semibold text-neutral-200">
+                        ${aiInsights.costAnalysis.linehaulCost.toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-neutral-400">Fuel Cost</span>
+                      <span className="text-sm font-semibold text-neutral-200">
+                        ${aiInsights.costAnalysis.fuelCost.toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-neutral-400">Driver Cost</span>
+                      <span className="text-sm font-semibold text-neutral-200">
+                        ${aiInsights.costAnalysis.driverCost.toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="border-t border-neutral-800 pt-3 flex justify-between items-center">
+                      <span className="text-sm font-semibold text-neutral-200">Total Cost</span>
+                      <span className="text-lg font-bold text-neutral-100">
+                        ${aiInsights.costAnalysis.totalCost.toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-neutral-400">Recommended Revenue</span>
+                      <span className="text-sm font-semibold text-emerald-400">
+                        ${aiInsights.costAnalysis.recommendedRevenue.toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-neutral-400">Margin</span>
+                      <span className="text-sm font-semibold text-emerald-400">
+                        {aiInsights.costAnalysis.margin}%
+                      </span>
+                    </div>
+                  </div>
+                </Card>
+
+                {/* Route Optimization */}
+                {aiInsights.routeOptimization.warnings.length > 0 && (
+                  <Card className="p-6 bg-amber-500/5 border-amber-500/20">
+                    <div className="flex items-start gap-3">
+                      <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-amber-200 mb-2">Route Warnings</h3>
+                        {aiInsights.routeOptimization.warnings.map((warning, idx) => (
+                          <p key={idx} className="text-sm text-amber-300/90">
+                            {warning.replace('⚠️', '').trim()}
+                          </p>
+                        ))}
+                      </div>
+                    </div>
+                  </Card>
+                )}
+              </>
+            ) : (
+              <div className="text-center py-8">
+                <Sparkles className="w-12 h-12 text-neutral-600 mx-auto mb-2" />
+                <p className="text-sm text-neutral-400">No AI insights available</p>
+              </div>
+            )}
+          </TabsContent>
 
           <TabsContent value="timeline" className="space-y-3">
             {data.timeline.length === 0 ? (

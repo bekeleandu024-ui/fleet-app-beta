@@ -115,3 +115,46 @@ export async function getDispatchRecommendation(params: {
     throw error;
   }
 }
+
+/**
+ * Get AI insights for a trip
+ */
+export async function getTripInsights(tripId: string): Promise<{
+  recommendation: string;
+  currentAssignment: {
+    driver: string;
+    driverType: string;
+    unit: string;
+    effectiveRate: number;
+    estimatedCost: number;
+  };
+  alternativeDrivers: DriverRecommendation[];
+  costAnalysis: {
+    linehaulCost: number;
+    fuelCost: number;
+    totalCost: number;
+    recommendedRevenue: number;
+    margin: number;
+    driverCost: number;
+  };
+  routeOptimization: {
+    distance: number;
+    duration: string;
+    fuelStops: string[];
+    warnings: string[];
+  };
+  insights: string[];
+}> {
+  try {
+    const response = await fetch(`/api/ai/trip-insights/${tripId}`);
+    
+    if (!response.ok) {
+      throw new Error('Failed to get trip insights');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('AI service error:', error);
+    throw error;
+  }
+}
