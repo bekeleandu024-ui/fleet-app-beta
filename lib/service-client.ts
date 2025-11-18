@@ -37,6 +37,8 @@ export async function serviceFetch<T>(service: ServiceName, path: string, option
       Accept: "application/json",
       ...(options.headers ?? {}),
     },
+    // Add timeout to fail fast if service is down
+    signal: AbortSignal.timeout(3000),
   };
 
   if (options.body !== undefined) {
@@ -60,13 +62,14 @@ export async function serviceFetch<T>(service: ServiceName, path: string, option
 
     return (await response.json()) as T;
   } catch (error) {
+    // Try to use demo data as fallback
     const fallback = resolveDemoResponse(service, path);
     if (fallback !== undefined) {
-      console.warn(`Using demo data for ${service}${path}`);
-      if (service === "orders" || service === "masterData" || service === "dispatch" || service === "tracking") {
-        return fallback as T;
-      }
+      console.warn(`⚠️ Using demo data for ${service}${path} - Backend service unavailable`);
+      return fallback as T;
     }
+    // If no demo data available, throw the error
+    console.error(`❌ No demo data available for ${service}${path}`, error);
     throw error;
   }
 }
