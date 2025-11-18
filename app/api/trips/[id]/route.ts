@@ -48,6 +48,10 @@ function buildTripDetail(
   const driver = context.driverRecords.find((record) => String(record.id ?? record.driver_id) === String(trip.driver_id));
   const driverName = driver?.driver_name ?? driver?.name ?? trip.driver_id ?? "Unassigned";
   const unitNumber = trip.unit_id ?? trip.unit ?? "Pending";
+  const pickupWindowStart = trip.pickup_window_start ?? trip.pickup_window?.start;
+  const pickupWindowEnd = trip.pickup_window_end ?? trip.pickup_window?.end;
+  const deliveryWindowStart = trip.delivery_window_start ?? trip.delivery_window?.start;
+  const deliveryWindowEnd = trip.delivery_window_end ?? trip.delivery_window?.end;
 
   const listItem = mapTripListItem(
     {
@@ -81,8 +85,31 @@ function buildTripDetail(
     tripNumber: listItem.tripNumber,
     status: listItem.status,
     driver: listItem.driver,
+    driverType: trip.driver_type ?? driver?.type,
     unit: listItem.unit,
+    unitType: trip.unit_type ?? trip.equipment_type,
     eta: listItem.eta,
+    pickup: listItem.pickup,
+    delivery: listItem.delivery,
+    pickupWindowStart: pickupWindowStart ? toIso(pickupWindowStart) : undefined,
+    pickupWindowEnd: pickupWindowEnd ? toIso(pickupWindowEnd) : undefined,
+    deliveryWindowStart: deliveryWindowStart ? toIso(deliveryWindowStart) : undefined,
+    deliveryWindowEnd: deliveryWindowEnd ? toIso(deliveryWindowEnd) : undefined,
+    plannedStart: trip.planned_start || trip.planned_at ? toIso(trip.planned_start ?? trip.planned_at) : undefined,
+    actualStart: trip.actual_start ? toIso(trip.actual_start) : undefined,
+    pickupDeparture: trip.pickup_departure ? toIso(trip.pickup_departure) : undefined,
+    completedAt: trip.completed_at || trip.completedAt ? toIso(trip.completed_at ?? trip.completedAt) : undefined,
+    onTimePickup: Boolean(trip.on_time_pickup ?? trip.onTimePickup),
+    onTimeDelivery: Boolean(trip.on_time_delivery ?? trip.onTimeDelivery),
+    metrics: {
+      distanceMiles: trip.distance_miles ?? trip.miles ?? trip.distance,
+      estDurationHours: trip.est_duration_hours ?? trip.duration_hours,
+      linehaul: trip.linehaul_cost ?? trip.linehaul,
+      fuel: trip.fuel_cost ?? trip.fuel,
+      totalCost: trip.total_cost ?? trip.totalCost,
+      recommendedRevenue: trip.recommended_revenue ?? trip.revenue,
+      marginPct: trip.margin_pct ?? trip.margin,
+    },
     timeline,
     exceptions: exceptionItems,
     telemetry: {
