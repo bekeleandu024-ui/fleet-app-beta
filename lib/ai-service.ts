@@ -23,6 +23,7 @@ export interface DriverRecommendation {
   fuelRate: number;
   reason: string;
   estimatedCost: number;
+  totalCpm: number;
 }
 
 export interface CostComparison {

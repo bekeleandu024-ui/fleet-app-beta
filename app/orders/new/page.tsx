@@ -149,7 +149,7 @@ export default function CreateOrderPage() {
       subtitle="Enter order details and customer requirements"
       actions={
         <div className="flex gap-2">
-          <Button size="sm" variant="outline" onClick={() => router.back()}>
+          <Button size="sm" variant="subtle" onClick={() => router.back()}>
             <ArrowLeft className="w-4 h-4 mr-2" />
             Cancel
           </Button>
@@ -296,8 +296,8 @@ export default function CreateOrderPage() {
               <h3 className="text-lg font-semibold text-neutral-200 mb-4">Cost Estimate</h3>
 
               <Button
-                variant="outline"
-                className="w-full mb-4"
+                variant="subtle"
+                className="w-full"
                 onClick={calculateEstimate}
                 disabled={!formData.pickup || !formData.delivery}
               >
@@ -327,7 +327,7 @@ export default function CreateOrderPage() {
               )}
 
               <div className="mt-6 space-y-3">
-                <Button variant="outline" className="w-full" onClick={handleSubmit} disabled={!isValid || createMutation.isPending}>
+                <Button variant="subtle" className="w-full" onClick={handleSubmit} disabled={!isValid || createMutation.isPending}>
                   <Save className="w-4 h-4 mr-2" />
                   Save as Draft
                 </Button>

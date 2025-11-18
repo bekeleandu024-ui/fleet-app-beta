@@ -39,8 +39,8 @@ export default function OrderDetailPage() {
     queryKey: ['ai-insights', orderId],
     queryFn: async () => {
       if (!data) return null;
-      const pickup = data.snapshot.stops.find(s => s.type === 'PICKUP')?.location || '';
-      const delivery = data.snapshot.stops.find(s => s.type === 'DELIVERY')?.location || '';
+      const pickup = data.snapshot.stops.find(s => s.type === 'Pickup')?.location || '';
+      const delivery = data.snapshot.stops.find(s => s.type === 'Delivery')?.location || '';
       return getRouteOptimization({
         origin: pickup,
         destination: delivery,

@@ -348,7 +348,7 @@ export function listCustomsClearances(): CustomsResponse {
     statuses: Array.from(new Set(list.map((item) => item.status))).sort(),
     priorities: Array.from(new Set(list.map((item) => item.priority))).sort(),
     crossingPoints: Array.from(new Set(list.map((item) => item.borderCrossingPoint))).sort(),
-    agents: Array.from(new Set(list.map((item) => item.assignedAgent).filter(Boolean))).sort(),
+    agents: Array.from(new Set(list.map((item) => item.assignedAgent).filter((agent): agent is string => Boolean(agent)))).sort(),
   };
 
   return { stats, filters, data: list };

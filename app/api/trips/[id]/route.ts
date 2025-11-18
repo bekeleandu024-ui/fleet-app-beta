@@ -4,10 +4,8 @@ import { NextResponse } from "next/server";
 import { serviceFetch, ServiceError } from "@/lib/service-client";
 import { mapTripListItem } from "@/lib/transformers";
 
-type Params = { params: { id: string } };
-
-export async function GET(_request: Request, { params }: Params) {
-  const { id } = params;
+export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params;
 
   try {
     const trip = await serviceFetch<Record<string, any>>("tracking", `/api/trips/${id}`);

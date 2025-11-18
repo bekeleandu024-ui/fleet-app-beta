@@ -4,8 +4,6 @@ import { NextResponse } from "next/server";
 import { serviceFetch, ServiceError } from "@/lib/service-client";
 import { buildLane, mapOrderStatus } from "@/lib/transformers";
 
-type Params = { params: { id: string } };
-
 type OrderStop = {
   id: string;
   type: "Pickup" | "Delivery" | "Drop";
@@ -22,8 +20,8 @@ const BOOKING_GUARDRAILS = [
   "Driver hours of service must be available",
 ];
 
-export async function GET(_request: Request, { params }: Params) {
-  const { id } = params;
+export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params;
   try {
     const order = await serviceFetch<Record<string, any>>("orders", `/api/orders/${id}`);
 

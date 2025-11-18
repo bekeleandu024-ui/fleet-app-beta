@@ -53,9 +53,10 @@ const ACTION_HANDLERS = {
 
 export async function POST(
   request: Request,
-  { params }: { params: { id: string; action: keyof typeof ACTION_HANDLERS } }
+  context: { params: Promise<{ id: string; action: string }> }
 ) {
-  const handler = ACTION_HANDLERS[params.action];
+  const params = await context.params;
+  const handler = ACTION_HANDLERS[params.action as keyof typeof ACTION_HANDLERS];
 
   if (!handler) {
     return NextResponse.json({ error: "Unsupported action" }, { status: 404 });

@@ -75,7 +75,7 @@ export function mapOrderStatus(status?: string | null): OrderStatus {
 }
 
 export function mapOrderStatusToService(status: string | OrderStatus): string {
-  const normalized = typeof status === "string" ? status : status.toString();
+  const normalized = String(status);
   const match = (Object.keys(REVERSE_STATUS_MAP) as OrderStatus[]).find(
     (key) => key.toLowerCase() === normalized.toLowerCase()
   );

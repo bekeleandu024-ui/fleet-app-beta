@@ -159,7 +159,7 @@ export default function CreateTripPage() {
       subtitle="Assign driver and unit to an order"
       actions={
         <div className="flex gap-2">
-          <Button size="sm" variant="outline" onClick={() => router.back()}>
+          <Button size="sm" variant="subtle" onClick={() => router.back()}>
             <ArrowLeft className="w-4 h-4 mr-2" />
             Cancel
           </Button>
@@ -323,7 +323,7 @@ export default function CreateTripPage() {
               )}
 
               <div className="space-y-3">
-                <Button variant="outline" className="w-full" onClick={handleSubmit} disabled={!isValid || createMutation.isPending}>
+                <Button variant="subtle" className="w-full" onClick={handleSubmit} disabled={!isValid || createMutation.isPending}>
                   <Save className="w-4 h-4 mr-2" />
                   Save as Draft
                 </Button>

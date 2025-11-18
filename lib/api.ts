@@ -71,8 +71,9 @@ function parseDataList<T>(promise: Promise<{ data: unknown }>, itemSchema: z.Zod
   return parseResponse(promise, z.object({ data: z.array(itemSchema) })).then((result) => result.data);
 }
 
-function parseDataItem<T>(promise: Promise<{ data: unknown }>, itemSchema: z.ZodType<T>): Promise<T> {
-  return parseResponse(promise, z.object({ data: itemSchema })).then((result) => result.data);
+async function parseDataItem<T>(promise: Promise<{ data: unknown }>, itemSchema: z.ZodType<T>): Promise<T> {
+  const result = await parseResponse(promise, z.object({ data: itemSchema }));
+  return result.data as T;
 }
 
 const successSchema = z.object({ success: z.boolean() });

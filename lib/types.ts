@@ -588,7 +588,7 @@ export const globalSearchResultSchema = z.object({
   title: z.string(),
   description: z.string(),
   href: z.string(),
-  meta: z.array(searchMetaSchema).default([]),
+  meta: z.array(searchMetaSchema),
 });
 
 export const globalSearchResponseSchema = z.object({
