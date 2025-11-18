@@ -406,9 +406,9 @@ function TripDetailSkeleton() {
     <div className="space-y-6">
       <div className="h-[100px] animate-pulse rounded-xl border border-neutral-800 bg-neutral-900/60" />
       <div className="grid gap-3 grid-cols-3">
-        <div className="h-[80px] animate-pulse rounded-xl border border-neutral-800 bg-neutral-900/60" />
-        <div className="h-[80px] animate-pulse rounded-xl border border-neutral-800 bg-neutral-900/60" />
-        <div className="h-[80px] animate-pulse rounded-xl border border-neutral-800 bg-neutral-900/60" />
+        <div className="h-20 animate-pulse rounded-xl border border-neutral-800 bg-neutral-900/60" />
+        <div className="h-20 animate-pulse rounded-xl border border-neutral-800 bg-neutral-900/60" />
+        <div className="h-20 animate-pulse rounded-xl border border-neutral-800 bg-neutral-900/60" />
       </div>
       <div className="h-[400px] animate-pulse rounded-xl border border-neutral-800 bg-neutral-900/60" />
     </div>
