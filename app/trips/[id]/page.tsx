@@ -20,6 +20,7 @@ import {
 import { TripTicket } from "@/components/trips/trip-ticket";
 import { AiTripInsightPanel } from "@/components/trips/ai-trip-insight-panel";
 import { DriverCostComparison } from "@/components/trips/driver-cost-comparison";
+import AIInsights from "@/components/AIInsights";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { StatChip } from "@/components/stat-chip";
@@ -155,6 +156,9 @@ export default function TripDetailPage() {
           </div>
         </Card>
       </div>
+
+      {/* Claude-Powered AI Insights - NEW */}
+      <AIInsights type="trip" id={tripId} />
 
       <div className="space-y-4">
         <DriverCostComparison distanceMiles={typeof distanceMiles === "number" ? distanceMiles : Number(distanceMiles)} />

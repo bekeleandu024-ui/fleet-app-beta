@@ -7,6 +7,7 @@ import { useState, useEffect } from "react";
 
 import { RecommendationCallout } from "@/components/recommendation-callout";
 import { AIInsightsPanel } from "@/components/ai-insights-panel";
+import AIInsights from "@/components/AIInsights";
 import { StatChip } from "@/components/stat-chip";
 import { Button } from "@/components/ui/button";
 import { fetchOrderDetail } from "@/lib/api";
@@ -253,6 +254,9 @@ export default function OrderDetailPage() {
         </div>
 
         <aside className="lg:col-span-5 space-y-6">
+          {/* Claude-Powered AI Dispatch Insights - NEW */}
+          <AIInsights type="order" id={orderId} />
+
           {/* AI Insights Section */}
           {!showAIInsights && (
             <article className="rounded-xl border border-violet-700 bg-linear-to-br from-violet-900/40 to-purple-900/40 p-4 shadow-lg shadow-black/40">
