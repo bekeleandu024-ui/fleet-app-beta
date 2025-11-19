@@ -17,6 +17,8 @@ interface Order {
   serviceLevel?: string;
   commodity?: string;
   laneMiles?: number;
+  lane?: string;
+  cost?: number;
 }
 
 interface Driver {
@@ -295,16 +297,18 @@ export default function BookTripPage() {
           >
             <option value="">Choose an order...</option>
             {orders.map(order => {
-              const route = order.pickup && order.delivery 
+              // Use lane field if pickup/delivery are empty
+              const route = order.lane || (order.pickup && order.delivery 
                 ? `${order.pickup} → ${order.delivery}` 
-                : "Route TBD";
+                : "Route TBD");
               const miles = order.laneMiles ? `${order.laneMiles}mi` : "";
+              const cost = order.cost ? `$${order.cost.toLocaleString()}` : "";
               const serviceLevel = order.serviceLevel || "Standard";
               const statusIndicator = order.status === "New" ? "🟢" : order.status === "Planning" ? "🟡" : "⚪";
               
               return (
                 <option key={order.id} value={order.id}>
-                  {statusIndicator} {order.reference} | {order.customer} | {route} {miles ? `| ${miles}` : ""} | {serviceLevel}
+                  {statusIndicator} {order.reference} | {order.customer} | {route} {miles ? `| ${miles}` : ""} {cost ? `| ${cost}` : ""} | {serviceLevel}
                 </option>
               );
             })}

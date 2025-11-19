@@ -22,12 +22,15 @@ export async function GET() {
 
 function transformOrderFromService(order: Record<string, any>): OrderResponse {
   const id = String(order.id ?? order.order_id ?? "");
-  const pickup = order.pickup_location ?? order.pickupLocation ?? "";
-  const delivery = order.delivery_location ?? order.dropoff_location ?? order.dropoffLocation ?? "";
-  const reference = id ? `ORD-${id.slice(0, 8).toUpperCase()}` : "ORDER";
+  // Handle both formats: the microservice returns 'pickup'/'delivery' and the database has 'pickup_location'/'dropoff_location'
+  const pickup = order.pickup ?? order.pickup_location ?? order.pickupLocation ?? "";
+  const delivery = order.delivery ?? order.delivery_location ?? order.dropoff_location ?? order.dropoffLocation ?? "";
+  const reference = order.reference ?? (id ? `ORD-${id.slice(0, 8).toUpperCase()}` : "ORDER");
   const createdAt = order.created_at ?? order.createdAt ?? new Date().toISOString();
-  const ageHours = calculateAgeHours(createdAt);
-  const window = resolveWindow(order.pickup_window_start ?? order.pickup_time);
+  const ageHours = order.ageHours ?? calculateAgeHours(createdAt);
+  const window = order.window ?? resolveWindow(order.pickup_window_start ?? order.pickup_time);
+  // Use lane from microservice if available, otherwise build it
+  const lane = order.lane ?? buildLane(pickup, delivery);
 
   return {
     id,
@@ -39,8 +42,8 @@ function transformOrderFromService(order: Record<string, any>): OrderResponse {
     status: mapOrderStatus(order.status),
     ageHours,
     cost: Number(order.cost ?? order.estimated_cost ?? 0) || 0,
-    lane: buildLane(pickup, delivery),
-    serviceLevel: order.service_level ?? "Standard",
+    lane,
+    serviceLevel: order.service_level ?? order.serviceLevel ?? "Standard",
     commodity: order.commodity ?? "General",
     laneMiles: Number(order.lane_miles ?? order.laneMiles ?? 0) || 0,
     revenue: Number(order.revenue ?? 0),

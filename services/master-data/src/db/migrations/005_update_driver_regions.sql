@@ -1,16 +1,4 @@
--- Add region column to driver_profiles
-ALTER TABLE driver_profiles 
-ADD COLUMN IF NOT EXISTS region VARCHAR(50);
-
--- Add region column to unit_profiles
-ALTER TABLE unit_profiles 
-ADD COLUMN IF NOT EXISTS region VARCHAR(50);
-
--- Create indexes for region filtering
-CREATE INDEX IF NOT EXISTS idx_driver_profiles_region ON driver_profiles(region);
-CREATE INDEX IF NOT EXISTS idx_unit_profiles_region ON unit_profiles(region);
-
--- Update drivers with region assignments (distributed across regions)
+-- Update driver regions to be more distributed across Ontario
 UPDATE driver_profiles SET region = 'Southern Ontario' WHERE driver_name = 'Adrian Radu';
 UPDATE driver_profiles SET region = 'Southern Ontario' WHERE driver_name = 'Amarjeet Gandhi';
 UPDATE driver_profiles SET region = 'Greater Toronto Area' WHERE driver_name = 'Borislav Pascasicek';
@@ -43,15 +31,16 @@ UPDATE driver_profiles SET region = 'Southern Ontario' WHERE driver_name = 'Vedr
 UPDATE driver_profiles SET region = 'Greater Toronto Area' WHERE driver_name = 'Yatin Midha';
 UPDATE driver_profiles SET region = 'Southern Ontario' WHERE driver_name = 'Yin Tong';
 
--- Update units with region assignments based on their driver
+-- Update units to inherit their driver's region
 UPDATE unit_profiles 
 SET region = (
   SELECT region 
   FROM driver_profiles 
   WHERE driver_profiles.driver_id = unit_profiles.driver_id
-);
+)
+WHERE driver_id IS NOT NULL;
 
--- Set default region for any units without drivers
+-- Set default region for units without drivers
 UPDATE unit_profiles 
 SET region = 'Southern Ontario' 
-WHERE region IS NULL;
+WHERE region IS NULL OR region = 'Ontario';
