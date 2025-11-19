@@ -281,10 +281,10 @@ export default function BookTripPage() {
         <h1 className="text-3xl font-semibold text-white">Trip Booking Control Center</h1>
         
         {/* Order Selection Dropdown */}
-        <div className="w-96">
+        <div className="w-[600px]">
           <label className="mb-2 block text-[11px] uppercase tracking-wide text-neutral-500">Select Order to Book</label>
           <select
-            className="w-full rounded-md border border-white/10 bg-black/40 px-4 py-2 text-sm text-white focus:border-emerald-500 focus:outline-none"
+            className="w-full rounded-md border border-white/10 bg-black/40 px-4 py-3 text-sm text-white focus:border-emerald-500 focus:outline-none"
             value={selectedOrderId || ""}
             onChange={(e) => {
               const orderId = e.target.value;
@@ -294,11 +294,20 @@ export default function BookTripPage() {
             }}
           >
             <option value="">Choose an order...</option>
-            {orders.map(order => (
-              <option key={order.id} value={order.id}>
-                {order.reference} • {order.customer} • {order.pickup} → {order.delivery}
-              </option>
-            ))}
+            {orders.map(order => {
+              const route = order.pickup && order.delivery 
+                ? `${order.pickup} → ${order.delivery}` 
+                : "Route TBD";
+              const miles = order.laneMiles ? `${order.laneMiles}mi` : "";
+              const serviceLevel = order.serviceLevel || "Standard";
+              const statusIndicator = order.status === "New" ? "🟢" : order.status === "Planning" ? "🟡" : "⚪";
+              
+              return (
+                <option key={order.id} value={order.id}>
+                  {statusIndicator} {order.reference} | {order.customer} | {route} {miles ? `| ${miles}` : ""} | {serviceLevel}
+                </option>
+              );
+            })}
           </select>
         </div>
       </div>
