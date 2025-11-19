@@ -1,127 +1,128 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
-// Mock trip events data
-const mockEvents = [
-  {
-    id: "evt1",
-    tripId: "trip1",
-    eventType: "TRIP_START",
-    at: new Date(Date.now() - 3600000).toISOString(),
-    stopLabel: "Windsor Terminal",
-    notes: "Loaded and ready to depart",
-    lat: 42.3149,
-    lon: -83.0364,
-    trip: {
-      id: "trip1",
-      driver: "Adrian Radu",
-      unit: "T-1024",
-      status: "In Transit",
-      origin: "Windsor, ON",
-      destination: "Buffalo, NY",
-    },
-  },
-  {
-    id: "evt2",
-    tripId: "trip1",
-    eventType: "CROSSED_BORDER",
-    at: new Date(Date.now() - 2700000).toISOString(),
-    stopLabel: "Ambassador Bridge",
-    notes: "Cleared customs in 15 minutes",
-    lat: 42.3086,
-    lon: -83.0795,
-    trip: {
-      id: "trip1",
-      driver: "Adrian Radu",
-      unit: "T-1024",
-      status: "In Transit",
-      origin: "Windsor, ON",
-      destination: "Buffalo, NY",
-    },
-  },
-  {
-    id: "evt3",
-    tripId: "trip2",
-    eventType: "ARRIVED_DELIVERY",
-    at: new Date(Date.now() - 1800000).toISOString(),
-    stopLabel: "Detroit Distribution Center",
-    notes: "Dock 12 assigned",
-    lat: 42.3314,
-    lon: -83.0458,
-    trip: {
-      id: "trip2",
-      driver: "Carlos Mendez",
-      unit: "T-1025",
-      status: "At Delivery",
-      origin: "Toronto, ON",
-      destination: "Detroit, MI",
-    },
-  },
-  {
-    id: "evt4",
-    tripId: "trip2",
-    eventType: "LEFT_DELIVERY",
-    at: new Date(Date.now() - 900000).toISOString(),
-    stopLabel: "Detroit Distribution Center",
-    notes: "Unloaded successfully, POD signed",
-    lat: 42.3314,
-    lon: -83.0458,
-    trip: {
-      id: "trip2",
-      driver: "Carlos Mendez",
-      unit: "T-1025",
-      status: "Completed",
-      origin: "Toronto, ON",
-      destination: "Detroit, MI",
-    },
-  },
-  {
-    id: "evt5",
-    tripId: "trip2",
-    eventType: "TRIP_FINISHED",
-    at: new Date(Date.now() - 600000).toISOString(),
-    stopLabel: "Detroit Distribution Center",
-    notes: "Trip completed, awaiting next assignment",
-    lat: 42.3314,
-    lon: -83.0458,
-    trip: {
-      id: "trip2",
-      driver: "Carlos Mendez",
-      unit: "T-1025",
-      status: "Completed",
-      origin: "Toronto, ON",
-      destination: "Detroit, MI",
-    },
-  },
-];
+// Event type to status transition mapping
+const STATUS_TRANSITIONS: Record<string, string> = {
+  TRIP_START: "In Progress",
+  LEFT_DELIVERY: "Completed",
+  TRIP_FINISHED: "Completed",
+};
 
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const tripId = searchParams.get("tripId");
-  const driver = searchParams.get("driver");
-  const unit = searchParams.get("unit");
-  const eventType = searchParams.get("eventType");
+// GET /api/trip-events?tripId=xxx - Fetch events for a trip
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const tripId = searchParams.get("tripId");
 
-  let events = [...mockEvents];
+    if (!tripId) {
+      return NextResponse.json({ error: "tripId is required" }, { status: 400 });
+    }
 
-  // Apply filters
-  if (tripId) {
-    events = events.filter(e => e.tripId === tripId);
+    // Fetch events from tracking service
+    const response = await fetch(
+      `${process.env.TRACKING_SERVICE_URL || "http://localhost:4004"}/trip-events?tripId=${tripId}`,
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch trip events");
+    }
+
+    const events = await response.json();
+
+    return NextResponse.json({ events });
+  } catch (error) {
+    console.error("Error fetching trip events:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch trip events" },
+      { status: 500 }
+    );
   }
+}
 
-  if (driver) {
-    events = events.filter(e => e.trip.driver.toLowerCase().includes(driver.toLowerCase()));
+// POST /api/trip-events - Create a new trip event
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { tripId, eventType, eventLabel, location, coordinates, notes, actor, actorType } = body;
+
+    if (!tripId || !eventType || !eventLabel) {
+      return NextResponse.json(
+        { error: "tripId, eventType, and eventLabel are required" },
+        { status: 400 }
+      );
+    }
+
+    // Create event payload
+    const eventPayload = {
+      tripId,
+      eventType,
+      eventLabel,
+      location: location || null,
+      coordinates: coordinates || null,
+      notes: notes || null,
+      actor: actor || "System",
+      actorType: actorType || "SYSTEM",
+      timestamp: new Date().toISOString(),
+    };
+
+    // Send to tracking service
+    const trackingResponse = await fetch(
+      `${process.env.TRACKING_SERVICE_URL || "http://localhost:4004"}/trip-events`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(eventPayload),
+      }
+    );
+
+    if (!trackingResponse.ok) {
+      throw new Error("Failed to create trip event");
+    }
+
+    const createdEvent = await trackingResponse.json();
+
+    // Check if this event triggers a status transition
+    const newStatus = STATUS_TRANSITIONS[eventType];
+    if (newStatus) {
+      // Update trip status
+      try {
+        await fetch(
+          `${process.env.ORDERS_SERVICE_URL || "http://localhost:4002"}/trips/${tripId}`,
+          {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              status: newStatus,
+              lastEvent: eventType,
+              lastEventTime: eventPayload.timestamp,
+            }),
+          }
+        );
+      } catch (statusError) {
+        console.error("Failed to update trip status:", statusError);
+        // Continue even if status update fails
+      }
+    }
+
+    return NextResponse.json({
+      success: true,
+      event: createdEvent,
+      statusChanged: !!newStatus,
+      newStatus: newStatus || null,
+    });
+  } catch (error) {
+    console.error("Error creating trip event:", error);
+    return NextResponse.json(
+      { error: "Failed to create trip event" },
+      { status: 500 }
+    );
   }
-
-  if (unit) {
-    events = events.filter(e => e.trip.unit.toLowerCase().includes(unit.toLowerCase()));
-  }
-
-  if (eventType) {
-    events = events.filter(e => e.eventType === eventType);
-  }
-
-  // Sort by most recent first
-  events.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
-
-  return NextResponse.json({ events });
 }
