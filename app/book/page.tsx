@@ -8,14 +8,15 @@ import { Card } from "@/components/ui/card";
 
 interface Order {
   id: string;
+  reference: string;
   customer: string;
-  origin: string;
-  destination: string;
-  requiredTruck: string;
-  puWindowStart: string;
-  delWindowStart: string;
-  notes?: string;
+  pickup: string;
+  delivery: string;
+  window: string;
   status: string;
+  serviceLevel?: string;
+  commodity?: string;
+  laneMiles?: number;
 }
 
 interface Driver {
@@ -96,12 +97,13 @@ export default function BookTripPage() {
   // Fetch data
   useEffect(() => {
     Promise.all([
-      fetch("/api/orders?status=Qualified").then(r => r.json()),
+      fetch("/api/orders").then(r => r.json()),
       fetch("/api/drivers?active=true").then(r => r.json()),
       fetch("/api/units?active=true&isOnHold=false").then(r => r.json()),
       fetch("/api/rates").then(r => r.json()),
-    ]).then(([ordersData, driversData, unitsData, ratesData]) => {
-      setOrders(ordersData);
+    ]).then(([ordersResponse, driversData, unitsData, ratesData]) => {
+      const ordersList = ordersResponse.data || ordersResponse;
+      setOrders(ordersList);
       setDrivers(driversData);
       setUnits(unitsData);
       setRates(ratesData);
@@ -121,26 +123,30 @@ export default function BookTripPage() {
           {
             id: "pickup",
             stopType: "Pickup",
-            name: order.origin,
+            name: order.pickup,
             street: "",
             city: "",
             state: "",
             country: "US",
             postal: "",
-            scheduledAt: order.puWindowStart,
+            scheduledAt: new Date().toISOString(),
           },
           {
             id: "delivery",
             stopType: "Delivery",
-            name: order.destination,
+            name: order.delivery,
             street: "",
             city: "",
             state: "",
             country: "US",
             postal: "",
-            scheduledAt: order.delWindowStart,
+            scheduledAt: new Date(Date.now() + 86400000).toISOString(),
           },
         ]);
+        // Set initial miles
+        if (order.laneMiles) {
+          setMiles(String(order.laneMiles));
+        }
       }
     }
   }, [selectedOrderId, orders]);
@@ -271,7 +277,31 @@ export default function BookTripPage() {
 
   return (
     <div className="space-y-6 p-6">
-      <h1 className="text-3xl font-semibold text-white">Trip Booking Control Center</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-semibold text-white">Trip Booking Control Center</h1>
+        
+        {/* Order Selection Dropdown */}
+        <div className="w-96">
+          <label className="mb-2 block text-[11px] uppercase tracking-wide text-neutral-500">Select Order to Book</label>
+          <select
+            className="w-full rounded-md border border-white/10 bg-black/40 px-4 py-2 text-sm text-white focus:border-emerald-500 focus:outline-none"
+            value={selectedOrderId || ""}
+            onChange={(e) => {
+              const orderId = e.target.value;
+              if (orderId) {
+                router.push(`/book?orderId=${orderId}`);
+              }
+            }}
+          >
+            <option value="">Choose an order...</option>
+            {orders.map(order => (
+              <option key={order.id} value={order.id}>
+                {order.reference} • {order.customer} • {order.pickup} → {order.delivery}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
 
       {/* Order Snapshot */}
       {selectedOrder ? (
@@ -279,76 +309,39 @@ export default function BookTripPage() {
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex-1 space-y-1">
               <p className="text-sm font-semibold text-neutral-200">{selectedOrder.customer}</p>
-              <p className="text-xs text-neutral-400">{selectedOrder.origin} → {selectedOrder.destination}</p>
+              <p className="text-xs text-neutral-400">{selectedOrder.pickup} → {selectedOrder.delivery}</p>
             </div>
             <div className="flex-1 space-y-1">
-              <p className="text-[11px] uppercase tracking-wide text-neutral-500">Pickup Window</p>
-              <p className="text-xs text-white">{new Date(selectedOrder.puWindowStart).toLocaleString()}</p>
+              <p className="text-[11px] uppercase tracking-wide text-neutral-500">Service Level</p>
+              <p className="text-xs text-white">{selectedOrder.serviceLevel || "Standard"}</p>
             </div>
             <div className="flex-1 space-y-1">
-              <p className="text-[11px] uppercase tracking-wide text-neutral-500">Delivery Window</p>
-              <p className="text-xs text-white">{new Date(selectedOrder.delWindowStart).toLocaleString()}</p>
+              <p className="text-[11px] uppercase tracking-wide text-neutral-500">Commodity</p>
+              <p className="text-xs text-white">{selectedOrder.commodity || "General"}</p>
             </div>
-            <span className="rounded-full border border-purple-500/30 bg-purple-500/10 px-3 py-1 text-xs font-medium text-purple-200">
-              {selectedOrder.requiredTruck}
+            <div className="flex-1 space-y-1">
+              <p className="text-[11px] uppercase tracking-wide text-neutral-500">Lane Miles</p>
+              <p className="text-xs text-white">{selectedOrder.laneMiles || 0} mi</p>
+            </div>
+            <span className={`rounded-full border px-3 py-1 text-xs font-medium ${
+              selectedOrder.status === "New" 
+                ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-200"
+                : "border-purple-500/30 bg-purple-500/10 text-purple-200"
+            }`}>
+              {selectedOrder.status}
             </span>
           </div>
-          {selectedOrder.notes && (
-            <p className="mt-3 text-xs text-neutral-400">{selectedOrder.notes}</p>
-          )}
         </Card>
       ) : (
         <div className="rounded-lg border border-dashed border-neutral-800 bg-neutral-950/40 p-5 text-center text-sm text-neutral-400">
-          Select an order from the right panel to begin booking
+          Select an order from the dropdown above to begin booking
         </div>
       )}
 
-      {/* Three Column Layout */}
-      <div className="grid gap-6 lg:grid-cols-[320px,1fr,320px]">
-        {/* Left: AI Recommendation */}
+      {/* Two Column Layout - More Horizontal */}
+      <div className="grid gap-6 lg:grid-cols-[1fr,400px]">
+        {/* Left: Main Form - Takes up more width */}
         <div className="space-y-4">
-          {recommendedDriver && recommendedUnit ? (
-            <Card className="rounded-xl border border-emerald-800/50 bg-neutral-900/60 p-4 shadow-lg shadow-black/40">
-              <div className="mb-3 flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-emerald-400" />
-                <h2 className="text-sm font-semibold text-neutral-200">AI Booking Recommendation</h2>
-              </div>
-              {parseFloat(projectedMargin) < 10 && (
-                <div className="mb-3 flex items-center gap-2 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2">
-                  <AlertTriangle className="h-4 w-4 text-rose-400" />
-                  <span className="text-xs font-medium text-rose-200">Guardrail Breach: Margin below 10%</span>
-                </div>
-              )}
-              
-              <div className="grid gap-3">
-                <div className="rounded-lg border border-emerald-800/50 bg-emerald-950/30 p-3">
-                  <p className="text-[11px] uppercase tracking-wide text-emerald-400">Recommended Driver</p>
-                  <p className="mt-1 text-sm font-medium text-white">{recommendedDriver.name}</p>
-                  <p className="text-xs text-neutral-400">{recommendedDriver.homeBase} • {recommendedDriver.hoursAvailableToday}h available</p>
-                </div>
-
-                <div className="rounded-lg border border-amber-800/50 bg-amber-950/30 p-3">
-                  <p className="text-[11px] uppercase tracking-wide text-amber-400">Recommended Unit</p>
-                  <p className="mt-1 text-sm font-medium text-white">{recommendedUnit.code}</p>
-                  <p className="text-xs text-neutral-400">{recommendedUnit.type} • {recommendedUnit.status}</p>
-                </div>
-              </div>
-
-              <div className="mt-4 space-y-2 rounded-lg border border-white/10 bg-white/5 p-3">
-                <p className="text-xs font-medium text-neutral-300">Why this assignment?</p>
-                <p className="text-xs text-neutral-400">
-                  Best margin potential with available resources. Driver has excellent on-time score and unit is positioned near pickup.
-                </p>
-              </div>
-            </Card>
-          ) : (
-            <div className="rounded-lg border border-dashed border-neutral-800 bg-neutral-950/40 p-5 text-sm text-neutral-400">
-              No AI recommendation available
-            </div>
-          )}
-        </div>
-
-        {/* Center: Trip Assignment Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <Card className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-4 shadow-lg shadow-black/40">
             <h2 className="mb-4 text-sm font-semibold text-neutral-200">Trip Assignment</h2>
@@ -636,49 +629,43 @@ export default function BookTripPage() {
             </div>
           )}
         </form>
+        </div>
 
-        {/* Right: Orders & Crew */}
+        {/* Right: AI Recommendation & Crew */}
         <div className="space-y-4">
-          {/* Qualified Orders */}
-          <Card className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-4 shadow-lg shadow-black/40">
-            <h2 className="mb-3 text-sm font-semibold text-neutral-200">Qualified Orders</h2>
-            <div className="space-y-2">
-              {orders.length > 0 ? (
-                orders.map(order => (
-                  <button
-                    key={order.id}
-                    onClick={() => router.push(`/book?orderId=${order.id}`)}
-                    className={`w-full rounded-lg border p-3 text-left transition-colors ${
-                      selectedOrder?.id === order.id
-                        ? "border-emerald-500/50 bg-emerald-950/30"
-                        : "border-white/10 bg-black/20 hover:bg-white/5"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-medium text-white">{order.customer}</p>
-                      <span className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${
-                        selectedOrder?.id === order.id
-                          ? "border-emerald-500/50 bg-emerald-500/20 text-emerald-200"
-                          : "border-white/20 text-neutral-400"
-                      }`}>
-                        {selectedOrder?.id === order.id ? "In Focus" : "Qualified"}
-                      </span>
-                    </div>
-                    <p className="mt-1 text-xs text-neutral-400">{order.origin} → {order.destination}</p>
-                    <p className="mt-1 text-xs text-neutral-500">{order.requiredTruck}</p>
-                  </button>
-                ))
-              ) : (
-                <div className="rounded-lg border border-dashed border-neutral-800 bg-neutral-950/40 p-5 text-center text-sm text-neutral-400">
-                  No qualified orders
+          {/* AI Recommendation */}
+          {recommendedDriver && recommendedUnit && selectedOrder ? (
+            <Card className="rounded-xl border border-emerald-800/50 bg-neutral-900/60 p-4 shadow-lg shadow-black/40">
+              <div className="mb-3 flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-emerald-400" />
+                <h2 className="text-sm font-semibold text-neutral-200">AI Recommendation</h2>
+              </div>
+              {parseFloat(projectedMargin) < 10 && (
+                <div className="mb-3 flex items-center gap-2 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2">
+                  <AlertTriangle className="h-4 w-4 text-rose-400" />
+                  <span className="text-xs font-medium text-rose-200">Margin below 10%</span>
                 </div>
               )}
-            </div>
-          </Card>
+              
+              <div className="space-y-2">
+                <div className="rounded-lg border border-emerald-800/50 bg-emerald-950/30 p-2">
+                  <p className="text-[11px] uppercase tracking-wide text-emerald-400">Driver</p>
+                  <p className="mt-1 text-sm font-medium text-white">{recommendedDriver.name}</p>
+                  <p className="text-xs text-neutral-400">{recommendedDriver.hoursAvailableToday}h avail</p>
+                </div>
+
+                <div className="rounded-lg border border-amber-800/50 bg-amber-950/30 p-2">
+                  <p className="text-[11px] uppercase tracking-wide text-amber-400">Unit</p>
+                  <p className="mt-1 text-sm font-medium text-white">{recommendedUnit.code}</p>
+                  <p className="text-xs text-neutral-400">{recommendedUnit.type}</p>
+                </div>
+              </div>
+            </Card>
+          ) : null}
 
           {/* Crew Lineup */}
           <Card className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-4 shadow-lg shadow-black/40">
-            <h2 className="mb-3 text-sm font-semibold text-neutral-200">Crew Lineup</h2>
+            <h2 className="mb-3 text-sm font-semibold text-neutral-200">Available Crew</h2>
             
             <div className="space-y-4">
               <div>
@@ -694,7 +681,7 @@ export default function BookTripPage() {
                       }`}
                     >
                       <p className="text-sm font-medium text-white">{driver.name}</p>
-                      <p className="text-xs text-neutral-400">{driver.homeBase} • {driver.hoursAvailableToday}h avail</p>
+                      <p className="text-xs text-neutral-400">{driver.homeBase} • {driver.hoursAvailableToday}h</p>
                     </div>
                   ))}
                 </div>
@@ -713,7 +700,7 @@ export default function BookTripPage() {
                       }`}
                     >
                       <p className="text-sm font-medium text-white">{unit.code}</p>
-                      <p className="text-xs text-neutral-400">{unit.type} • {unit.status}</p>
+                      <p className="text-xs text-neutral-400">{unit.type}</p>
                     </div>
                   ))}
                 </div>

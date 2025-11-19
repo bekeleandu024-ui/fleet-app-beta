@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 const navItems = [
   { label: "Dashboard", href: "/", match: (pathname: string) => pathname === "/" },
   { label: "Analytics", href: "/analytics", match: (pathname: string) => pathname.startsWith("/analytics") },
-  { label: "Dispatch", href: "/dispatch", match: (pathname: string) => pathname.startsWith("/dispatch") },
+  { label: "Book Trip", href: "/book", match: (pathname: string) => pathname.startsWith("/book") },
   {
     label: "Orders",
     href: "/orders",
@@ -20,11 +20,10 @@ const navItems = [
   },
   { label: "New Order", href: "/orders/new", match: (pathname: string) => pathname === "/orders/new" },
   { label: "Trips", href: "/trips", match: (pathname: string) => pathname === "/trips" },
-  { label: "New Trip", href: "/trips/new", match: (pathname: string) => pathname === "/trips/new" },
   {
     label: "Trip Detail",
     href: "/trips/TRP-9001",
-    match: (pathname: string) => pathname.startsWith("/trips/") && pathname !== "/trips" && pathname !== "/trips/new",
+    match: (pathname: string) => pathname.startsWith("/trips/") && pathname !== "/trips",
   },
   { label: "Customs", href: "/customs", match: (pathname: string) => pathname.startsWith("/customs") },
   { label: "Costing Dashboard", href: "/costing", match: (pathname: string) => pathname.startsWith("/costing") },
