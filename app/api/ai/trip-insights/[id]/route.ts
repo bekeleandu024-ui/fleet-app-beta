@@ -53,9 +53,9 @@ export async function GET(
     const units = unitsResult.status === "fulfilled" ? unitsResult.value?.units || [] : [];
     const unit = units.find((u: any) => u.unit_id === trip.unit_id || u.id === trip.unit_id);
 
-    // Calculate distance (simplified - you may want to use a real routing API)
-    const estimatedDistance = 750; // Default, should be calculated
-    const estimatedDuration = 12; // hours
+    // Get REAL distance from database (calculated in migration)
+    const estimatedDistance = trip.distance_miles || trip.actual_miles || trip.planned_miles || 0;
+    const estimatedDuration = trip.duration_hours || (estimatedDistance / 55) || 0; // hours, fallback to 55mph average
 
     // Calculate costs
     const driverType = driver?.driver_type || "COM";
