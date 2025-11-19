@@ -1,0 +1,19 @@
+{
+  "name": "fleet-app-beta",
+  "version": "1.0.0",
+  "description": "Fleet management application with automated distance calculation",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "test:distance": "node services/tests/distance-service.test.js",
+    "example:distance": "node services/examples/usage-examples.js",
+    "distance:calculate-missing": "node -e \"const {DatabaseDistanceService}=require('./services/database-integration');(async()=>{const s=new DatabaseDistanceService();const r=await s.calculateMissingDistances({limit:100});console.log(r);await s.close();})();\"",
+    "distance:stats": "node -e \"const {DatabaseDistanceService}=require('./services/database-integration');(async()=>{const s=new DatabaseDistanceService();const r=await s.getCacheStats();console.log(JSON.stringify(r,null,2));await s.close();})();\""
+  },
+  "dependencies": {
+    "axios": "^1.6.0",
+    "pg": "^8.11.0"
+  }
+}
