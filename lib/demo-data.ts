@@ -200,6 +200,59 @@ const demoRules = [
   { id: "rule-2", name: "High Value Escort", description: "Two driver teams for high value loads", status: "Active" },
 ];
 
+const demoBusinessRules = [
+  {
+    id: "br-1",
+    rule_key: "min_margin_threshold",
+    scope: "trip",
+    rule_value: "8.00",
+    unit: "%",
+    severity: "critical",
+    description: "Minimum acceptable margin percentage",
+    is_active: true,
+  },
+  {
+    id: "br-2",
+    rule_key: "target_margin",
+    scope: "booking",
+    rule_value: "15.00",
+    unit: "%",
+    severity: "warning",
+    description: "Target margin for profitability",
+    is_active: true,
+  },
+  {
+    id: "br-3",
+    rule_key: "max_cost_per_mile",
+    scope: "trip",
+    rule_value: "2.50",
+    unit: "$",
+    severity: "warning",
+    description: "Maximum cost per mile threshold",
+    is_active: true,
+  },
+  {
+    id: "br-4",
+    rule_key: "max_detention_minutes",
+    scope: "trip",
+    rule_value: "120",
+    unit: "minutes",
+    severity: "warning",
+    description: "Maximum detention before charges apply",
+    is_active: true,
+  },
+  {
+    id: "br-5",
+    rule_key: "border_crossing_fee",
+    scope: "booking",
+    rule_value: "150.00",
+    unit: "$",
+    severity: "info",
+    description: "Standard border crossing fee",
+    is_active: true,
+  },
+];
+
 const demoEvents = [
   { id: "event-1", name: "Border Crossing", description: "Customs paperwork review", category: "Compliance" },
   { id: "event-2", name: "Trailer Washout", description: "Washout before pickup", category: "Maintenance" },
@@ -341,6 +394,10 @@ export function resolveDemoResponse(service: ServiceName, path: string): unknown
     }
     if (pathname.endsWith("/events")) {
       return { events: demoEvents };
+    }
+    if (pathname === "/query") {
+      // Handle SQL query for business rules
+      return { rows: demoBusinessRules };
     }
   }
 

@@ -33,26 +33,22 @@ export function MarginCalculator({
   const [isLoadingRules, setIsLoadingRules] = useState(true);
 
   useEffect(() => {
-    // Fetch business rules from database
+    // Fetch business rules from API
     const fetchRules = async () => {
       try {
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_MASTER_DATA_SERVICE_URL || "http://localhost:4001"}/query`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              sql: "SELECT * FROM business_rules WHERE scope IN ('trip', 'booking') ORDER BY severity DESC",
-            }),
-          }
-        );
+        const response = await fetch("/api/master-data/business-rules?scope=trip,booking");
 
         if (response.ok) {
-          const data = await response.json();
-          setBusinessRules(data.rows || []);
+          const result = await response.json();
+          setBusinessRules(result.data || []);
+        } else {
+          console.warn("Business rules API returned non-OK status:", response.status);
+          setBusinessRules([]);
         }
       } catch (err) {
         console.error("Failed to fetch business rules:", err);
+        // Set empty array on error to allow component to render without rules
+        setBusinessRules([]);
       } finally {
         setIsLoadingRules(false);
       }
