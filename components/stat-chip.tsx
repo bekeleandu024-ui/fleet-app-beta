@@ -12,10 +12,10 @@ export interface StatChipProps {
 }
 
 const variantStyles: Record<Required<StatChipProps>["variant"], string> = {
-  default: "border-neutral-800 bg-neutral-900/60 text-neutral-200",
-  ok: "border-emerald-500/60 bg-emerald-500/10 text-emerald-300",
-  warn: "border-amber-500/60 bg-amber-500/10 text-amber-300",
-  alert: "border-rose-500/60 bg-rose-500/10 text-rose-300",
+  default: "bg-neutral-800/40 text-neutral-400",
+  ok: "bg-emerald-500/15 text-emerald-400",
+  warn: "bg-amber-500/15 text-amber-400",
+  alert: "bg-rose-500/15 text-rose-400",
 };
 
 export function StatChip({
@@ -31,7 +31,7 @@ export function StatChip({
       role="status"
       aria-label={ariaLabel ?? `${label}${value !== undefined ? `: ${value}` : ""}`}
       className={cn(
-        "inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-wide",
+        "inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[10px] font-semibold uppercase tracking-wider",
         variantStyles[variant],
         className
       )}

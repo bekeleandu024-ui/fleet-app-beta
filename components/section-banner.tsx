@@ -31,23 +31,23 @@ export function SectionBanner({
     <section
       id={id}
       className={cn(
-        "flex flex-col gap-4 rounded-xl border border-neutral-800 bg-neutral-900/60 text-neutral-200 shadow-lg shadow-black/40",
-        dense ? "p-4" : "p-6",
+        "flex flex-col gap-3 rounded-lg border border-neutral-800/60 bg-[#151820] text-neutral-200",
+        dense ? "p-4" : "p-5",
         className
       )}
     >
-      <header className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
-        <div className="space-y-1">
-          <h2 className="text-base font-semibold text-neutral-100">{title}</h2>
-          {subtitle ? <p className="text-sm text-neutral-400">{subtitle}</p> : null}
+      <header className="flex flex-col gap-1.5 md:flex-row md:items-start md:justify-between">
+        <div className="space-y-0.5">
+          <h2 className="text-sm font-semibold text-neutral-100">{title}</h2>
+          {subtitle ? <p className="text-xs text-neutral-500">{subtitle}</p> : null}
         </div>
         {actions ? <div className="flex items-center gap-2 md:shrink-0">{actions}</div> : null}
       </header>
-      <div aria-live={ariaLive ?? undefined} className="space-y-4 text-sm leading-6 text-neutral-300">
+      <div aria-live={ariaLive ?? undefined} className="space-y-3 text-sm leading-relaxed text-neutral-300">
         {children}
       </div>
       {footer ? (
-        <footer className="border-t border-neutral-800 pt-4 text-xs text-neutral-500">
+        <footer className="border-t border-neutral-800/40 pt-3 text-xs text-neutral-500">
           {footer}
         </footer>
       ) : null}
