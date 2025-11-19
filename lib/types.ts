@@ -249,6 +249,8 @@ export const tripDetailSchema = z.object({
   status: z.string(),
   driver: z.string(),
   unit: z.string(),
+  driverType: z.string().optional(),
+  unitType: z.string().optional(),
   eta: z.string(),
   timeline: z.array(timelineEventSchema),
   exceptions: z.array(tripExceptionSchema),
@@ -258,6 +260,29 @@ export const tripDetailSchema = z.object({
   }),
   notes: z.array(z.object({ id: z.string(), author: z.string(), timestamp: z.string(), body: z.string() })),
   attachments: z.array(z.object({ id: z.string(), name: z.string(), size: z.string() })),
+  pickup: z.string().optional(),
+  delivery: z.string().optional(),
+  pickupWindowStart: z.string().optional(),
+  pickupWindowEnd: z.string().optional(),
+  deliveryWindowStart: z.string().optional(),
+  deliveryWindowEnd: z.string().optional(),
+  plannedStart: z.string().optional(),
+  actualStart: z.string().optional(),
+  pickupDeparture: z.string().optional(),
+  completedAt: z.string().optional(),
+  onTimePickup: z.boolean().optional(),
+  onTimeDelivery: z.boolean().optional(),
+  metrics: z
+    .object({
+      distanceMiles: z.number().optional(),
+      estDurationHours: z.number().optional(),
+      linehaul: z.number().optional(),
+      fuel: z.number().optional(),
+      totalCost: z.number().optional(),
+      recommendedRevenue: z.number().optional(),
+      marginPct: z.number().optional(),
+    })
+    .optional(),
 });
 export type TripDetail = z.infer<typeof tripDetailSchema>;
 
