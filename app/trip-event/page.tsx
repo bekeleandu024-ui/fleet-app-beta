@@ -39,12 +39,27 @@ export default function TripEventPage() {
   const [trips, setTrips] = useState<Trip[]>([]);
   const [selectedTripId, setSelectedTripId] = useState("");
 
-  // Fetch active trips on mount
-  useEffect(() => {
-    fetch("/api/trips?status=In Progress,Created")
+  // Fetch active trips on mount and refresh periodically
+  const fetchTrips = () => {
+    fetch("/api/trips")
       .then((res) => res.json())
-      .then((data) => setTrips(data.trips || []))
+      .then((data) => {
+        // Filter for active trips - include more statuses for newly booked trips
+        const activeTrips = (data.data || []).filter((trip: Trip) => 
+          !["Completed", "Delivered", "Cancelled"].includes(trip.status)
+        );
+        setTrips(activeTrips);
+      })
       .catch((err) => console.error("Failed to fetch trips:", err));
+  };
+
+  useEffect(() => {
+    fetchTrips();
+    
+    // Refresh trips every 30 seconds
+    const interval = setInterval(fetchTrips, 30000);
+    
+    return () => clearInterval(interval);
   }, []);
 
   const handleTripSelect = (tripId: string) => {

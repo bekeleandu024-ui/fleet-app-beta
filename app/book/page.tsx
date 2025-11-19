@@ -237,7 +237,9 @@ export default function BookTripPage() {
       if (!response.ok) throw new Error("Failed to book trip");
       
       const trip = await response.json();
-      setMessage({ type: "success", text: `Trip ${trip.id.substring(0, 8)} booked successfully!` });
+      const tripId = trip?.id || trip?.tripId || "new trip";
+      const displayId = typeof tripId === "string" ? tripId.substring(0, 8) : tripId;
+      setMessage({ type: "success", text: `Trip ${displayId} booked successfully!` });
       
       setTimeout(() => router.push("/trips"), 1500);
     } catch (error) {

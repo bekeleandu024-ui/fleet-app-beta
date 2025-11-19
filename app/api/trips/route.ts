@@ -27,16 +27,37 @@ interface BackendTripsResponse {
   Count: number;
 }
 
+interface TripStop {
+  stopType: string;
+  location: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+  country?: string;
+  appointmentStart?: string;
+  appointmentEnd?: string;
+  notes?: string;
+  sequence?: number;
+}
+
 interface CreateTripPayload {
   orderId: string;
   driverId: string;
   unitId?: string;
-  pickup: {
+  rateId?: string;
+  miles?: number;
+  rpm?: number;
+  totalRevenue?: number;
+  totalCpm?: number;
+  totalCost?: number;
+  stops?: TripStop[];
+  pickup?: {
     location: string;
     windowStart?: string;
     windowEnd?: string;
   };
-  delivery: {
+  delivery?: {
     location: string;
     windowStart?: string;
     windowEnd?: string;
@@ -48,20 +69,46 @@ export async function POST(request: Request) {
   try {
     const body = await request.json() as CreateTripPayload;
     
+    // Handle both stops array (from booking page) and pickup/delivery objects (legacy)
+    let pickupData, deliveryData;
+    
+    if (body.stops && body.stops.length >= 2) {
+      // Find first pickup and last delivery from stops array
+      const pickupStop = body.stops.find(s => s.stopType === "Pickup") || body.stops[0];
+      const deliveryStop = [...body.stops].reverse().find(s => s.stopType === "Delivery") || body.stops[body.stops.length - 1];
+      
+      pickupData = {
+        location: pickupStop.location,
+        windowStart: pickupStop.appointmentStart,
+        windowEnd: pickupStop.appointmentEnd,
+      };
+      
+      deliveryData = {
+        location: deliveryStop.location,
+        windowStart: deliveryStop.appointmentStart,
+        windowEnd: deliveryStop.appointmentEnd,
+      };
+    } else {
+      // Legacy format with pickup/delivery objects
+      pickupData = {
+        location: body.pickup?.location || "",
+        windowStart: body.pickup?.windowStart,
+        windowEnd: body.pickup?.windowEnd,
+      };
+      
+      deliveryData = {
+        location: body.delivery?.location || "",
+        windowStart: body.delivery?.windowStart,
+        windowEnd: body.delivery?.windowEnd,
+      };
+    }
+    
     const tripPayload = {
       orderId: body.orderId,
       driverId: body.driverId,
       unitId: body.unitId,
-      pickup: {
-        location: body.pickup.location,
-        windowStart: body.pickup.windowStart,
-        windowEnd: body.pickup.windowEnd,
-      },
-      delivery: {
-        location: body.delivery.location,
-        windowStart: body.delivery.windowStart,
-        windowEnd: body.delivery.windowEnd,
-      },
+      pickup: pickupData,
+      delivery: deliveryData,
       notes: body.notes,
     };
 
