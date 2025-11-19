@@ -68,7 +68,7 @@ export default function TripDetailPage() {
     );
   }
 
-  const distanceMiles = aiInsights?.routeOptimization.distance ?? data.metrics?.distanceMiles ?? 120;
+  const distanceMiles = aiInsights?.routeOptimization?.distance ?? data.metrics?.distanceMiles;
   const activeExceptions = data.exceptions.filter((e) => e.severity === "alert" || e.severity === "warn");
 
   return (
@@ -158,7 +158,9 @@ export default function TripDetailPage() {
       </div>
 
       <div className="space-y-4">
-        <DriverCostComparison distanceMiles={typeof distanceMiles === "number" ? distanceMiles : Number(distanceMiles)} />
+        {distanceMiles && (
+          <DriverCostComparison distanceMiles={typeof distanceMiles === "number" ? distanceMiles : Number(distanceMiles)} />
+        )}
 
         <div className="grid gap-4 lg:grid-cols-3">
           <Card className="border-neutral-800/70 bg-neutral-900/60 p-5">
@@ -178,6 +180,12 @@ export default function TripDetailPage() {
                 <InsightRow
                   icon={<AlertTriangle className="h-4 w-4 text-red-400" />}
                   text="Verify route distance – estimate appears high for this lane."
+                />
+              )}
+              {!distanceMiles && (
+                <InsightRow
+                  icon={<Info className="h-4 w-4 text-blue-400" />}
+                  text="Distance calculation pending – ensure pickup and delivery coordinates are set."
                 />
               )}
               {typeof (aiInsights?.costAnalysis.margin ?? data.metrics?.marginPct) === "number" && (

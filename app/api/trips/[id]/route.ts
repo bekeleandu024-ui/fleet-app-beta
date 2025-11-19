@@ -4,11 +4,59 @@ import { NextResponse } from "next/server";
 import { serviceFetch, ServiceError } from "@/lib/service-client";
 import { mapTripListItem } from "@/lib/transformers";
 
+// Helper function to calculate distance if missing
+async function calculateTripDistance(tripId: string, pickupLat?: number, pickupLng?: number, dropoffLat?: number, dropoffLng?: number) {
+  try {
+    // If we have coordinates, calculate distance
+    if (pickupLat && pickupLng && dropoffLat && dropoffLng) {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/distance/calculate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          origin: { lat: pickupLat, lng: pickupLng },
+          destination: { lat: dropoffLat, lng: dropoffLng }
+        })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        // Update the trip record with the calculated distance
+        await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/distance/trip/${tripId}`, {
+          method: 'POST'
+        }).catch(err => console.warn('Failed to update trip distance:', err));
+        
+        return {
+          distance_miles: parseFloat(data.distanceMiles),
+          duration_hours: parseFloat(data.durationHours)
+        };
+      }
+    }
+  } catch (error) {
+    console.warn('Distance calculation failed:', error);
+  }
+  return null;
+}
+
 export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params;
 
   try {
     const trip = await serviceFetch<Record<string, any>>("tracking", `/api/trips/${id}`);
+
+    // Calculate distance if missing
+    if (!trip.distance_miles && trip.pickup_lat && trip.pickup_lng && trip.dropoff_lat && trip.dropoff_lng) {
+      const calculated = await calculateTripDistance(
+        id,
+        trip.pickup_lat,
+        trip.pickup_lng,
+        trip.dropoff_lat,
+        trip.dropoff_lng
+      );
+      if (calculated) {
+        trip.distance_miles = calculated.distance_miles;
+        trip.duration_hours = calculated.duration_hours;
+      }
+    }
 
     const [orderResult, driversResult, eventsResult, exceptionsResult] = await Promise.allSettled([
       trip.order_id
@@ -102,8 +150,8 @@ function buildTripDetail(
     onTimePickup: Boolean(trip.on_time_pickup ?? trip.onTimePickup),
     onTimeDelivery: Boolean(trip.on_time_delivery ?? trip.onTimeDelivery),
     metrics: {
-      distanceMiles: trip.distance_miles ?? trip.miles ?? trip.distance,
-      estDurationHours: trip.est_duration_hours ?? trip.duration_hours,
+      distanceMiles: trip.distance_miles ?? trip.actual_miles ?? trip.planned_miles ?? trip.miles ?? trip.distance,
+      estDurationHours: trip.duration_hours ?? trip.est_duration_hours,
       linehaul: trip.linehaul_cost ?? trip.linehaul,
       fuel: trip.fuel_cost ?? trip.fuel,
       totalCost: trip.total_cost ?? trip.totalCost,

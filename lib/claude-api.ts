@@ -22,7 +22,7 @@ export async function generateTripInsights(
 
   try {
     const message = await anthropic.messages.create({
-      model: "claude-3-5-sonnet-latest",
+      model: "claude-3-5-sonnet-20241022",
       max_tokens: 2000,
       messages: [
         {
@@ -192,7 +192,7 @@ Respond with JSON: { "utilization": "X%", "risks": [], "summary": "Brief overvie
 
   try {
     const message = await anthropic.messages.create({
-      model: "claude-3-5-sonnet-latest",
+      model: "claude-3-5-sonnet-20241022",
       max_tokens: 500,
       messages: [{ role: "user", content: prompt }],
     });

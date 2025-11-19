@@ -44,12 +44,18 @@ function getStatusVariant(status: string) {
 export function TripTicket({ trip, aiInsights }: TripTicketProps) {
   const shortId = trip.tripNumber ?? trip.id?.slice(-6);
   const laneLabel = buildLane(trip.pickup, trip.delivery);
+  
+  // Use real calculated distance from database (distance_miles column)
+  // Falls back to AI insights if available
   const distance = aiInsights?.routeOptimization.distance ?? trip.metrics?.distanceMiles;
   const durationHours =
     typeof aiInsights?.routeOptimization.duration === "string"
       ? Number.parseFloat(aiInsights.routeOptimization.duration)
       : trip.metrics?.estDurationHours;
   const margin = aiInsights?.costAnalysis.margin ?? trip.metrics?.marginPct;
+  
+  // Check if distance is from real calculation (has value and is reasonable)
+  const hasRealDistance = distance != null && distance > 0;
 
   return (
     <Card className="p-6 border-neutral-800/80 bg-neutral-900/60">
@@ -130,7 +136,14 @@ export function TripTicket({ trip, aiInsights }: TripTicketProps) {
       </div>
 
       <div className="mt-4 flex flex-wrap gap-3 text-xs text-neutral-400">
-        {distance ? <Badge label={`~${Math.round(distance)} mi`} icon={<Route className="h-3.5 w-3.5" />} /> : null}
+        {distance && hasRealDistance ? (
+          <Badge label={`~${Math.round(distance)} mi`} icon={<Route className="h-3.5 w-3.5" />} />
+        ) : !hasRealDistance ? (
+          <Badge 
+            label="Distance pending" 
+            icon={<Route className="h-3.5 w-3.5 text-amber-500" />} 
+          />
+        ) : null}
         {durationHours ? (
           <Badge label={formatDurationHours(durationHours)} icon={<ClockBadge />} />
         ) : null}
