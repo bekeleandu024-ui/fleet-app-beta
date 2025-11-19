@@ -2,9 +2,15 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Sparkles, Package, Truck, MapPin, Plus, X, TrendingUp, AlertTriangle } from "lucide-react";
+import { Package, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { AIRecommendationPanel } from "@/components/booking/ai-recommendation-panel";
+import { DriverUnitSelector } from "@/components/booking/driver-unit-selector";
+import { RateSelector } from "@/components/booking/rate-selector";
+import { StopManager, type TripStop } from "@/components/booking/stop-manager";
+import { RevenueCalculator } from "@/components/booking/revenue-calculator";
+import { MarginCalculator } from "@/components/booking/margin-calculator";
 
 interface Order {
   id: string;
@@ -39,31 +45,18 @@ interface Unit {
   recommended?: boolean;
 }
 
-interface Rate {
+interface RateCard {
   id: string;
-  type: string;
+  rate_type: string;
   zone: string;
-  fixedCPM: number;
-  wageCPM: number;
-  addOnsCPM: number;
-  fuelCPM: number;
-  truckMaintCPM: number;
-  trailerMaintCPM: number;
-  rollingCPM: number;
-}
-
-interface TripStop {
-  id: string;
-  stopType: string;
-  name: string;
-  street: string;
-  city: string;
-  state: string;
-  country: string;
-  postal: string;
-  scheduledAt: string;
-  lat?: number;
-  lon?: number;
+  fixed_cpm: number;
+  wage_cpm: number;
+  addons_cpm: number;
+  fuel_cpm: number;
+  truck_maint_cpm: number;
+  trailer_maint_cpm: number;
+  rolling_cpm: number;
+  total_cpm: number;
 }
 
 export default function BookTripPage() {
@@ -76,7 +69,7 @@ export default function BookTripPage() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [units, setUnits] = useState<Unit[]>([]);
-  const [rates, setRates] = useState<Rate[]>([]);
+  const [rates, setRates] = useState<RateCard[]>([]);
   
   // Form state
   const [driverId, setDriverId] = useState("");
@@ -84,14 +77,15 @@ export default function BookTripPage() {
   const [unitId, setUnitId] = useState("");
   const [unitCode, setUnitCode] = useState("");
   const [rateId, setRateId] = useState("");
-  const [tripType, setTripType] = useState("");
-  const [tripZone, setTripZone] = useState("");
-  const [miles, setMiles] = useState("");
-  const [rpm, setRpm] = useState("");
-  const [totalRevenue, setTotalRevenue] = useState("");
-  const [fuelSurcharge, setFuelSurcharge] = useState("");
-  const [addOns, setAddOns] = useState("");
+  const [miles, setMiles] = useState(0);
+  const [rpm, setRpm] = useState(0);
+  const [totalRevenue, setTotalRevenue] = useState(0);
   const [stops, setStops] = useState<TripStop[]>([]);
+  
+  // AI Recommendations
+  const [recommendedDriverId, setRecommendedDriverId] = useState<string | null>(null);
+  const [recommendedUnitId, setRecommendedUnitId] = useState<string | null>(null);
+  const [recommendedRateId, setRecommendedRateId] = useState<string | null>(null);
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
@@ -106,8 +100,8 @@ export default function BookTripPage() {
     ]).then(([ordersResponse, driversData, unitsData, ratesData]) => {
       const ordersList = ordersResponse.data || ordersResponse;
       setOrders(ordersList);
-      setDrivers(driversData);
-      setUnits(unitsData);
+      setDrivers(driversData.data || driversData);
+      setUnits(unitsData.data || unitsData);
       setRates(ratesData);
     }).catch(err => {
       console.error("Error fetching data:", err);
@@ -147,9 +141,15 @@ export default function BookTripPage() {
         ]);
         // Set initial miles
         if (order.laneMiles) {
-          setMiles(String(order.laneMiles));
+          setMiles(order.laneMiles);
         }
       }
+    } else {
+      setSelectedOrder(null);
+      setStops([]);
+      setMiles(0);
+      setRpm(0);
+      setTotalRevenue(0);
     }
   }, [selectedOrderId, orders]);
 
@@ -165,73 +165,47 @@ export default function BookTripPage() {
     if (unit) setUnitCode(unit.code);
   }, [unitId, units]);
 
-  // Sync rate details when selected
-  useEffect(() => {
-    const rate = rates.find(r => r.id === rateId);
-    if (rate) {
-      setTripType(rate.type);
-      setTripZone(rate.zone);
-      setRpm(String(rate.fixedCPM + rate.wageCPM + rate.addOnsCPM));
+  // Handle AI Recommendation Application
+  const handleApplyRecommendation = (recommendation: any) => {
+    if (recommendation.driver) {
+      setDriverId(recommendation.driver.id);
+      setDriverName(recommendation.driver.name);
+      setRecommendedDriverId(recommendation.driver.id);
     }
-  }, [rateId, rates]);
-
-  // Calculate linked RPM ↔ Total Revenue
-  const handleRpmChange = (value: string) => {
-    setRpm(value);
-    const m = parseFloat(miles) || 0;
-    const r = parseFloat(value) || 0;
-    if (m > 0 && r > 0) {
-      setTotalRevenue(String((m * r).toFixed(2)));
+    if (recommendation.unit) {
+      setUnitId(recommendation.unit.id);
+      setUnitCode(recommendation.unit.code);
+      setRecommendedUnitId(recommendation.unit.id);
     }
-  };
-
-  const handleRevenueChange = (value: string) => {
-    setTotalRevenue(value);
-    const m = parseFloat(miles) || 0;
-    const rev = parseFloat(value) || 0;
-    if (m > 0 && rev > 0) {
-      setRpm(String((rev / m).toFixed(2)));
+    if (recommendation.rate) {
+      setRateId(recommendation.rate.id);
+      setRecommendedRateId(recommendation.rate.id);
+    }
+    if (recommendation.estimatedMiles) {
+      setMiles(recommendation.estimatedMiles);
+    }
+    if (recommendation.suggestedRPM) {
+      setRpm(recommendation.suggestedRPM);
+    }
+    if (recommendation.targetRevenue) {
+      setTotalRevenue(recommendation.targetRevenue);
     }
   };
 
   // Calculate totals
   const selectedRate = rates.find(r => r.id === rateId);
-  const totalCpm = selectedRate 
-    ? selectedRate.fixedCPM + selectedRate.wageCPM + selectedRate.addOnsCPM + selectedRate.fuelCPM + selectedRate.truckMaintCPM + selectedRate.trailerMaintCPM + selectedRate.rollingCPM
-    : 0;
-  const totalCost = (parseFloat(miles) || 0) * totalCpm + parseFloat(fuelSurcharge || "0") + parseFloat(addOns || "0");
-  const revenue = parseFloat(totalRevenue) || 0;
-  const projectedMargin = revenue > 0 ? ((revenue - totalCost) / revenue * 100).toFixed(1) : "0";
-  const marginColor = parseFloat(projectedMargin) >= 15 ? "text-emerald-400" : parseFloat(projectedMargin) >= 8 ? "text-amber-400" : "text-rose-400";
-
-  const addStop = () => {
-    setStops([...stops, {
-      id: `stop-${Date.now()}`,
-      stopType: "Other",
-      name: "",
-      street: "",
-      city: "",
-      state: "",
-      country: "US",
-      postal: "",
-      scheduledAt: "",
-    }]);
-  };
-
-  const removeStop = (id: string) => {
-    if (stops.length > 1) {
-      setStops(stops.filter(s => s.id !== id));
-    }
-  };
-
-  const updateStop = (id: string, field: keyof TripStop, value: any) => {
-    setStops(stops.map(s => s.id === id ? { ...s, [field]: value } : s));
-  };
+  const totalCpm = selectedRate?.total_cpm || 0;
+  const totalCost = miles * totalCpm;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedOrder || !driverId || !unitId) {
-      setMessage({ type: "error", text: "Please select an order, driver, and unit" });
+    if (!selectedOrder || !driverId || !unitId || !rateId) {
+      setMessage({ type: "error", text: "Please select an order, driver, unit, and rate" });
+      return;
+    }
+
+    if (stops.length < 2) {
+      setMessage({ type: "error", text: "At least 2 stops (pickup and delivery) are required" });
       return;
     }
 
@@ -249,14 +223,13 @@ export default function BookTripPage() {
           unitId,
           unit: unitCode,
           rateId,
-          tripType,
-          tripZone,
-          miles: parseFloat(miles),
-          rpm: parseFloat(rpm),
-          fuelSurcharge: parseFloat(fuelSurcharge || "0"),
-          addOns: parseFloat(addOns || "0"),
+          tripType: selectedRate?.rate_type,
+          tripZone: selectedRate?.zone,
+          miles,
+          rpm,
+          totalRevenue,
           totalCpm,
-          total: totalCost,
+          totalCost,
           stops: stops.map((s, idx) => ({ ...s, sequence: idx })),
         }),
       });
@@ -274,13 +247,13 @@ export default function BookTripPage() {
     }
   };
 
-  const recommendedDriver = drivers.find(d => d.recommended);
-  const recommendedUnit = units.find(u => u.recommended);
-
   return (
     <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-semibold text-white">Trip Booking Control Center</h1>
+        <div className="flex items-center gap-2">
+          <Package className="h-6 w-6 text-emerald-400" />
+          <h1 className="text-3xl font-semibold text-white">Trip Booking Console</h1>
+        </div>
         
         {/* Order Selection Dropdown */}
         <div className="w-[600px]">
@@ -297,18 +270,15 @@ export default function BookTripPage() {
           >
             <option value="">Choose an order...</option>
             {orders.map(order => {
-              // Use lane field if pickup/delivery are empty
               const route = order.lane || (order.pickup && order.delivery 
                 ? `${order.pickup} → ${order.delivery}` 
                 : "Route TBD");
               const miles = order.laneMiles ? `${order.laneMiles}mi` : "";
-              const cost = order.cost ? `$${order.cost.toLocaleString()}` : "";
-              const serviceLevel = order.serviceLevel || "Standard";
-              const statusIndicator = order.status === "New" ? "🟢" : order.status === "Planning" ? "🟡" : "⚪";
+              const statusIndicator = order.status === "Qualified" ? "✓" : order.status === "New" ? "○" : "●";
               
               return (
                 <option key={order.id} value={order.id}>
-                  {statusIndicator} {order.reference} | {order.customer} | {route} {miles ? `| ${miles}` : ""} {cost ? `| ${cost}` : ""} | {serviceLevel}
+                  {statusIndicator} {order.reference} | {order.customer} | {route} {miles ? `| ${miles}` : ""}
                 </option>
               );
             })}
@@ -337,7 +307,7 @@ export default function BookTripPage() {
               <p className="text-xs text-white">{selectedOrder.laneMiles || 0} mi</p>
             </div>
             <span className={`rounded-full border px-3 py-1 text-xs font-medium ${
-              selectedOrder.status === "New" 
+              selectedOrder.status === "Qualified" 
                 ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-200"
                 : "border-purple-500/30 bg-purple-500/10 text-purple-200"
             }`}>
@@ -347,289 +317,70 @@ export default function BookTripPage() {
         </Card>
       ) : (
         <div className="rounded-lg border border-dashed border-neutral-800 bg-neutral-950/40 p-5 text-center text-sm text-neutral-400">
-          Select an order from the dropdown above to begin booking
+          Select a qualified order from the dropdown above to begin booking
         </div>
       )}
 
-      {/* Two Column Layout - More Horizontal */}
-      <div className="grid gap-6 lg:grid-cols-[1fr,400px]">
-        {/* Left: Main Form - Takes up more width */}
+      {/* Three Column Layout: AI Recommendations | Form | Margin Calculator */}
+      <form onSubmit={handleSubmit}>
+      <div className="grid gap-6 lg:grid-cols-[380px,1fr,380px]">
+        {/* Left: AI Recommendations */}
         <div className="space-y-4">
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <Card className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-4 shadow-lg shadow-black/40">
-            <h2 className="mb-4 text-sm font-semibold text-neutral-200">Trip Assignment</h2>
-            
-            <div className="grid gap-3 md:grid-cols-2">
-              <div>
-                <label className="text-[11px] uppercase tracking-wide text-neutral-500">Driver</label>
-                <select
-                  className="mt-1 w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:border-white/30 focus:outline-none"
-                  value={driverId}
-                  onChange={(e) => setDriverId(e.target.value)}
-                  required
-                >
-                  <option value="">Select driver...</option>
-                  {drivers.map(d => (
-                    <option key={d.id} value={d.id}>{d.name}</option>
-                  ))}
-                </select>
-              </div>
+          <AIRecommendationPanel
+            orderId={selectedOrderId}
+            onApplyRecommendation={handleApplyRecommendation}
+          />
+        </div>
 
-              <div>
-                <label className="text-[11px] uppercase tracking-wide text-neutral-500">Driver Name</label>
-                <input
-                  type="text"
-                  className="mt-1 w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:border-white/30 focus:outline-none"
-                  value={driverName}
-                  onChange={(e) => setDriverName(e.target.value)}
-                  readOnly
-                />
-              </div>
+        {/* Center: Main Form */}
+        <div className="space-y-4">
+          {/* Driver & Unit Selection */}
+          <DriverUnitSelector
+            drivers={drivers}
+            units={units}
+            selectedDriverId={driverId}
+            selectedUnitId={unitId}
+            recommendedDriverId={recommendedDriverId}
+            recommendedUnitId={recommendedUnitId}
+            onDriverSelect={setDriverId}
+            onUnitSelect={setUnitId}
+          />
 
-              <div>
-                <label className="text-[11px] uppercase tracking-wide text-neutral-500">Unit</label>
-                <select
-                  className="mt-1 w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:border-white/30 focus:outline-none"
-                  value={unitId}
-                  onChange={(e) => setUnitId(e.target.value)}
-                  required
-                >
-                  <option value="">Select unit...</option>
-                  {units.map(u => (
-                    <option key={u.id} value={u.id}>{u.code}</option>
-                  ))}
-                </select>
-              </div>
+          {/* Rate Card Selection */}
+          <RateSelector
+            rates={rates}
+            selectedRateId={rateId}
+            recommendedRateId={recommendedRateId}
+            onRateSelect={setRateId}
+          />
 
-              <div>
-                <label className="text-[11px] uppercase tracking-wide text-neutral-500">Unit Code</label>
-                <input
-                  type="text"
-                  className="mt-1 w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:border-white/30 focus:outline-none"
-                  value={unitCode}
-                  readOnly
-                />
-              </div>
+          {/* Revenue Calculator */}
+          <RevenueCalculator
+            miles={miles}
+            rpm={rpm}
+            revenue={totalRevenue}
+            onMilesChange={setMiles}
+            onRpmChange={setRpm}
+            onRevenueChange={setTotalRevenue}
+          />
 
-              <div>
-                <label className="text-[11px] uppercase tracking-wide text-neutral-500">Rate</label>
-                <select
-                  className="mt-1 w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:border-white/30 focus:outline-none"
-                  value={rateId}
-                  onChange={(e) => setRateId(e.target.value)}
-                  required
-                >
-                  <option value="">Select rate...</option>
-                  {rates.map(r => (
-                    <option key={r.id} value={r.id}>{r.type} - {r.zone}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="text-[11px] uppercase tracking-wide text-neutral-500">Trip Type</label>
-                <input
-                  type="text"
-                  className="mt-1 w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:border-white/30 focus:outline-none"
-                  value={tripType}
-                  readOnly
-                />
-              </div>
-
-              <div>
-                <label className="text-[11px] uppercase tracking-wide text-neutral-500">Trip Zone</label>
-                <input
-                  type="text"
-                  className="mt-1 w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:border-white/30 focus:outline-none"
-                  value={tripZone}
-                  readOnly
-                />
-              </div>
-
-              <div>
-                <label className="text-[11px] uppercase tracking-wide text-neutral-500">Miles</label>
-                <input
-                  type="number"
-                  step="0.1"
-                  className="mt-1 w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:border-white/30 focus:outline-none"
-                  value={miles}
-                  onChange={(e) => setMiles(e.target.value)}
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="text-[11px] uppercase tracking-wide text-neutral-500">Quoted RPM</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  className="mt-1 w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:border-white/30 focus:outline-none"
-                  value={rpm}
-                  onChange={(e) => handleRpmChange(e.target.value)}
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="text-[11px] uppercase tracking-wide text-neutral-500">Total Revenue</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  className="mt-1 w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:border-white/30 focus:outline-none"
-                  value={totalRevenue}
-                  onChange={(e) => handleRevenueChange(e.target.value)}
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="text-[11px] uppercase tracking-wide text-neutral-500">Fuel Surcharge</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  className="mt-1 w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:border-white/30 focus:outline-none"
-                  value={fuelSurcharge}
-                  onChange={(e) => setFuelSurcharge(e.target.value)}
-                />
-              </div>
-
-              <div>
-                <label className="text-[11px] uppercase tracking-wide text-neutral-500">Add-ons</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  className="mt-1 w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:border-white/30 focus:outline-none"
-                  value={addOns}
-                  onChange={(e) => setAddOns(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <div className="mt-4 grid gap-3 md:grid-cols-2">
-              <div className="rounded-lg border border-white/10 bg-white/5 p-3">
-                <p className="text-[11px] uppercase tracking-wide text-neutral-500">Total Cost CPM</p>
-                <p className="mt-1 text-lg font-semibold text-white">${totalCpm.toFixed(2)}</p>
-              </div>
-
-              <div className="rounded-lg border border-white/10 bg-white/5 p-3">
-                <p className="text-[11px] uppercase tracking-wide text-neutral-500">Total Cost</p>
-                <p className="mt-1 text-lg font-semibold text-white">${totalCost.toFixed(2)}</p>
-              </div>
-
-              <div className="rounded-lg border border-white/10 bg-white/5 p-3">
-                <p className="text-[11px] uppercase tracking-wide text-neutral-500">Projected RPM</p>
-                <p className="mt-1 text-lg font-semibold text-white">${rpm || "0.00"}</p>
-              </div>
-
-              <div className="rounded-lg border border-white/10 bg-white/5 p-3">
-                <p className="text-[11px] uppercase tracking-wide text-neutral-500">Projected Margin</p>
-                <p className={`mt-1 text-lg font-semibold ${marginColor}`}>{projectedMargin}%</p>
-              </div>
-            </div>
-          </Card>
-
-          {/* Dispatch Overrides - Stop Manager */}
-          <Card className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-4 shadow-lg shadow-black/40">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-neutral-200">Dispatch Overrides - Stops</h2>
-              <Button
-                type="button"
-                size="sm"
-                variant="subtle"
-                onClick={addStop}
-                className="flex items-center gap-2"
-              >
-                <Plus className="h-4 w-4" />
-                Add Stop
-              </Button>
-            </div>
-
-            <div className="space-y-3">
-              {stops.map((stop, idx) => (
-                <div key={stop.id} className="rounded-lg border border-white/10 bg-black/20 p-3">
-                  <div className="mb-2 flex items-center justify-between">
-                    <span className="text-xs font-medium text-neutral-400">Stop {idx + 1}</span>
-                    {stops.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => removeStop(stop.id)}
-                        className="text-rose-400 hover:text-rose-300"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                    )}
-                  </div>
-
-                  <div className="grid gap-2 md:grid-cols-2">
-                    <div>
-                      <label className="text-[11px] uppercase tracking-wide text-white/60">Stop Type</label>
-                      <select
-                        className="mt-1 w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:border-white/30 focus:outline-none"
-                        value={stop.stopType}
-                        onChange={(e) => updateStop(stop.id, "stopType", e.target.value)}
-                      >
-                        <option value="Pickup">Pickup</option>
-                        <option value="Delivery">Delivery</option>
-                        <option value="Drop & Hook">Drop & Hook</option>
-                        <option value="Border">Border</option>
-                        <option value="Other">Other</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="text-[11px] uppercase tracking-wide text-white/60">Location Name</label>
-                      <input
-                        type="text"
-                        className="mt-1 w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:border-white/30 focus:outline-none"
-                        value={stop.name}
-                        onChange={(e) => updateStop(stop.id, "name", e.target.value)}
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-[11px] uppercase tracking-wide text-white/60">City</label>
-                      <input
-                        type="text"
-                        className="mt-1 w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:border-white/30 focus:outline-none"
-                        value={stop.city}
-                        onChange={(e) => updateStop(stop.id, "city", e.target.value)}
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-[11px] uppercase tracking-wide text-white/60">State</label>
-                      <input
-                        type="text"
-                        className="mt-1 w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:border-white/30 focus:outline-none"
-                        value={stop.state}
-                        onChange={(e) => updateStop(stop.id, "state", e.target.value)}
-                      />
-                    </div>
-
-                    <div className="md:col-span-2">
-                      <label className="text-[11px] uppercase tracking-wide text-white/60">Scheduled Time</label>
-                      <input
-                        type="datetime-local"
-                        className="mt-1 w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:border-white/30 focus:outline-none"
-                        value={stop.scheduledAt ? new Date(stop.scheduledAt).toISOString().slice(0, 16) : ""}
-                        onChange={(e) => updateStop(stop.id, "scheduledAt", e.target.value)}
-                        required
-                      />
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </Card>
+          {/* Stop Manager */}
+          <StopManager stops={stops} onStopsChange={setStops} />
 
           {/* Submit Button */}
           <Button
             type="submit"
-            disabled={isSubmitting || !selectedOrder}
-            className="w-full rounded-lg bg-emerald-500 px-4 py-3 text-sm font-semibold text-emerald-950 hover:bg-emerald-400 disabled:opacity-70"
+            disabled={isSubmitting || !selectedOrder || !driverId || !unitId || !rateId}
+            className="flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-500 px-4 py-3 text-sm font-semibold text-emerald-950 hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {isSubmitting ? "Booking Trip..." : "Book Trip"}
+            {isSubmitting ? (
+              "Booking Trip..."
+            ) : (
+              <>
+                <CheckCircle className="h-4 w-4" />
+                Book Trip
+              </>
+            )}
           </Button>
 
           {message && (
@@ -641,87 +392,50 @@ export default function BookTripPage() {
               {message.text}
             </div>
           )}
-        </form>
         </div>
 
-        {/* Right: AI Recommendation & Crew */}
+        {/* Right: Margin Calculator with Guardrails */}
         <div className="space-y-4">
-          {/* AI Recommendation */}
-          {recommendedDriver && recommendedUnit && selectedOrder ? (
-            <Card className="rounded-xl border border-emerald-800/50 bg-neutral-900/60 p-4 shadow-lg shadow-black/40">
-              <div className="mb-3 flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-emerald-400" />
-                <h2 className="text-sm font-semibold text-neutral-200">AI Recommendation</h2>
-              </div>
-              {parseFloat(projectedMargin) < 10 && (
-                <div className="mb-3 flex items-center gap-2 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2">
-                  <AlertTriangle className="h-4 w-4 text-rose-400" />
-                  <span className="text-xs font-medium text-rose-200">Margin below 10%</span>
-                </div>
-              )}
-              
-              <div className="space-y-2">
-                <div className="rounded-lg border border-emerald-800/50 bg-emerald-950/30 p-2">
-                  <p className="text-[11px] uppercase tracking-wide text-emerald-400">Driver</p>
-                  <p className="mt-1 text-sm font-medium text-white">{recommendedDriver.name}</p>
-                  <p className="text-xs text-neutral-400">{recommendedDriver.hoursAvailableToday}h avail</p>
-                </div>
+          <MarginCalculator
+            revenue={totalRevenue}
+            totalCost={totalCost}
+            totalCpm={totalCpm}
+            miles={miles}
+          />
 
-                <div className="rounded-lg border border-amber-800/50 bg-amber-950/30 p-2">
-                  <p className="text-[11px] uppercase tracking-wide text-amber-400">Unit</p>
-                  <p className="mt-1 text-sm font-medium text-white">{recommendedUnit.code}</p>
-                  <p className="text-xs text-neutral-400">{recommendedUnit.type}</p>
-                </div>
+          {/* Cost Summary Card */}
+          <Card className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-4">
+            <h3 className="mb-3 text-sm font-semibold text-neutral-200">Cost Summary</h3>
+            <div className="space-y-2 text-xs">
+              <div className="flex justify-between">
+                <span className="text-neutral-400">Total CPM</span>
+                <span className="font-medium text-white">${totalCpm.toFixed(2)}</span>
               </div>
-            </Card>
-          ) : null}
-
-          {/* Crew Lineup */}
-          <Card className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-4 shadow-lg shadow-black/40">
-            <h2 className="mb-3 text-sm font-semibold text-neutral-200">Available Crew</h2>
-            
-            <div className="space-y-4">
-              <div>
-                <p className="mb-2 text-[11px] uppercase tracking-wide text-neutral-500">Drivers</p>
-                <div className="space-y-2">
-                  {drivers.slice(0, 3).map(driver => (
-                    <div
-                      key={driver.id}
-                      className={`rounded-lg border p-2 ${
-                        driver.recommended
-                          ? "border-emerald-500/50 bg-emerald-950/30"
-                          : "border-white/10 bg-black/20"
-                      }`}
-                    >
-                      <p className="text-sm font-medium text-white">{driver.name}</p>
-                      <p className="text-xs text-neutral-400">{driver.homeBase} • {driver.hoursAvailableToday}h</p>
-                    </div>
-                  ))}
-                </div>
+              <div className="flex justify-between">
+                <span className="text-neutral-400">Miles</span>
+                <span className="font-medium text-white">{miles.toFixed(1)}</span>
               </div>
-
-              <div>
-                <p className="mb-2 text-[11px] uppercase tracking-wide text-neutral-500">Units</p>
-                <div className="space-y-2">
-                  {units.slice(0, 3).map(unit => (
-                    <div
-                      key={unit.id}
-                      className={`rounded-lg border p-2 ${
-                        unit.recommended
-                          ? "border-amber-500/50 bg-amber-950/30"
-                          : "border-white/10 bg-black/20"
-                      }`}
-                    >
-                      <p className="text-sm font-medium text-white">{unit.code}</p>
-                      <p className="text-xs text-neutral-400">{unit.type}</p>
-                    </div>
-                  ))}
-                </div>
+              <div className="flex justify-between border-t border-white/10 pt-2">
+                <span className="text-neutral-400">Total Cost</span>
+                <span className="font-semibold text-white">${totalCost.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-neutral-400">Revenue</span>
+                <span className="font-semibold text-emerald-400">${totalRevenue.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between border-t border-white/10 pt-2">
+                <span className="font-medium text-neutral-200">Profit</span>
+                <span className={`font-bold ${
+                  totalRevenue - totalCost > 0 ? "text-emerald-400" : "text-rose-400"
+                }`}>
+                  ${(totalRevenue - totalCost).toFixed(2)}
+                </span>
               </div>
             </div>
           </Card>
         </div>
       </div>
+      </form>
     </div>
   );
 }
