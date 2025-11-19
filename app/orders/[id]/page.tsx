@@ -1,8 +1,8 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
-import { CalendarClock, Gauge, Sparkles } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { CalendarClock, Gauge, Sparkles, CheckCircle2, AlertCircle } from "lucide-react";
 import { useState, useEffect } from "react";
 
 import { RecommendationCallout } from "@/components/recommendation-callout";
@@ -28,12 +28,15 @@ const statusVariant: Record<string, "default" | "ok" | "warn" | "alert"> = {
 export default function OrderDetailPage() {
   const params = useParams<{ id: string }>();
   const orderId = params?.id ?? "";
+  const queryClient = useQueryClient();
   const [showAIInsights, setShowAIInsights] = useState(false);
   const [selectedDriver, setSelectedDriver] = useState("");
   const [selectedUnit, setSelectedUnit] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("");
   const [notes, setNotes] = useState("");
   const [isBooking, setIsBooking] = useState(false);
+  const [isQualifying, setIsQualifying] = useState(false);
+  const [qualificationNotes, setQualificationNotes] = useState("");
 
   const { data, isLoading, isError } = useQuery({
     queryKey: queryKeys.order(orderId),
@@ -135,6 +138,45 @@ export default function OrderDetailPage() {
   const handleUpdateStatus = async () => {
     alert("Status update feature coming soon");
   };
+
+  // Qualify order mutation
+  const qualifyMutation = useMutation({
+    mutationFn: async (notes: string) => {
+      const response = await fetch(`/api/orders/${orderId}/qualify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notes }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to qualify order');
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.order(orderId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.orders() });
+      setIsQualifying(false);
+      setQualificationNotes("");
+      alert("Order qualified successfully!");
+    },
+    onError: (error: any) => {
+      alert(error.message || "Failed to qualify order");
+    },
+  });
+
+  const handleQualify = () => {
+    if (!qualificationNotes.trim()) {
+      alert("Please add qualification notes");
+      return;
+    }
+    
+    qualifyMutation.mutate(qualificationNotes);
+  };
+
+  const canQualify = data?.status === "PendingInfo" || data?.status === "New";
+  const isQualified = data?.status === "Qualified" || data?.status === "Booked";
 
   if (isLoading) {
     return <OrderDetailSkeleton />;
@@ -254,6 +296,72 @@ export default function OrderDetailPage() {
         </div>
 
         <aside className="lg:col-span-5 space-y-6">
+          {/* Qualification Panel */}
+          {canQualify && !isQualifying && (
+            <article className="rounded-xl border border-amber-700 bg-linear-to-br from-amber-900/40 to-orange-900/40 p-4 shadow-lg shadow-black/40">
+              <div className="flex items-center gap-3 mb-3">
+                <AlertCircle className="w-5 h-5 text-amber-400" />
+                <h2 className="text-sm font-semibold text-amber-200">Order Needs Qualification</h2>
+              </div>
+              <p className="text-xs text-amber-300 mb-4">
+                Review order details, verify windows, equipment requirements, and qualify for booking
+              </p>
+              <Button
+                onClick={() => setIsQualifying(true)}
+                variant="primary"
+                size="sm"
+                className="w-full bg-amber-600 hover:bg-amber-700"
+              >
+                Qualify Order
+              </Button>
+            </article>
+          )}
+
+          {isQualifying && (
+            <article className="rounded-xl border border-emerald-700 bg-linear-to-br from-emerald-900/40 to-teal-900/40 p-4 shadow-lg shadow-black/40">
+              <div className="flex items-center gap-3 mb-3">
+                <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                <h2 className="text-sm font-semibold text-emerald-200">Qualify Order</h2>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-medium text-emerald-300 mb-2">
+                    Qualification Notes
+                  </label>
+                  <textarea
+                    className="w-full h-32 px-3 py-2 bg-black/40 border border-emerald-800 rounded-md text-white text-sm focus:border-emerald-500 focus:outline-none resize-none"
+                    placeholder="Verify pickup/delivery details, equipment requirements, special handling..."
+                    value={qualificationNotes}
+                    onChange={(e) => setQualificationNotes(e.target.value)}
+                  />
+                </div>
+
+                <div className="flex gap-2">
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={handleQualify}
+                    disabled={qualifyMutation.isPending}
+                    className="flex-1 bg-emerald-600 hover:bg-emerald-700"
+                  >
+                    {qualifyMutation.isPending ? "Qualifying..." : "Mark as Qualified"}
+                  </Button>
+                  <Button
+                    variant="subtle"
+                    size="sm"
+                    onClick={() => {
+                      setIsQualifying(false);
+                      setQualificationNotes("");
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            </article>
+          )}
+
           {/* Claude-Powered AI Dispatch Insights - NEW */}
           <AIInsights type="order" id={orderId} />
 
