@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useCallback } from "react";
 
-import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle, TrendingUp } from "lucide-react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { AlertTriangle, TrendingUp, Brain, Lightbulb, TrendingDown, Target, Zap } from "lucide-react";
 import {
   Area,
   Bar,
@@ -29,7 +29,34 @@ export default function AnalyticsPage() {
   const { data, isLoading, isError } = useQuery({
     queryKey: queryKeys.analytics,
     queryFn: fetchAnalytics,
+    refetchInterval: 60000, // Refresh every 60 seconds
   });
+
+  // Fetch AI insights when analytics data is available
+  const { data: aiInsights, isLoading: aiLoading, mutate: generateInsights } = useMutation({
+    mutationFn: async (analyticsData: any) => {
+      const response = await fetch("/api/analytics/ai-insights", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(analyticsData),
+      });
+      return response.json();
+    },
+  });
+
+  // Generate AI insights when data is loaded
+  const handleGenerateInsights = useCallback(() => {
+    if (data) {
+      generateInsights(data);
+    }
+  }, [data, generateInsights]);
+
+  // Auto-generate insights when data loads
+  useMemo(() => {
+    if (data && !aiInsights && !aiLoading) {
+      handleGenerateInsights();
+    }
+  }, [data, aiInsights, aiLoading, handleGenerateInsights]);
 
   // Move useMemo BEFORE early returns to maintain hook order
   const revenueTotals = useMemo(
@@ -60,14 +87,27 @@ export default function AnalyticsPage() {
   const { summary, revenueTrend, marginByCategory, driverPerformance, lanePerformance, marginDistribution, alerts, updatedAt } =
     data;
 
+  const insights = aiInsights?.insights;
+
   return (
-    <div className="grid gap-6 xl:grid-cols-[2fr,1fr]">
-      <div className="grid gap-6">
-        <SectionBanner
-          title="Margin analytics"
-          subtitle="Monitor margin health, revenue efficiency, and risk before month-end."
-          aria-live="polite"
-        >
+    <div className="grid gap-6">
+      {/* AI Insights Section - Full Width */}
+      {insights && (
+        <AIInsightsSection 
+          insights={insights} 
+          isLoading={aiLoading} 
+          onRefresh={handleGenerateInsights}
+        />
+      )}
+
+      {/* Main Analytics Grid */}
+      <div className="grid gap-6 xl:grid-cols-[2fr,1fr]">
+        <div className="grid gap-6">
+          <SectionBanner
+            title="Margin analytics"
+            subtitle="Monitor margin health, revenue efficiency, and risk before month-end."
+            aria-live="polite"
+          >
           <div className="flex flex-wrap items-center gap-3 text-sm text-neutral-400">
             <Chip tone="brand">{summary.periodLabel}</Chip>
             <span className="text-xs text-neutral-500">Last refreshed {formatDateTime(updatedAt)}</span>
@@ -317,6 +357,268 @@ export default function AnalyticsPage() {
           </ul>
         </SectionBanner>
       </div>
+    </div>
+    </div>
+  );
+}
+
+// AI Insights Section Component
+function AIInsightsSection({ 
+  insights, 
+  isLoading, 
+  onRefresh 
+}: { 
+  insights: any; 
+  isLoading: boolean; 
+  onRefresh: () => void;
+}) {
+  if (isLoading) {
+    return (
+      <SectionBanner
+        title="AI-Powered Insights"
+        subtitle="Claude AI is analyzing your fleet data..."
+        aria-live="polite"
+      >
+        <div className="grid gap-4 md:grid-cols-3">
+          <div className="h-32 animate-pulse rounded-lg bg-neutral-900/60" />
+          <div className="h-32 animate-pulse rounded-lg bg-neutral-900/60" />
+          <div className="h-32 animate-pulse rounded-lg bg-neutral-900/60" />
+        </div>
+      </SectionBanner>
+    );
+  }
+
+  const healthScore = insights.keyMetrics?.healthScore || 0;
+  const riskLevel = insights.keyMetrics?.riskLevel || "medium";
+
+  return (
+    <div className="grid gap-6">
+      {/* Executive Summary */}
+      <SectionBanner
+        title="AI-Powered Insights"
+        subtitle="Claude AI analysis of your fleet performance"
+        aria-live="polite"
+      >
+        <div className="flex items-center gap-2 mb-4">
+          <Brain className="size-5 text-indigo-400" aria-hidden="true" />
+          <button
+            onClick={onRefresh}
+            className="text-sm text-indigo-400 hover:text-indigo-300"
+            aria-label="Refresh AI insights"
+          >
+            Refresh Insights
+          </button>
+        </div>
+
+        <div className="rounded-lg border border-neutral-800 bg-linear-to-br from-indigo-950/40 to-neutral-950/60 p-5">
+          <div className="flex items-start justify-between gap-4 mb-3">
+            <div>
+              <p className="text-lg font-semibold text-neutral-100 mb-2">Executive Summary</p>
+              <p className="text-sm text-neutral-300 leading-relaxed">{insights.executiveSummary}</p>
+            </div>
+            <div className="flex flex-col items-center gap-1 min-w-20">
+              <div className="text-3xl font-bold text-emerald-400">{healthScore}</div>
+              <div className="text-xs text-neutral-500 uppercase tracking-wide">Health Score</div>
+              <StatChip
+                label="Risk"
+                value={riskLevel.toUpperCase()}
+                variant={riskLevel === "high" ? "alert" : riskLevel === "medium" ? "warn" : "ok"}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-3 mt-4">
+          <InsightCard
+            icon={<TrendingUp className="size-5 text-emerald-400" />}
+            title="Trend Analysis"
+            items={[
+              { label: "Revenue", value: insights.trendAnalysis?.revenue },
+              { label: "Margin", value: insights.trendAnalysis?.margin },
+              { label: "Prediction", value: insights.trendAnalysis?.prediction },
+            ]}
+          />
+          <InsightCard
+            icon={<Target className="size-5 text-yellow-400" />}
+            title="Performance"
+            items={[
+              { label: "Efficiency", value: insights.keyMetrics?.efficiency },
+              { label: "Profitability", value: insights.keyMetrics?.profitability },
+            ]}
+          />
+          <InsightCard
+            icon={<Lightbulb className="size-5 text-blue-400" />}
+            title="Top Recommendation"
+            items={
+              insights.strategicRecommendations?.[0]
+                ? [
+                    { label: "Action", value: insights.strategicRecommendations[0].action },
+                    { label: "Impact", value: insights.strategicRecommendations[0].expectedImpact },
+                    { label: "Timeframe", value: insights.strategicRecommendations[0].timeframe },
+                  ]
+                : [{ label: "Status", value: "No recommendations at this time" }]
+            }
+          />
+        </div>
+      </SectionBanner>
+
+      {/* Anomaly Detection */}
+      {insights.anomalyDetection && insights.anomalyDetection.length > 0 && (
+        <div className="grid gap-4 md:grid-cols-2">
+          <SectionBanner title="Anomaly Detection" subtitle="AI-detected issues requiring attention" dense>
+            <ul className="space-y-3">
+              {insights.anomalyDetection.map((anomaly: any, idx: number) => (
+                <li key={idx} className="rounded-lg border border-neutral-800 bg-neutral-950/60 p-4">
+                  <div className="flex items-start justify-between gap-3 mb-2">
+                    <p className="text-sm font-semibold text-neutral-100">{anomaly.finding}</p>
+                    <StatChip
+                      label={anomaly.type}
+                      value={anomaly.severity.toUpperCase()}
+                      variant={anomaly.severity === "critical" ? "alert" : anomaly.severity === "warning" ? "warn" : "default"}
+                    />
+                  </div>
+                  <p className="text-xs text-neutral-400 mb-2">{anomaly.impact}</p>
+                  <div className="flex items-start gap-2 text-xs text-emerald-400">
+                    <Lightbulb className="size-3 mt-0.5 shrink-0" />
+                    <span>{anomaly.recommendation}</span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </SectionBanner>
+
+          {/* Predictions */}
+          <SectionBanner title="Predictions" subtitle="AI forecasts based on current trends" dense>
+            <ul className="space-y-3">
+              {insights.predictions?.map((prediction: any, idx: number) => (
+                <li key={idx} className="rounded-lg border border-neutral-800 bg-neutral-950/60 p-4">
+                  <div className="flex items-start justify-between gap-3 mb-2">
+                    <p className="text-sm font-semibold text-neutral-100 capitalize">{prediction.metric} Forecast</p>
+                    <Chip tone={prediction.confidence === "high" ? "ok" : prediction.confidence === "medium" ? "warn" : "neutral"}>
+                      {prediction.confidence}
+                    </Chip>
+                  </div>
+                  <p className="text-xs text-neutral-300 mb-2">{prediction.forecast}</p>
+                  <p className="text-xs text-neutral-500">{prediction.reasoning}</p>
+                </li>
+              ))}
+            </ul>
+          </SectionBanner>
+        </div>
+      )}
+
+      {/* Strategic Recommendations */}
+      {insights.strategicRecommendations && insights.strategicRecommendations.length > 0 && (
+        <SectionBanner
+          title="Strategic Recommendations"
+          subtitle="AI-generated action items ranked by priority"
+          dense
+        >
+          <ul className="space-y-3">
+            {insights.strategicRecommendations.map((rec: any, idx: number) => (
+              <li key={idx} className="rounded-lg border border-neutral-800 bg-neutral-950/60 p-4">
+                <div className="flex items-start justify-between gap-3 mb-2">
+                  <div className="flex items-start gap-2 flex-1">
+                    <Zap
+                      className={`size-4 mt-0.5 shrink-0 ${
+                        rec.priority === "high"
+                          ? "text-red-400"
+                          : rec.priority === "medium"
+                          ? "text-yellow-400"
+                          : "text-blue-400"
+                      }`}
+                    />
+                    <div>
+                      <p className="text-sm font-semibold text-neutral-100">{rec.action}</p>
+                      <p className="text-xs text-neutral-400 mt-1">{rec.expectedImpact}</p>
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-end gap-1">
+                    <Chip tone={rec.priority === "high" ? "alert" : rec.priority === "medium" ? "warn" : "neutral"}>
+                      {rec.priority}
+                    </Chip>
+                    <span className="text-xs text-neutral-500">{rec.timeframe}</span>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </SectionBanner>
+      )}
+
+      {/* Detailed Insights Grid */}
+      <div className="grid gap-4 md:grid-cols-3">
+        {insights.categoryInsights && (
+          <DetailedInsightCard
+            title="Category Analysis"
+            insights={[
+              { label: "Strongest", value: insights.categoryInsights.strongest, icon: "✓" },
+              { label: "Weakest", value: insights.categoryInsights.weakest, icon: "⚠" },
+              { label: "Opportunity", value: insights.categoryInsights.opportunity, icon: "💡" },
+            ]}
+          />
+        )}
+        {insights.driverInsights && (
+          <DetailedInsightCard
+            title="Driver Insights"
+            insights={[
+              { label: "Top Performers", value: insights.driverInsights.topPerformers, icon: "🏆" },
+              { label: "Improvement", value: insights.driverInsights.improvement, icon: "📈" },
+              { label: "Retention", value: insights.driverInsights.retention, icon: "🔒" },
+            ]}
+          />
+        )}
+        {insights.laneInsights && (
+          <DetailedInsightCard
+            title="Lane Insights"
+            insights={[
+              { label: "Optimize", value: insights.laneInsights.optimize, icon: "🔧" },
+              { label: "Expand", value: insights.laneInsights.expand, icon: "📊" },
+              { label: "Review", value: insights.laneInsights.review, icon: "🔍" },
+            ]}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function InsightCard({ icon, title, items }: { icon: React.ReactNode; title: string; items: Array<{ label: string; value?: string }> }) {
+  return (
+    <div className="rounded-lg border border-neutral-800 bg-neutral-950/60 p-4">
+      <div className="flex items-center gap-2 mb-3">
+        {icon}
+        <p className="text-sm font-semibold text-neutral-100">{title}</p>
+      </div>
+      <ul className="space-y-2">
+        {items.map((item, idx) => (
+          <li key={idx} className="text-xs">
+            <span className="text-neutral-500">{item.label}:</span>
+            <p className="text-neutral-300 mt-0.5 leading-relaxed">{item.value || "N/A"}</p>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function DetailedInsightCard({ title, insights }: { title: string; insights: Array<{ label: string; value: string; icon: string }> }) {
+  return (
+    <div className="rounded-lg border border-neutral-800 bg-neutral-950/60 p-4">
+      <p className="text-sm font-semibold text-neutral-100 mb-3">{title}</p>
+      <ul className="space-y-3">
+        {insights.map((insight, idx) => (
+          <li key={idx}>
+            <div className="flex items-start gap-2">
+              <span className="text-base shrink-0 mt-0.5">{insight.icon}</span>
+              <div>
+                <p className="text-xs font-medium text-neutral-400 mb-1">{insight.label}</p>
+                <p className="text-xs text-neutral-300 leading-relaxed">{insight.value}</p>
+              </div>
+            </div>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
