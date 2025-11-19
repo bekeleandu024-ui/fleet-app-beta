@@ -18,7 +18,6 @@ import {
 } from "lucide-react";
 
 import { TripTicket } from "@/components/trips/trip-ticket";
-import { AiTripInsightPanel } from "@/components/trips/ai-trip-insight-panel";
 import { DriverCostComparison } from "@/components/trips/driver-cost-comparison";
 import AIInsights from "@/components/AIInsights";
 import { Button } from "@/components/ui/button";
@@ -96,9 +95,10 @@ export default function TripDetailPage() {
 
       <TripTicket trip={data} aiInsights={aiInsights} />
 
-      <div className="grid gap-4 lg:grid-cols-[2fr,1fr]">
-        <AiTripInsightPanel trip={data} aiInsights={aiInsights} loading={aiLoading} />
+      {/* Claude-Powered AI Insights */}
+      <AIInsights type="trip" id={tripId} />
 
+      <div className="grid gap-4 lg:grid-cols-1">
         <Card className="flex h-full flex-col gap-4 border-neutral-800/70 bg-neutral-900/60 p-6">
           <div className="flex items-start justify-between gap-3">
             <div>
@@ -156,9 +156,6 @@ export default function TripDetailPage() {
           </div>
         </Card>
       </div>
-
-      {/* Claude-Powered AI Insights - NEW */}
-      <AIInsights type="trip" id={tripId} />
 
       <div className="space-y-4">
         <DriverCostComparison distanceMiles={typeof distanceMiles === "number" ? distanceMiles : Number(distanceMiles)} />

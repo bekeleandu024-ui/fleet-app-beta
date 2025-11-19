@@ -28,10 +28,10 @@ const navItems = [
   { label: "Customs", href: "/customs", match: (pathname: string) => pathname.startsWith("/customs") },
   { label: "Costing Dashboard", href: "/costing", match: (pathname: string) => pathname.startsWith("/costing") },
   { label: "Map", href: "/map", match: (pathname: string) => pathname.startsWith("/map") },
+  { label: "Trip Events", href: "/events", match: (pathname: string) => pathname.startsWith("/events") },
   { label: "Fleet", href: "/master-data/units", match: (pathname: string) => pathname.startsWith("/master-data/units") },
   { label: "Drivers", href: "/master-data/drivers", match: (pathname: string) => pathname.startsWith("/master-data/drivers") },
   { label: "Rules", href: "/master-data/rules", match: (pathname: string) => pathname.startsWith("/master-data/rules") },
-  { label: "Events", href: "/master-data/events", match: (pathname: string) => pathname.startsWith("/master-data/events") },
 ];
 
 export function TopNav() {
