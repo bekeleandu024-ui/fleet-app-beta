@@ -51,17 +51,18 @@ export const orderTools = {
 
         // Get database orders
         if (dbResponse.status === 'fulfilled' && dbResponse.value.ok) {
-          const dbOrders = await dbResponse.value.json() as any[];
+          const dbData = await dbResponse.value.json() as any;
+          const dbOrders = dbData.data || dbData.value || (Array.isArray(dbData) ? dbData : []);
           allOrders.push(...dbOrders.map((o: any) => ({
             id: o.id,
             displayId: o.id.substring(0, 8), // First 8 chars of UUID
-            customer: o.customer_id,
+            customer: o.customer_id || o.customer,
             order_type: o.order_type,
             status: o.status,
-            route: `${o.pickup_location} → ${o.dropoff_location}`,
-            pickup_location: o.pickup_location,
-            dropoff_location: o.dropoff_location,
-            created_at: o.created_at,
+            route: o.lane || `${o.pickup_location} → ${o.dropoff_location}`,
+            pickup_location: o.pickup_location || o.pickup,
+            dropoff_location: o.dropoff_location || o.delivery,
+            created_at: o.created_at || o.created,
             source: 'database',
           })));
         }
@@ -228,8 +229,11 @@ export const orderTools = {
         throw new Error(`Failed to fetch order stats: ${response.statusText}`);
       }
       const data = await response.json() as any;
-      const orders = data.value || data || [];
-      const total = data.Count || orders.length || 0;
+      
+      // Handle different response formats
+      const orders = data.data || data.value || (Array.isArray(data) ? data : []);
+      const stats = data.stats || {};
+      const total = stats.total || orders.length || 0;
       
       // Count by status
       const statusCounts: Record<string, number> = {};
@@ -241,12 +245,14 @@ export const orderTools = {
       return {
         total,
         byStatus: statusCounts,
-        orders: orders.map((o: any) => ({
+        stats: stats, // Include original stats if available
+        orders: orders.slice(0, 10).map((o: any) => ({
           id: o.id,
           status: o.status,
-          customer: o.customer_id,
-          pickup: o.pickup_location,
-          dropoff: o.dropoff_location,
+          customer: o.customer_id || o.customer,
+          pickup: o.pickup_location || o.pickup,
+          dropoff: o.dropoff_location || o.delivery,
+          lane: o.lane,
         })),
       };
     },
