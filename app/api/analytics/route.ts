@@ -42,14 +42,18 @@ export async function GET() {
   try {
     // Fetch real data from microservices in parallel
     const [ordersRes, tripsRes, driversRes] = await Promise.all([
-      fetch(`${ORDERS_SERVICE}/orders`).catch(() => null),
-      fetch(`${TRACKING_SERVICE}/trips`).catch(() => null),
-      fetch(`${MASTER_DATA_SERVICE}/drivers`).catch(() => null),
+      fetch(`${ORDERS_SERVICE}/api/orders`).catch(() => null),
+      fetch(`${TRACKING_SERVICE}/api/trips`).catch(() => null),
+      fetch(`${MASTER_DATA_SERVICE}/api/drivers`).catch(() => null),
     ]);
 
-    const orders: Order[] = ordersRes?.ok ? await ordersRes.json() : [];
-    const trips: Trip[] = tripsRes?.ok ? await tripsRes.json() : [];
-    const drivers: Driver[] = driversRes?.ok ? await driversRes.json() : [];
+    const ordersData = ordersRes?.ok ? await ordersRes.json() : { data: [] };
+    const tripsData = tripsRes?.ok ? await tripsRes.json() : { data: [] };
+    const driversData = driversRes?.ok ? await driversRes.json() : { data: [] };
+
+    const orders: Order[] = Array.isArray(ordersData) ? ordersData : (ordersData.data || []);
+    const trips: Trip[] = Array.isArray(tripsData) ? tripsData : (tripsData.data || []);
+    const drivers: Driver[] = Array.isArray(driversData) ? driversData : (driversData.data || []);
 
     // If no real data, return fallback mock data
     if (orders.length === 0 && trips.length === 0) {

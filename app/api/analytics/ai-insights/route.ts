@@ -68,7 +68,7 @@ export async function POST(request: Request) {
     const prompt = buildAnalyticsPrompt(analyticsData);
 
     const message = await anthropic.messages.create({
-      model: "claude-3-5-sonnet-latest",
+      model: "claude-3-5-sonnet-20241022",
       max_tokens: 2500,
       messages: [
         {
@@ -91,13 +91,21 @@ export async function POST(request: Request) {
   } catch (error: any) {
     console.error("Claude API error:", error);
     
-    // Return fallback insights on error
-    const analyticsData: AnalyticsContext = await request.json();
-    return NextResponse.json({
-      insights: generateFallbackInsights(analyticsData),
-      generatedAt: new Date().toISOString(),
-      error: "AI insights temporarily unavailable",
-    });
+    // Try to get request body for fallback
+    try {
+      const fallbackData: AnalyticsContext = await request.json();
+      return NextResponse.json({
+        insights: generateFallbackInsights(fallbackData),
+        generatedAt: new Date().toISOString(),
+        error: "AI insights temporarily unavailable",
+      });
+    } catch {
+      // If body already read, return generic fallback
+      return NextResponse.json({
+        insights: { error: "Unable to generate insights" },
+        generatedAt: new Date().toISOString(),
+      }, { status: 500 });
+    }
   }
 }
 
