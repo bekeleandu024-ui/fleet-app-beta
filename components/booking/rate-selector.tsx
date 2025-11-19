@@ -44,6 +44,18 @@ export function RateSelector({
           const isRecommended = rate.id === recommendedRateId;
           const isSelected = rate.id === selectedRateId;
 
+          // Safe conversion of rate values with defaults
+          const safeRate = {
+            total_cpm: Number(rate.total_cpm) || 0,
+            fixed_cpm: Number(rate.fixed_cpm) || 0,
+            wage_cpm: Number(rate.wage_cpm) || 0,
+            fuel_cpm: Number(rate.fuel_cpm) || 0,
+            truck_maint_cpm: Number(rate.truck_maint_cpm) || 0,
+            trailer_maint_cpm: Number(rate.trailer_maint_cpm) || 0,
+            rolling_cpm: Number(rate.rolling_cpm) || 0,
+            addons_cpm: Number(rate.addons_cpm) || 0,
+          };
+
           return (
             <button
               key={rate.id}
@@ -62,7 +74,7 @@ export function RateSelector({
                   <p className="text-sm font-semibold text-white">
                     {rate.rate_type} - {rate.zone}
                   </p>
-                  <p className="mt-1 text-lg font-bold text-purple-300">${rate.total_cpm.toFixed(2)} CPM</p>
+                  <p className="mt-1 text-lg font-bold text-purple-300">${safeRate.total_cpm.toFixed(2)} CPM</p>
                 </div>
                 {isSelected && <Check className="h-5 w-5 text-purple-400" />}
                 {isRecommended && !isSelected && (
@@ -76,43 +88,43 @@ export function RateSelector({
               <div className="grid grid-cols-2 gap-x-4 gap-y-1 border-t border-white/10 pt-2 text-xs">
                 <div className="flex items-center justify-between text-neutral-400">
                   <span>Fixed</span>
-                  <span className="font-medium text-neutral-300">${rate.fixed_cpm.toFixed(2)}</span>
+                  <span className="font-medium text-neutral-300">${safeRate.fixed_cpm.toFixed(2)}</span>
                 </div>
                 <div className="flex items-center justify-between text-neutral-400">
                   <span className="flex items-center gap-1">
                     <DollarSign className="h-3 w-3" />
                     Wage
                   </span>
-                  <span className="font-medium text-neutral-300">${rate.wage_cpm.toFixed(2)}</span>
+                  <span className="font-medium text-neutral-300">${safeRate.wage_cpm.toFixed(2)}</span>
                 </div>
                 <div className="flex items-center justify-between text-neutral-400">
                   <span className="flex items-center gap-1">
                     <Fuel className="h-3 w-3" />
                     Fuel
                   </span>
-                  <span className="font-medium text-neutral-300">${rate.fuel_cpm.toFixed(2)}</span>
+                  <span className="font-medium text-neutral-300">${safeRate.fuel_cpm.toFixed(2)}</span>
                 </div>
                 <div className="flex items-center justify-between text-neutral-400">
                   <span className="flex items-center gap-1">
                     <Truck className="h-3 w-3" />
                     Truck Maint
                   </span>
-                  <span className="font-medium text-neutral-300">${rate.truck_maint_cpm.toFixed(2)}</span>
+                  <span className="font-medium text-neutral-300">${safeRate.truck_maint_cpm.toFixed(2)}</span>
                 </div>
                 <div className="flex items-center justify-between text-neutral-400">
                   <span className="flex items-center gap-1">
                     <Wrench className="h-3 w-3" />
                     Trailer Maint
                   </span>
-                  <span className="font-medium text-neutral-300">${rate.trailer_maint_cpm.toFixed(2)}</span>
+                  <span className="font-medium text-neutral-300">${safeRate.trailer_maint_cpm.toFixed(2)}</span>
                 </div>
                 <div className="flex items-center justify-between text-neutral-400">
                   <span>Rolling</span>
-                  <span className="font-medium text-neutral-300">${rate.rolling_cpm.toFixed(2)}</span>
+                  <span className="font-medium text-neutral-300">${safeRate.rolling_cpm.toFixed(2)}</span>
                 </div>
                 <div className="flex items-center justify-between text-neutral-400">
                   <span>Add-ons</span>
-                  <span className="font-medium text-neutral-300">${rate.addons_cpm.toFixed(2)}</span>
+                  <span className="font-medium text-neutral-300">${safeRate.addons_cpm.toFixed(2)}</span>
                 </div>
               </div>
             </button>

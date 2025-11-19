@@ -4,54 +4,67 @@ import { NextResponse } from "next/server";
 const mockRates = [
   {
     id: "r1",
-    type: "Company Driver",
+    rate_type: "Company Driver",
     zone: "Short Haul (<500mi)",
-    fixedCPM: 0.25,
-    wageCPM: 0.45,
-    addOnsCPM: 0.10,
-    fuelCPM: 0.35,
-    truckMaintCPM: 0.15,
-    trailerMaintCPM: 0.05,
-    rollingCPM: 0.20,
+    fixed_cpm: 0.25,
+    wage_cpm: 0.45,
+    addons_cpm: 0.10,
+    fuel_cpm: 0.35,
+    truck_maint_cpm: 0.15,
+    trailer_maint_cpm: 0.05,
+    rolling_cpm: 0.20,
   },
   {
     id: "r2",
-    type: "Owner Operator",
+    rate_type: "Owner Operator",
     zone: "Short Haul (<500mi)",
-    fixedCPM: 0.10,
-    wageCPM: 0.95,
-    addOnsCPM: 0.15,
-    fuelCPM: 0.35,
-    truckMaintCPM: 0.08,
-    trailerMaintCPM: 0.05,
-    rollingCPM: 0.12,
+    fixed_cpm: 0.10,
+    wage_cpm: 0.95,
+    addons_cpm: 0.15,
+    fuel_cpm: 0.35,
+    truck_maint_cpm: 0.08,
+    trailer_maint_cpm: 0.05,
+    rolling_cpm: 0.12,
   },
   {
     id: "r3",
-    type: "Company Driver",
+    rate_type: "Company Driver",
     zone: "Long Haul (500+ mi)",
-    fixedCPM: 0.20,
-    wageCPM: 0.50,
-    addOnsCPM: 0.12,
-    fuelCPM: 0.33,
-    truckMaintCPM: 0.14,
-    trailerMaintCPM: 0.06,
-    rollingCPM: 0.18,
+    fixed_cpm: 0.20,
+    wage_cpm: 0.50,
+    addons_cpm: 0.12,
+    fuel_cpm: 0.33,
+    truck_maint_cpm: 0.14,
+    trailer_maint_cpm: 0.06,
+    rolling_cpm: 0.18,
   },
   {
     id: "r4",
-    type: "Owner Operator",
+    rate_type: "Owner Operator",
     zone: "Long Haul (500+ mi)",
-    fixedCPM: 0.08,
-    wageCPM: 1.05,
-    addOnsCPM: 0.18,
-    fuelCPM: 0.33,
-    truckMaintCPM: 0.10,
-    trailerMaintCPM: 0.06,
-    rollingCPM: 0.15,
+    fixed_cpm: 0.08,
+    wage_cpm: 1.05,
+    addons_cpm: 0.18,
+    fuel_cpm: 0.33,
+    truck_maint_cpm: 0.10,
+    trailer_maint_cpm: 0.06,
+    rolling_cpm: 0.15,
   },
 ];
 
 export async function GET() {
-  return NextResponse.json(mockRates);
+  // Calculate total_cpm for each rate
+  const ratesWithTotal = mockRates.map(rate => ({
+    ...rate,
+    total_cpm: 
+      rate.fixed_cpm + 
+      rate.wage_cpm + 
+      rate.addons_cpm + 
+      rate.fuel_cpm + 
+      rate.truck_maint_cpm + 
+      rate.trailer_maint_cpm + 
+      rate.rolling_cpm,
+  }));
+
+  return NextResponse.json(ratesWithTotal);
 }
