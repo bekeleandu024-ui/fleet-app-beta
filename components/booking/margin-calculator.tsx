@@ -160,7 +160,7 @@ export function MarginCalculator({
             {marginPercent.toFixed(1)}%
           </span>
         </div>
-        <MarginGauge value={marginPercent} size="lg" />
+        <MarginGauge margin={marginPercent} size="lg" />
         <div className="mt-2 flex items-center justify-between text-xs">
           <span className="text-neutral-500">Revenue: ${revenue.toFixed(2)}</span>
           <span className="text-neutral-500">Cost: ${totalCost.toFixed(2)}</span>

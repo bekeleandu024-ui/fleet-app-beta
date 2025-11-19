@@ -8,11 +8,14 @@ interface MarginGaugeProps {
 }
 
 export function MarginGauge({ 
-  margin, 
+  margin = 0, 
   size = "md", 
   showLabel = true,
   className 
 }: MarginGaugeProps) {
+  // Safety check for invalid margin values
+  const safeMargin = isNaN(margin) || !isFinite(margin) ? 0 : margin;
+  
   // Determine color based on margin thresholds
   const getMarginColor = (margin: number) => {
     if (margin >= 15) return { color: "emerald", level: "excellent" };
@@ -20,7 +23,7 @@ export function MarginGauge({
     return { color: "red", level: "poor" };
   };
 
-  const { color, level } = getMarginColor(margin);
+  const { color, level } = getMarginColor(safeMargin);
 
   const sizeConfig = {
     sm: { width: "w-32", height: "h-2", text: "text-xs" },
@@ -31,7 +34,7 @@ export function MarginGauge({
   const config = sizeConfig[size];
 
   // Calculate fill percentage (max at 25% margin for visual purposes)
-  const fillPercentage = Math.min((margin / 25) * 100, 100);
+  const fillPercentage = Math.min((safeMargin / 25) * 100, 100);
 
   const colorClasses = {
     emerald: "bg-emerald-500",
@@ -48,7 +51,7 @@ export function MarginGauge({
             "text-amber-400": color === "amber",
             "text-red-400": color === "red",
           })}>
-            {margin.toFixed(1)}% Margin
+            {safeMargin.toFixed(1)}% Margin
           </span>
           <span className={cn("text-xs capitalize", {
             "text-emerald-400": color === "emerald",
@@ -95,21 +98,24 @@ interface CircularMarginGaugeProps {
 }
 
 export function CircularMarginGauge({ 
-  margin, 
+  margin = 0, 
   size = 120, 
   strokeWidth = 8,
   className 
 }: CircularMarginGaugeProps) {
+  // Safety check for invalid margin values
+  const safeMargin = isNaN(margin) || !isFinite(margin) ? 0 : margin;
+  
   const getMarginColor = (margin: number) => {
     if (margin >= 15) return "#10b981"; // emerald-500
     if (margin >= 8) return "#f59e0b"; // amber-500
     return "#ef4444"; // red-500
   };
 
-  const color = getMarginColor(margin);
+  const color = getMarginColor(safeMargin);
   const radius = (size - strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;
-  const percentage = Math.min((margin / 25) * 100, 100);
+  const percentage = Math.min((safeMargin / 25) * 100, 100);
   const strokeDashoffset = circumference - (percentage / 100) * circumference;
 
   return (
@@ -143,7 +149,7 @@ export function CircularMarginGauge({
       {/* Center text */}
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <span className="text-2xl font-bold text-white">
-          {margin.toFixed(1)}%
+          {safeMargin.toFixed(1)}%
         </span>
         <span className="text-xs text-neutral-500">Margin</span>
       </div>
