@@ -12,13 +12,13 @@ import { cn } from "@/lib/utils";
 const navItems = [
   { label: "Dashboard", href: "/", match: (pathname: string) => pathname === "/" },
   { label: "Analytics", href: "/analytics", match: (pathname: string) => pathname.startsWith("/analytics") },
-  { label: "Book Trip", href: "/book", match: (pathname: string) => pathname.startsWith("/book") },
+  { label: "New Order", href: "/orders/new", match: (pathname: string) => pathname === "/orders/new" },
   {
     label: "Orders",
     href: "/orders",
     match: (pathname: string) => pathname.startsWith("/orders") && pathname !== "/orders/new",
   },
-  { label: "New Order", href: "/orders/new", match: (pathname: string) => pathname === "/orders/new" },
+  { label: "Book Trip", href: "/book", match: (pathname: string) => pathname.startsWith("/book") },
   { label: "Trips", href: "/trips", match: (pathname: string) => pathname === "/trips" },
   {
     label: "Trip Detail",
@@ -28,7 +28,7 @@ const navItems = [
   { label: "Customs", href: "/customs", match: (pathname: string) => pathname.startsWith("/customs") },
   { label: "Costing Dashboard", href: "/costing", match: (pathname: string) => pathname.startsWith("/costing") },
   { label: "Map", href: "/map", match: (pathname: string) => pathname.startsWith("/map") },
-  { label: "Trip Events", href: "/events", match: (pathname: string) => pathname.startsWith("/events") },
+  { label: "Trip Event", href: "/events", match: (pathname: string) => pathname.startsWith("/events") },
   { label: "Fleet", href: "/master-data/units", match: (pathname: string) => pathname.startsWith("/master-data/units") },
   { label: "Drivers", href: "/master-data/drivers", match: (pathname: string) => pathname.startsWith("/master-data/drivers") },
   { label: "Rules", href: "/master-data/rules", match: (pathname: string) => pathname.startsWith("/master-data/rules") },

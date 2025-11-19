@@ -240,7 +240,7 @@ export default function OrdersPage() {
         ))}
       </div>
 
-        ))}\n      </div>\n\n      {/* Filters */}
+      {/* Filters */}
       <div className="flex items-center gap-4 rounded-lg border border-neutral-800 bg-neutral-900/60 p-4">
         <div className="flex items-center gap-2">
           <Filter className="h-4 w-4 text-neutral-500" />
