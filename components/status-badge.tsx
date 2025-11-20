@@ -13,32 +13,32 @@ const statusConfig: Record<string, {
   label?: string;
 }> = {
   // Order statuses
-  PendingInfo: { color: "bg-amber-500/20 text-amber-400 border-amber-500/40", icon: "⏳" },
-  Qualified: { color: "bg-blue-500/20 text-blue-400 border-blue-500/40", icon: "✓" },
-  Booked: { color: "bg-emerald-500/20 text-emerald-400 border-emerald-500/40", icon: "📋" },
+  PendingInfo: { color: "bg-amber-500/20 text-amber-400 border-amber-500/50 shadow-sm shadow-amber-500/10", icon: "⏳" },
+  Qualified: { color: "bg-cyan-500/20 text-cyan-400 border-cyan-500/50 shadow-sm shadow-cyan-500/10", icon: "✓" },
+  Booked: { color: "bg-emerald-500/20 text-emerald-400 border-emerald-500/50 shadow-sm shadow-emerald-500/10", icon: "📋" },
   
   // Trip statuses
-  Created: { color: "bg-neutral-500/20 text-neutral-400 border-neutral-500/40", icon: "○" },
-  "In Progress": { color: "bg-blue-500/20 text-blue-400 border-blue-500/40", icon: "▶" },
-  Completed: { color: "bg-emerald-500/20 text-emerald-400 border-emerald-500/40", icon: "✓" },
-  Closed: { color: "bg-neutral-600/20 text-neutral-500 border-neutral-600/40", icon: "✓✓" },
-  "At Risk": { color: "bg-red-500/20 text-red-400 border-red-500/40", icon: "⚠" },
+  Created: { color: "bg-slate-500/20 text-slate-400 border-slate-500/50 shadow-sm shadow-slate-500/10", icon: "○" },
+  "In Progress": { color: "bg-cyan-500/20 text-cyan-400 border-cyan-500/50 shadow-sm shadow-cyan-500/10", icon: "▶" },
+  Completed: { color: "bg-emerald-500/20 text-emerald-400 border-emerald-500/50 shadow-sm shadow-emerald-500/10", icon: "✓" },
+  Closed: { color: "bg-slate-600/20 text-slate-500 border-slate-600/50 shadow-sm shadow-slate-600/10", icon: "✓✓" },
+  "At Risk": { color: "bg-rose-500/20 text-rose-400 border-rose-500/50 shadow-sm shadow-rose-500/10", icon: "⚠" },
   
   // Customs statuses
-  Pending: { color: "bg-amber-500/20 text-amber-400 border-amber-500/40", icon: "⏳" },
-  "In Review": { color: "bg-blue-500/20 text-blue-400 border-blue-500/40", icon: "👁" },
-  Approved: { color: "bg-emerald-500/20 text-emerald-400 border-emerald-500/40", icon: "✓" },
-  Rejected: { color: "bg-red-500/20 text-red-400 border-red-500/40", icon: "✗" },
-  Cleared: { color: "bg-emerald-500/20 text-emerald-400 border-emerald-500/40", icon: "✓✓" },
+  Pending: { color: "bg-amber-500/20 text-amber-400 border-amber-500/50 shadow-sm shadow-amber-500/10", icon: "⏳" },
+  "In Review": { color: "bg-cyan-500/20 text-cyan-400 border-cyan-500/50 shadow-sm shadow-cyan-500/10", icon: "👁" },
+  Approved: { color: "bg-emerald-500/20 text-emerald-400 border-emerald-500/50 shadow-sm shadow-emerald-500/10", icon: "✓" },
+  Rejected: { color: "bg-rose-500/20 text-rose-400 border-rose-500/50 shadow-sm shadow-rose-500/10", icon: "✗" },
+  Cleared: { color: "bg-emerald-500/20 text-emerald-400 border-emerald-500/50 shadow-sm shadow-emerald-500/10", icon: "✓✓" },
   
   // Generic
-  Active: { color: "bg-emerald-500/20 text-emerald-400 border-emerald-500/40", icon: "●" },
-  Inactive: { color: "bg-neutral-600/20 text-neutral-500 border-neutral-600/40", icon: "○" },
+  Active: { color: "bg-emerald-500/20 text-emerald-400 border-emerald-500/50 shadow-sm shadow-emerald-500/10", icon: "●" },
+  Inactive: { color: "bg-slate-600/20 text-slate-500 border-slate-600/50 shadow-sm shadow-slate-600/10", icon: "○" },
 };
 
 export function StatusBadge({ status, variant = "default", showIcon = true }: StatusBadgeProps) {
   const config = statusConfig[status] || { 
-    color: "bg-neutral-500/20 text-neutral-400 border-neutral-500/40", 
+    color: "bg-slate-500/20 text-slate-400 border-slate-500/50 shadow-sm shadow-slate-500/10", 
     icon: "○" 
   };
 
@@ -51,7 +51,7 @@ export function StatusBadge({ status, variant = "default", showIcon = true }: St
   return (
     <Badge
       className={cn(
-        "inline-flex items-center gap-1.5 font-medium border",
+        "inline-flex items-center gap-1.5 font-semibold border transition-all duration-200",
         config.color,
         sizeClasses[variant]
       )}
@@ -70,9 +70,9 @@ interface MarginBadgeProps {
 
 export function MarginBadge({ margin, variant = "default" }: MarginBadgeProps) {
   const getMarginColor = (margin: number) => {
-    if (margin >= 15) return "bg-emerald-500/20 text-emerald-400 border-emerald-500/40";
-    if (margin >= 8) return "bg-amber-500/20 text-amber-400 border-amber-500/40";
-    return "bg-red-500/20 text-red-400 border-red-500/40";
+    if (margin >= 15) return "bg-emerald-500/20 text-emerald-400 border-emerald-500/50 shadow-sm shadow-emerald-500/10";
+    if (margin >= 8) return "bg-amber-500/20 text-amber-400 border-amber-500/50 shadow-sm shadow-amber-500/10";
+    return "bg-rose-500/20 text-rose-400 border-rose-500/50 shadow-sm shadow-rose-500/10";
   };
 
   const sizeClasses = {
@@ -84,7 +84,7 @@ export function MarginBadge({ margin, variant = "default" }: MarginBadgeProps) {
   return (
     <Badge
       className={cn(
-        "inline-flex items-center gap-1.5 font-medium border",
+        "inline-flex items-center gap-1.5 font-semibold border transition-all duration-200",
         getMarginColor(margin),
         sizeClasses[variant]
       )}
@@ -102,9 +102,9 @@ interface PriorityBadgeProps {
 
 export function PriorityBadge({ priority, variant = "default" }: PriorityBadgeProps) {
   const config = {
-    high: { color: "bg-red-500/20 text-red-400 border-red-500/40", icon: "🔴" },
-    medium: { color: "bg-amber-500/20 text-amber-400 border-amber-500/40", icon: "🟡" },
-    low: { color: "bg-neutral-500/20 text-neutral-400 border-neutral-500/40", icon: "⚪" },
+    high: { color: "bg-rose-500/20 text-rose-400 border-rose-500/50 shadow-sm shadow-rose-500/10", icon: "🔴" },
+    medium: { color: "bg-amber-500/20 text-amber-400 border-amber-500/50 shadow-sm shadow-amber-500/10", icon: "🟡" },
+    low: { color: "bg-slate-500/20 text-slate-400 border-slate-500/50 shadow-sm shadow-slate-500/10", icon: "⚪" },
   };
 
   const sizeClasses = {
@@ -116,7 +116,7 @@ export function PriorityBadge({ priority, variant = "default" }: PriorityBadgePr
   return (
     <Badge
       className={cn(
-        "inline-flex items-center gap-1.5 font-medium border capitalize",
+        "inline-flex items-center gap-1.5 font-semibold border capitalize transition-all duration-200",
         config[priority].color,
         sizeClasses[variant]
       )}

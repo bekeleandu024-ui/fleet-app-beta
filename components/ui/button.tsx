@@ -5,20 +5,20 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 const baseClasses =
-  "inline-flex items-center justify-center gap-2 rounded-md border border-neutral-800/60 bg-[#1a1d28] text-neutral-100 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-50";
+  "inline-flex items-center justify-center gap-2 rounded-full border text-white transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/50 disabled:cursor-not-allowed disabled:opacity-50 font-medium";
 
 const sizeClasses: Record<"sm" | "md" | "lg", string> = {
-  sm: "h-8 px-3 text-xs",
-  md: "h-9 px-3 text-sm",
-  lg: "h-10 px-4 text-sm",
+  sm: "h-9 px-4 text-xs",
+  md: "h-10 px-5 text-sm",
+  lg: "h-11 px-6 text-base",
 };
 
 const variantClasses: Record<"subtle" | "primary" | "plain", string> = {
-  subtle: "hover:bg-[#1f2330] hover:border-neutral-700",
+  subtle: "border-slate-700 bg-slate-900/60 hover:bg-slate-800/70 hover:border-slate-600 shadow-md shadow-black/30",
   primary:
-    "border-emerald-500/60 bg-emerald-500 text-white hover:bg-emerald-600",
+    "border-emerald-500/50 bg-emerald-500/30 hover:bg-emerald-500/40 hover:border-emerald-400/70 shadow-lg shadow-emerald-500/20",
   plain:
-    "border-transparent bg-transparent text-neutral-400 hover:text-neutral-200 hover:bg-[#1a1d28]",
+    "border-transparent bg-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-900/50",
 };
 
 export type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {

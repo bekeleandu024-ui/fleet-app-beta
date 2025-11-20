@@ -17,18 +17,18 @@ export function Chip({
   ...props
 }: ChipProps) {
   const toneClass = {
-    default: "bg-neutral-800/40 text-neutral-400",
-    brand: "bg-emerald-500/15 text-emerald-400",
-    ok: "bg-emerald-500/15 text-emerald-400",
-    warn: "bg-amber-500/15 text-amber-400",
-    alert: "bg-rose-500/15 text-rose-400",
-    neutral: "bg-neutral-700/30 text-neutral-400",
+    default: "bg-slate-800/50 text-slate-400 border border-slate-700/50 shadow-sm shadow-black/20",
+    brand: "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shadow-sm shadow-emerald-500/10",
+    ok: "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shadow-sm shadow-emerald-500/10",
+    warn: "bg-amber-500/20 text-amber-400 border border-amber-500/40 shadow-sm shadow-amber-500/10",
+    alert: "bg-rose-500/20 text-rose-400 border border-rose-500/40 shadow-sm shadow-rose-500/10",
+    neutral: "bg-slate-700/40 text-slate-400 border border-slate-700/50 shadow-sm shadow-black/20",
   }[tone] || toneClass.default;
 
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium",
+        "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition-all duration-200",
         toneClass,
         className
       )}

@@ -16,10 +16,10 @@ import type { OrderListItem } from "@/lib/types";
 
 const statusTone: Record<string, string> = {
   New: "text-emerald-400",
-  Planning: "text-neutral-200",
-  "In Transit": "text-emerald-400",
+  Planning: "text-slate-200",
+  "In Transit": "text-cyan-400",
   "At Risk": "text-amber-400",
-  Delivered: "text-neutral-500",
+  Delivered: "text-slate-500",
   Exception: "text-rose-400",
 };
 
@@ -72,8 +72,8 @@ export default function OrdersPage() {
         ),
         cell: (row) => (
           <div className="flex flex-col">
-            <span className="font-semibold text-neutral-200">{row.id}</span>
-            <span className="text-xs text-neutral-500">{row.reference}</span>
+            <span className="font-bold text-slate-100">{row.id}</span>
+            <span className="text-xs text-slate-500">{row.reference}</span>
           </div>
         ),
         widthClass: "w-40",
@@ -94,8 +94,8 @@ export default function OrdersPage() {
         header: "PU→DEL",
         cell: (row) => (
           <div className="flex flex-col text-sm">
-            <span>{row.pickup}</span>
-            <span className="text-xs text-neutral-500">{row.delivery}</span>
+            <span className="text-slate-200">{row.pickup}</span>
+            <span className="text-xs text-slate-500">{row.delivery}</span>
           </div>
         ),
         widthClass: "w-52",
@@ -120,7 +120,7 @@ export default function OrdersPage() {
           </button>
         ),
         cell: (row) => (
-          <span className={`text-sm font-semibold ${statusTone[row.status] ?? "text-neutral-200"}`}>{row.status}</span>
+          <span className={`text-sm font-bold ${statusTone[row.status] ?? "text-slate-200"}`}>{row.status}</span>
         ),
         widthClass: "w-32",
       },
@@ -196,7 +196,7 @@ export default function OrdersPage() {
   if (isError || !data) {
     return (
       <SectionBanner title="Orders Workspace" subtitle="Review, price, and action the active order stack." aria-live="polite">
-        <p className="text-sm text-neutral-400">Unable to load orders. Refresh the page.</p>
+        <p className="text-sm text-slate-400">Unable to load orders. Refresh the page.</p>
       </SectionBanner>
     );
   }
@@ -233,23 +233,23 @@ export default function OrdersPage() {
 
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         {stats.map((stat) => (
-          <div key={stat.label} className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-4">
+          <div key={stat.label} className="rounded-xl border border-slate-800/70 bg-slate-900/60 p-5 shadow-lg shadow-black/40 hover:border-emerald-500/60 transition-all duration-200">
             <p className="text-2xl font-bold text-white">{stat.value}</p>
-            <p className="text-xs uppercase tracking-wide text-neutral-500">{stat.label}</p>
+            <p className="text-xs uppercase tracking-wide text-slate-500 font-semibold">{stat.label}</p>
           </div>
         ))}
       </div>
 
       {/* Filters */}
-      <div className="flex items-center gap-4 rounded-lg border border-neutral-800 bg-neutral-900/60 p-4">
+      <div className="flex items-center gap-4 rounded-xl border border-slate-800/70 bg-slate-900/60 p-4 shadow-md shadow-black/30">
         <div className="flex items-center gap-2">
-          <Filter className="h-4 w-4 text-neutral-500" />
-          <span className="text-sm font-medium text-neutral-300">Filters:</span>
+          <Filter className="h-4 w-4 text-slate-500" />
+          <span className="text-sm font-bold text-slate-200">Filters:</span>
         </div>
         <div className="flex items-center gap-2">
-          <label className="text-xs text-neutral-500">Status:</label>
+          <label className="text-xs text-slate-500 font-semibold">Status:</label>
           <select
-            className="rounded-md border border-neutral-800 bg-black/40 px-3 py-1 text-sm text-white focus:border-emerald-500 focus:outline-none"
+            className="rounded-full border border-slate-800/70 bg-slate-950/70 px-4 py-1.5 text-sm text-white focus:border-cyan-500/60 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 transition-all duration-200"
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
           >
@@ -262,9 +262,9 @@ export default function OrdersPage() {
           </select>
         </div>
         <div className="flex items-center gap-2">
-          <label className="text-xs text-neutral-500">Customer:</label>
+          <label className="text-xs text-slate-500 font-semibold">Customer:</label>
           <select
-            className="rounded-md border border-neutral-800 bg-black/40 px-3 py-1 text-sm text-white focus:border-emerald-500 focus:outline-none"
+            className="rounded-full border border-slate-800/70 bg-slate-950/70 px-4 py-1.5 text-sm text-white focus:border-cyan-500/60 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 transition-all duration-200"
             value={filterCustomer}
             onChange={(e) => setFilterCustomer(e.target.value)}
           >
@@ -289,7 +289,7 @@ export default function OrdersPage() {
         )}
       </div>
 
-      <div className="overflow-x-auto rounded-lg border border-neutral-800 bg-neutral-900/60">
+      <div className="overflow-x-auto rounded-xl border border-slate-800/70 bg-slate-950/70 shadow-lg shadow-black/40">
         <div className="inline-block min-w-full align-middle">
           <DataTable
             columns={columns}

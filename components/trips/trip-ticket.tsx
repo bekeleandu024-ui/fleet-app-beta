@@ -45,14 +45,15 @@ export function TripTicket({ trip, aiInsights }: TripTicketProps) {
   const shortId = trip.tripNumber ?? trip.id?.slice(-6);
   const laneLabel = buildLane(trip.pickup, trip.delivery);
   
-  // Use real calculated distance from database (distance_miles column)
-  // Falls back to AI insights if available
-  const distance = aiInsights?.routeOptimization.distance ?? trip.metrics?.distanceMiles;
+  // ALWAYS use real calculated distance from database first (distance_miles column)
+  // Only falls back to AI insights if database value is missing
+  const distance = trip.metrics?.distanceMiles ?? aiInsights?.routeOptimization.distance;
   const durationHours =
-    typeof aiInsights?.routeOptimization.duration === "string"
+    trip.metrics?.estDurationHours ?? 
+    (typeof aiInsights?.routeOptimization.duration === "string"
       ? Number.parseFloat(aiInsights.routeOptimization.duration)
-      : trip.metrics?.estDurationHours;
-  const margin = aiInsights?.costAnalysis.margin ?? trip.metrics?.marginPct;
+      : undefined);
+  const margin = trip.metrics?.marginPct ?? aiInsights?.costAnalysis.margin;
   
   // Check if distance is from real calculation (has value and is reasonable)
   const hasRealDistance = distance != null && distance > 0;

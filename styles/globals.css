@@ -2,26 +2,47 @@
 
 :root {
   color-scheme: dark;
-  --bg: #0b0d14;
-  --surface-1: #151820;
-  --surface-2: #1a1d28;
-  --surface-3: #1f2330;
-  --border: #1f2937;
-  --border-subtle: #1a1f2e;
-  --muted: #6b7280;
-  --text: #e5e7eb;
-  --text-bright: #f9fafb;
-  --brand: #10b981;
-  --radius: 8px;
+  /* Primary backgrounds - very dark blue-black */
+  --bg: #0a0d16;
+  --surface-1: rgba(15, 23, 42, 0.6); /* slate-900/60 */
+  --surface-2: rgba(2, 6, 23, 0.7); /* slate-950/70 */
+  --surface-3: #1e293b; /* slate-800 */
+  
+  /* Borders */
+  --border: rgba(30, 41, 59, 0.7); /* slate-800/70 */
+  --border-subtle: rgba(30, 41, 59, 0.5);
+  --border-hover: rgba(16, 185, 129, 0.6); /* emerald-500/60 */
+  
+  /* Text colors */
+  --muted: #94a3b8; /* slate-400 */
+  --text: #cbd5e1; /* slate-300 */
+  --text-bright: rgba(255, 255, 255, 0.9);
+  
+  /* Accent colors - emerald/cyan */
+  --brand: #06b6d4; /* cyan-500 */
+  --brand-light: #22d3ee; /* cyan-400 */
+  --accent: #10b981; /* emerald-500 */
+  --accent-light: #34d399; /* emerald-400 */
+  
+  /* Status colors */
   --ok: #10b981;
   --warn: #f59e0b;
   --alert: #ef4444;
+  
+  /* Border radius */
+  --radius: 12px;
+  --radius-sm: 8px;
+  --radius-lg: 16px;
+  
+  /* Shadows */
+  --shadow-card: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -4px rgba(0, 0, 0, 0.4);
+  --shadow-secondary: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -2px rgba(0, 0, 0, 0.3);
+  
+  /* Legacy compatibility */
   --app: var(--bg);
-  --accent: var(--brand);
   --surface-1-legacy: var(--surface-1);
   --surface-2-legacy: var(--surface-2);
   --surface-3-legacy: var(--surface-3);
-  --border-subtle: var(--border);
 }
 
 .shadow-flat {
@@ -30,6 +51,14 @@
 
 .shadow-soft {
   box-shadow: 0 12px 40px -18px rgba(0, 0, 0, 0.6);
+}
+
+.shadow-card {
+  box-shadow: var(--shadow-card);
+}
+
+.shadow-secondary {
+  box-shadow: var(--shadow-secondary);
 }
 
 html,
@@ -41,35 +70,61 @@ body {
 @theme inline {
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  
+  /* Background and foreground */
   --color-background: var(--bg);
-  --color-foreground: var(--text);
+  --color-foreground: var(--text-bright);
+  
+  /* Card styles */
   --color-card: var(--surface-1);
   --color-card-foreground: var(--text);
+  
+  /* Popover styles */
   --color-popover: var(--surface-1);
   --color-popover-foreground: var(--text);
+  
+  /* Primary accent - cyan/emerald */
   --color-primary: var(--brand);
-  --color-primary-foreground: #030712;
+  --color-primary-foreground: #0a0d16;
+  
+  /* Secondary surfaces */
   --color-secondary: var(--surface-2);
   --color-secondary-foreground: var(--text);
+  
+  /* Muted elements */
   --color-muted: var(--surface-2);
   --color-muted-foreground: var(--muted);
-  --color-accent: var(--surface-2);
-  --color-accent-foreground: var(--text);
+  
+  /* Accent colors */
+  --color-accent: var(--accent);
+  --color-accent-foreground: #0a0d16;
+  
+  /* Destructive/danger */
   --color-destructive: var(--alert);
-  --color-destructive-foreground: var(--text);
+  --color-destructive-foreground: var(--text-bright);
+  
+  /* Borders and inputs */
   --color-border: var(--border);
-  --color-input: var(--surface-2);
+  --color-input: var(--surface-1);
   --color-ring: var(--brand);
+  
+  /* Custom surface colors */
   --color-surface-1: var(--surface-1);
   --color-surface-2: var(--surface-2);
   --color-surface-3: var(--surface-3);
+  
+  /* Status colors */
   --color-muted-text: var(--muted);
   --color-ok: var(--ok);
   --color-warn: var(--warn);
   --color-alert: var(--alert);
+  
+  /* Border radius */
+  --radius-sm: var(--radius-sm);
   --radius-md: var(--radius);
-  --radius-lg: calc(var(--radius) + 4px);
+  --radius-lg: var(--radius-lg);
   --radius-xl: calc(var(--radius) + 8px);
+  --radius-full: 9999px;
 }
 
 @layer base {
@@ -88,18 +143,21 @@ body {
   }
 
   a {
-    color: var(--brand);
+    color: #cbd5e1; /* slate-300 */
+    text-decoration: none;
     text-underline-offset: 4px;
-    transition: color 120ms ease;
+    transition: all 180ms cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   a:hover {
-    color: color-mix(in srgb, var(--brand) 85%, white 15%);
+    color: rgba(255, 255, 255, 0.9);
+    border-color: var(--border-hover);
   }
 
   :focus-visible {
     outline: 2px solid var(--brand);
     outline-offset: 2px;
+    transition: outline 180ms ease;
   }
 
   ::selection {

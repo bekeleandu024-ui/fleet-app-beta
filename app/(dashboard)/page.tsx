@@ -96,7 +96,7 @@ export default function DashboardPage() {
     return (
       <div className="flex flex-col gap-6">
         <SectionBanner title="Network Pulse" subtitle="Key performance indicators for the fleet." aria-live="polite">
-          <p className="text-sm text-neutral-400">Unable to load dashboard metrics.</p>
+          <p className="text-sm text-slate-400">Unable to load dashboard metrics.</p>
         </SectionBanner>
       </div>
     );
@@ -105,18 +105,18 @@ export default function DashboardPage() {
   return (
     <div className="flex flex-col gap-6">
       <SectionBanner title="TMS Command Center" subtitle="Real-time operations & performance metrics" dense aria-live="polite">
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
           {kpis.map((kpi) => (
-            <Card key={kpi.label} className="p-4 bg-gray-900/50 backdrop-blur border-gray-800">
-              <div className="flex items-center justify-between mb-2">
-                <div className={`p-2 rounded-lg bg-gray-800/50 ${kpi.color}`}>
+            <Card key={kpi.label} className="p-5 rounded-xl bg-slate-900/60 backdrop-blur border-slate-800/70 shadow-lg shadow-black/40 hover:border-emerald-500/60 transition-all duration-200">
+              <div className="flex items-center justify-between mb-3">
+                <div className={`p-2.5 rounded-xl bg-slate-800/60 ${kpi.color}`}>
                   {kpi.icon}
                 </div>
               </div>
-              <div className="space-y-1">
-                <p className="text-xs uppercase tracking-wide text-gray-500">{kpi.label}</p>
-                <p className="text-2xl font-bold text-white">{kpi.value}</p>
-                <p className="text-xs text-gray-400">{kpi.trend}</p>
+              <div className="space-y-2">
+                <p className="text-xs uppercase tracking-wide text-slate-500 font-semibold">{kpi.label}</p>
+                <p className="text-3xl font-bold text-white">{kpi.value}</p>
+                <p className="text-xs text-slate-400">{kpi.trend}</p>
               </div>
             </Card>
           ))}
@@ -126,37 +126,39 @@ export default function DashboardPage() {
       {/* Revenue & Margin Analytics */}
       <SectionBanner title="Financial Performance" subtitle="Revenue trends and margin analysis" aria-live="polite">
         <div className="grid gap-6 lg:grid-cols-2">
-          <Card className="p-6 bg-gray-900/50 backdrop-blur border-gray-800">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold text-gray-300">Revenue vs Cost</h3>
-              <DollarSign className="h-5 w-5 text-emerald-400" />
+          <Card className="p-6 rounded-xl bg-slate-900/60 backdrop-blur border-slate-800/70 shadow-lg shadow-black/40 hover:border-emerald-500/60 transition-all duration-200">
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-base font-bold text-slate-100">Revenue vs Cost</h3>
+              <div className="p-2 rounded-full bg-emerald-500/20">
+                <DollarSign className="h-5 w-5 text-emerald-400" />
+              </div>
             </div>
             <div className="space-y-4">
               <div>
                 <div className="flex justify-between text-sm mb-2">
-                  <span className="text-gray-400">Total Revenue</span>
-                  <span className="text-white font-semibold">${(tmsMetrics.totalRevenue / 1000).toFixed(1)}k</span>
+                  <span className="text-slate-400">Total Revenue</span>
+                  <span className="text-white font-bold">${(tmsMetrics.totalRevenue / 1000).toFixed(1)}k</span>
                 </div>
-                <div className="h-3 bg-gray-800 rounded-full overflow-hidden">
-                  <div className="h-full bg-linear-to-r from-emerald-500 to-emerald-400" style={{ width: "100%" }} />
+                <div className="h-3 bg-slate-800/70 rounded-full overflow-hidden shadow-inner">
+                  <div className="h-full bg-linear-to-r from-emerald-500 to-emerald-400 shadow-lg shadow-emerald-500/30" style={{ width: "100%" }} />
                 </div>
               </div>
               <div>
                 <div className="flex justify-between text-sm mb-2">
-                  <span className="text-gray-400">Total Cost</span>
-                  <span className="text-white font-semibold">${(tmsMetrics.totalCost / 1000).toFixed(1)}k</span>
+                  <span className="text-slate-400">Total Cost</span>
+                  <span className="text-white font-bold">${(tmsMetrics.totalCost / 1000).toFixed(1)}k</span>
                 </div>
-                <div className="h-3 bg-gray-800 rounded-full overflow-hidden">
+                <div className="h-3 bg-slate-800/70 rounded-full overflow-hidden shadow-inner">
                   <div 
-                    className="h-full bg-linear-to-r from-rose-500 to-rose-400" 
+                    className="h-full bg-linear-to-r from-rose-500 to-rose-400 shadow-lg shadow-rose-500/30" 
                     style={{ width: `${(tmsMetrics.totalCost / tmsMetrics.totalRevenue) * 100}%` }} 
                   />
                 </div>
               </div>
-              <div className="pt-3 border-t border-gray-700">
+              <div className="pt-3 border-t border-slate-700/70">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-400">Net Margin</span>
-                  <span className="text-xl font-bold text-emerald-400">
+                  <span className="text-sm text-slate-400 font-medium">Net Margin</span>
+                  <span className="text-2xl font-bold text-emerald-400">
                     ${((tmsMetrics.totalRevenue - tmsMetrics.totalCost) / 1000).toFixed(1)}k
                   </span>
                 </div>
@@ -164,40 +166,42 @@ export default function DashboardPage() {
             </div>
           </Card>
           
-          <Card className="p-6 bg-gray-900/50 backdrop-blur border-gray-800">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold text-gray-300">Resource Utilization</h3>
-              <Truck className="h-5 w-5 text-blue-400" />
+          <Card className="p-6 rounded-xl bg-slate-900/60 backdrop-blur border-slate-800/70 shadow-lg shadow-black/40 hover:border-emerald-500/60 transition-all duration-200">
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-base font-bold text-slate-100">Resource Utilization</h3>
+              <div className="p-2 rounded-full bg-cyan-500/20">
+                <Truck className="h-5 w-5 text-cyan-400" />
+              </div>
             </div>
             <div className="space-y-4">
               <div>
                 <div className="flex justify-between text-sm mb-2">
-                  <span className="text-gray-400">Active Drivers</span>
-                  <span className="text-white font-semibold">{tmsMetrics.activeDrivers} / 30</span>
+                  <span className="text-slate-400">Active Drivers</span>
+                  <span className="text-white font-bold">{tmsMetrics.activeDrivers} / 30</span>
                 </div>
-                <div className="h-3 bg-gray-800 rounded-full overflow-hidden">
+                <div className="h-3 bg-slate-800/70 rounded-full overflow-hidden shadow-inner">
                   <div 
-                    className="h-full bg-linear-to-r from-blue-500 to-blue-400" 
+                    className="h-full bg-linear-to-r from-cyan-500 to-cyan-400 shadow-lg shadow-cyan-500/30" 
                     style={{ width: `${(tmsMetrics.activeDrivers / 30) * 100}%` }} 
                   />
                 </div>
               </div>
               <div>
                 <div className="flex justify-between text-sm mb-2">
-                  <span className="text-gray-400">Fleet Utilization</span>
-                  <span className="text-white font-semibold">{tmsMetrics.utilizationRate.toFixed(1)}%</span>
+                  <span className="text-slate-400">Fleet Utilization</span>
+                  <span className="text-white font-bold">{tmsMetrics.utilizationRate.toFixed(1)}%</span>
                 </div>
-                <div className="h-3 bg-gray-800 rounded-full overflow-hidden">
+                <div className="h-3 bg-slate-800/70 rounded-full overflow-hidden shadow-inner">
                   <div 
-                    className="h-full bg-linear-to-r from-purple-500 to-purple-400" 
+                    className="h-full bg-linear-to-r from-purple-500 to-purple-400 shadow-lg shadow-purple-500/30" 
                     style={{ width: `${tmsMetrics.utilizationRate}%` }} 
                   />
                 </div>
               </div>
-              <div className="pt-3 border-t border-gray-700">
+              <div className="pt-3 border-t border-slate-700/70">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-400">Efficiency Target</span>
-                  <span className={`text-xl font-bold ${tmsMetrics.utilizationRate >= 80 ? "text-emerald-400" : "text-amber-400"}`}>
+                  <span className="text-sm text-slate-400 font-medium">Efficiency Target</span>
+                  <span className={`text-2xl font-bold ${tmsMetrics.utilizationRate >= 80 ? "text-emerald-400" : "text-amber-400"}`}>
                     {tmsMetrics.utilizationRate >= 80 ? "On Track" : "Below Target"}
                   </span>
                 </div>
@@ -242,8 +246,8 @@ export default function DashboardPage() {
               </Select>
             </FilterField>
           </div>
-          <div className="rounded-lg border border-neutral-800 bg-neutral-900/60 p-4">
-            <div className="flex h-64 w-full items-center justify-center rounded-lg border border-dashed border-neutral-800 bg-neutral-900/50 text-sm text-neutral-400">
+          <div className="rounded-xl border border-slate-800/70 bg-slate-900/60 p-5 shadow-lg shadow-black/40">
+            <div className="flex h-64 w-full items-center justify-center rounded-xl border-2 border-dashed border-slate-700/50 bg-slate-950/70 text-sm text-slate-400 font-medium">
               Map viewport placeholder
             </div>
           </div>
@@ -257,11 +261,11 @@ function DashboardSkeleton() {
   return (
     <div className="flex flex-col gap-6">
       <SectionBanner title="Network Pulse" subtitle="Key performance indicators for the fleet." dense aria-live="polite">
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
           {Array.from({ length: 4 }).map((_, index) => (
             <div
               key={index}
-              className="h-12 animate-pulse rounded-lg bg-neutral-900/50"
+              className="h-32 animate-pulse rounded-xl bg-slate-800/50"
             />
           ))}
         </div>
@@ -271,12 +275,12 @@ function DashboardSkeleton() {
           <div className="space-y-4">
             {Array.from({ length: 3 }).map((_, index) => (
               <div key={index} className="space-y-2">
-                <div className="h-3 w-20 animate-pulse rounded-lg bg-neutral-900/50" />
-                <div className="h-11 w-full animate-pulse rounded-lg bg-neutral-900/50" />
+                <div className="h-3 w-20 animate-pulse rounded-lg bg-slate-800/50" />
+                <div className="h-11 w-full animate-pulse rounded-xl bg-slate-800/50" />
               </div>
             ))}
           </div>
-          <div className="h-64 animate-pulse rounded-lg bg-neutral-900/50" />
+          <div className="h-64 animate-pulse rounded-xl bg-slate-800/50" />
         </div>
       </SectionBanner>
     </div>
@@ -286,7 +290,7 @@ function DashboardSkeleton() {
 function FilterField({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="grid gap-2 text-sm">
-      <span className="text-xs uppercase tracking-wide text-neutral-500">{label}</span>
+      <span className="text-xs uppercase tracking-wide text-slate-500 font-semibold">{label}</span>
       {children}
     </label>
   );

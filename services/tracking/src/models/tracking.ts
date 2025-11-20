@@ -80,6 +80,11 @@ export interface Trip {
   // Metrics
   planned_miles?: number;
   actual_miles?: number;
+  distance_miles?: number;
+  duration_hours?: number;
+  distance_calculated_at?: Date;
+  distance_calculation_provider?: string;
+  distance_calculation_method?: string;
   estimated_fuel_gallons?: number;
   actual_fuel_gallons?: number;
   

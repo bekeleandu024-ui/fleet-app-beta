@@ -99,36 +99,41 @@ export function TopNav() {
   }, []);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-neutral-900/60 bg-neutral-950/80 backdrop-blur">
+    <header className="sticky top-0 z-50 border-b border-slate-800/70 bg-[#0a0d16]/95 backdrop-blur-xl shadow-lg shadow-black/20">
       <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-4 px-6 py-4 lg:px-10">
         <div className="flex flex-wrap items-center gap-3">
-          <Link href="/" className="text-lg font-semibold text-white">
-            Fleet Console
+          <Link href="/" className="text-lg font-bold text-white hover:text-cyan-400 transition-colors">
+            Fleet Dispatch
           </Link>
           <div className="ml-auto hidden flex-1 items-center gap-3 md:flex">
             <form className="relative flex-1 max-w-xl" onSubmit={handleSubmit}>
-              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-neutral-500" />
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-500" />
               <Input
                 type="search"
                 placeholder="Search order # / driver / unit / customer"
-                className="h-11 w-full pl-10 text-sm"
+                className="h-11 w-full pl-10 text-sm bg-slate-900/60 border-slate-800/70 text-slate-200 placeholder:text-slate-500 focus:border-cyan-500/60 focus:ring-2 focus:ring-cyan-500/20 rounded-xl transition-all"
                 aria-label="Global search"
                 value={searchTerm}
                 onChange={handleInputChange}
                 ref={desktopSearchRef}
               />
             </form>
-            <Button variant="primary" size="sm" onClick={() => router.push("/orders/new")}>
+            <Button 
+              variant="primary" 
+              size="sm" 
+              onClick={() => router.push("/orders/new")}
+              className="bg-emerald-500/30 hover:bg-emerald-500/40 text-white border border-emerald-500/50 hover:border-emerald-400/70 rounded-full px-5 shadow-lg shadow-emerald-500/20 transition-all"
+            >
               New Order
             </Button>
           </div>
           <div className="flex w-full flex-col gap-3 md:hidden">
             <form className="relative w-full" onSubmit={handleSubmit}>
-              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-neutral-500" />
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-500" />
               <Input
                 type="search"
                 placeholder="Search"
-                className="h-11 w-full pl-10"
+                className="h-11 w-full pl-10 bg-slate-900/60 border-slate-800/70 text-slate-200 placeholder:text-slate-500 focus:border-cyan-500/60 rounded-xl"
                 aria-label="Global search"
                 value={searchTerm}
                 onChange={handleInputChange}
@@ -138,7 +143,7 @@ export function TopNav() {
             <Button
               variant="primary"
               size="md"
-              className="w-full"
+              className="w-full bg-emerald-500/30 hover:bg-emerald-500/40 text-white border border-emerald-500/50 rounded-full"
               onClick={() => router.push("/orders/new")}
             >
               New Order
@@ -153,10 +158,10 @@ export function TopNav() {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "rounded-lg border px-3 py-2 text-sm font-medium text-neutral-400 transition",
+                  "rounded-full border px-4 py-2 text-sm font-medium transition-all duration-200",
                   active
-                    ? "border-emerald-500/60 bg-neutral-900/80 text-neutral-100 shadow-lg shadow-black/40"
-                    : "border-transparent hover:border-neutral-800 hover:bg-neutral-900/50 hover:text-neutral-200"
+                    ? "border-emerald-500/60 bg-slate-900/80 text-white shadow-lg shadow-black/40"
+                    : "border-transparent text-slate-400 hover:border-slate-700 hover:bg-slate-900/50 hover:text-slate-200"
                 )}
               >
                 {item.label}
