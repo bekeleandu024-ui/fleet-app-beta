@@ -1,17 +1,59 @@
 import { pool } from "../db/client";
 import { publishEvent } from "./kafkaProducer";
-import { Order, OrderStatus, CreateOrderRequest } from "../models/order";
+import { Order, OrderStatus, CreateOrderRequest, OrderType } from "../models/order";
+
+/**
+ * Generate a meaningful 9-character order ID
+ * Format: [TYPE][ORIGIN][DEST][SEQ]
+ * - TYPE: P (Pickup), D (Delivery), R (Round Trip)
+ * - ORIGIN: 2 chars from pickup location
+ * - DEST: 2 chars from dropoff location
+ * - SEQ: 4 digit sequence number
+ * Example: PLANY3421 (Pickup from LA to NY, sequence 3421)
+ */
+function generateOrderId(orderType: OrderType, pickup: string, dropoff: string, sequence: number): string {
+  // Type prefix
+  const typeCode = orderType === OrderType.PICKUP ? 'P' : 
+                   orderType === OrderType.DELIVERY ? 'D' : 'R';
+  
+  // Extract location codes (first 2 letters, uppercase)
+  const pickupCode = pickup.replace(/[^a-zA-Z]/g, '').substring(0, 2).toUpperCase() || 'XX';
+  const dropoffCode = dropoff.replace(/[^a-zA-Z]/g, '').substring(0, 2).toUpperCase() || 'XX';
+  
+  // 4-digit sequence with padding
+  const seqCode = sequence.toString().padStart(4, '0');
+  
+  return `${typeCode}${pickupCode}${dropoffCode}${seqCode}`;
+}
 
 export async function createOrder(request: CreateOrderRequest): Promise<Order> {
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
 
+    // Get next sequence number for today
+    const seqResult = await client.query(
+      `SELECT COALESCE(MAX(CAST(SUBSTRING(id FROM 6) AS INTEGER)), 0) + 1 AS next_seq
+       FROM orders
+       WHERE DATE(created_at) = CURRENT_DATE
+       AND id ~ '^[PDR][A-Z]{4}[0-9]{4}$'`
+    );
+    const sequence = seqResult.rows[0]?.next_seq || 1;
+
+    // Generate meaningful order ID
+    const orderId = generateOrderId(
+      request.order_type,
+      request.pickup_location,
+      request.dropoff_location,
+      sequence
+    );
+
     const result = await client.query(
-      `INSERT INTO orders (customer_id, order_type, status, pickup_location, dropoff_location, pickup_time, special_instructions)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `INSERT INTO orders (id, customer_id, order_type, status, pickup_location, dropoff_location, pickup_time, special_instructions)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        RETURNING *`,
       [
+        orderId,
         request.customer_id,
         request.order_type,
         OrderStatus.PENDING,
