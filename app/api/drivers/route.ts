@@ -1,22 +1,41 @@
 import { NextResponse } from "next/server";
 
-// Mock data for demonstration
-const mockDrivers = [
-  { id: "d1", name: "Adrian Radu", homeBase: "Windsor, ON", hoursAvailableToday: 10, onTimeScore: 98, active: true, recommended: true },
-  { id: "d2", name: "Carlos Mendez", homeBase: "Detroit, MI", hoursAvailableToday: 8, onTimeScore: 95, active: true },
-  { id: "d3", name: "Sarah Chen", homeBase: "Toronto, ON", hoursAvailableToday: 11, onTimeScore: 97, active: true },
-  { id: "d4", name: "Michael Torres", homeBase: "Buffalo, NY", hoursAvailableToday: 9, onTimeScore: 92, active: true },
-];
+const MASTER_DATA_SERVICE = process.env.MASTER_DATA_SERVICE_URL || "http://localhost:4001";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const activeOnly = searchParams.get("active") === "true";
 
-  let drivers = mockDrivers;
-  
-  if (activeOnly) {
-    drivers = drivers.filter(d => d.active);
-  }
+  try {
+    // Fetch real drivers from master-data service
+    const response = await fetch(`${MASTER_DATA_SERVICE}/api/metadata/drivers`);
+    
+    if (!response.ok) {
+      throw new Error("Failed to fetch drivers from master-data service");
+    }
 
-  return NextResponse.json(drivers);
+    const data = await response.json();
+    let drivers = data.drivers || [];
+
+    // Transform to match expected format
+    drivers = drivers.map((driver: any) => ({
+      id: driver.driver_id,
+      name: driver.driver_name,
+      homeBase: driver.region || "Unknown",
+      hoursAvailableToday: 10, // Could be calculated based on driver status
+      onTimeScore: 95, // Could come from performance metrics
+      active: driver.is_active,
+      type: driver.driver_type,
+      zone: driver.oo_zone,
+    }));
+
+    if (activeOnly) {
+      drivers = drivers.filter((d: any) => d.active);
+    }
+
+    return NextResponse.json({ data: drivers });
+  } catch (error) {
+    console.error("Error fetching drivers:", error);
+    return NextResponse.json({ error: "Failed to fetch drivers" }, { status: 500 });
+  }
 }

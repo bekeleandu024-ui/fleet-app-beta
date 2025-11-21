@@ -1,27 +1,46 @@
 import { NextResponse } from "next/server";
 
-// Mock data for demonstration
-const mockUnits = [
-  { id: "u1", code: "T-1024", type: "53' Dry Van", homeBase: "Windsor, ON", status: "Available", isOnHold: false, active: true, recommended: true },
-  { id: "u2", code: "T-1025", type: "53' Reefer", homeBase: "Detroit, MI", status: "Available", isOnHold: false, active: true },
-  { id: "u3", code: "T-1026", type: "53' Dry Van", homeBase: "Toronto, ON", status: "Available", isOnHold: false, active: true },
-  { id: "u4", code: "T-1027", type: "48' Flatbed", homeBase: "Buffalo, NY", status: "In Service", isOnHold: false, active: true },
-];
+const MASTER_DATA_SERVICE = process.env.MASTER_DATA_SERVICE_URL || "http://localhost:4001";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const activeOnly = searchParams.get("active") === "true";
   const notOnHold = searchParams.get("isOnHold") === "false";
 
-  let units = mockUnits;
-  
-  if (activeOnly) {
-    units = units.filter(u => u.active);
-  }
-  
-  if (notOnHold) {
-    units = units.filter(u => !u.isOnHold);
-  }
+  try {
+    // Fetch real units from master-data service
+    const response = await fetch(`${MASTER_DATA_SERVICE}/api/metadata/units`);
+    
+    if (!response.ok) {
+      throw new Error("Failed to fetch units from master-data service");
+    }
 
-  return NextResponse.json(units);
+    const data = await response.json();
+    let units = data.units || [];
+
+    // Transform to match expected format
+    units = units.map((unit: any) => ({
+      id: unit.unit_id,
+      code: unit.unit_number,
+      type: unit.driver_type === "Owner Operator" ? "Owner Op" : "Company",
+      homeBase: unit.region || "Unknown",
+      status: unit.is_active ? "Available" : "Inactive",
+      isOnHold: false,
+      active: unit.is_active,
+      driverName: unit.driver_name,
+    }));
+
+    if (activeOnly) {
+      units = units.filter((u: any) => u.active);
+    }
+    
+    if (notOnHold) {
+      units = units.filter((u: any) => !u.isOnHold);
+    }
+
+    return NextResponse.json({ data: units });
+  } catch (error) {
+    console.error("Error fetching units:", error);
+    return NextResponse.json({ error: "Failed to fetch units" }, { status: 500 });
+  }
 }
