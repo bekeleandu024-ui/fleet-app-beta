@@ -165,6 +165,18 @@ export default function BookTripPage() {
     if (unit) setUnitCode(unit.code);
   }, [unitId, units]);
 
+  // Update revenue when miles or rate changes
+  useEffect(() => {
+    if (rateId && miles > 0) {
+      const rate = rates.find(r => r.id === rateId);
+      if (rate) {
+        const calculatedRpm = rate.total_cpm * 1.05; // 5% margin
+        setRpm(calculatedRpm);
+        setTotalRevenue(miles * calculatedRpm);
+      }
+    }
+  }, [rateId, miles, rates]);
+
   // Handle AI Recommendation Application
   const handleApplyRecommendation = (recommendation: any) => {
     if (recommendation.driver) {
@@ -250,193 +262,233 @@ export default function BookTripPage() {
   };
 
   return (
-    <div className="space-y-6 p-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Package className="h-6 w-6 text-emerald-400" />
-          <h1 className="text-3xl font-semibold text-white">Trip Booking Console</h1>
-        </div>
-        
-        {/* Order Selection Dropdown */}
-        <div className="w-[600px]">
-          <label className="mb-2 block text-[11px] uppercase tracking-wide text-neutral-500">Select Order to Book</label>
-          <select
-            className="w-full rounded-md border border-white/10 bg-black/40 px-4 py-3 text-sm text-white focus:border-emerald-500 focus:outline-none"
-            value={selectedOrderId || ""}
-            onChange={(e) => {
-              const orderId = e.target.value;
-              if (orderId) {
-                router.push(`/book?orderId=${orderId}`);
-              }
-            }}
-          >
-            <option value="">Choose an order...</option>
-            {orders.map(order => {
-              const route = order.lane || (order.pickup && order.delivery 
-                ? `${order.pickup} → ${order.delivery}` 
-                : "Route TBD");
-              const miles = order.laneMiles ? `${order.laneMiles}mi` : "";
-              const statusIndicator = order.status === "Qualified" ? "✓" : order.status === "New" ? "○" : "●";
-              
-              return (
-                <option key={order.id} value={order.id}>
-                  {statusIndicator} {order.reference} | {order.customer} | {route} {miles ? `| ${miles}` : ""}
-                </option>
-              );
-            })}
-          </select>
-        </div>
+    <div className="min-h-screen bg-neutral-950 p-6 space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-semibold text-white mb-1">Trip Booking Control Center</h1>
+        <p className="text-sm text-neutral-400">Prioritize qualified freight, confirm resources, and launch the trip without leaving the console.</p>
       </div>
 
-      {/* Order Snapshot */}
+      {/* Compact Order Snapshot */}
       {selectedOrder ? (
-        <Card className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-4 shadow-lg shadow-black/40">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex-1 space-y-1">
-              <p className="text-sm font-semibold text-neutral-200">{selectedOrder.customer}</p>
-              <p className="text-xs text-neutral-400">{selectedOrder.pickup} → {selectedOrder.delivery}</p>
+        <Card className="relative rounded-lg border border-neutral-800 bg-neutral-900/60 p-3 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-6">
+              <div>
+                <p className="text-[10px] uppercase tracking-wide text-neutral-500">Customer</p>
+                <p className="text-sm font-semibold text-white">{selectedOrder.customer}</p>
+              </div>
+              <div>
+                <p className="text-[10px] uppercase tracking-wide text-neutral-500">Route</p>
+                <p className="text-xs text-neutral-300">{selectedOrder.pickup} → {selectedOrder.delivery}</p>
+              </div>
+              <div>
+                <p className="text-[10px] uppercase tracking-wide text-neutral-500">Window</p>
+                <p className="text-xs text-neutral-300">{selectedOrder.window}</p>
+              </div>
+              {selectedOrder.laneMiles && (
+                <div>
+                  <p className="text-[10px] uppercase tracking-wide text-neutral-500">Miles</p>
+                  <p className="text-xs text-neutral-300">{selectedOrder.laneMiles} mi</p>
+                </div>
+              )}
+              {selectedOrder.commodity && (
+                <div>
+                  <p className="text-[10px] uppercase tracking-wide text-neutral-500">Commodity</p>
+                  <p className="text-xs text-neutral-300">{selectedOrder.commodity}</p>
+                </div>
+              )}
             </div>
-            <div className="flex-1 space-y-1">
-              <p className="text-[11px] uppercase tracking-wide text-neutral-500">Service Level</p>
-              <p className="text-xs text-white">{selectedOrder.serviceLevel || "Standard"}</p>
-            </div>
-            <div className="flex-1 space-y-1">
-              <p className="text-[11px] uppercase tracking-wide text-neutral-500">Commodity</p>
-              <p className="text-xs text-white">{selectedOrder.commodity || "General"}</p>
-            </div>
-            <div className="flex-1 space-y-1">
-              <p className="text-[11px] uppercase tracking-wide text-neutral-500">Lane Miles</p>
-              <p className="text-xs text-white">{selectedOrder.laneMiles || 0} mi</p>
-            </div>
-            <span className={`rounded-full border px-3 py-1 text-xs font-medium ${
-              selectedOrder.status === "Qualified" 
-                ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-200"
-                : "border-purple-500/30 bg-purple-500/10 text-purple-200"
-            }`}>
-              {selectedOrder.status}
-            </span>
+            {selectedOrder.serviceLevel && (
+              <span className="px-2 py-1 text-[10px] font-semibold text-white bg-slate-700 rounded">
+                {selectedOrder.serviceLevel.toUpperCase()}
+              </span>
+            )}
           </div>
         </Card>
       ) : (
-        <div className="rounded-lg border border-dashed border-neutral-800 bg-neutral-950/40 p-5 text-center text-sm text-neutral-400">
-          Select a qualified order from the dropdown above to begin booking
+        <div className="rounded-lg border border-dashed border-neutral-800 bg-neutral-950/40 p-6 text-center">
+          <p className="text-sm text-neutral-400">Select a qualified order to begin booking</p>
         </div>
       )}
 
-      {/* Three Column Layout: AI Recommendations | Form | Margin Calculator */}
+      {/* Three Column Layout */}
       <form onSubmit={handleSubmit}>
-      <div className="grid gap-6 lg:grid-cols-[380px,1fr,380px]">
-        {/* Left: AI Recommendations */}
-        <div className="space-y-4">
-          <AIRecommendationPanel
-            orderId={selectedOrderId}
-            onApplyRecommendation={handleApplyRecommendation}
-          />
-        </div>
+        <div className="grid gap-4 lg:grid-cols-[300px,1fr,340px]">
+          
+          {/* LEFT COLUMN: AI Booking Recommendations */}
+          <div className="space-y-4">
+            <AIRecommendationPanel
+              orderId={selectedOrderId}
+              onApplyRecommendation={handleApplyRecommendation}
+            />
+          </div>
 
-        {/* Center: Main Form */}
-        <div className="space-y-4">
-          {/* Driver & Unit Selection */}
-          <DriverUnitSelector
-            drivers={drivers}
-            units={units}
-            selectedDriverId={driverId}
-            selectedUnitId={unitId}
-            recommendedDriverId={recommendedDriverId}
-            recommendedUnitId={recommendedUnitId}
-            onDriverSelect={setDriverId}
-            onUnitSelect={setUnitId}
-          />
+          {/* CENTER COLUMN: Dispatch Console */}
+          <div className="space-y-4">
+            <Card className="rounded-lg border border-neutral-800 bg-neutral-900/60 p-4">
+              <h3 className="text-sm font-semibold text-white mb-3">Dispatch Console</h3>
+              
+              {/* Driver & Unit */}
+              <DriverUnitSelector
+                drivers={drivers}
+                units={units}
+                selectedDriverId={driverId}
+                selectedUnitId={unitId}
+                recommendedDriverId={recommendedDriverId}
+                recommendedUnitId={recommendedUnitId}
+                onDriverSelect={setDriverId}
+                onUnitSelect={setUnitId}
+              />
 
-          {/* Rate Card Selection */}
-          <RateSelector
-            rates={rates}
-            selectedRateId={rateId}
-            recommendedRateId={recommendedRateId}
-            onRateSelect={setRateId}
-          />
-
-          {/* Revenue Calculator */}
-          <RevenueCalculator
-            miles={miles}
-            rpm={rpm}
-            revenue={totalRevenue}
-            onMilesChange={setMiles}
-            onRpmChange={setRpm}
-            onRevenueChange={setTotalRevenue}
-          />
-
-          {/* Stop Manager */}
-          <StopManager stops={stops} onStopsChange={setStops} />
-
-          {/* Submit Button */}
-          <Button
-            type="submit"
-            disabled={isSubmitting || !selectedOrder || !driverId || !unitId || !rateId}
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-500 px-4 py-3 text-sm font-semibold text-emerald-950 hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {isSubmitting ? (
-              "Booking Trip..."
-            ) : (
-              <>
-                <CheckCircle className="h-4 w-4" />
-                Book Trip
-              </>
-            )}
-          </Button>
-
-          {message && (
-            <div className={`rounded-lg border p-3 text-sm ${
-              message.type === "success" 
-                ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
-                : "border-rose-500/30 bg-rose-500/10 text-rose-400"
-            }`}>
-              {message.text}
-            </div>
-          )}
-        </div>
-
-        {/* Right: Margin Calculator with Guardrails */}
-        <div className="space-y-4">
-          <MarginCalculator
-            revenue={totalRevenue}
-            totalCost={totalCost}
-            totalCpm={totalCpm}
-            miles={miles}
-          />
-
-          {/* Cost Summary Card */}
-          <Card className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-4">
-            <h3 className="mb-3 text-sm font-semibold text-neutral-200">Cost Summary</h3>
-            <div className="space-y-2 text-xs">
-              <div className="flex justify-between">
-                <span className="text-neutral-400">Total CPM</span>
-                <span className="font-medium text-white">${totalCpm.toFixed(2)}</span>
+              {/* Rate Card */}
+              <div className="mt-4">
+                <RateSelector
+                  rates={rates}
+                  selectedRateId={rateId}
+                  recommendedRateId={recommendedRateId}
+                  onRateSelect={setRateId}
+                />
               </div>
-              <div className="flex justify-between">
-                <span className="text-neutral-400">Miles</span>
-                <span className="font-medium text-white">{miles.toFixed(1)}</span>
+
+              {/* Revenue Calculator */}
+              <div className="mt-4">
+                <RevenueCalculator
+                  miles={miles}
+                  rpm={rpm}
+                  revenue={totalRevenue}
+                  onMilesChange={setMiles}
+                  onRpmChange={setRpm}
+                  onRevenueChange={setTotalRevenue}
+                />
               </div>
-              <div className="flex justify-between border-t border-white/10 pt-2">
-                <span className="text-neutral-400">Total Cost</span>
-                <span className="font-semibold text-white">${totalCost.toFixed(2)}</span>
+
+              {/* Stop Manager */}
+              <div className="mt-4">
+                <StopManager stops={stops} onStopsChange={setStops} />
               </div>
-              <div className="flex justify-between">
-                <span className="text-neutral-400">Revenue</span>
-                <span className="font-semibold text-emerald-400">${totalRevenue.toFixed(2)}</span>
+
+              {/* Margin Summary */}
+              <div className="mt-4 p-3 rounded-lg bg-neutral-950/60 border border-neutral-800">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-xs text-neutral-400">Revenue</span>
+                  <span className="text-sm font-semibold text-emerald-400">${totalRevenue.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-xs text-neutral-400">Cost (${totalCpm.toFixed(2)} CPM)</span>
+                  <span className="text-sm font-semibold text-white">${totalCost.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between items-center pt-2 border-t border-neutral-800">
+                  <span className="text-xs font-semibold text-neutral-300">Margin</span>
+                  <span className={`text-sm font-bold ${
+                    totalRevenue - totalCost > 0 ? "text-emerald-400" : "text-rose-400"
+                  }`}>
+                    ${(totalRevenue - totalCost).toFixed(2)}
+                  </span>
+                </div>
               </div>
-              <div className="flex justify-between border-t border-white/10 pt-2">
-                <span className="font-medium text-neutral-200">Profit</span>
-                <span className={`font-bold ${
-                  totalRevenue - totalCost > 0 ? "text-emerald-400" : "text-rose-400"
+
+              {/* Submit Button */}
+              <Button
+                type="submit"
+                disabled={isSubmitting || !selectedOrder || !driverId || !unitId || !rateId}
+                className="w-full mt-4 bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-semibold"
+              >
+                {isSubmitting ? "Booking Trip..." : (
+                  <>
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    Book Trip
+                  </>
+                )}
+              </Button>
+
+              {message && (
+                <div className={`mt-3 rounded border p-2 text-xs ${
+                  message.type === "success" 
+                    ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+                    : "border-rose-500/30 bg-rose-500/10 text-rose-400"
                 }`}>
-                  ${(totalRevenue - totalCost).toFixed(2)}
-                </span>
+                  {message.text}
+                </div>
+              )}
+            </Card>
+          </div>
+
+          {/* RIGHT COLUMN: Available Resources */}
+          <div className="space-y-4">
+            {/* Available Orders */}
+            <Card className="rounded-lg border border-neutral-800 bg-neutral-900/60 p-3">
+              <h3 className="text-xs font-semibold text-white mb-2 uppercase tracking-wide">Available Orders</h3>
+              <div className="space-y-1.5 max-h-60 overflow-y-auto">
+                {orders.filter(o => o.status === "Qualified" || o.status === "Ready to Book").map(order => (
+                  <button
+                    key={order.id}
+                    onClick={() => router.push(`/book?orderId=${order.id}`)}
+                    className={`w-full text-left rounded p-2 transition-colors text-xs ${
+                      selectedOrderId === order.id
+                        ? "bg-emerald-500/20 border border-emerald-500/40"
+                        : "bg-neutral-950/40 hover:bg-neutral-950/60"
+                    }`}
+                  >
+                    <p className="font-semibold text-white mb-0.5">{order.customer}</p>
+                    <p className="text-[10px] text-neutral-400">{order.pickup} → {order.delivery}</p>
+                  </button>
+                ))}
+                {orders.filter(o => o.status === "Qualified" || o.status === "Ready to Book").length === 0 && (
+                  <p className="text-xs text-neutral-500 text-center py-3">No orders available</p>
+                )}
               </div>
-            </div>
-          </Card>
+            </Card>
+
+            {/* Available Drivers */}
+            <Card className="rounded-lg border border-neutral-800 bg-neutral-900/60 p-3">
+              <h3 className="text-xs font-semibold text-white mb-2 uppercase tracking-wide">Available Drivers</h3>
+              <div className="space-y-1.5 max-h-50 overflow-y-auto">
+                {drivers.map(driver => (
+                  <div
+                    key={driver.id}
+                    onClick={() => setDriverId(driver.id)}
+                    className={`rounded p-2 cursor-pointer transition-colors ${
+                      driverId === driver.id
+                        ? "bg-emerald-500/20 border border-emerald-500/40"
+                        : "bg-neutral-950/40 hover:bg-neutral-950/60"
+                    }`}
+                  >
+                    <p className="text-xs font-semibold text-white">{driver.name}</p>
+                    <p className="text-[10px] text-neutral-400">{driver.homeBase} • {driver.hoursAvailableToday}h avail</p>
+                  </div>
+                ))}
+                {drivers.length === 0 && (
+                  <p className="text-xs text-neutral-500 text-center py-3">No drivers available</p>
+                )}
+              </div>
+            </Card>
+
+            {/* Available Units */}
+            <Card className="rounded-lg border border-neutral-800 bg-neutral-900/60 p-3">
+              <h3 className="text-xs font-semibold text-white mb-2 uppercase tracking-wide">Available Units</h3>
+              <div className="space-y-1.5 max-h-50 overflow-y-auto">
+                {units.map(unit => (
+                  <div
+                    key={unit.id}
+                    onClick={() => setUnitId(unit.id)}
+                    className={`rounded p-2 cursor-pointer transition-colors ${
+                      unitId === unit.id
+                        ? "bg-emerald-500/20 border border-emerald-500/40"
+                        : "bg-neutral-950/40 hover:bg-neutral-950/60"
+                    }`}
+                  >
+                    <p className="text-xs font-semibold text-white">{unit.code}</p>
+                    <p className="text-[10px] text-neutral-400">{unit.type} • {unit.status}</p>
+                  </div>
+                ))}
+                {units.length === 0 && (
+                  <p className="text-xs text-neutral-500 text-center py-3">No units available</p>
+                )}
+              </div>
+            </Card>
+          </div>
         </div>
-      </div>
       </form>
     </div>
   );
