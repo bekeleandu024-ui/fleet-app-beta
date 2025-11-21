@@ -271,7 +271,11 @@ export function AIRecommendationPanel({
     if (!aiAnalysis) return null;
 
     const { recommendations, riskAssessment, routeOptimization, marketIntelligence, alternativeOptions } = aiAnalysis;
-    const marginPct = recommendations.marginPercent || 15;
+    
+    // Calculate 5% margin: revenue = cost + 5%
+    const estimatedCost = recommendations.estimatedCost || 0;
+    const revenueWith5Percent = estimatedCost * 1.05;
+    const marginPct = estimatedCost > 0 ? ((revenueWith5Percent - estimatedCost) / revenueWith5Percent * 100) : 5;
     
     const confidenceColor =
       recommendations.confidence === "high" ? "text-emerald-400" :
@@ -319,11 +323,12 @@ export function AIRecommendationPanel({
           <div className="grid grid-cols-2 gap-2 mb-2">
             <div className="rounded-lg bg-neutral-950/40 p-2">
               <p className="text-[9px] uppercase text-neutral-500">Revenue</p>
-              <p className="text-sm font-bold text-emerald-400">${recommendations.targetRevenue?.toFixed(0)}</p>
+              <p className="text-sm font-bold text-emerald-400">${revenueWith5Percent.toFixed(0)}</p>
+              <p className="text-[8px] text-neutral-500 mt-0.5">Cost + 5%</p>
             </div>
             <div className="rounded-lg bg-neutral-950/40 p-2">
               <p className="text-[9px] uppercase text-neutral-500">Margin</p>
-              <p className="text-sm font-bold text-emerald-400">{marginPct.toFixed(1)}%</p>
+              <p className="text-sm font-bold text-emerald-400">5.0%</p>
             </div>
           </div>
 

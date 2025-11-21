@@ -28,7 +28,9 @@ function transformOrderFromService(order: Record<string, any>): OrderResponse {
   const reference = order.reference ?? (id ? `ORD-${id.slice(0, 8).toUpperCase()}` : "ORDER");
   const createdAt = order.created_at ?? order.createdAt ?? new Date().toISOString();
   const ageHours = order.ageHours ?? calculateAgeHours(createdAt);
-  const window = order.window ?? resolveWindow(order.pickup_window_start ?? order.pickup_time);
+  // Always format the pickup window with full date
+  const pickupDateTime = order.pickup_window_start ?? order.pickup_time ?? order.pickupWindowStart ?? order.pickupTime ?? order.window;
+  const window = resolveWindow(pickupDateTime) ?? "Not Scheduled";
   // Use lane from microservice if available, otherwise build it
   const lane = order.lane ?? buildLane(pickup, delivery);
 
@@ -77,17 +79,20 @@ function buildOrdersResponse(orders: OrderResponse[]) {
 
 function resolveWindow(dateValue?: string | Date | null) {
   if (!dateValue) {
-    return "Scheduled";
+    return null;
   }
   const date = new Date(dateValue);
   if (Number.isNaN(date.getTime())) {
-    return "Scheduled";
+    return null;
   }
   return date.toLocaleString("en-US", {
+    weekday: "short",
     month: "short",
-    day: "2-digit",
-    hour: "2-digit",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
     minute: "2-digit",
+    hour12: true,
   });
 }
 

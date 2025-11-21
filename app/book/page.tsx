@@ -255,9 +255,13 @@ export default function BookTripPage() {
 
   // Update revenue when miles or rate changes (5% margin floor)
   useEffect(() => {
-    if (rateId && actualMiles > 0) {
-      const rate = rates.find(r => r.id === rateId);
-      if (rate && !manualRevenue) {
+    const actualMiles = routeDistance || miles || 0;
+    const selectedRate = rates.find(r => r.id === rateId);
+    const totalCpm = selectedRate?.total_cpm || 0;
+    const totalCost = actualMiles * totalCpm;
+
+    if (rateId && actualMiles > 0 && selectedRate) {
+      if (!manualRevenue) {
         // Calculate revenue with 5% margin floor
         const costWithMargin = totalCost * 1.05;
         const calculatedRpm = costWithMargin / actualMiles;
@@ -271,7 +275,8 @@ export default function BookTripPage() {
           setRpm(revenue / actualMiles);
         }
       }
-  }, [rateId, actualMiles, rates, totalCost, manualRevenue]);
+    }
+  }, [rateId, routeDistance, miles, rates, manualRevenue]);
 
   // Handle AI Recommendation Application
   const handleApplyRecommendation = (recommendation: any) => {
@@ -382,7 +387,7 @@ export default function BookTripPage() {
               </div>
               <div className="h-8 w-px bg-neutral-700" />
               <div>
-                <p className="text-[10px] uppercase tracking-wide text-neutral-500 mb-1">Window</p>
+                <p className="text-[10px] uppercase tracking-wide text-neutral-500 mb-1">Pickup Window</p>
                 <p className="text-sm text-neutral-300">{selectedOrder.window}</p>
               </div>
               <div className="h-8 w-px bg-neutral-700" />

@@ -184,15 +184,20 @@ function calculateAgeHours(dateValue: Date | string): number {
 
 function formatWindow(pickupTime?: Date | string | null): string {
   if (!pickupTime) {
-    return "Scheduled";
+    return "Not Scheduled";
   }
   const date = new Date(pickupTime);
   if (Number.isNaN(date.getTime())) {
-    return "Scheduled";
+    return "Not Scheduled";
   }
   return new Intl.DateTimeFormat("en-US", {
-    hour: "2-digit",
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
     minute: "2-digit",
+    hour12: true,
   }).format(date);
 }
 
