@@ -219,3 +219,284 @@ Respond with JSON: { "utilization": "X%", "risks": [], "summary": "Brief overvie
     };
   }
 }
+
+// ============= ORDER ASSISTANT FUNCTIONS =============
+
+interface ParsedOrderData {
+  customer?: string;
+  origin?: string;
+  destination?: string;
+  puWindowStart?: string;
+  puWindowEnd?: string;
+  delWindowStart?: string;
+  delWindowEnd?: string;
+  requiredTruck?: string;
+  notes?: string;
+  confidence: {
+    [key: string]: number;
+  };
+  warnings: string[];
+}
+
+export async function parseOrderOCR(text: string): Promise<ParsedOrderData> {
+  const prompt = `You are an expert at parsing transportation order emails and documents. Extract order details from the following text.
+
+**TEXT TO PARSE:**
+${text}
+
+**INSTRUCTIONS:**
+1. Extract customer name (shipper or company name)
+2. Extract origin/pickup location (city, state format preferred)
+3. Extract destination/delivery location (city, state format)
+4. Extract pickup date/time windows (start and end)
+5. Extract delivery date/time windows (start and end)
+6. Identify truck/equipment type needed (Dry Van, Flatbed, Reefer, etc.)
+7. Extract any special instructions or notes
+8. Handle typos, abbreviations, and informal language
+9. Provide confidence scores (0-100) for each extracted field
+10. Flag any warnings or ambiguities
+
+**COMMON PATTERNS TO RECOGNIZE:**
+- "PU" or "Pickup" = origin
+- "DEL" or "Delivery" or "Drop" = destination
+- Equipment: "53' dry van", "flatbed", "reefer", "refers to refrigerated"
+- Date formats: various formats like "12/20", "Dec 20", "tomorrow"
+- Time windows: "8am-5pm", "0800-1700", "morning", "afternoon"
+
+Return ONLY a JSON object with this structure:
+{
+  "customer": "Company Name or null",
+  "origin": "City, State or null",
+  "destination": "City, State or null",
+  "puWindowStart": "ISO datetime or null",
+  "puWindowEnd": "ISO datetime or null",
+  "delWindowStart": "ISO datetime or null",
+  "delWindowEnd": "ISO datetime or null",
+  "requiredTruck": "Truck type or null",
+  "notes": "Special instructions or null",
+  "confidence": {
+    "customer": 0-100,
+    "origin": 0-100,
+    "destination": 0-100,
+    "dates": 0-100,
+    "truck": 0-100
+  },
+  "warnings": ["List any ambiguities or concerns"]
+}`;
+
+  try {
+    const message = await anthropic.messages.create({
+      model: "claude-sonnet-4-5-20250929",
+      max_tokens: 1500,
+      messages: [{ role: "user", content: prompt }],
+    });
+
+    const content = message.content[0];
+    if (content.type === "text") {
+      const jsonMatch = content.text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        return JSON.parse(jsonMatch[0]);
+      }
+    }
+
+    throw new Error("No JSON response from Claude");
+  } catch (error: any) {
+    console.error("OCR parsing error:", error);
+    return {
+      confidence: {},
+      warnings: ["Failed to parse text automatically. Please enter details manually."],
+    };
+  }
+}
+
+interface FieldSuggestion {
+  field: string;
+  suggestions: Array<{
+    value: string;
+    reason: string;
+    confidence: number;
+  }>;
+}
+
+export async function suggestOrderFields(
+  partialOrder: any,
+  historicalOrders: any[] = []
+): Promise<FieldSuggestion[]> {
+  const prompt = `You are a logistics AI assistant. Based on partial order data and historical patterns, suggest values for incomplete fields.
+
+**PARTIAL ORDER:**
+${JSON.stringify(partialOrder, null, 2)}
+
+**HISTORICAL ORDERS (for pattern recognition):**
+${historicalOrders.length > 0 ? JSON.stringify(historicalOrders.slice(0, 5), null, 2) : "No historical data available"}
+
+**YOUR TASK:**
+Suggest smart completions for missing or incomplete fields:
+- If customer is entered but origin is blank, suggest common origins for this customer
+- If origin/destination are set, suggest appropriate truck type based on distance/route
+- Suggest time windows based on distance and typical patterns
+- Detect if entered data needs correction (e.g., "LA" should be "Los Angeles, CA")
+- Provide reasoning for each suggestion
+
+Return JSON array:
+[
+  {
+    "field": "fieldName",
+    "suggestions": [
+      {
+        "value": "suggested value",
+        "reason": "why this makes sense",
+        "confidence": 0-100
+      }
+    ]
+  }
+]`;
+
+  try {
+    const message = await anthropic.messages.create({
+      model: "claude-sonnet-4-5-20250929",
+      max_tokens: 1000,
+      messages: [{ role: "user", content: prompt }],
+    });
+
+    const content = message.content[0];
+    if (content.type === "text") {
+      const jsonMatch = content.text.match(/\[[\s\S]*\]/);
+      if (jsonMatch) {
+        return JSON.parse(jsonMatch[0]);
+      }
+    }
+
+    return [];
+  } catch (error) {
+    console.error("Field suggestion error:", error);
+    return [];
+  }
+}
+
+interface OrderValidation {
+  isValid: boolean;
+  errors: Array<{
+    field: string;
+    message: string;
+    severity: "error" | "warning" | "info";
+  }>;
+  suggestions: string[];
+  riskScore: number;
+}
+
+export async function validateOrder(orderData: any): Promise<OrderValidation> {
+  const prompt = `You are a logistics validation expert. Analyze this order for issues, risks, and improvements.
+
+**ORDER DATA:**
+${JSON.stringify(orderData, null, 2)}
+
+**VALIDATION CHECKS:**
+1. Required fields present and valid
+2. Dates logical (pickup before delivery, realistic transit time)
+3. Locations valid and properly formatted
+4. Equipment type appropriate for the route
+5. Risk factors (tight windows, long distance, etc.)
+6. Common mistakes or ambiguities
+7. Missing information that should be added
+8. Compliance requirements (e.g., border crossings, hazmat)
+
+**MARKET INTELLIGENCE:**
+- Typical transit time for this distance
+- Whether time windows are realistic
+- Equipment availability concerns
+- Rate reasonableness
+
+Return JSON:
+{
+  "isValid": true/false,
+  "errors": [
+    {
+      "field": "fieldName",
+      "message": "Clear error description",
+      "severity": "error|warning|info"
+    }
+  ],
+  "suggestions": [
+    "Helpful suggestions to improve the order"
+  ],
+  "riskScore": 0-100 (higher = more risky)
+}`;
+
+  try {
+    const message = await anthropic.messages.create({
+      model: "claude-sonnet-4-5-20250929",
+      max_tokens: 1200,
+      messages: [{ role: "user", content: prompt }],
+    });
+
+    const content = message.content[0];
+    if (content.type === "text") {
+      const jsonMatch = content.text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        return JSON.parse(jsonMatch[0]);
+      }
+    }
+
+    throw new Error("No validation response");
+  } catch (error) {
+    console.error("Order validation error:", error);
+    return {
+      isValid: false,
+      errors: [{ field: "general", message: "Validation service unavailable", severity: "warning" }],
+      suggestions: [],
+      riskScore: 50,
+    };
+  }
+}
+
+export async function chatWithOrderAssistant(
+  message: string,
+  context: {
+    currentOrder?: any;
+    conversationHistory?: Array<{ role: string; content: string }>;
+  } = {}
+): Promise<string> {
+  const { currentOrder, conversationHistory = [] } = context;
+
+  const systemPrompt = `You are an intelligent order entry assistant for a transportation management system. 
+  
+Your role:
+- Help users enter order details quickly and accurately
+- Answer questions about order requirements, routing, equipment, etc.
+- Provide proactive suggestions and catch potential issues
+- Be concise but helpful
+- Use transportation industry terminology appropriately
+
+Current order context:
+${currentOrder ? JSON.stringify(currentOrder, null, 2) : "No order data yet"}
+
+Respond naturally and helpfully. If asked to perform actions like "book a load", extract the details and confirm.`;
+
+  try {
+    const messages: Array<{ role: "user" | "assistant"; content: string }> = [
+      ...conversationHistory.map(msg => ({
+        role: msg.role as "user" | "assistant",
+        content: msg.content,
+      })),
+      { role: "user", content: message },
+    ];
+
+    const response = await anthropic.messages.create({
+      model: "claude-sonnet-4-5-20250929",
+      max_tokens: 800,
+      system: systemPrompt,
+      messages,
+    });
+
+    const content = response.content[0];
+    if (content.type === "text") {
+      return content.text;
+    }
+
+    return "I'm here to help with your order. What do you need?";
+  } catch (error) {
+    console.error("Chat assistant error:", error);
+    return "I'm having trouble responding right now. Please try again.";
+  }
+}
