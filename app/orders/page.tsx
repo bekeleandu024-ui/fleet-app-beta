@@ -289,29 +289,117 @@ export default function OrdersPage() {
         )}
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-slate-800/70 bg-slate-950/70 shadow-lg shadow-black/40">
-        <div className="inline-block min-w-full align-middle">
-          <DataTable
-            columns={columns}
-            data={filteredAndSortedData}
-            busy={isLoading}
-            getRowId={(row) => row.id}
-            onRowClick={(row) => router.push(`/orders/${row.id}`)}
-            rowActions={(row) => (
-              <Button
-                size="sm"
-                variant="plain"
-                className="text-xs text-neutral-500 hover:text-neutral-200"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  router.push(`/orders/${row.id}`);
-                }}
+      <div className="space-y-3">
+        {filteredAndSortedData.length === 0 ? (
+          <div className="rounded-xl border border-slate-800/70 bg-slate-900/60 p-8 text-center">
+            <p className="text-slate-400">No orders found matching your filters.</p>
+          </div>
+        ) : (
+          filteredAndSortedData.map((order) => {
+            // Calculate order age styling
+            const ageHours = order.ageHours || 0;
+            const ageColor = ageHours > 48 ? 'text-rose-400' : ageHours > 24 ? 'text-amber-400' : 'text-emerald-400';
+            const ageText = ageHours > 24 ? `${Math.floor(ageHours / 24)}d` : `${ageHours}h`;
+            
+            // Status color mapping
+            const statusConfig: Record<string, { color: string; progress: number }> = {
+              'New': { color: 'bg-slate-500', progress: 25 },
+              'Qualifying': { color: 'bg-amber-500', progress: 50 },
+              'Qualified': { color: 'bg-emerald-500', progress: 75 },
+              'Ready to Book': { color: 'bg-cyan-500', progress: 90 },
+              'In Transit': { color: 'bg-blue-500', progress: 100 },
+              'Delivered': { color: 'bg-emerald-600', progress: 100 },
+              'Exception': { color: 'bg-rose-500', progress: 50 },
+            };
+            
+            const currentStatus = statusConfig[order.status] || { color: 'bg-slate-500', progress: 25 };
+            
+            return (
+              <div
+                key={order.id}
+                className="rounded-lg border border-slate-800/70 bg-slate-900/60 p-3 shadow-md shadow-black/30 hover:border-emerald-500/40 transition-all duration-200"
               >
-                View
-              </Button>
-            )}
-          />
-        </div>
+                {/* Top section: Customer name and timestamp */}
+                <div className="flex items-start justify-between mb-1.5">
+                  <h3 className="text-sm font-semibold text-white">
+                    {order.customer}
+                  </h3>
+                  <div className="text-right">
+                    <div className="text-[10px] text-slate-500 uppercase tracking-wide">Created</div>
+                    <div className="text-xs text-slate-300">
+                      {order.window}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Route: Origin → Destination */}
+                <div className="mb-2 text-xs text-slate-300">
+                  <span>{order.pickup}</span>
+                  <span className="mx-1.5 text-slate-600">→</span>
+                  <span>{order.delivery}</span>
+                </div>
+
+                {/* Middle section: Status, Progress, Metrics */}
+                <div className="mb-2 space-y-1.5">
+                  {/* Status Badge & Metrics Row */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold text-white ${currentStatus.color}`}>
+                        {order.status}
+                      </span>
+                      <span className={`text-[10px] font-semibold ${ageColor}`}>
+                        {ageText} old
+                      </span>
+                    </div>
+                    {order.laneMiles !== undefined && (
+                      <span className="text-[10px] font-medium text-slate-400">
+                        {order.laneMiles} mi
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Progress Bar */}
+                  <div className="w-full bg-slate-800/50 rounded-full h-1 overflow-hidden">
+                    <div 
+                      className={`h-full ${currentStatus.color} transition-all duration-500 ease-out`}
+                      style={{ width: `${currentStatus.progress}%` }}
+                    />
+                  </div>
+                </div>
+
+                {/* Equipment */}
+                {order.serviceLevel && (
+                  <div className="mb-1 text-[11px] text-slate-400">
+                    Equipment: {order.serviceLevel}
+                  </div>
+                )}
+
+                {/* Notes/Commodity */}
+                {order.commodity && order.commodity !== "General Freight" && (
+                  <div className="mb-1.5 text-[11px] text-slate-400">
+                    {order.commodity}
+                  </div>
+                )}
+
+                {/* Bottom section: Actions */}
+                <div className="flex items-center justify-end gap-2 mt-2">
+                  <button
+                    onClick={() => router.push(`/orders/${order.id}`)}
+                    className="text-xs text-slate-400 hover:text-white transition-colors"
+                  >
+                    View details
+                  </button>
+                  <button
+                    onClick={() => router.push(`/book?orderId=${order.id}`)}
+                    className="px-3 py-1 text-xs font-medium text-white bg-blue-600 hover:bg-blue-500 rounded shadow-md shadow-blue-600/40 hover:shadow-blue-500/50 transition-all duration-200"
+                  >
+                    Book Trip
+                  </button>
+                </div>
+              </div>
+            );
+          })
+        )}
       </div>
     </div>
   );
