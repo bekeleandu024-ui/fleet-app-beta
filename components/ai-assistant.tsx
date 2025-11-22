@@ -227,3 +227,4 @@ export function AIAssistant({ currentOrder, onSuggestion }: AIAssistantProps) {
     </Card>
   );
 }
+

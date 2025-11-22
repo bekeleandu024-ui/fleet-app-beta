@@ -235,3 +235,4 @@ function buildBullets({
 
   return bullets;
 }
+

@@ -126,3 +126,4 @@ export function PriorityBadge({ priority, variant = "default" }: PriorityBadgePr
     </Badge>
   );
 }
+

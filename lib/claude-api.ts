@@ -22,7 +22,7 @@ export async function generateTripInsights(
 
   try {
     const message = await anthropic.messages.create({
-      model: "claude-sonnet-4-5-20250929",
+      model: "claude-sonnet-4-20250514",
       max_tokens: 2000,
       messages: [
         {
@@ -192,7 +192,7 @@ Respond with JSON: { "utilization": "X%", "risks": [], "summary": "Brief overvie
 
   try {
     const message = await anthropic.messages.create({
-      model: "claude-sonnet-4-5-20250929",
+      model: "claude-sonnet-4-20250514",
       max_tokens: 500,
       messages: [{ role: "user", content: prompt }],
     });
@@ -239,6 +239,15 @@ interface ParsedOrderData {
 }
 
 export async function parseOrderOCR(text: string): Promise<ParsedOrderData> {
+  // Check if API key is available
+  if (!process.env.ANTHROPIC_API_KEY) {
+    console.error("ANTHROPIC_API_KEY is not set!");
+    return {
+      confidence: {},
+      warnings: ["API key not configured. Please add ANTHROPIC_API_KEY to .env.local"],
+    };
+  }
+
   const prompt = `You are an expert at parsing transportation order emails and documents. Extract order details from the following text.
 
 **TEXT TO PARSE:**
@@ -285,26 +294,35 @@ Return ONLY a JSON object with this structure:
 }`;
 
   try {
+    console.log("Calling Claude API for OCR parsing...");
     const message = await anthropic.messages.create({
-      model: "claude-sonnet-4-5-20250929",
+      model: "claude-sonnet-4-20250514",
       max_tokens: 1500,
       messages: [{ role: "user", content: prompt }],
     });
 
+    console.log("Claude API response received");
     const content = message.content[0];
     if (content.type === "text") {
       const jsonMatch = content.text.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
-        return JSON.parse(jsonMatch[0]);
+        const parsed = JSON.parse(jsonMatch[0]);
+        console.log("Successfully parsed OCR data:", parsed);
+        return parsed;
       }
     }
 
     throw new Error("No JSON response from Claude");
   } catch (error: any) {
-    console.error("OCR parsing error:", error);
+    console.error("OCR parsing error details:", {
+      message: error.message,
+      status: error.status,
+      type: error.type,
+      error: error.error,
+    });
     return {
       confidence: {},
-      warnings: ["Failed to parse text automatically. Please enter details manually."],
+      warnings: [`API Error: ${error.message}. Please check your API key and try again.`],
     };
   }
 }
@@ -354,7 +372,7 @@ Return JSON array:
 
   try {
     const message = await anthropic.messages.create({
-      model: "claude-sonnet-4-5-20250929",
+      model: "claude-sonnet-4-20250514",
       max_tokens: 1000,
       messages: [{ role: "user", content: prompt }],
     });
@@ -425,7 +443,7 @@ Return JSON:
 
   try {
     const message = await anthropic.messages.create({
-      model: "claude-sonnet-4-5-20250929",
+      model: "claude-sonnet-4-20250514",
       max_tokens: 1200,
       messages: [{ role: "user", content: prompt }],
     });
@@ -483,7 +501,7 @@ Respond naturally and helpfully. If asked to perform actions like "book a load",
     ];
 
     const response = await anthropic.messages.create({
-      model: "claude-sonnet-4-5-20250929",
+      model: "claude-sonnet-4-20250514",
       max_tokens: 800,
       system: systemPrompt,
       messages,
@@ -500,3 +518,4 @@ Respond naturally and helpfully. If asked to perform actions like "book a load",
     return "I'm having trouble responding right now. Please try again.";
   }
 }
+

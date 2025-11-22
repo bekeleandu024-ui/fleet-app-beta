@@ -6,3 +6,4 @@ export async function GET() {
   const data = listCustomsClearances();
   return NextResponse.json(data);
 }
+

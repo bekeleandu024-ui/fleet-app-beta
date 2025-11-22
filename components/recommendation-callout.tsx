@@ -30,3 +30,4 @@ export function RecommendationCallout({ title, description, bullets = [] }: Reco
     </aside>
   );
 }
+

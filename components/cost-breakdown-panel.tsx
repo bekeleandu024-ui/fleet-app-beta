@@ -47,3 +47,4 @@ export function CostBreakdownPanel({ sections, totalLabel, totalValue }: CostBre
     </section>
   );
 }
+

@@ -62,3 +62,4 @@ export async function GET() {
     orderTypes: ["Full Truckload", "Partial", "Recovery", "Dedicated"],
   });
 }
+

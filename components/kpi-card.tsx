@@ -150,3 +150,4 @@ export function MetricCard({ label, current, previous, unit, className }: Metric
     </Card>
   );
 }
+

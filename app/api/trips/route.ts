@@ -212,3 +212,4 @@ function buildTripsResponse(trips: TripListItem[]) {
     data: trips,
   };
 }
+

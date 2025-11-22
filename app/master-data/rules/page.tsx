@@ -51,3 +51,4 @@ function MasterDataSkeleton({ title }: { title: string }) {
     </SectionBanner>
   );
 }
+

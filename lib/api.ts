@@ -295,3 +295,4 @@ export async function createTripEvent(tripId: string, payload: EventLogPayload):
   const response = await api.post(`/trips/${tripId}/events`, payload);
   return response.data;
 }
+

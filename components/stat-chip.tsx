@@ -42,3 +42,4 @@ export function StatChip({
     </span>
   );
 }
+

@@ -22,3 +22,4 @@ export function HealthDot({ status = "ok", className, ...rest }: HealthDotProps)
     />
   );
 }
+

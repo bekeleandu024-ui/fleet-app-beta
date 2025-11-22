@@ -28,3 +28,4 @@ export const queryKeys = {
   customs: () => ["customs"] as const,
   customsDetail: (id: string) => ["customs", id] as const,
 };
+

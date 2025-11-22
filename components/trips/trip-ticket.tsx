@@ -170,3 +170,4 @@ function ClockBadge() {
 function DollarBadge() {
   return <DollarSign className="h-3.5 w-3.5 text-neutral-500" />;
 }
+

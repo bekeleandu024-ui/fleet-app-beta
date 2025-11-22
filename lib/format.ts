@@ -58,3 +58,4 @@ export function formatNumber(value: number | null | undefined) {
   if (value === null || value === undefined) return "—";
   return new Intl.NumberFormat("en-US").format(value);
 }
+

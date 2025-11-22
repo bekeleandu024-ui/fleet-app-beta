@@ -259,3 +259,4 @@ export function toMasterDataResponse(records: EventAdminRecord[] | RuleAdminReco
     data,
   };
 }
+

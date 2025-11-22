@@ -9,3 +9,4 @@ export function formatError(error: unknown): string {
   }
   return "Unknown error";
 }
+

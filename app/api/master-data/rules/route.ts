@@ -50,3 +50,4 @@ function buildRuleResponse(rules: RuleRecord[]) {
     data: rules,
   };
 }
+

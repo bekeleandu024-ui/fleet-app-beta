@@ -174,3 +174,4 @@ export function GPSCapture({ onLocationCapture, className = "" }: GPSCaptureProp
     </Card>
   );
 }
+

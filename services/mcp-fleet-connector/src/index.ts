@@ -117,3 +117,4 @@ if (isDocker) {
 
 // Start MCP server
 startMCPServer().catch(console.error);
+

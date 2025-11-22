@@ -107,3 +107,4 @@ function calculateAgeHours(dateValue?: string | Date | null) {
   const diff = Date.now() - created.getTime();
   return Math.max(0, Math.floor(diff / (1000 * 60 * 60)));
 }
+

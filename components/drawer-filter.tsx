@@ -115,3 +115,4 @@ export function DrawerFilter({ title, sections, onClear, onApply, className }: D
     </div>
   );
 }
+

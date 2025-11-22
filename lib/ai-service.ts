@@ -158,3 +158,4 @@ export async function getTripInsights(tripId: string): Promise<{
     throw error;
   }
 }
+

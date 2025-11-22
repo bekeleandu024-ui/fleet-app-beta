@@ -230,3 +230,4 @@ export function StopManager({ stops, onStopsChange, className = "" }: StopManage
     </Card>
   );
 }
+

@@ -199,3 +199,4 @@ function generateInsights(data: {
 
   return insights;
 }
+

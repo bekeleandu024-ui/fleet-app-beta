@@ -164,3 +164,4 @@ function buildTopLanes(
       onTimePercent: stats.totalTrips ? Math.round((stats.onTimeTrips / stats.totalTrips) * 100) : 100,
     }));
 }
+

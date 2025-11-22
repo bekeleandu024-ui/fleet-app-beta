@@ -13,3 +13,4 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(({ className
   return <input ref={ref} type={type} className={cn(baseClasses, className)} {...props} />;
 });
 Input.displayName = "Input";
+

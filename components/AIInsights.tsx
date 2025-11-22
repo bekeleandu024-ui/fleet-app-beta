@@ -197,3 +197,4 @@ export default function AIInsights({ type, id }: AIInsightsProps) {
     </div>
   );
 }
+

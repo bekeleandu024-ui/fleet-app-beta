@@ -806,3 +806,4 @@ function calculateMiles(origin: string, destination: string): number {
     .reduce((acc, char) => acc + char.charCodeAt(0), 0);
   return Math.floor((hash % 900) + 100);
 }
+

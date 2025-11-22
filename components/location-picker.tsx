@@ -174,3 +174,4 @@ export function CoordinateInput({ lat, lon, onChange, className }: CoordinateInp
     </div>
   );
 }
+

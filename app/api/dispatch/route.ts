@@ -95,3 +95,4 @@ function formatWindow(value?: string | Date | null) {
   }
   return date.toLocaleString("en-US", { hour: "2-digit", minute: "2-digit" });
 }
+
