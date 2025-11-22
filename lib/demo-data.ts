@@ -260,6 +260,87 @@ const demoEvents = [
 
 const demoTrips = [
   {
+    id: "TRP-9001",
+    dispatch_id: "disp-1",
+    order_id: "ord-1001",
+    driver_id: "drv-101",
+    unit_id: "tr-2045",
+    status: "in_transit",
+    pickup_location: "Dallas, TX",
+    dropoff_location: "Atlanta, GA",
+    pickup_lat: 32.7767,
+    pickup_lng: -96.7970,
+    dropoff_lat: 33.7490,
+    dropoff_lng: -84.3880,
+    distance_miles: 781,
+    duration_hours: 11.5,
+    planned_start: "2024-05-05T12:00:00Z",
+    actual_start: "2024-05-05T12:05:00Z",
+    updated_at: "2024-05-06T10:00:00Z",
+    on_time_delivery: true,
+    linehaul_cost: 1200,
+    fuel_cost: 450,
+    total_cost: 1650,
+    recommended_revenue: 2100,
+    margin_pct: 21.4,
+    telemetry: [
+      { id: "t1", timestamp: "2024-05-06T09:30:00Z", speed: 57, location: "Birmingham, AL" },
+      { id: "t2", timestamp: "2024-05-06T10:00:00Z", speed: 55, location: "Anniston, AL" },
+    ],
+  },
+  {
+    id: "TRP-9002",
+    dispatch_id: "disp-2",
+    order_id: "ord-1002",
+    driver_id: "drv-204",
+    unit_id: "tr-3130",
+    status: "delayed",
+    pickup_location: "Chicago, IL",
+    dropoff_location: "Toronto, ON",
+    pickup_lat: 41.8781,
+    pickup_lng: -87.6298,
+    dropoff_lat: 43.6532,
+    dropoff_lng: -79.3832,
+    distance_miles: 520,
+    duration_hours: 8.5,
+    planned_start: "2024-05-06T08:30:00Z",
+    actual_start: "2024-05-06T09:00:00Z",
+    updated_at: "2024-05-06T12:30:00Z",
+    on_time_delivery: false,
+    linehaul_cost: 850,
+    fuel_cost: 320,
+    total_cost: 1170,
+    recommended_revenue: 1500,
+    margin_pct: 22.0,
+  },
+  {
+    id: "TRP-9003",
+    dispatch_id: "disp-3",
+    order_id: "ord-1003",
+    driver_id: "drv-311",
+    unit_id: "tr-4120",
+    status: "completed",
+    pickup_location: "Phoenix, AZ",
+    dropoff_location: "Denver, CO",
+    pickup_lat: 33.4484,
+    pickup_lng: -112.0740,
+    dropoff_lat: 39.7392,
+    dropoff_lng: -104.9903,
+    distance_miles: 602,
+    duration_hours: 9.0,
+    planned_start: "2024-05-03T10:15:00Z",
+    actual_start: "2024-05-03T10:10:00Z",
+    completed_at: "2024-05-04T09:10:00Z",
+    updated_at: "2024-05-04T09:10:00Z",
+    on_time_delivery: true,
+    linehaul_cost: 980,
+    fuel_cost: 380,
+    total_cost: 1360,
+    recommended_revenue: 1750,
+    margin_pct: 22.3,
+  },
+  // Keep legacy IDs for backward compatibility
+  {
     id: "trip-5001",
     dispatch_id: "disp-1",
     order_id: "ord-1001",
@@ -309,6 +390,13 @@ const demoTrips = [
 ];
 
 const demoTripEvents: Record<string, Array<Record<string, any>>> = {
+  "TRP-9001": [
+    { id: "ev-1", timestamp: "2024-05-05T12:10:00Z", summary: "Departed pickup", location: "Dallas, TX", status: "Recorded" },
+    { id: "ev-2", timestamp: "2024-05-06T09:25:00Z", summary: "Fuel stop", location: "Birmingham, AL", status: "Recorded" },
+  ],
+  "TRP-9002": [
+    { id: "ev-3", timestamp: "2024-05-06T09:05:00Z", summary: "Departed pickup", location: "Chicago, IL", status: "Recorded" },
+  ],
   "trip-5001": [
     { id: "ev-1", timestamp: "2024-05-05T12:10:00Z", summary: "Departed pickup", location: "Dallas, TX", status: "Recorded" },
     { id: "ev-2", timestamp: "2024-05-06T09:25:00Z", summary: "Fuel stop", location: "Birmingham, AL", status: "Recorded" },
@@ -319,6 +407,16 @@ const demoTripEvents: Record<string, Array<Record<string, any>>> = {
 };
 
 const demoTripExceptions: Record<string, Array<Record<string, any>>> = {
+  "TRP-9002": [
+    {
+      id: "ex-1",
+      type: "Weather",
+      severity: "warn",
+      opened: "2024-05-06T11:00:00Z",
+      owner: "Network Ops",
+      notes: "Lake effect snow slowing border crossing",
+    },
+  ],
   "trip-5002": [
     {
       id: "ex-1",

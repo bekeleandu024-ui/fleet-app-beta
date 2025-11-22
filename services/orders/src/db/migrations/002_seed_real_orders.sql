@@ -46,8 +46,3 @@ VALUES
   ('CAMCOR', 'delivery', 'exception', 'Dallas, TX', 'Memphis, TN', NOW() + INTERVAL '42 hours', 1425.00, NOW() - INTERVAL '657 hours', NOW()),
   ('CAMTAC', 'delivery', 'planning', 'Dallas, TX', 'Memphis, TN', NOW() + INTERVAL '1 hour', 1425.00, NOW() - INTERVAL '657 hours', NOW()),
   ('CEMTOL', 'delivery', 'in_transit', 'Dallas, TX', 'Atlanta, GA', NOW() + INTERVAL '21 hours', 737.50, NOW() - INTERVAL '283 hours', NOW());
-
--- Update the schema_migrations table
-INSERT INTO schema_migrations (filename, applied_at)
-VALUES ('002_seed_real_orders.sql', NOW())
-ON CONFLICT (filename) DO NOTHING;

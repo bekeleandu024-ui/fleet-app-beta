@@ -1,8 +1,9 @@
 import { randomUUID } from "crypto";
 import { NextResponse } from "next/server";
 
-import { serviceFetch, ServiceError } from "@/lib/service-client";
+import { serviceFetch, ServiceError, isMockId } from "@/lib/service-client";
 import { mapTripListItem } from "@/lib/transformers";
+import { resolveDemoResponse } from "@/lib/demo-data";
 
 // Helper function to calculate distance if missing
 async function calculateTripDistance(tripId: string, pickupLat?: number, pickupLng?: number, dropoffLat?: number, dropoffLng?: number) {
@@ -41,6 +42,29 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
   const { id } = await context.params;
 
   try {
+    // If this is a mock ID, use demo data directly
+    if (isMockId(id)) {
+      const trip = resolveDemoResponse("tracking", `/api/trips/${id}`) as Record<string, any> | undefined;
+      if (!trip) {
+        return NextResponse.json({ error: "Trip not found" }, { status: 404 });
+      }
+
+      // Get demo data for related entities
+      const order = trip.order_id ? resolveDemoResponse("orders", `/api/orders/${trip.order_id}`) as Record<string, any> : undefined;
+      const driversResult = resolveDemoResponse("masterData", "/api/metadata/drivers") as { drivers?: Array<Record<string, any>> };
+      const events = resolveDemoResponse("tracking", `/api/trips/${id}/events`) as Array<Record<string, any>> ?? [];
+      const exceptions = resolveDemoResponse("tracking", `/api/trips/${id}/exceptions`) as Array<Record<string, any>> ?? [];
+
+      const detail = buildTripDetail(trip, { 
+        order, 
+        driverRecords: driversResult?.drivers ?? [], 
+        events, 
+        exceptions 
+      });
+
+      return NextResponse.json(detail);
+    }
+
     const trip = await serviceFetch<Record<string, any>>("tracking", `/api/trips/${id}`);
 
     // Calculate distance if missing

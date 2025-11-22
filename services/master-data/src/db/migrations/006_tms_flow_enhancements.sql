@@ -201,12 +201,4 @@ VALUES
   ('Windsor, ON', 'Columbus, OH', 'Windsor→Columbus', 2.75, 'Customer Quote', 'Medium', CURRENT_DATE)
 ON CONFLICT (id) DO NOTHING;
 
--- ========================================
--- MIGRATION TRACKING
--- ========================================
-
-INSERT INTO schema_migrations (filename, applied_at)
-VALUES ('006_tms_flow_enhancements.sql', NOW())
-ON CONFLICT (filename) DO NOTHING;
-
 -- Migration complete
