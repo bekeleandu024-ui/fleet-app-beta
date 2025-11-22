@@ -1,12 +1,5 @@
 import { demoServiceHealth, resolveDemoResponse } from "@/lib/demo-data";
 
-// Helper to detect mock/demo IDs (e.g., TRP-9001, ORD-1234, trip-5001)
-export function isMockId(id: string): boolean {
-  // Pattern: starts with letters, dash, then numbers (TRP-9001, ORD-1234)
-  // OR starts with letters, dash, then numbers (trip-5001, order-1234)
-  return /^[A-Z]{3}-\d+$|^[a-z]+-\d+$/i.test(id);
-}
-
 const ORDERS_SERVICE = process.env.ORDERS_SERVICE ?? "http://localhost:4002";
 const MASTER_DATA_SERVICE = process.env.MASTER_DATA_SERVICE ?? "http://localhost:4001";
 const DISPATCH_SERVICE = process.env.DISPATCH_SERVICE ?? "http://localhost:4003";

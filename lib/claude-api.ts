@@ -432,24 +432,9 @@ Return JSON:
 
     const content = message.content[0];
     if (content.type === "text") {
-      // Try to extract JSON from the response
       const jsonMatch = content.text.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
-        try {
-          return JSON.parse(jsonMatch[0]);
-        } catch (parseError) {
-          // Try to clean up common JSON issues
-          let cleanedJson = jsonMatch[0];
-          // Remove trailing commas before closing brackets/braces
-          cleanedJson = cleanedJson.replace(/,\s*([\]}])/g, '$1');
-          // Try parsing again
-          try {
-            return JSON.parse(cleanedJson);
-          } catch (secondError) {
-            console.error("JSON parsing failed after cleanup:", secondError);
-            throw parseError; // Throw original error
-          }
-        }
+        return JSON.parse(jsonMatch[0]);
       }
     }
 
