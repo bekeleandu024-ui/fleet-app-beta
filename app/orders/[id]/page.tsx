@@ -19,12 +19,9 @@ import {
 import { useState, useEffect } from "react";
 
 import { RecommendationCallout } from "@/components/recommendation-callout";
-import { AIInsightsPanel } from "@/components/ai-insights-panel";
-import AIInsights from "@/components/AIInsights";
 import { StatChip } from "@/components/stat-chip";
 import { Button } from "@/components/ui/button";
 import { fetchOrderDetail } from "@/lib/api";
-import { getRouteOptimization } from "@/lib/ai-service";
 import { formatDateTime, formatDurationHours } from "@/lib/format";
 import { queryKeys } from "@/lib/query";
 import type { OrderDetail } from "@/lib/types";
@@ -42,7 +39,6 @@ export default function OrderDetailPage() {
   const params = useParams<{ id: string }>();
   const orderId = params?.id ?? "";
   const queryClient = useQueryClient();
-  const [showAIInsights, setShowAIInsights] = useState(false);
   const [selectedDriver, setSelectedDriver] = useState("");
   const [selectedUnit, setSelectedUnit] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("");
@@ -64,32 +60,7 @@ export default function OrderDetailPage() {
     }
   }, [data]);
 
-  const { data: aiInsights, isLoading: aiLoading, refetch: fetchAIInsights } = useQuery({
-    queryKey: ['ai-insights', orderId],
-    queryFn: async () => {
-      if (!data) return null;
-      const pickup = data.snapshot.stops.find(s => s.type === 'Pickup')?.location || '';
-      const delivery = data.snapshot.stops.find(s => s.type === 'Delivery')?.location || '';
-      
-      // Extract revenue from pricing totals
-      const revenueStr = data.pricing.totals.value.replace(/[^0-9.]/g, '');
-      const revenue = parseFloat(revenueStr) || undefined;
-      
-      return getRouteOptimization({
-        origin: pickup,
-        destination: delivery,
-        orderId,
-        miles: data.laneMiles,
-        revenue,
-      });
-    },
-    enabled: false,
-  });
 
-  const handleGetAIRecommendation = async () => {
-    setShowAIInsights(true);
-    await fetchAIInsights();
-  };
 
   const handleBookTrip = async () => {
     if (!data || !selectedDriver || !selectedUnit) {
@@ -231,48 +202,8 @@ export default function OrderDetailPage() {
       {/* 3-Column Layout */}
       <section className="grid grid-cols-12 gap-4">
         
-        {/* LEFT COLUMN - AI Insights & Route Optimization */}
-        <div className="col-span-12 lg:col-span-4 space-y-4">
-          {/* Claude AI Insights */}
-          <AIInsights type="order" id={orderId} />
-
-          {/* Route Optimization */}
-          {!showAIInsights ? (
-            <article className="rounded-xl border border-violet-700 bg-gradient-to-br from-violet-900/40 to-purple-900/40 p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <Sparkles className="w-4 h-4 text-violet-400" />
-                <h2 className="text-sm font-semibold text-violet-200">Route Optimization</h2>
-              </div>
-              <p className="text-xs text-violet-300 mb-3">
-                AI-powered driver recommendations and cost analysis
-              </p>
-              <Button
-                onClick={handleGetAIRecommendation}
-                disabled={aiLoading}
-                variant="primary"
-                size="sm"
-                className="w-full bg-violet-600 hover:bg-violet-700"
-              >
-                {aiLoading ? 'Analyzing...' : 'Get AI Recommendation'}
-              </Button>
-            </article>
-          ) : (
-            showAIInsights && aiInsights && (
-              <AIInsightsPanel
-                recommendation={aiInsights.recommendation}
-                driverRecommendations={aiInsights.driverRecommendations}
-                costComparison={aiInsights.costComparison}
-                insights={aiInsights.insights}
-                totalDistance={aiInsights.totalDistance}
-                estimatedTime={aiInsights.estimatedTime}
-                borderCrossings={aiInsights.borderCrossings}
-              />
-            )
-          )}
-        </div>
-
         {/* CENTER COLUMN - Order Summary & Pricing */}
-        <div className="col-span-12 lg:col-span-4 space-y-4 max-h-screen overflow-y-auto pr-2">
+        <div className="col-span-12 lg:col-span-8 space-y-4 max-h-screen overflow-y-auto pr-2">
           {/* Order Summary */}
           <article className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-4">
             <h2 className="text-sm font-medium text-neutral-400 uppercase tracking-wide mb-3">Order Summary</h2>

@@ -43,7 +43,6 @@ export default function OrderDetailPage() {
   const [isBooking, setIsBooking] = useState(false);
   const [isQualifying, setIsQualifying] = useState(false);
   const [qualificationNotes, setQualificationNotes] = useState("");
-  const [expandedAI, setExpandedAI] = useState(true);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: queryKeys.order(orderId),
@@ -314,7 +313,7 @@ export default function OrderDetailPage() {
           </section>
         </div>
 
-        {/* RIGHT (AI + Actions) - 30% - Fixed */}
+        {/* RIGHT (Actions) - 30% - Fixed */}
         <div className="col-span-12 lg:col-span-4 space-y-4 lg:sticky lg:top-4 lg:self-start">
           
           {/* Qualification */}
@@ -364,47 +363,6 @@ export default function OrderDetailPage() {
               </div>
             </div>
           )}
-
-          {/* AI Intelligence Panel */}
-          <section className="rounded-lg border border-neutral-800 bg-neutral-900/60 p-4">
-            <button
-              onClick={() => setExpandedAI(!expandedAI)}
-              className="w-full flex items-center justify-between text-left mb-3"
-            >
-              <h2 className="text-xs font-medium text-neutral-400 uppercase tracking-wide">AI Order Intelligence</h2>
-              {expandedAI ? <ChevronUp className="w-4 h-4 text-neutral-500" /> : <ChevronDown className="w-4 h-4 text-neutral-500" />}
-            </button>
-            
-            {expandedAI && (
-              <div className="space-y-3 text-sm">
-                <p className="text-xs text-neutral-400">
-                  Standard freight order with good margin. No critical issues detected.
-                </p>
-                
-                <div>
-                  <h3 className="text-xs font-medium text-neutral-500 mb-1">Top Issues</h3>
-                  <ul className="space-y-1 text-xs text-neutral-400">
-                    <li>• Driver availability low in region</li>
-                    <li>• Tight delivery window</li>
-                  </ul>
-                </div>
-
-                <div className="pt-2 border-t border-neutral-800">
-                  <h3 className="text-xs font-medium text-neutral-500 mb-2">Recommended</h3>
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-xs">
-                      <Truck className="w-3 h-3 text-teal-400" />
-                      <span className="text-neutral-300">{data.booking.recommendedDriverId || "Adrian Radu"}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs">
-                      <DollarSign className="w-3 h-3 text-teal-400" />
-                      <span className="text-neutral-300">Margin: 18%</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </section>
 
           {/* Guardrails */}
           <section className="rounded-lg border border-neutral-800 bg-neutral-900/60 p-3">
