@@ -356,9 +356,9 @@ export default function BookTripPage() {
       
       // Available drivers by type
       availableDrivers: {
-        com: drivers.filter(d => d.type === 'Company' || d.type === 'COM').map(d => d.name),
-        rnr: drivers.filter(d => d.type === 'Rental' || d.type === 'RNR').map(d => d.name),
-        oo: drivers.filter(d => d.type === 'Owner Operator' || d.type === 'OO').map(d => d.name)
+        com: drivers.filter(d => d.type === 'Company' || d.type === 'COM').map(d => ({ id: d.id, name: d.name })),
+        rnr: drivers.filter(d => d.type === 'Rental' || d.type === 'RNR').map(d => ({ id: d.id, name: d.name })),
+        oo: drivers.filter(d => d.type === 'Owner Operator' || d.type === 'OO').map(d => ({ id: d.id, name: d.name }))
       },
       
       // Route characteristics
@@ -368,7 +368,7 @@ export default function BookTripPage() {
       estimatedDuration: routeDuration,
       
       // Historical data (mock for now)
-      historicalMargin: 15,
+      historicalMargin: 5,
       laneFrequency: "High"
     };
 
