@@ -87,14 +87,22 @@ async function listOrders(customerId) {
     const result = await client_1.pool.query(query, params);
     return result.rows;
 }
-async function updateOrderStatus(id, status) {
-    const result = await client_1.pool.query(`UPDATE orders SET status = $1, updated_at = NOW()
-     WHERE id = $2
-     RETURNING *`, [status, id]);
+async function updateOrderStatus(id, status, notes) {
+    const updateFields = ['status = $1', 'updated_at = NOW()'];
+    const params = [status];
+    if (notes) {
+        updateFields.push(`special_instructions = COALESCE(special_instructions, '') || '\n[Qualification] ' || $${params.length + 1}`);
+        params.push(notes);
+    }
+    params.push(id);
+    const result = await client_1.pool.query(`UPDATE orders SET ${updateFields.join(', ')}
+     WHERE id = $${params.length}
+     RETURNING *`, params);
     const order = result.rows[0];
     await (0, kafkaProducer_1.publishEvent)("order.status.changed", {
         orderId: id,
         status,
+        notes,
         timestamp: new Date().toISOString(),
     });
     return order;

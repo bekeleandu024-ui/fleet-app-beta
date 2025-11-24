@@ -8,18 +8,21 @@ export async function POST(
     const { notes } = await request.json();
     const orderId = params.id;
 
-    // Update order status to "Qualified"
-    const response = await fetch(`${process.env.ORDERS_SERVICE_URL || 'http://localhost:4002'}/orders/${orderId}`, {
+    // Update order status to "Qualified" using the correct endpoint
+    const ordersServiceUrl = process.env.ORDERS_SERVICE || 'http://localhost:4002';
+    const response = await fetch(`${ordersServiceUrl}/api/orders/${orderId}/status`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        status: 'Qualified',
-        qualification_notes: notes,
+        status: 'CONFIRMED', // Use backend's CONFIRMED status
+        notes: notes, // Store qualification notes
       }),
     });
 
     if (!response.ok) {
-      throw new Error('Failed to qualify order');
+      const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+      console.error('Orders service error:', errorData);
+      throw new Error(errorData.error || 'Failed to qualify order');
     }
 
     const order = await response.json();
@@ -29,10 +32,10 @@ export async function POST(
       order,
       message: 'Order qualified successfully' 
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error qualifying order:', error);
     return NextResponse.json(
-      { error: 'Failed to qualify order' },
+      { error: error.message || 'Failed to qualify order' },
       { status: 500 }
     );
   }

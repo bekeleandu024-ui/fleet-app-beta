@@ -2,7 +2,20 @@
 
 import { useParams } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { CalendarClock, Gauge, Sparkles, CheckCircle2, AlertCircle } from "lucide-react";
+import { 
+  CalendarClock, 
+  Gauge, 
+  Sparkles, 
+  CheckCircle2, 
+  AlertCircle,
+  MapPin,
+  Truck,
+  DollarSign,
+  ChevronDown,
+  ChevronUp,
+  AlertTriangle,
+  Info
+} from "lucide-react";
 import { useState, useEffect } from "react";
 
 import { RecommendationCallout } from "@/components/recommendation-callout";
@@ -37,6 +50,12 @@ export default function OrderDetailPage() {
   const [isBooking, setIsBooking] = useState(false);
   const [isQualifying, setIsQualifying] = useState(false);
   const [qualificationNotes, setQualificationNotes] = useState("");
+  const [expandedAISections, setExpandedAISections] = useState({
+    operational: true,
+    suggestions: false,
+    financial: false,
+    risks: false,
+  });
 
   const { data, isLoading, isError } = useQuery({
     queryKey: queryKeys.order(orderId),
@@ -178,6 +197,17 @@ export default function OrderDetailPage() {
   const canQualify = data?.status === "PendingInfo" || data?.status === "New";
   const isQualified = data?.status === "Qualified" || data?.status === "Booked";
 
+  const toggleAISection = (section: keyof typeof expandedAISections) => {
+    setExpandedAISections(prev => ({ ...prev, [section]: !prev[section] }));
+  };
+
+  // Collect all missing data
+  const missingData = [];
+  if (!selectedDriver) missingData.push("Driver selection");
+  if (!selectedUnit) missingData.push("Unit selection");
+  if (!data?.snapshot.stops[0]?.windowStart) missingData.push("Pickup window");
+  if (!data?.snapshot.stops[1]?.windowStart) missingData.push("Delivery window");
+
   if (isLoading) {
     return <OrderDetailSkeleton />;
   }
@@ -196,115 +226,135 @@ export default function OrderDetailPage() {
     { label: `${data.laneMiles} lane mi` },
   ];
 
+  // Progress steps
+  const progressSteps = [
+    { label: "Created", active: true },
+    { label: "Needs Qualification", active: canQualify },
+    { label: "Ready for Dispatch", active: isQualified && !isBooking },
+    { label: "Booked", active: data.status === "Booked" || data.status === "In Transit" },
+    { label: "In Transit", active: data.status === "In Transit" },
+    { label: "Delivered", active: data.status === "Delivered" },
+  ];
+
   return (
-    <>
-      <header className="col-span-12 rounded-xl border border-neutral-800 bg-neutral-900/60 px-4 py-4 shadow-lg shadow-black/40">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+    <div className="col-span-12 max-w-[1440px] mx-auto">
+      {/* Header */}
+      <header className="rounded-xl border border-neutral-800 bg-neutral-900/60 px-4 py-3 mb-4">
+        <div className="flex items-center justify-between gap-3 mb-3">
           <div>
             <h1 className="text-lg font-semibold text-neutral-200">Order {data.id}</h1>
             <p className="text-xs text-neutral-500">{data.lane}</p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-2">
             {headerChips.map((chip) => (
               <StatChip key={chip.label} label={chip.label} variant={chip.variant ?? "default"} />
             ))}
           </div>
         </div>
+
+        {/* Progress Steps */}
+        <div className="flex items-center gap-2">
+          {progressSteps.map((step, idx) => (
+            <div key={step.label} className="flex items-center">
+              <div className={`flex items-center gap-2 px-3 py-1 rounded text-xs ${
+                step.active 
+                  ? 'bg-teal-500/20 text-teal-300 border border-teal-500/30' 
+                  : 'bg-neutral-800/50 text-neutral-500'
+              }`}>
+                {step.active && <CheckCircle2 className="w-3 h-3" />}
+                {step.label}
+              </div>
+              {idx < progressSteps.length - 1 && (
+                <div className="w-4 h-px bg-neutral-700 mx-1" />
+              )}
+            </div>
+          ))}
+        </div>
       </header>
 
-      <section className="col-span-12 grid gap-6 lg:grid-cols-12">
-        <div className="space-y-6 lg:col-span-7">
-          <article className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-4 shadow-lg shadow-black/40">
-            <header className="mb-4 flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-neutral-200">Order Snapshot</h2>
-              <span className="flex items-center gap-2 text-xs text-neutral-500">
-                <CalendarClock className="size-4" />
-                Updated {formatDateTime(data.snapshot.stops[0]?.windowStart ?? new Date().toISOString())}
-              </span>
-            </header>
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2 text-sm">
-                <p className="text-neutral-500">Customer</p>
+      {/* 3-Column Layout */}
+      <section className="grid grid-cols-12 gap-4">
+        
+        {/* LEFT COLUMN - Order Details (70% - Scrollable) */}
+        <div className="col-span-12 lg:col-span-8 space-y-4 max-h-screen overflow-y-auto pr-2">
+          {/* Order Summary */}
+          <article className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-4">
+            <h2 className="text-sm font-medium text-neutral-400 uppercase tracking-wide mb-3">Order Summary</h2>
+            <div className="space-y-3 text-sm">
+              <div>
+                <p className="text-xs text-neutral-500">Customer</p>
                 <p className="font-semibold text-neutral-200">{data.customer}</p>
-                <p className="text-neutral-500">Service Level</p>
-                <p className="font-semibold text-neutral-200">{data.serviceLevel}</p>
-                <p className="text-neutral-500">Commodity</p>
-                <p className="font-semibold text-neutral-200">{data.snapshot.commodity}</p>
               </div>
-              <div className="space-y-2 text-sm">
-                <p className="text-neutral-500">Windows</p>
-                <ul className="space-y-1 text-neutral-200">
-                  {data.snapshot.windows.map((window) => (
-                    <li key={window.label} className="flex items-center justify-between">
-                      <span>{window.label}</span>
-                      <span className="text-xs text-neutral-500">{window.value}</span>
+              <div>
+                <p className="text-xs text-neutral-500">Service Level / Commodity</p>
+                <p className="text-neutral-200">{data.serviceLevel} • {data.snapshot.commodity}</p>
+              </div>
+              <div className="pt-2 border-t border-neutral-800">
+                <p className="text-xs text-neutral-500 mb-2">Route & Stops</p>
+                <ul className="space-y-2">
+                  {data.snapshot.stops.map((stop) => (
+                    <li key={stop.id} className="rounded-lg border border-neutral-800 bg-neutral-900/50 p-2">
+                      <div className="flex items-center justify-between text-xs text-neutral-500 mb-1">
+                        <span className="font-medium">{stop.type}</span>
+                        <span>
+                          {new Date(stop.windowStart).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} –
+                          {" "}
+                          {new Date(stop.windowEnd).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        </span>
+                      </div>
+                      <p className="text-sm text-neutral-200">{stop.location}</p>
+                      {stop.instructions && (
+                        <p className="text-xs text-neutral-500 mt-1">{stop.instructions}</p>
+                      )}
                     </li>
                   ))}
                 </ul>
-                {data.snapshot.notes ? (
-                  <p className="mt-2 text-xs text-neutral-500">{data.snapshot.notes}</p>
-                ) : null}
               </div>
-            </div>
-            <div className="mt-4 grid gap-3 text-sm">
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Stops</h3>
-              <ul className="space-y-2">
-                {data.snapshot.stops.map((stop) => (
-                  <li key={stop.id} className="rounded-xl border border-neutral-800 bg-neutral-900/50 p-3">
-                    <div className="flex items-center justify-between text-xs uppercase tracking-wide text-neutral-500">
-                      <span>{stop.type}</span>
-                      <span>
-                        {new Date(stop.windowStart).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} –
-                        {" "}
-                        {new Date(stop.windowEnd).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                      </span>
-                    </div>
-                    <p className="mt-1 text-sm text-neutral-200">{stop.location}</p>
-                    {stop.instructions ? (
-                      <p className="mt-1 text-xs text-neutral-500">{stop.instructions}</p>
-                    ) : null}
-                  </li>
-                ))}
-              </ul>
+              {data.snapshot.notes && (
+                <div className="pt-2 border-t border-neutral-800">
+                  <p className="text-xs text-neutral-500">Notes</p>
+                  <p className="text-xs text-neutral-300 mt-1">{data.snapshot.notes}</p>
+                </div>
+              )}
             </div>
           </article>
 
-          <article className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-4 shadow-lg shadow-black/40">
-            <header className="mb-4 flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-neutral-200">Pricing & Cost</h2>
-              <span className="flex items-center gap-2 text-xs text-neutral-500">
-                <Gauge className="size-4" /> Pricing engine synced
-              </span>
-            </header>
-            <dl className="grid gap-3 text-sm md:grid-cols-2">
+          {/* Pricing */}
+          <article className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-semibold text-neutral-200">Pricing</h2>
+              <Gauge className="w-4 h-4 text-neutral-500" />
+            </div>
+            <dl className="space-y-2 text-sm">
               {data.pricing.items.map((item) => (
-                <div key={item.label} className="rounded-xl border border-neutral-800 bg-neutral-900/50 p-3">
-                  <dt className="text-xs uppercase tracking-wide text-neutral-500">{item.label}</dt>
-                  <dd className="mt-1 text-sm font-semibold text-neutral-200">{item.value}</dd>
-                  {item.helper ? <p className="text-xs text-neutral-500">{item.helper}</p> : null}
+                <div key={item.label} className="flex items-center justify-between py-2 border-b border-neutral-800 last:border-0">
+                  <dt className="text-xs text-neutral-500">{item.label}</dt>
+                  <dd className="font-semibold text-neutral-200">{item.value}</dd>
                 </div>
               ))}
+              <div className="flex items-center justify-between pt-2 border-t-2 border-neutral-700 font-semibold text-neutral-200">
+                <span>{data.pricing.totals.label}</span>
+                <span>{data.pricing.totals.value}</span>
+              </div>
             </dl>
-            <div className="mt-4 flex items-center justify-between rounded-xl border border-neutral-800 bg-neutral-900/50 px-4 py-3 text-sm font-semibold text-neutral-200">
-              <span>{data.pricing.totals.label}</span>
-              <span>{data.pricing.totals.value}</span>
-            </div>
-            {data.pricing.totals.helper ? (
-              <p className="mt-2 text-xs text-neutral-500">{data.pricing.totals.helper}</p>
-            ) : null}
+            {data.pricing.totals.helper && (
+              <p className="text-xs text-neutral-500 mt-2">{data.pricing.totals.helper}</p>
+            )}
           </article>
         </div>
 
-        <aside className="lg:col-span-5 space-y-6">
-          {/* Qualification Panel */}
+        {/* CENTER COLUMN - Booking & Actions */}
+        <div className="col-span-12 lg:col-span-4 space-y-4">
+          
+          {/* Qualification Alert */}
           {canQualify && !isQualifying && (
-            <article className="rounded-xl border border-amber-700 bg-linear-to-br from-amber-900/40 to-orange-900/40 p-4 shadow-lg shadow-black/40">
-              <div className="flex items-center gap-3 mb-3">
-                <AlertCircle className="w-5 h-5 text-amber-400" />
-                <h2 className="text-sm font-semibold text-amber-200">Order Needs Qualification</h2>
+            <article className="rounded-xl border border-amber-700 bg-gradient-to-br from-amber-900/40 to-orange-900/40 p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <AlertCircle className="w-4 h-4 text-amber-400" />
+                <h2 className="text-sm font-semibold text-amber-200">Needs Qualification</h2>
               </div>
-              <p className="text-xs text-amber-300 mb-4">
-                Review order details, verify windows, equipment requirements, and qualify for booking
+              <p className="text-xs text-amber-300 mb-3">
+                Review and verify order details before booking
               </p>
               <Button
                 onClick={() => setIsQualifying(true)}
@@ -317,103 +367,51 @@ export default function OrderDetailPage() {
             </article>
           )}
 
+          {/* Qualification Form */}
           {isQualifying && (
-            <article className="rounded-xl border border-emerald-700 bg-linear-to-br from-emerald-900/40 to-teal-900/40 p-4 shadow-lg shadow-black/40">
-              <div className="flex items-center gap-3 mb-3">
-                <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+            <article className="rounded-xl border border-emerald-700 bg-gradient-to-br from-emerald-900/40 to-teal-900/40 p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                 <h2 className="text-sm font-semibold text-emerald-200">Qualify Order</h2>
               </div>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-xs font-medium text-emerald-300 mb-2">
-                    Qualification Notes
-                  </label>
-                  <textarea
-                    className="w-full h-32 px-3 py-2 bg-black/40 border border-emerald-800 rounded-md text-white text-sm focus:border-emerald-500 focus:outline-none resize-none"
-                    placeholder="Verify pickup/delivery details, equipment requirements, special handling..."
-                    value={qualificationNotes}
-                    onChange={(e) => setQualificationNotes(e.target.value)}
-                  />
-                </div>
-
-                <div className="flex gap-2">
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    onClick={handleQualify}
-                    disabled={qualifyMutation.isPending}
-                    className="flex-1 bg-emerald-600 hover:bg-emerald-700"
-                  >
-                    {qualifyMutation.isPending ? "Qualifying..." : "Mark as Qualified"}
-                  </Button>
-                  <Button
-                    variant="subtle"
-                    size="sm"
-                    onClick={() => {
-                      setIsQualifying(false);
-                      setQualificationNotes("");
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                </div>
+              <textarea
+                className="w-full h-24 px-3 py-2 bg-black/40 border border-emerald-800 rounded-md text-white text-sm focus:border-emerald-500 focus:outline-none resize-none mb-3"
+                placeholder="Verification notes: pickup/delivery details, equipment, special handling..."
+                value={qualificationNotes}
+                onChange={(e) => setQualificationNotes(e.target.value)}
+              />
+              <div className="flex gap-2">
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={handleQualify}
+                  disabled={qualifyMutation.isPending}
+                  className="flex-1 bg-emerald-600 hover:bg-emerald-700"
+                >
+                  {qualifyMutation.isPending ? "Qualifying..." : "Qualify"}
+                </Button>
+                <Button
+                  variant="subtle"
+                  size="sm"
+                  onClick={() => {
+                    setIsQualifying(false);
+                    setQualificationNotes("");
+                  }}
+                >
+                  Cancel
+                </Button>
               </div>
             </article>
           )}
 
-          {/* Claude-Powered AI Dispatch Insights - NEW */}
-          <AIInsights type="order" id={orderId} />
-
-          {/* AI Insights Section */}
-          {!showAIInsights && (
-            <article className="rounded-xl border border-violet-700 bg-linear-to-br from-violet-900/40 to-purple-900/40 p-4 shadow-lg shadow-black/40">
-              <div className="flex items-center gap-3 mb-3">
-                <Sparkles className="w-5 h-5 text-violet-400" />
-                <h2 className="text-sm font-semibold text-violet-200">AI Route Optimization</h2>
-              </div>
-              <p className="text-xs text-violet-300 mb-4">
-                Get AI-powered driver recommendations and cost analysis for this route
-              </p>
-              <Button
-                onClick={handleGetAIRecommendation}
-                disabled={aiLoading}
-                variant="primary"
-                size="sm"
-                className="w-full bg-violet-600 hover:bg-violet-700"
-              >
-                {aiLoading ? 'Analyzing...' : 'Get AI Recommendation'}
-              </Button>
-            </article>
-          )}
-
-          {showAIInsights && aiInsights && (
-            <AIInsightsPanel
-              recommendation={aiInsights.recommendation}
-              driverRecommendations={aiInsights.driverRecommendations}
-              costComparison={aiInsights.costComparison}
-              insights={aiInsights.insights}
-              totalDistance={aiInsights.totalDistance}
-              estimatedTime={aiInsights.estimatedTime}
-              borderCrossings={aiInsights.borderCrossings}
-            />
-          )}
-
-          <RecommendationCallout
-            title="Guardrail summary"
-            description="Key constraints enforced before booking."
-            bullets={data.booking.guardrails}
-          />
-          <article className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-4 shadow-lg shadow-black/40">
-            <header className="mb-4">
-              <h2 className="text-sm font-semibold text-neutral-200">Booking Console</h2>
-              <p className="text-xs text-neutral-500">Pair qualified driver and equipment, then commit.</p>
-            </header>
-            <div className="space-y-4">
+          {/* Booking Console */}
+          <article className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-4">
+            <h2 className="text-sm font-semibold text-neutral-200 mb-3">Booking Console</h2>
+            <div className="space-y-3">
               <label className="block">
-                <span className="block text-xs font-medium uppercase tracking-wide text-neutral-500 mb-2">Driver</span>
+                <span className="block text-xs text-neutral-500 mb-1">Driver</span>
                 <select 
-                  className="w-full rounded-md border border-neutral-800 bg-neutral-900/60 px-3 py-2 text-sm text-neutral-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
+                  className="w-full rounded-md border border-neutral-800 bg-neutral-900 px-3 py-2 text-sm text-neutral-200"
                   value={selectedDriver}
                   onChange={(e) => setSelectedDriver(e.target.value)}
                 >
@@ -426,9 +424,9 @@ export default function OrderDetailPage() {
               </label>
               
               <label className="block">
-                <span className="block text-xs font-medium uppercase tracking-wide text-neutral-500 mb-2">Unit</span>
+                <span className="block text-xs text-neutral-500 mb-1">Unit</span>
                 <select 
-                  className="w-full rounded-md border border-neutral-800 bg-neutral-900/60 px-3 py-2 text-sm text-neutral-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
+                  className="w-full rounded-md border border-neutral-800 bg-neutral-900 px-3 py-2 text-sm text-neutral-200"
                   value={selectedUnit}
                   onChange={(e) => setSelectedUnit(e.target.value)}
                 >
@@ -441,9 +439,9 @@ export default function OrderDetailPage() {
               </label>
               
               <label className="block">
-                <span className="block text-xs font-medium uppercase tracking-wide text-neutral-500 mb-2">Update Status</span>
+                <span className="block text-xs text-neutral-500 mb-1">Status</span>
                 <select 
-                  className="w-full rounded-md border border-neutral-800 bg-neutral-900/60 px-3 py-2 text-sm text-neutral-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
+                  className="w-full rounded-md border border-neutral-800 bg-neutral-900 px-3 py-2 text-sm text-neutral-200"
                   value={selectedStatus}
                   onChange={(e) => setSelectedStatus(e.target.value)}
                 >
@@ -454,49 +452,76 @@ export default function OrderDetailPage() {
               </label>
               
               <label className="block">
-                <span className="block text-xs font-medium uppercase tracking-wide text-neutral-500 mb-2">Notes</span>
+                <span className="block text-xs text-neutral-500 mb-1">Notes</span>
                 <textarea
-                  rows={3}
-                  className="w-full rounded-md border border-neutral-800 bg-neutral-900/60 px-3 py-2 text-sm text-neutral-200 placeholder:text-neutral-600 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors resize-none"
-                  placeholder="Add dispatcher notes"
+                  rows={2}
+                  className="w-full rounded-md border border-neutral-800 bg-neutral-900 px-3 py-2 text-sm text-neutral-200 placeholder:text-neutral-600 resize-none"
+                  placeholder="Dispatcher notes"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                 />
               </label>
               
-              <div className="flex flex-col gap-2 pt-2">
-                <Button 
-                  type="button" 
-                  variant="primary" 
-                  size="sm" 
-                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium"
-                  onClick={handleBookTrip}
-                  disabled={isBooking || !selectedDriver || !selectedUnit}
-                >
-                  {isBooking ? "Booking..." : "Book Trip"}
-                </Button>
-                <div className="grid grid-cols-2 gap-2">
-                  <Button 
-                    type="button" 
-                    variant="subtle" 
-                    size="sm"
-                    onClick={handleCalculateCost}
-                  >
-                    Calculate Cost
-                  </Button>
-                  <Button 
-                    type="button" 
-                    variant="subtle" 
-                    size="sm"
-                    onClick={handleUpdateStatus}
-                  >
-                    Update Status
-                  </Button>
-                </div>
-              </div>
+              <Button 
+                type="button" 
+                variant="primary" 
+                size="sm" 
+                className="w-full bg-emerald-600 hover:bg-emerald-700"
+                onClick={handleBookTrip}
+                disabled={isBooking || !selectedDriver || !selectedUnit}
+              >
+                {isBooking ? "Booking..." : "Book Trip"}
+              </Button>
             </div>
           </article>
-        </aside>
+
+          {/* Guardrails */}
+          <RecommendationCallout
+            title="Booking Guardrails"
+            description="Constraints enforced before booking"
+            bullets={data.booking.guardrails}
+          />
+        </div>
+
+        {/* RIGHT COLUMN - AI Insights */}
+        <div className="col-span-12 lg:col-span-4 space-y-4">
+          {/* Claude AI Insights */}
+          <AIInsights type="order" id={orderId} />
+
+          {/* Route Optimization */}
+          {!showAIInsights ? (
+            <article className="rounded-xl border border-violet-700 bg-gradient-to-br from-violet-900/40 to-purple-900/40 p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Sparkles className="w-4 h-4 text-violet-400" />
+                <h2 className="text-sm font-semibold text-violet-200">Route Optimization</h2>
+              </div>
+              <p className="text-xs text-violet-300 mb-3">
+                AI-powered driver recommendations and cost analysis
+              </p>
+              <Button
+                onClick={handleGetAIRecommendation}
+                disabled={aiLoading}
+                variant="primary"
+                size="sm"
+                className="w-full bg-violet-600 hover:bg-violet-700"
+              >
+                {aiLoading ? 'Analyzing...' : 'Get AI Recommendation'}
+              </Button>
+            </article>
+          ) : (
+            showAIInsights && aiInsights && (
+              <AIInsightsPanel
+                recommendation={aiInsights.recommendation}
+                driverRecommendations={aiInsights.driverRecommendations}
+                costComparison={aiInsights.costComparison}
+                insights={aiInsights.insights}
+                totalDistance={aiInsights.totalDistance}
+                estimatedTime={aiInsights.estimatedTime}
+                borderCrossings={aiInsights.borderCrossings}
+              />
+            )
+          )}
+        </div>
       </section>
     </>
   );

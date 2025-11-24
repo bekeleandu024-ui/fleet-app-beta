@@ -104,12 +104,22 @@ export async function listOrders(customerId?: string): Promise<Order[]> {
   return result.rows;
 }
 
-export async function updateOrderStatus(id: string, status: OrderStatus): Promise<Order> {
+export async function updateOrderStatus(id: string, status: OrderStatus, notes?: string): Promise<Order> {
+  const updateFields = ['status = $1', 'updated_at = NOW()'];
+  const params: any[] = [status];
+  
+  if (notes) {
+    updateFields.push(`special_instructions = COALESCE(special_instructions, '') || '\n[Qualification] ' || $${params.length + 1}`);
+    params.push(notes);
+  }
+  
+  params.push(id);
+  
   const result = await pool.query(
-    `UPDATE orders SET status = $1, updated_at = NOW()
-     WHERE id = $2
+    `UPDATE orders SET ${updateFields.join(', ')}
+     WHERE id = $${params.length}
      RETURNING *`,
-    [status, id]
+    params
   );
 
   const order = result.rows[0];
@@ -117,6 +127,7 @@ export async function updateOrderStatus(id: string, status: OrderStatus): Promis
   await publishEvent("order.status.changed", {
     orderId: id,
     status,
+    notes,
     timestamp: new Date().toISOString(),
   });
 

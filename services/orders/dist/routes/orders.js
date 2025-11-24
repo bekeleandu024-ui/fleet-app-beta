@@ -45,8 +45,8 @@ router.get("/:id", async (req, res) => {
 // Update order status
 router.patch("/:id/status", async (req, res) => {
     try {
-        const { status } = req.body;
-        const order = await (0, orderService_1.updateOrderStatus)(req.params.id, status);
+        const { status, notes } = req.body;
+        const order = await (0, orderService_1.updateOrderStatus)(req.params.id, status, notes);
         res.json(order);
     }
     catch (error) {
