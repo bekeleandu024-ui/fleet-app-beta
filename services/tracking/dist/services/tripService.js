@@ -16,7 +16,7 @@ const tripEventService_1 = require("./tripEventService");
 const tripLocationService_1 = require("./tripLocationService");
 const kafkaProducer_1 = require("./kafkaProducer");
 async function createTrip(input) {
-    const { orderId, dispatchId, driverId, unitId, pickup, delivery, stops = [], plannedStart, plannedMiles, notes, } = input;
+    const { orderId, dispatchId, driverId, unitId, pickup, delivery, stops = [], plannedStart, plannedMiles, notes, miles, totalRevenue, totalCost, marginPct, } = input;
     const trip = await (0, client_1.withTransaction)(async (client) => {
         const insertTrip = await client.query(`INSERT INTO trips (
         order_id,
@@ -36,9 +36,13 @@ async function createTrip(input) {
         delivery_window_end,
         planned_start,
         planned_miles,
-        notes
+        notes,
+        distance_miles,
+        revenue,
+        total_cost,
+        margin_pct
       ) VALUES (
-        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18
+        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22
       ) RETURNING *`, [
             orderId,
             dispatchId ?? null,
@@ -56,8 +60,12 @@ async function createTrip(input) {
             delivery.windowStart ?? null,
             delivery.windowEnd ?? null,
             plannedStart ?? null,
-            plannedMiles ?? null,
+            plannedMiles ?? miles ?? null,
             notes ?? null,
+            miles ?? null,
+            totalRevenue ?? null,
+            totalCost ?? null,
+            marginPct ?? null,
         ]);
         const created = insertTrip.rows[0];
         const stopTuples = [

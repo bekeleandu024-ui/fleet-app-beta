@@ -58,21 +58,23 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
       }
     }
 
-    const [orderResult, driversResult, eventsResult, exceptionsResult] = await Promise.allSettled([
+    const [orderResult, driversResult, unitsResult, eventsResult, exceptionsResult] = await Promise.allSettled([
       trip.order_id
         ? serviceFetch<Record<string, any>>("orders", `/api/orders/${trip.order_id}`)
         : Promise.resolve(undefined),
       serviceFetch<{ drivers?: Array<Record<string, any>> }>("masterData", "/api/metadata/drivers"),
+      serviceFetch<{ units?: Array<Record<string, any>> }>("masterData", "/api/metadata/units"),
       serviceFetch<Array<Record<string, any>>>("tracking", `/api/trips/${id}/events`),
       serviceFetch<Array<Record<string, any>>>("tracking", `/api/trips/${id}/exceptions`),
     ]);
 
     const order = orderResult.status === "fulfilled" ? orderResult.value : undefined;
     const drivers = driversResult.status === "fulfilled" ? driversResult.value.drivers ?? [] : [];
+    const units = unitsResult.status === "fulfilled" ? unitsResult.value.units ?? [] : [];
     const events = eventsResult.status === "fulfilled" ? eventsResult.value ?? [] : [];
     const exceptions = exceptionsResult.status === "fulfilled" ? exceptionsResult.value ?? [] : [];
 
-    const detail = buildTripDetail(trip, { order, driverRecords: drivers, events, exceptions });
+    const detail = buildTripDetail(trip, { order, driverRecords: drivers, unitRecords: units, events, exceptions });
 
     return NextResponse.json(detail);
   } catch (error) {
@@ -89,13 +91,15 @@ function buildTripDetail(
   context: {
     order?: Record<string, any>;
     driverRecords: Array<Record<string, any>>;
+    unitRecords: Array<Record<string, any>>;
     events: Array<Record<string, any>>;
     exceptions: Array<Record<string, any>>;
   }
 ) {
   const driver = context.driverRecords.find((record) => String(record.id ?? record.driver_id) === String(trip.driver_id));
   const driverName = driver?.driver_name ?? driver?.name ?? trip.driver_id ?? "Unassigned";
-  const unitNumber = trip.unit_id ?? trip.unit ?? "Pending";
+  const unit = context.unitRecords.find((record) => String(record.id ?? record.unit_id) === String(trip.unit_id));
+  const unitNumber = unit?.unit_number ?? trip.unit_number ?? trip.unit_id ?? "Pending";
   const pickupWindowStart = trip.pickup_window_start ?? trip.pickup_window?.start;
   const pickupWindowEnd = trip.pickup_window_end ?? trip.pickup_window?.end;
   const deliveryWindowStart = trip.delivery_window_start ?? trip.delivery_window?.start;
@@ -133,9 +137,10 @@ function buildTripDetail(
     tripNumber: listItem.tripNumber,
     status: listItem.status,
     driver: listItem.driver,
-    driverType: trip.driver_type ?? driver?.type,
-    unit: listItem.unit,
-    unitType: trip.unit_type ?? trip.equipment_type,
+    driverType: trip.driver_type ?? driver?.driver_type,
+    unit: unitNumber,
+    unitNumber: unitNumber,
+    unitType: trip.unit_type ?? trip.equipment_type ?? unit?.equipment_type,
     eta: listItem.eta,
     pickup: listItem.pickup,
     delivery: listItem.delivery,

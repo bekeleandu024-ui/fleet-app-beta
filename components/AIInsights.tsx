@@ -137,57 +137,46 @@ export default function AIInsights({ type, id }: AIInsightsProps) {
       </div>
 
       {/* Summary */}
-      <p className="text-gray-300 text-sm mb-6 border-l-2 border-purple-600 pl-4 py-2">
+      <p className="text-gray-300 text-xs mb-4 border-l-2 border-purple-600 pl-3 py-1">
         {insights.summary}
       </p>
 
       {/* Recommendations (for orders) */}
       {type === 'order' && insights.recommendedDriver && (
-        <div className="mb-6 space-y-3">
-          <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-medium text-gray-400">RECOMMENDED DRIVER</span>
-              <span className="text-xs text-green-400">Best Match</span>
+        <div className="mb-4 space-y-2">
+          <div className="bg-gray-800 border border-gray-700 rounded-lg p-3">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs font-medium text-gray-400">DRIVER</span>
+              <span className="text-xs text-green-400">✓</span>
             </div>
-            <div className="text-white font-medium">{insights.recommendedDriver.name}</div>
-            <div className="text-sm text-gray-400 mt-1">{insights.recommendedDriver.reason}</div>
+            <div className="text-white font-medium text-sm">{insights.recommendedDriver.name}</div>
           </div>
 
           {insights.recommendedUnit && (
-            <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-medium text-gray-400">RECOMMENDED UNIT</span>
-                <span className="text-xs text-green-400">Best Match</span>
+            <div className="bg-gray-800 border border-gray-700 rounded-lg p-3">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-medium text-gray-400">UNIT</span>
+                <span className="text-xs text-green-400">✓</span>
               </div>
-              <div className="text-white font-medium">Unit {insights.recommendedUnit.number}</div>
-              <div className="text-sm text-gray-400 mt-1">{insights.recommendedUnit.reason}</div>
+              <div className="text-white font-medium text-sm">Unit {insights.recommendedUnit.number}</div>
             </div>
           )}
         </div>
       )}
 
       {/* Insights */}
-      <div className="space-y-3">
+      <div className="space-y-2">
         {insights.insights.map((insight, index) => (
           <div
             key={index}
-            className={`border rounded-lg p-4 ${getSeverityColor(insight.severity)}`}
+            className={`border rounded-lg p-3 ${getSeverityColor(insight.severity)}`}
           >
-            <div className="flex items-start space-x-3">
+            <div className="flex items-start space-x-2">
               <div className="mt-0.5">{getSeverityIcon(insight.severity)}</div>
               <div className="flex-1">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-medium text-gray-400">
-                    {getCategoryLabel(insight.category)}
-                  </span>
-                </div>
-                <div className="text-white font-medium text-sm mb-1">{insight.title}</div>
-                <div className="text-gray-300 text-sm">{insight.description}</div>
+                <div className="text-white font-medium text-xs mb-0.5">{insight.title}</div>
                 {insight.action && (
-                  <div className="mt-2 pt-2 border-t border-gray-700">
-                    <div className="text-xs text-gray-400">💡 Recommendation:</div>
-                    <div className="text-sm text-gray-200 mt-1">{insight.action}</div>
-                  </div>
+                  <div className="text-xs text-gray-300 mt-1">{insight.action}</div>
                 )}
               </div>
             </div>

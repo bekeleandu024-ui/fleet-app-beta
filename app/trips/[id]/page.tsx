@@ -107,23 +107,25 @@ export default function TripDetailPage() {
                 <Package className="h-4 w-4" /> Assignment
               </div>
               <div className="space-y-2 text-sm">
-                <DetailRow label="Driver" value={aiInsights?.currentAssignment.driver ?? data.driver} />
-                <DetailRow label="Type" value={aiInsights?.currentAssignment.driverType ?? data.driverType ?? "—"} />
-                <DetailRow label="Unit" value={aiInsights?.currentAssignment.unit ?? data.unit} />
-                <DetailRow
-                  label="Rate"
-                  value={aiInsights?.currentAssignment.effectiveRate ? `${aiInsights.currentAssignment.effectiveRate}/mi` : "—"}
+                <DetailRow label="Driver" value={data.driver} />
+                <DetailRow label="Type" value={data.driverType ?? "—"} />
+                <DetailRow label="Unit" value={data.unitNumber || data.unit} />
+                <DetailRow label="Unit Type" value={data.unitType ?? "—"} />
+                <DetailRow label="Order" value={data.tripNumber} />
+                <DetailRow 
+                  label="Distance" 
+                  value={
+                    data.metrics?.distanceMiles 
+                      ? `${Math.round(data.metrics.distanceMiles)} mi` 
+                      : distanceMiles 
+                        ? `${Math.round(distanceMiles)} mi`
+                        : "—"
+                  } 
                 />
                 <div className="border-t border-neutral-800 pt-2 mt-2">
                   <DetailRow
-                    label="Est. Cost"
-                    value={
-                      aiInsights?.currentAssignment.estimatedCost
-                        ? formatCurrency(aiInsights.currentAssignment.estimatedCost)
-                        : data.metrics?.totalCost
-                          ? formatCurrency(data.metrics.totalCost)
-                          : "—"
-                    }
+                    label="Total Cost"
+                    value={data.metrics?.totalCost ? formatCurrency(data.metrics.totalCost) : "—"}
                     emphasize
                   />
                 </div>
@@ -271,85 +273,13 @@ export default function TripDetailPage() {
                 </div>
               </div>
             </div>
-
-            {/* AI Insights panel */}
-            <div>
-              <AIInsights type="trip" id={tripId} />
-            </div>
           </div>
         </Card>
 
-        {/* RIGHT COLUMN - Notes + Attachments combined */}
-        <Card className="col-span-12 lg:col-span-3 border-neutral-800/70 bg-neutral-900/60 p-4">
-          <div className="space-y-4">
-            <div className="border-b border-neutral-800 pb-4">
-              <div className="mb-3 flex items-center justify-between">
-                <p className="text-sm font-semibold text-neutral-100">Notes</p>
-                <MessageSquare className="h-4 w-4 text-neutral-500" />
-              </div>
-              <div className="space-y-3">
-                <textarea
-                  className="w-full rounded-lg border border-neutral-800 bg-neutral-900/60 px-3 py-2 text-sm text-neutral-200 placeholder-neutral-500"
-                  rows={3}
-                  placeholder="Add a note..."
-                  value={noteText}
-                  onChange={(e) => setNoteText(e.target.value)}
-                />
-                <Button size="sm" variant="primary" className="w-full" disabled={!noteText.trim()} onClick={handleAddNote}>
-                  <MessageSquare className="mr-2 h-4 w-4" /> Add Note
-                </Button>
-                <div className="space-y-2 max-h-60 overflow-y-auto">
-                  {data.notes.length === 0 ? (
-                    <p className="text-xs text-neutral-500">No notes yet</p>
-                  ) : (
-                    data.notes.map((note) => (
-                      <div
-                        key={note.id}
-                        className="rounded-lg border border-neutral-800/70 bg-neutral-900/50 px-3 py-2 text-sm text-neutral-200"
-                      >
-                        <div className="flex items-center justify-between text-[11px] text-neutral-500">
-                          <span className="font-medium">{note.author}</span>
-                          <span>{formatDateTime(note.timestamp)}</span>
-                        </div>
-                        <p className="mt-1 text-neutral-200">{note.body}</p>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <div className="mb-3 flex items-center justify-between">
-                <p className="text-sm font-semibold text-neutral-100">Attachments</p>
-                <FileText className="h-4 w-4 text-neutral-500" />
-              </div>
-              {data.attachments.length === 0 ? (
-                <div className="text-center">
-                  <p className="text-sm text-neutral-500">No attachments</p>
-                  <Button size="sm" variant="subtle" className="mt-2 w-full">
-                    Upload File
-                  </Button>
-                </div>
-              ) : (
-                <ul className="space-y-2 text-sm max-h-48 overflow-y-auto">
-                  {data.attachments.map((file) => (
-                    <li
-                      key={file.id}
-                      className="flex items-center justify-between rounded-lg border border-neutral-800/70 bg-neutral-900/50 px-3 py-2"
-                    >
-                      <div className="flex items-center gap-2">
-                        <FileText className="h-4 w-4 text-neutral-500" />
-                        <span className="text-neutral-200 truncate">{file.name}</span>
-                      </div>
-                      <span className="text-xs text-neutral-500 flex-shrink-0">{file.size}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          </div>
-        </Card>
+        {/* RIGHT COLUMN - AI Insights */}
+        <div className="col-span-12 lg:col-span-3">
+          <AIInsights type="trip" id={tripId} />
+        </div>
       </div>
     </div>
   );

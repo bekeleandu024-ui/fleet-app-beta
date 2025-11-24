@@ -42,6 +42,10 @@ export interface CreateTripInput {
   plannedStart?: NullableDate;
   plannedMiles?: number;
   notes?: string;
+  miles?: number;
+  totalRevenue?: number;
+  totalCost?: number;
+  marginPct?: number;
 }
 
 export interface UpdateTripInput {
@@ -67,6 +71,10 @@ export async function createTrip(input: CreateTripInput): Promise<Trip> {
     plannedStart,
     plannedMiles,
     notes,
+    miles,
+    totalRevenue,
+    totalCost,
+    marginPct,
   } = input;
 
   const trip = await withTransaction(async (client) => {
@@ -89,9 +97,13 @@ export async function createTrip(input: CreateTripInput): Promise<Trip> {
         delivery_window_end,
         planned_start,
         planned_miles,
-        notes
+        notes,
+        distance_miles,
+        revenue,
+        total_cost,
+        margin_pct
       ) VALUES (
-        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18
+        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22
       ) RETURNING *`,
       [
         orderId,
@@ -110,8 +122,12 @@ export async function createTrip(input: CreateTripInput): Promise<Trip> {
         delivery.windowStart ?? null,
         delivery.windowEnd ?? null,
         plannedStart ?? null,
-        plannedMiles ?? null,
+        plannedMiles ?? miles ?? null,
         notes ?? null,
+        miles ?? null,
+        totalRevenue ?? null,
+        totalCost ?? null,
+        marginPct ?? null,
       ]
     );
 

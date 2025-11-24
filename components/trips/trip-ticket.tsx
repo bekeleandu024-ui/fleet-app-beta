@@ -115,7 +115,7 @@ export function TripTicket({ trip, aiInsights }: TripTicketProps) {
               </div>
               <div className="flex items-center gap-2 text-sm">
                 <Truck className="h-4 w-4 text-neutral-500" />
-                <span className="font-medium">{trip.unit}</span>
+                <span className="font-medium">{trip.unitNumber || trip.unit}</span>
                 {trip.unitType && (
                   <span className="rounded-full bg-neutral-800 px-2 py-0.5 text-[11px] text-neutral-400">{trip.unitType}</span>
                 )}

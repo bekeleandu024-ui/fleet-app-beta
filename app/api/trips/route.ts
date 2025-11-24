@@ -123,6 +123,13 @@ export async function POST(request: Request) {
       pickup: pickupData,
       delivery: deliveryData,
       notes: body.notes,
+      // Include costing data from booking page
+      miles: body.miles,
+      totalRevenue: body.totalRevenue,
+      totalCost: body.totalCost,
+      marginPct: body.totalRevenue && body.totalCost 
+        ? Math.round(((body.totalRevenue - body.totalCost) / body.totalRevenue) * 100 * 100) / 100
+        : undefined,
     };
 
     const trip = await serviceFetch("tracking", "/api/trips", {

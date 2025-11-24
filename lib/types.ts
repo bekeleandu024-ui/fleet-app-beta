@@ -248,6 +248,7 @@ export const tripDetailSchema = z.object({
   status: z.string(),
   driver: z.string(),
   unit: z.string(),
+  unitNumber: z.string().optional(),
   driverType: z.string().optional(),
   unitType: z.string().optional(),
   eta: z.string(),
