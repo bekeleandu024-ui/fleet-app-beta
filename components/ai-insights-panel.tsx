@@ -1,244 +1,164 @@
 'use client';
 
-import { Sparkles, TrendingDown, AlertTriangle, CheckCircle, Info } from 'lucide-react';
+import { Sparkles, TrendingDown, AlertTriangle, CheckCircle, Info, User, DollarSign, Lightbulb } from 'lucide-react';
 import { Card } from './ui/card';
-import { Badge } from './ui/badge';
+import { Button } from './ui/button';
+import { BookingInsights } from '@/lib/types';
 
 interface AIInsightsPanelProps {
-  recommendation: string;
-  driverRecommendations?: Array<{
-    driverName: string;
-    driverType: string;
-    unit: string;
-    estimatedCost: number;
-    reason: string;
-    totalCpm: number;
-  }>;
-  costComparison?: Array<{
-    type: string;
-    driver: string;
-    estimatedCost: number;
-    pros: string[];
-    cons: string[];
-  }>;
-  insights?: string[];
-  totalDistance?: number;
-  estimatedTime?: string;
-  borderCrossings?: number;
+  insights: BookingInsights | null;
+  loading: boolean;
+  error: string | null;
+  onRetry: () => void;
+  onSelectDriver: (driverId: string) => void;
 }
 
 export function AIInsightsPanel({
-  recommendation,
-  driverRecommendations = [],
-  costComparison = [],
-  insights = [],
-  totalDistance,
-  estimatedTime,
-  borderCrossings,
+  insights,
+  loading,
+  error,
+  onRetry,
+  onSelectDriver
 }: AIInsightsPanelProps) {
+  
+  if (loading) {
+    return (
+      <Card className="p-6 border-zinc-800 bg-zinc-900/40 animate-pulse">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-8 h-8 rounded-full bg-zinc-800"></div>
+          <div className="h-4 w-32 bg-zinc-800 rounded"></div>
+        </div>
+        <div className="space-y-3">
+          <div className="h-20 bg-zinc-800/50 rounded-lg"></div>
+          <div className="h-12 bg-zinc-800/50 rounded-lg"></div>
+          <div className="h-32 bg-zinc-800/50 rounded-lg"></div>
+        </div>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card className="p-6 border-rose-900/30 bg-rose-950/10">
+        <div className="flex flex-col items-center text-center gap-3">
+          <AlertTriangle className="w-8 h-8 text-rose-500" />
+          <p className="text-sm text-rose-200">{error}</p>
+          <Button variant="outline" size="sm" onClick={onRetry} className="border-rose-800 text-rose-400 hover:bg-rose-950/50">
+            Retry Analysis
+          </Button>
+        </div>
+      </Card>
+    );
+  }
+
+  if (!insights) {
+    return null;
+  }
+
   return (
     <div className="space-y-4">
-      {/* Main Recommendation */}
-      <Card className="p-6 bg-linear-to-br from-violet-50 to-purple-50 dark:from-violet-950/20 dark:to-purple-950/20 border-violet-200 dark:border-violet-800">
-        <div className="flex items-start gap-3">
-          <div className="p-2 bg-violet-100 dark:bg-violet-900/30 rounded-lg">
-            <Sparkles className="w-5 h-5 text-violet-600 dark:text-violet-400" />
-          </div>
-          <div className="flex-1">
-            <h3 className="font-semibold text-violet-900 dark:text-violet-100 mb-2">
-              AI Recommendation
-            </h3>
-            <p className="text-sm text-violet-700 dark:text-violet-300">
-              {recommendation}
-            </p>
-          </div>
-        </div>
+      {/* Header */}
+      <div className="flex items-center gap-2 mb-2">
+        <Sparkles className="w-4 h-4 text-blue-400" />
+        <h3 className="text-sm font-semibold text-blue-100">AI Analysis & Recommendations</h3>
+      </div>
 
-        {/* Route Summary */}
-        {totalDistance && (
-          <div className="mt-4 pt-4 border-t border-violet-200 dark:border-violet-800">
-            <div className="grid grid-cols-3 gap-4 text-sm">
-              <div>
-                <div className="text-violet-600 dark:text-violet-400 font-medium">
-                  Distance
-                </div>
-                <div className="text-violet-900 dark:text-violet-100 font-semibold">
-                  {totalDistance} mi
-                </div>
-              </div>
-              <div>
-                <div className="text-violet-600 dark:text-violet-400 font-medium">
-                  Est. Time
-                </div>
-                <div className="text-violet-900 dark:text-violet-100 font-semibold">
-                  {estimatedTime}
-                </div>
-              </div>
-              {borderCrossings !== undefined && (
-                <div>
-                  <div className="text-violet-600 dark:text-violet-400 font-medium">
-                    Border Crossings
-                  </div>
-                  <div className="text-violet-900 dark:text-violet-100 font-semibold">
-                    {borderCrossings} × $150
-                  </div>
-                </div>
-              )}
+      {/* Primary Recommendation */}
+      <Card className="p-4 bg-linear-to-br from-blue-950/40 to-indigo-950/40 border-blue-800/50 relative overflow-hidden">
+        <div className="absolute top-0 right-0 p-2 opacity-10">
+          <Sparkles className="w-24 h-24 text-blue-400" />
+        </div>
+        <div className="relative z-10">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-xs font-bold text-blue-400 uppercase tracking-wider">Recommended Strategy</span>
+          </div>
+          <h3 className="text-lg font-bold text-white mb-2">
+            {insights.recommendedDriverType.replace('_', ' ')} Driver
+          </h3>
+          <p className="text-sm text-zinc-300 leading-relaxed">
+            {insights.reasoning}
+          </p>
+        </div>
+      </Card>
+      
+      {/* Cost Optimization */}
+      {insights.costOptimization && insights.costOptimization.potentialSavings !== "0" && (
+        <Card className="p-4 bg-emerald-950/20 border-emerald-900/50">
+          <div className="flex items-start gap-3">
+            <div className="p-2 bg-emerald-900/30 rounded-lg shrink-0">
+              <DollarSign className="w-5 h-5 text-emerald-400" />
+            </div>
+            <div>
+              <h4 className="text-sm font-semibold text-emerald-300 mb-1">Cost Opportunity</h4>
+              <p className="text-sm text-zinc-400 mb-1">{insights.costOptimization.suggestion}</p>
+              <p className="text-xs font-medium text-emerald-500">Potential Savings: {insights.costOptimization.potentialSavings}</p>
             </div>
           </div>
-        )}
-      </Card>
-
-      {/* Driver Recommendations */}
-      {driverRecommendations.length > 0 && (
-        <Card className="p-6">
-          <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-4">
-            Driver/Truck Configuration Comparison
-          </h3>
-          <div className="space-y-3">
-            {driverRecommendations.map((driver, idx) => (
-              <div
-                key={driver.driverName}
-                className={`p-4 rounded-lg border ${
-                  idx === 0
-                    ? 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800'
-                    : 'bg-gray-50 dark:bg-gray-900/50 border-gray-200 dark:border-gray-800'
-                }`}
+        </Card>
+      )}
+      
+      {/* Operational Insights */}
+      <div className="space-y-2">
+        <h4 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider ml-1">Key Insights</h4>
+        {insights.operationalInsights.map((insight, i) => (
+          <div key={i} className="flex items-start gap-3 p-3 rounded-lg bg-zinc-900/30 border border-zinc-800/50">
+            <Lightbulb className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+            <p className="text-xs text-zinc-300">{insight}</p>
+          </div>
+        ))}
+      </div>
+      
+      {/* Risk Factors */}
+      {insights.riskFactors.length > 0 && (
+        <div className="space-y-2">
+          <h4 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider ml-1">Risk Factors</h4>
+          {insights.riskFactors.map((risk, i) => (
+            <div key={i} className="flex items-start gap-3 p-3 rounded-lg bg-rose-950/10 border border-rose-900/30">
+              <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
+              <p className="text-xs text-rose-200/80">{risk}</p>
+            </div>
+          ))}
+        </div>
+      )}
+      
+      {/* Specific Driver Recommendation */}
+      {insights.specificDriverRecommendation && (
+        <Card className="p-4 bg-zinc-900/40 border-zinc-800">
+          <div className="flex items-start gap-3">
+            <div className="p-2 bg-blue-900/20 rounded-lg shrink-0">
+              <User className="w-5 h-5 text-blue-400" />
+            </div>
+            <div className="flex-1">
+              <h4 className="text-sm font-semibold text-white mb-1">Suggested Driver</h4>
+              <p className="text-sm font-medium text-blue-300 mb-1">{insights.specificDriverRecommendation.driverName}</p>
+              <p className="text-xs text-zinc-400 mb-3">{insights.specificDriverRecommendation.reason}</p>
+              <Button 
+                size="sm" 
+                variant="secondary" 
+                className="w-full h-8 text-xs bg-blue-900/30 hover:bg-blue-900/50 text-blue-200 border border-blue-800/50"
+                onClick={() => insights.specificDriverRecommendation && onSelectDriver(insights.specificDriverRecommendation.driverId)}
               >
-                <div className="flex items-start justify-between mb-2">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-gray-900 dark:text-gray-100">
-                        {idx + 1}. {driver.driverType} DRIVER
-                      </span>
-                      {idx === 0 && (
-                        <Badge variant="default" className="bg-green-600">
-                          Most Cost-Effective
-                        </Badge>
-                      )}
-                    </div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400">
-                      Driver: {driver.driverName} ({driver.unit})
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                      ${driver.estimatedCost.toLocaleString()}
-                    </div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">
-                      ${driver.totalCpm}/mile
-                    </div>
-                  </div>
-                </div>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-                  {driver.reason}
-                </p>
-              </div>
-            ))}
+                Assign This Driver
+              </Button>
+            </div>
           </div>
         </Card>
       )}
-
-      {/* Cost Comparison */}
-      {costComparison.length > 0 && (
-        <Card className="p-6">
-          <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-4">
-            Detailed Cost Analysis
-          </h3>
-          <div className="space-y-4">
-            {costComparison.map((comparison, idx) => (
-              <div key={comparison.type} className="pb-4 border-b last:border-0">
-                <div className="flex items-center justify-between mb-3">
-                  <div>
-                    <div className="font-semibold text-gray-900 dark:text-gray-100">
-                      {comparison.type} - {comparison.driver}
-                    </div>
-                  </div>
-                  <div className="text-xl font-bold text-gray-900 dark:text-gray-100">
-                    ${comparison.estimatedCost.toLocaleString()}
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <div className="text-green-600 dark:text-green-400 font-medium mb-1">
-                      Pros:
-                    </div>
-                    <ul className="space-y-1">
-                      {comparison.pros.map((pro) => (
-                        <li key={pro} className="text-gray-600 dark:text-gray-400">
-                          • {pro}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                  <div>
-                    <div className="text-orange-600 dark:text-orange-400 font-medium mb-1">
-                      Cons:
-                    </div>
-                    <ul className="space-y-1">
-                      {comparison.cons.map((con) => (
-                        <li key={con} className="text-gray-600 dark:text-gray-400">
-                          • {con}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
-      )}
-
-      {/* Insights */}
-      {insights.length > 0 && (
-        <Card className="p-6">
-          <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-4">
-            Key Insights
-          </h3>
-          <div className="space-y-2">
-            {insights.map((insight, idx) => {
-              const isWarning = insight.includes('⚠️');
-              const isSuccess = insight.includes('✅');
-              const isInfo = insight.includes('ℹ️');
-
-              return (
-                <div
-                  key={idx}
-                  className={`flex items-start gap-3 p-3 rounded-lg ${
-                    isWarning
-                      ? 'bg-orange-50 dark:bg-orange-950/20'
-                      : isSuccess
-                      ? 'bg-green-50 dark:bg-green-950/20'
-                      : 'bg-blue-50 dark:bg-blue-950/20'
-                  }`}
-                >
-                  {isWarning && (
-                    <AlertTriangle className="w-5 h-5 text-orange-600 shrink-0 mt-0.5" />
-                  )}
-                  {isSuccess && (
-                    <CheckCircle className="w-5 h-5 text-green-600 shrink-0 mt-0.5" />
-                  )}
-                  {isInfo && (
-                    <Info className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
-                  )}
-                  <span
-                    className={`text-sm ${
-                      isWarning
-                        ? 'text-orange-700 dark:text-orange-300'
-                        : isSuccess
-                        ? 'text-green-700 dark:text-green-300'
-                        : 'text-blue-700 dark:text-blue-300'
-                    }`}
-                  >
-                    {insight.replace(/[⚠️✅ℹ️]/g, '').trim()}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </Card>
-      )}
+      
+      {/* Margin Analysis */}
+      <div className="p-3 rounded-lg bg-zinc-900/30 border border-zinc-800/50">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-xs text-zinc-500">Target Margin</span>
+          <span className="text-xs font-mono text-emerald-400">{insights.marginAnalysis.targetMargin}</span>
+        </div>
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-xs text-zinc-500">Rec. Revenue</span>
+          <span className="text-xs font-mono text-white">${insights.marginAnalysis.recommendedRevenue}</span>
+        </div>
+        <p className="text-[10px] text-zinc-500 border-t border-zinc-800 pt-2 mt-2">
+          {insights.marginAnalysis.reasoning}
+        </p>
+      </div>
     </div>
   );
 }

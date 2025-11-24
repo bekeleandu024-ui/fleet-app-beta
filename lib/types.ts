@@ -690,3 +690,24 @@ export const analyticsResponseSchema = z.object({
 
 export type AnalyticsResponse = z.infer<typeof analyticsResponseSchema>;
 
+export interface BookingInsights {
+  recommendedDriverType: "RNR" | "COM" | "OO_Z1" | "OO_Z2" | "OO_Z3";
+  reasoning: string;
+  costOptimization: {
+    potentialSavings: string;
+    suggestion: string;
+  };
+  operationalInsights: string[];
+  riskFactors: string[];
+  specificDriverRecommendation?: {
+    driverId: string;
+    driverName: string;
+    reason: string;
+  };
+  marginAnalysis: {
+    targetMargin: string;
+    recommendedRevenue: string;
+    reasoning: string;
+  };
+}
+

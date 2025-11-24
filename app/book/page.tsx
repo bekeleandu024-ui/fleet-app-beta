@@ -1,17 +1,18 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Package, CheckCircle, Sparkles, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { AIRecommendationPanel } from "@/components/booking/ai-recommendation-panel";
+import { AIInsightsPanel } from "@/components/ai-insights-panel";
 import { DriverUnitSelector } from "@/components/booking/driver-unit-selector";
 import { RateSelector } from "@/components/booking/rate-selector";
 import { StopManager, type TripStop } from "@/components/booking/stop-manager";
 import { RevenueCalculator } from "@/components/booking/revenue-calculator";
 import { CostingCard } from "@/components/costing/costing-card";
 import { getAllCostingOptions } from "@/lib/costing";
+import { useAIInsights } from "@/hooks/use-ai-insights";
 
 interface Order {
   id: string;
@@ -104,6 +105,9 @@ export default function BookTripPage() {
   const [recommendedDriverId, setRecommendedDriverId] = useState<string | null>(null);
   const [recommendedUnitId, setRecommendedUnitId] = useState<string | null>(null);
   const [recommendedRateId, setRecommendedRateId] = useState<string | null>(null);
+  
+  // AI Insights Hook
+  const { insights, isGenerating: isGeneratingInsights, error: insightsError, generateInsights: triggerInsights } = useAIInsights();
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
@@ -283,33 +287,6 @@ export default function BookTripPage() {
     }
   }, [rateId, routeDistance, miles, rates, manualRevenue]);
 
-  // Handle AI Recommendation Application
-  const handleApplyRecommendation = (recommendation: any) => {
-    if (recommendation.driver) {
-      setDriverId(recommendation.driver.id);
-      setDriverName(recommendation.driver.name);
-      setRecommendedDriverId(recommendation.driver.id);
-    }
-    if (recommendation.unit) {
-      setUnitId(recommendation.unit.id);
-      setUnitCode(recommendation.unit.code);
-      setRecommendedUnitId(recommendation.unit.id);
-    }
-    if (recommendation.rate) {
-      setRateId(recommendation.rate.id);
-      setRecommendedRateId(recommendation.rate.id);
-    }
-    if (recommendation.estimatedMiles) {
-      setMiles(recommendation.estimatedMiles);
-    }
-    if (recommendation.suggestedRPM) {
-      setRpm(recommendation.suggestedRPM);
-    }
-    if (recommendation.targetRevenue) {
-      setTotalRevenue(recommendation.targetRevenue);
-    }
-  };
-
   // Calculate totals
   const selectedRate = rates.find(r => r.id === rateId);
   const totalCpm = selectedRate?.total_cpm || 0;
@@ -357,6 +334,83 @@ export default function BookTripPage() {
     },
     [actualMiles, selectedOrder?.pickup, selectedOrder?.delivery, driverType]
   );
+
+  // Generate AI Insights
+  const generateInsights = useCallback(async () => {
+    if (!selectedOrder || actualMiles === 0) return;
+
+    // Prepare context for Claude
+    const tripContext = {
+      customer: selectedOrder.customer,
+      lane: `${selectedOrder.pickup} → ${selectedOrder.delivery}`,
+      distance: actualMiles,
+      commodity: selectedOrder.commodity,
+      serviceLevel: selectedOrder.serviceLevel,
+      
+      // Costing data
+      costingOptions: costingOptions.map(opt => ({
+        type: opt.driverType,
+        totalCost: opt.cost.directTripCost,
+        cpm: opt.cost.totalCPM
+      })),
+      
+      // Available drivers by type
+      availableDrivers: {
+        com: drivers.filter(d => d.type === 'Company' || d.type === 'COM').map(d => d.name),
+        rnr: drivers.filter(d => d.type === 'Rental' || d.type === 'RNR').map(d => d.name),
+        oo: drivers.filter(d => d.type === 'Owner Operator' || d.type === 'OO').map(d => d.name)
+      },
+      
+      // Route characteristics
+      isCrossBorder: selectedOrder.pickup.includes('Canada') || selectedOrder.delivery.includes('Canada') || 
+                      selectedOrder.pickup.includes('Mexico') || selectedOrder.delivery.includes('Mexico'),
+      isUrban: false, // Simplified for now
+      estimatedDuration: routeDuration,
+      
+      // Historical data (mock for now)
+      historicalMargin: 15,
+      laneFrequency: "High"
+    };
+
+    await triggerInsights(tripContext);
+  }, [selectedOrder, actualMiles, costingOptions, drivers, routeDuration, triggerInsights]);
+
+  // Trigger insights generation when relevant data changes (debounced)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (selectedOrder && actualMiles > 0) {
+        generateInsights();
+      }
+    }, 1000);
+    
+    return () => clearTimeout(timer);
+  }, [selectedOrder, actualMiles, generateInsights]);
+
+  const handleApplyRecommendation = (recommendation: any) => {
+    if (recommendation.driver) {
+      setDriverId(recommendation.driver.id);
+      setDriverName(recommendation.driver.name);
+      setRecommendedDriverId(recommendation.driver.id);
+    }
+    if (recommendation.unit) {
+      setUnitId(recommendation.unit.id);
+      setUnitCode(recommendation.unit.code);
+      setRecommendedUnitId(recommendation.unit.id);
+    }
+    if (recommendation.rate) {
+      setRateId(recommendation.rate.id);
+      setRecommendedRateId(recommendation.rate.id);
+    }
+    if (recommendation.estimatedMiles) {
+      setMiles(recommendation.estimatedMiles);
+    }
+    if (recommendation.suggestedRPM) {
+      setRpm(recommendation.suggestedRPM);
+    }
+    if (recommendation.targetRevenue) {
+      setTotalRevenue(recommendation.targetRevenue);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -543,11 +597,19 @@ export default function BookTripPage() {
         
         {/* LEFT COLUMN: AI Booking Recommendations */}
         <div className="col-span-3">
-          <AIRecommendationPanel
-            orderId={selectedOrderId}
-            onApplyRecommendation={handleApplyRecommendation}
-            orders={orders.filter(o => o.status === "New" || o.status === "Planning")}
-            onSelectOrder={(orderId) => router.push(`/book?orderId=${orderId}`)}
+          <AIInsightsPanel
+            insights={insights}
+            loading={isGeneratingInsights}
+            error={insightsError}
+            onRetry={generateInsights}
+            onSelectDriver={(driverId) => {
+              setDriverId(driverId);
+              const driver = drivers.find(d => d.id === driverId);
+              if (driver) {
+                setDriverName(driver.name);
+                setDriverType(driver.type);
+              }
+            }}
           />
         </div>
 

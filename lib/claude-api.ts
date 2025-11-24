@@ -519,3 +519,87 @@ Respond naturally and helpfully. If asked to perform actions like "book a load",
   }
 }
 
+import { BookingInsights } from "./types";
+
+export async function generateBookingInsights(tripContext: any): Promise<BookingInsights | null> {
+  const claudePrompt = `You are a logistics optimization AI for a freight brokerage. Analyze this trip and provide actionable insights.
+
+Trip Details:
+${JSON.stringify(tripContext, null, 2)}
+
+Provide insights in the following JSON structure:
+
+{
+  "recommendedDriverType": "RNR|COM|OO_Z1|OO_Z2|OO_Z3",
+  "reasoning": "2-3 sentence explanation of why this driver type is best",
+  
+  "costOptimization": {
+    "potentialSavings": "dollar amount if not using cheapest option",
+    "suggestion": "specific recommendation"
+  },
+  
+  "operationalInsights": [
+    "insight 1 about route, timing, or operations",
+    "insight 2 about driver availability or requirements",
+    "insight 3 about margin or pricing"
+  ],
+  
+  "riskFactors": [
+    "any potential risks or concerns to be aware of"
+  ],
+  
+  "specificDriverRecommendation": {
+    "driverId": "id of specific driver if one stands out",
+    "driverName": "name",
+    "reason": "why this specific driver"
+  },
+  
+  "marginAnalysis": {
+    "targetMargin": "percentage",
+    "recommendedRevenue": "dollar amount",
+    "reasoning": "why this margin is appropriate"
+  }
+}
+
+Important: 
+- Be specific and actionable
+- Reference actual numbers from the trip data
+- Consider cross-border complexity if applicable
+- Prioritize cost efficiency while maintaining service quality
+- Only recommend available drivers
+- Keep insights concise (1-2 sentences each)`;
+
+  try {
+    const response = await anthropic.messages.create({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 2000,
+      messages: [
+        { 
+          role: "user", 
+          content: claudePrompt 
+        }
+      ]
+    });
+    
+    const content = response.content[0];
+    if (content.type === "text") {
+      const responseText = content.text;
+      
+      // Parse JSON response (handle markdown code blocks if present)
+      const cleanedResponse = responseText
+        .replace(/```json\n?/g, "")
+        .replace(/```\n?/g, "")
+        .trim();
+      
+      const insights = JSON.parse(cleanedResponse);
+      return insights;
+    }
+    
+    return null;
+    
+  } catch (error) {
+    console.error("Failed to generate insights:", error);
+    return null;
+  }
+}
+
