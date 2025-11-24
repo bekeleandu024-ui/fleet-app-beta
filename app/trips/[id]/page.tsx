@@ -72,7 +72,8 @@ export default function TripDetailPage() {
   const activeExceptions = data.exceptions.filter((e) => e.severity === "alert" || e.severity === "warn");
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
+      {/* Header with back button and actions */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <Button size="sm" variant="subtle" onClick={() => router.back()}>
@@ -93,170 +94,109 @@ export default function TripDetailPage() {
         </div>
       </div>
 
+      {/* Trip ticket spanning all columns */}
       <TripTicket trip={data} aiInsights={aiInsights} />
 
-      {/* Claude-Powered AI Insights */}
-      <AIInsights type="trip" id={tripId} />
-
-      <div className="grid gap-4 lg:grid-cols-1">
-        <Card className="flex h-full flex-col gap-4 border-neutral-800/70 bg-neutral-900/60 p-6">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold text-neutral-100">Network Context</p>
-              <p className="text-xs text-neutral-500">Exceptions and recent movement</p>
-            </div>
-            <Sparkles className="h-4 w-4 text-neutral-500" />
-          </div>
-
-          <div className="space-y-2">
-            <p className="text-xs uppercase tracking-wide text-neutral-500">Active Exceptions</p>
-            <div className="flex flex-wrap gap-2">
-              {activeExceptions.length === 0 && (
-                <span className="text-xs text-neutral-500">No active exceptions</span>
-              )}
-              {activeExceptions.map((exception) => (
-                <span
-                  key={exception.id}
-                  className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold ${
-                    exception.severity === "alert"
-                      ? "border-red-500/40 bg-red-500/10 text-red-200"
-                      : "border-amber-500/40 bg-amber-500/10 text-amber-200"
-                  }`}
-                >
-                  <AlertTriangle className="h-3.5 w-3.5" />
-                  {exception.type}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <p className="text-xs uppercase tracking-wide text-neutral-500">Recent Activity</p>
-            {data.timeline.length === 0 ? (
-              <p className="text-sm text-neutral-500">No timeline events yet.</p>
-            ) : (
-              <div className="space-y-2">
-                {data.timeline.slice(0, 3).map((event) => (
-                  <div
-                    key={event.id}
-                    className="flex items-center justify-between rounded-lg border border-neutral-800/80 bg-neutral-900/50 px-3 py-2"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Activity className="h-4 w-4 text-neutral-500" />
-                      <div>
-                        <p className="text-sm text-neutral-200">{event.summary}</p>
-                        <p className="text-xs text-neutral-500">{event.location || "Location TBD"}</p>
-                      </div>
-                    </div>
-                    <p className="text-[11px] text-neutral-500">{formatDateTime(event.timestamp)}</p>
-                  </div>
-                ))}
+      {/* Main 3-column layout */}
+      <div className="grid gap-4 grid-cols-12">
+        {/* LEFT COLUMN - Trip Info + Assignment */}
+        <Card className="col-span-12 lg:col-span-3 border-neutral-800/70 bg-neutral-900/60 p-4">
+          <div className="space-y-4">
+            <div className="border-b border-neutral-800 pb-4">
+              <div className="mb-3 flex items-center gap-2 text-xs uppercase tracking-wide text-neutral-500">
+                <Package className="h-4 w-4" /> Assignment
               </div>
-            )}
-          </div>
-        </Card>
-      </div>
-
-      <div className="space-y-4">
-        {distanceMiles && (
-          <DriverCostComparison distanceMiles={typeof distanceMiles === "number" ? distanceMiles : Number(distanceMiles)} />
-        )}
-
-        <div className="grid gap-4 lg:grid-cols-3">
-          <Card className="border-neutral-800/70 bg-neutral-900/60 p-5">
-            <div className="mb-3 flex items-center gap-2 text-xs uppercase tracking-wide text-neutral-500">
-              <NotebookPen className="h-4 w-4" /> Key Insights
-            </div>
-            <div className="space-y-3 text-sm text-neutral-200">
-              <InsightRow
-                icon={<CheckCircle2 className="h-4 w-4 text-emerald-400" />}
-                text={`${data.driver} is assigned and offers good value for standard freight.`}
-              />
-              <InsightRow
-                icon={<Info className="h-4 w-4 text-amber-400" />}
-                text="Short cross-border trip; COM or RNR drivers keep margin healthy."
-              />
-              {typeof distanceMiles === "number" && distanceMiles > 300 && (
-                <InsightRow
-                  icon={<AlertTriangle className="h-4 w-4 text-red-400" />}
-                  text="Verify route distance – estimate appears high for this lane."
-                />
-              )}
-              {!distanceMiles && (
-                <InsightRow
-                  icon={<Info className="h-4 w-4 text-blue-400" />}
-                  text="Distance calculation pending – ensure pickup and delivery coordinates are set."
-                />
-              )}
-              {typeof (aiInsights?.costAnalysis.margin ?? data.metrics?.marginPct) === "number" && (
-                <InsightRow
-                  icon={<Sparkles className="h-4 w-4 text-blue-400" />}
-                  text={`Current margin of ${aiInsights?.costAnalysis.margin ?? data.metrics?.marginPct}% is tracking well for this route type.`}
-                />
-              )}
-            </div>
-          </Card>
-
-          <div className="lg:col-span-2 grid gap-4 md:grid-cols-2">
-            <Card className="border-neutral-800/70 bg-neutral-900/60 p-5">
-              <div className="mb-3 flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-semibold text-neutral-100">Current Assignment</p>
-                  <p className="text-xs text-neutral-500">Driver and unit on the load</p>
-                </div>
-                <Package className="h-4 w-4 text-neutral-500" />
-              </div>
-              <div className="space-y-2 text-sm text-neutral-200">
+              <div className="space-y-2 text-sm">
                 <DetailRow label="Driver" value={aiInsights?.currentAssignment.driver ?? data.driver} />
-                <DetailRow label="Driver Type" value={aiInsights?.currentAssignment.driverType ?? data.driverType ?? "—"} />
+                <DetailRow label="Type" value={aiInsights?.currentAssignment.driverType ?? data.driverType ?? "—"} />
                 <DetailRow label="Unit" value={aiInsights?.currentAssignment.unit ?? data.unit} />
                 <DetailRow
-                  label="Effective Rate"
-                  value={aiInsights?.currentAssignment.effectiveRate ? `${aiInsights.currentAssignment.effectiveRate}/mile` : "—"}
+                  label="Rate"
+                  value={aiInsights?.currentAssignment.effectiveRate ? `${aiInsights.currentAssignment.effectiveRate}/mi` : "—"}
                 />
-                <DetailRow
-                  label="Estimated Driver Cost"
-                  value={
-                    aiInsights?.currentAssignment.estimatedCost
-                      ? formatCurrency(aiInsights.currentAssignment.estimatedCost)
-                      : data.metrics?.totalCost
-                        ? formatCurrency(data.metrics.totalCost)
-                        : "—"
-                  }
-                />
+                <div className="border-t border-neutral-800 pt-2 mt-2">
+                  <DetailRow
+                    label="Est. Cost"
+                    value={
+                      aiInsights?.currentAssignment.estimatedCost
+                        ? formatCurrency(aiInsights.currentAssignment.estimatedCost)
+                        : data.metrics?.totalCost
+                          ? formatCurrency(data.metrics.totalCost)
+                          : "—"
+                    }
+                    emphasize
+                  />
+                </div>
               </div>
-            </Card>
+            </div>
 
-            <Card className="border-neutral-800/70 bg-neutral-900/60 p-5">
+            <div>
+              <div className="mb-3 flex items-center gap-2 text-xs uppercase tracking-wide text-neutral-500">
+                <NotebookPen className="h-4 w-4" /> Insights
+              </div>
+              <div className="space-y-2 text-xs text-neutral-200">
+                <InsightRow
+                  icon={<CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />}
+                  text={`${data.driver} offers good value for this freight.`}
+                />
+                <InsightRow
+                  icon={<Info className="h-3.5 w-3.5 text-amber-400" />}
+                  text="Cross-border trip; COM/RNR drivers keep margin healthy."
+                />
+                {typeof distanceMiles === "number" && distanceMiles > 300 && (
+                  <InsightRow
+                    icon={<AlertTriangle className="h-3.5 w-3.5 text-red-400" />}
+                    text="Verify route distance – estimate appears high."
+                  />
+                )}
+                {!distanceMiles && (
+                  <InsightRow
+                    icon={<Info className="h-3.5 w-3.5 text-neutral-400" />}
+                    text="Distance calculation pending."
+                  />
+                )}
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        {/* MIDDLE COLUMN - Cost Analysis + Network Context */}
+        <Card className="col-span-12 lg:col-span-6 border-neutral-800/70 bg-neutral-900/60 p-4">
+          <div className="space-y-4">
+            {distanceMiles && (
+              <div className="border-b border-neutral-800 pb-4">
+                <DriverCostComparison distanceMiles={typeof distanceMiles === "number" ? distanceMiles : Number(distanceMiles)} />
+              </div>
+            )}
+
+            <div className="border-b border-neutral-800 pb-4">
               <div className="mb-3 flex items-center justify-between">
                 <div>
                   <p className="text-sm font-semibold text-neutral-100">Cost Analysis</p>
-                  <p className="text-xs text-neutral-500">Trip-level costs and recommended revenue</p>
+                  <p className="text-xs text-neutral-500">Trip costs and revenue</p>
                 </div>
                 <DollarChip />
               </div>
-              <div className="space-y-2 text-sm text-neutral-200">
+              <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm text-neutral-200">
                 <DetailRow
-                  label="Linehaul Cost"
+                  label="Linehaul"
                   value={formatCurrency(aiInsights?.costAnalysis.linehaulCost ?? data.metrics?.linehaul ?? null)}
                 />
                 <DetailRow
-                  label="Fuel Cost"
+                  label="Fuel"
                   value={formatCurrency(aiInsights?.costAnalysis.fuelCost ?? data.metrics?.fuel ?? null)}
                 />
                 <DetailRow
                   label="Driver Cost"
                   value={formatCurrency(aiInsights?.costAnalysis.driverCost ?? null)}
                 />
-                <div className="border-t border-neutral-800 pt-2">
-                  <DetailRow
-                    label="Total Cost"
-                    value={formatCurrency(aiInsights?.costAnalysis.totalCost ?? data.metrics?.totalCost ?? null)}
-                    emphasize
-                  />
-                </div>
                 <DetailRow
-                  label="Recommended Revenue"
+                  label="Total Cost"
+                  value={formatCurrency(aiInsights?.costAnalysis.totalCost ?? data.metrics?.totalCost ?? null)}
+                  emphasize
+                />
+                <DetailRow
+                  label="Rec. Revenue"
                   value={formatCurrency(aiInsights?.costAnalysis.recommendedRevenue ?? data.metrics?.recommendedRevenue ?? null)}
                 />
                 <DetailRow
@@ -268,79 +208,147 @@ export default function TripDetailPage() {
                         ? `${data.metrics.marginPct}%`
                         : "—"
                   }
+                  emphasize
                 />
               </div>
-            </Card>
-          </div>
-        </div>
-      </div>
+            </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card className="border-neutral-800/70 bg-neutral-900/60 p-5">
-          <div className="mb-3 flex items-center justify-between">
-            <p className="text-sm font-semibold text-neutral-100">Notes</p>
-            <MessageSquare className="h-4 w-4 text-neutral-500" />
-          </div>
-          <div className="space-y-3">
-            <textarea
-              className="w-full rounded-lg border border-neutral-800 bg-neutral-900/60 px-3 py-2 text-sm text-neutral-200 placeholder-neutral-500"
-              rows={3}
-              placeholder="Add a note about this trip..."
-              value={noteText}
-              onChange={(e) => setNoteText(e.target.value)}
-            />
-            <Button size="sm" variant="primary" className="w-full" disabled={!noteText.trim()} onClick={handleAddNote}>
-              <MessageSquare className="mr-2 h-4 w-4" /> Add Note
-            </Button>
-            <div className="space-y-2">
-              {data.notes.length === 0 ? (
-                <p className="text-xs text-neutral-500">No notes yet</p>
-              ) : (
-                data.notes.map((note) => (
-                  <div
-                    key={note.id}
-                    className="rounded-lg border border-neutral-800/70 bg-neutral-900/50 px-3 py-2 text-sm text-neutral-200"
-                  >
-                    <div className="flex items-center justify-between text-[11px] text-neutral-500">
-                      <span className="font-medium">{note.author}</span>
-                      <span>{formatDateTime(note.timestamp)}</span>
-                    </div>
-                    <p className="mt-1 text-neutral-200">{note.body}</p>
+            <div className="border-b border-neutral-800 pb-4">
+              <div className="flex items-start justify-between gap-3 mb-3">
+                <div>
+                  <p className="text-sm font-semibold text-neutral-100">Network Context</p>
+                  <p className="text-xs text-neutral-500">Exceptions and activity</p>
+                </div>
+                <Sparkles className="h-4 w-4 text-neutral-500" />
+              </div>
+
+              <div className="space-y-3">
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-neutral-500 mb-2">Active Exceptions</p>
+                  <div className="flex flex-wrap gap-2">
+                    {activeExceptions.length === 0 && (
+                      <span className="text-xs text-neutral-500">No active exceptions</span>
+                    )}
+                    {activeExceptions.map((exception) => (
+                      <span
+                        key={exception.id}
+                        className={`inline-flex items-center gap-2 rounded-md border px-2 py-1 text-xs font-semibold ${
+                          exception.severity === "alert"
+                            ? "border-red-500/40 bg-red-500/10 text-red-200"
+                            : "border-amber-500/40 bg-amber-500/10 text-amber-200"
+                        }`}
+                      >
+                        <AlertTriangle className="h-3 w-3" />
+                        {exception.type}
+                      </span>
+                    ))}
                   </div>
-                ))
-              )}
+                </div>
+
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-neutral-500 mb-2">Recent Activity</p>
+                  {data.timeline.length === 0 ? (
+                    <p className="text-sm text-neutral-500">No timeline events yet.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {data.timeline.slice(0, 3).map((event) => (
+                        <div
+                          key={event.id}
+                          className="flex items-center justify-between rounded-lg border border-neutral-800/80 bg-neutral-900/50 px-3 py-2"
+                        >
+                          <div className="flex items-center gap-2">
+                            <Activity className="h-4 w-4 text-neutral-500" />
+                            <div>
+                              <p className="text-sm text-neutral-200">{event.summary}</p>
+                              <p className="text-xs text-neutral-500">{event.location || "Location TBD"}</p>
+                            </div>
+                          </div>
+                          <p className="text-[11px] text-neutral-500">{formatDateTime(event.timestamp)}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* AI Insights panel */}
+            <div>
+              <AIInsights type="trip" id={tripId} />
             </div>
           </div>
         </Card>
 
-        <Card className="border-neutral-800/70 bg-neutral-900/60 p-5">
-          <div className="mb-3 flex items-center justify-between">
-            <p className="text-sm font-semibold text-neutral-100">Attachments</p>
-            <FileText className="h-4 w-4 text-neutral-500" />
-          </div>
-          {data.attachments.length === 0 ? (
-            <div className="text-center">
-              <p className="text-sm text-neutral-500">No attachments</p>
-              <Button size="sm" variant="subtle" className="mt-2">
-                Upload File
-              </Button>
+        {/* RIGHT COLUMN - Notes + Attachments combined */}
+        <Card className="col-span-12 lg:col-span-3 border-neutral-800/70 bg-neutral-900/60 p-4">
+          <div className="space-y-4">
+            <div className="border-b border-neutral-800 pb-4">
+              <div className="mb-3 flex items-center justify-between">
+                <p className="text-sm font-semibold text-neutral-100">Notes</p>
+                <MessageSquare className="h-4 w-4 text-neutral-500" />
+              </div>
+              <div className="space-y-3">
+                <textarea
+                  className="w-full rounded-lg border border-neutral-800 bg-neutral-900/60 px-3 py-2 text-sm text-neutral-200 placeholder-neutral-500"
+                  rows={3}
+                  placeholder="Add a note..."
+                  value={noteText}
+                  onChange={(e) => setNoteText(e.target.value)}
+                />
+                <Button size="sm" variant="primary" className="w-full" disabled={!noteText.trim()} onClick={handleAddNote}>
+                  <MessageSquare className="mr-2 h-4 w-4" /> Add Note
+                </Button>
+                <div className="space-y-2 max-h-60 overflow-y-auto">
+                  {data.notes.length === 0 ? (
+                    <p className="text-xs text-neutral-500">No notes yet</p>
+                  ) : (
+                    data.notes.map((note) => (
+                      <div
+                        key={note.id}
+                        className="rounded-lg border border-neutral-800/70 bg-neutral-900/50 px-3 py-2 text-sm text-neutral-200"
+                      >
+                        <div className="flex items-center justify-between text-[11px] text-neutral-500">
+                          <span className="font-medium">{note.author}</span>
+                          <span>{formatDateTime(note.timestamp)}</span>
+                        </div>
+                        <p className="mt-1 text-neutral-200">{note.body}</p>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
             </div>
-          ) : (
-            <ul className="space-y-2 text-sm">
-              {data.attachments.map((file) => (
-                <li
-                  key={file.id}
-                  className="flex items-center justify-between rounded-lg border border-neutral-800/70 bg-neutral-900/50 px-3 py-2"
-                >
-                  <div className="flex items-center gap-2">
-                    <FileText className="h-4 w-4 text-neutral-500" />
-                    <span className="text-neutral-200">{file.name}</span>
-                  </div>
-                  <span className="text-xs text-neutral-500">{file.size}</span>
-                </li>
-              ))}
-            </ul>
-          )}
+
+            <div>
+              <div className="mb-3 flex items-center justify-between">
+                <p className="text-sm font-semibold text-neutral-100">Attachments</p>
+                <FileText className="h-4 w-4 text-neutral-500" />
+              </div>
+              {data.attachments.length === 0 ? (
+                <div className="text-center">
+                  <p className="text-sm text-neutral-500">No attachments</p>
+                  <Button size="sm" variant="subtle" className="mt-2 w-full">
+                    Upload File
+                  </Button>
+                </div>
+              ) : (
+                <ul className="space-y-2 text-sm max-h-48 overflow-y-auto">
+                  {data.attachments.map((file) => (
+                    <li
+                      key={file.id}
+                      className="flex items-center justify-between rounded-lg border border-neutral-800/70 bg-neutral-900/50 px-3 py-2"
+                    >
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-neutral-500" />
+                        <span className="text-neutral-200 truncate">{file.name}</span>
+                      </div>
+                      <span className="text-xs text-neutral-500 flex-shrink-0">{file.size}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
         </Card>
       </div>
     </div>
