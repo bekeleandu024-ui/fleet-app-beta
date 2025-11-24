@@ -79,13 +79,34 @@ async function enrichOrderData(order: any) {
 
   console.log(`Found ${availableDrivers.length} available drivers, ${availableUnits.length} available units`);
 
-  // Build costing estimate
+  // Extract actual pricing from order data
+  const revenueStr = order.pricing?.totals?.value?.replace(/[^0-9.]/g, '') || '0';
+  const revenue = parseFloat(revenueStr) || 0;
+  
+  // Calculate cost from pricing items if available
+  let totalCost = 0;
+  if (order.pricing?.items) {
+    totalCost = order.pricing.items.reduce((sum: number, item: any) => {
+      const itemValue = parseFloat(item.value?.replace(/[^0-9.]/g, '') || '0');
+      return sum + itemValue;
+    }, 0);
+  }
+  
+  // Extract margin from pricing if available
+  const marginItem = order.pricing?.items?.find((item: any) => 
+    item.label?.toLowerCase().includes('margin')
+  );
+  const marginStr = marginItem?.value?.replace(/[^0-9.]/g, '') || '0';
+  const margin = parseFloat(marginStr) || 0;
+
   const costing = {
-    totalCost: order.estimated_cost || 2500,
-    revenue: order.estimated_revenue || 3000,
-    margin: order.margin || 20,
-    miles: order.distance_miles || order.miles || 750,
+    totalCost,
+    revenue,
+    margin,
+    miles: order.laneMiles || 0,
   };
+
+  console.log('Costing data:', costing);
 
   return {
     order,
@@ -107,20 +128,28 @@ async function generateOrderInsights(data: any) {
     availableUnits: availableUnits.length,
   });
 
+  // Extract stops data
+  const pickup = order.snapshot?.stops?.find((s: any) => s.type === 'Pickup');
+  const delivery = order.snapshot?.stops?.find((s: any) => s.type === 'Delivery');
+  
   const prompt = `You are a logistics AI assistant analyzing a freight order. Provide actionable dispatch recommendations.
 
 ORDER DETAILS:
-- Order ID: ${order.id}
-- Status: ${order.status || 'Unknown'}
-- Customer: ${order.customer_id || 'Unknown'}
-- Route: ${order.pickup_location || 'N/A'} → ${order.dropoff_location || 'N/A'}
-- Order Type: ${order.order_type || 'Standard'}
-- Created: ${order.created_at || 'N/A'}
-- Special Instructions: ${order.special_instructions || 'None'}
+- Order ID: ${order.id || order.reference}
+- Status: ${order.status}
+- Customer: ${order.customer}
+- Route: ${order.lane}
+- Distance: ${order.laneMiles || 0} miles
+- Age: ${order.ageHours || 0} hours old
+- Service Level: ${order.serviceLevel}
+- Commodity: ${order.snapshot?.commodity || 'Unknown'}
+- Special Notes: ${order.snapshot?.notes || 'None'}
 
-TIME WINDOWS:
-- Pickup: ${order.pickup_time || order.pu_window_start || 'Not specified'}
-- Delivery: ${order.dropoff_time || order.del_window_start || 'Not specified'}
+STOPS:
+- Pickup: ${pickup?.location || 'Not specified'} (${pickup?.windowStart ? new Date(pickup.windowStart).toLocaleString() : 'No time window'} - ${pickup?.windowEnd ? new Date(pickup.windowEnd).toLocaleString() : ''})
+${pickup?.instructions ? `  Instructions: ${pickup.instructions}` : ''}
+- Delivery: ${delivery?.location || 'Not specified'} (${delivery?.windowStart ? new Date(delivery.windowStart).toLocaleString() : 'No time window'} - ${delivery?.windowEnd ? new Date(delivery.windowEnd).toLocaleString() : ''})
+${delivery?.instructions ? `  Instructions: ${delivery.instructions}` : ''}
 
 COSTING:
 - Estimated Cost: $${costing.totalCost || 'Not calculated'}
@@ -128,52 +157,74 @@ COSTING:
 - Target Margin: ${costing.margin || 'Not set'}%
 - Distance: ${costing.miles || 'Unknown'} miles
 
-AVAILABLE DRIVERS:
-${availableDrivers.length > 0 ? availableDrivers.slice(0, 5).map((d: any, i: number) => 
-  `${i + 1}. ${d.name || d.id} - Region: ${d.region || 'Unknown'} - Available: ${d.hoursAvailable || 'Unknown'}hrs - Status: ${d.status || 'Unknown'}`
-).join('\n') : 'No driver data available'}
+BOOKING RECOMMENDATIONS (from system):
+${order.booking?.recommendedDriverId ? `- Recommended Driver ID: ${order.booking.recommendedDriverId}` : ''}
+${order.booking?.recommendedUnitId ? `- Recommended Unit ID: ${order.booking.recommendedUnitId}` : ''}
 
-AVAILABLE UNITS:
-${availableUnits.length > 0 ? availableUnits.slice(0, 5).map((u: any, i: number) => 
-  `${i + 1}. ${u.unitNumber || u.id} - Type: ${u.type || 'Unknown'} - Location: ${u.location || 'Unknown'} - Status: ${u.status || 'Unknown'}`
-).join('\n') : 'No unit data available'}
+AVAILABLE DRIVERS (${availableDrivers.length} total):
+${availableDrivers.length > 0 ? availableDrivers.map((d: any, i: number) => {
+  const driverName = d.name || d.driver_name || d.id;
+  const driverId = d.id || d.driver_id;
+  const hoursAvail = d.hoursAvailable || d.hours_available || 'Unknown';
+  const status = d.status || 'Unknown';
+  const isRecommended = driverId === order.booking?.recommendedDriverId ? ' ⭐ RECOMMENDED' : '';
+  return `${i + 1}. ${driverName} (ID: ${driverId}) - Status: ${status} - Available: ${hoursAvail}hrs${isRecommended}`;
+}).join('\n') : 'No drivers currently available in system'}
+
+AVAILABLE UNITS (${availableUnits.length} total):
+${availableUnits.length > 0 ? availableUnits.map((u: any, i: number) => {
+  const unitNum = u.unitNumber || u.unit_number || u.type || u.id;
+  const unitId = u.id;
+  const unitType = u.type || u.unit_type || 'Unknown';
+  const location = u.location || 'Unknown';
+  const status = u.status || 'Unknown';
+  const isRecommended = unitId === order.booking?.recommendedUnitId ? ' ⭐ RECOMMENDED' : '';
+  return `${i + 1}. Unit ${unitNum} (ID: ${unitId}) - Type: ${unitType} - Location: ${location} - Status: ${status}${isRecommended}`;
+}).join('\n') : 'No units currently available in system'}
 
 YOUR TASK:
-Analyze this order and provide:
-1. Overall dispatch readiness assessment
-2. Best driver match with specific reasoning
-3. Best unit match with specific reasoning  
-4. Critical missing data or blockers
-5. Cost/margin optimization opportunities
-6. Risk factors (time windows, distance, equipment, etc.)
-7. Urgency level and recommended actions
+Analyze this ACTUAL order data (not mock scenarios) and provide:
+1. Overall dispatch readiness - is order ready to book NOW?
+2. Best driver match from the available list with ID and specific reasoning
+3. Best unit match from the available list with ID and specific reasoning
+4. ONLY call out genuinely missing data that blocks dispatch (not zero pricing if order is new)
+5. Cost/margin analysis (if pricing is $0, note "Pricing pending" not "missing")
+6. Actual risks based on time windows, lead time, route complexity
+7. Urgency level based on pickup date proximity
 
-Be specific and actionable. If data is missing, call it out clearly.
+Be honest about what data is ACTUALLY present vs missing. Don't fabricate problems.
 
 Respond with ONLY valid JSON (no markdown, no code blocks):
 {
-  "summary": "1-2 sentence order assessment with key concern or status",
+  "summary": "1-2 sentence honest assessment of order status and readiness",
   "urgency": "low|medium|high|critical",
   "recommendedDriver": {
-    "id": "actual driver ID from the list above",
-    "name": "Driver name from the list",
-    "reason": "Specific reason why this driver is optimal (location, hours, experience)"
+    "id": "actual driver ID from available list (or system recommended if marked)",
+    "name": "Actual driver name from the list",
+    "reason": "Specific reason based on availability, hours, or system recommendation"
   },
   "recommendedUnit": {
-    "id": "actual unit ID from the list above", 
-    "number": "Unit number from the list",
-    "reason": "Specific reason why this unit is optimal (type match, location, availability)"
+    "id": "actual unit ID from available list (or system recommended if marked)",
+    "number": "Actual unit number from the list",
+    "reason": "Specific reason based on type match, location, or system recommendation"
   },
   "insights": [
     {
       "category": "URGENCY|DRIVER|UNIT|COST|RISK|DISPATCH",
-      "title": "Short actionable title",
-      "description": "Clear explanation of the issue or opportunity",
+      "title": "Short title describing ACTUAL situation",
+      "description": "Honest assessment based on real order data",
       "severity": "info|success|warning|error",
-      "action": "Specific recommended action"
+      "action": "Actionable recommendation based on actual data"
     }
   ]
 }
+
+RULES:
+- If drivers ARE available, acknowledge them - don't say "No drivers available"
+- If delivery date IS present in stops, acknowledge it - don't say "Missing delivery date"
+- If pricing is $0 on a new order, that's normal - say "Pricing pending" not "missing"
+- Focus on REAL blockers, not hypothetical ones
+- Use "success" severity for things that are working well
 
 IMPORTANT: Return ONLY the JSON object, nothing else.`;
 

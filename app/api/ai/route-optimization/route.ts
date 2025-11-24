@@ -1,12 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
+import Anthropic from '@anthropic-ai/sdk';
+import { serviceFetch } from '@/lib/service-client';
+
+const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
+});
 
 /**
  * POST /api/ai/route-optimization
- * Get AI-powered route optimization using Claude via MCP
+ * Get AI-powered route optimization using Claude
  */
 export async function POST(req: NextRequest) {
   try {
-    const { origin, destination, miles, revenue } = await req.json();
+    const { origin, destination, miles, revenue, orderId } = await req.json();
 
     if (!origin || !destination) {
       return NextResponse.json(
@@ -15,97 +21,156 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Check if API key is configured
+    if (!process.env.ANTHROPIC_API_KEY) {
+      return NextResponse.json(
+        { error: 'ANTHROPIC_API_KEY not configured' },
+        { status: 503 }
+      );
+    }
+
+    // Fetch real order data if orderId provided
+    let orderData = null;
+    if (orderId) {
+      try {
+        orderData = await serviceFetch('orders', `/api/orders/${orderId}`);
+      } catch (err) {
+        console.error('Failed to fetch order data:', err);
+      }
+    }
+
     // Get costing data from master-data service
-    const driversRes = await fetch('http://localhost:4001/api/metadata/drivers');
-    const unitsRes = await fetch('http://localhost:4001/api/metadata/units');
-    
-    const driversData = await driversRes.json();
-    const unitsData = await unitsRes.json();
+    const results = await Promise.allSettled([
+      serviceFetch('masterData', '/api/metadata/drivers'),
+      serviceFetch('masterData', '/api/metadata/units'),
+    ]);
 
-    const drivers = driversData.drivers || [];
-    const units = unitsData.units || [];
+    const driversData = results[0].status === 'fulfilled' ? results[0].value : { drivers: [] };
+    const unitsData = results[1].status === 'fulfilled' ? results[1].value : { units: [] };
 
-    // Calculate distance (you can integrate a real distance API here)
-    const estimatedMiles = miles || estimateDistance(origin, destination);
-    
-    // Detect border crossings
-    const borderCrossings = detectBorderCrossings(origin, destination);
-    const borderCrossingCost = borderCrossings * 150;
+    const drivers = (driversData as any).drivers || (driversData as any).data || [];
+    const units = (unitsData as any).units || (unitsData as any).data || [];
 
-    // Calculate costs for each driver type
-    const driverRecommendations = drivers.map((driver: any) => {
-      const unit = units.find((u: any) => u.unit_number === driver.unit_number);
-      
-      // Calculate based on your costing logic
-      const effectiveWageCpm = parseFloat(driver.effective_wage_cpm) || 0;
-      const rollingCpm = driver.driver_type === 'COM' ? 0.61 : 
-                        driver.driver_type === 'RNR' ? 0.58 : 0.66;
-      
-      const fixedCpm = unit ? (parseFloat(unit.total_weekly_cost) / 1000) : 2.0;
-      const accessorialCpm = (borderCrossingCost + 70) / estimatedMiles; // delivery + pickup
-      
-      const totalCpm = fixedCpm + effectiveWageCpm + rollingCpm + accessorialCpm;
-      const estimatedCost = Math.round(totalCpm * estimatedMiles);
+    // Filter to available resources
+    const availableDrivers = drivers.filter((d: any) => 
+      d.status === 'Ready' || d.status === 'Available'
+    );
+    const availableUnits = units.filter((u: any) => 
+      u.status === 'Available' || u.status === 'Ready'
+    );
 
-      return {
-        driverId: driver.driver_id,
-        driverName: driver.driver_name,
-        unit: driver.unit_number,
-        driverType: driver.driver_type,
-        weeklyCost: unit ? parseFloat(unit.total_weekly_cost) : 0,
-        baseWage: parseFloat(driver.base_wage_cpm),
-        fuelRate: driver.driver_type === 'COM' ? 0.45 : 
-                  driver.driver_type === 'RNR' ? 0.42 : 0.50,
-        reason: getCostReason(driver.driver_type, estimatedCost, revenue),
-        estimatedCost,
-        totalCpm: parseFloat(totalCpm.toFixed(4)),
-      };
+    // Use actual miles from order or provided, fallback to estimate
+    const estimatedMiles = orderData?.distance_miles || miles || estimateDistance(origin, destination);
+    const actualRevenue = orderData?.estimated_revenue || revenue;
+
+    // Build prompt for Claude
+    const prompt = `You are a logistics optimization AI. Analyze this freight route and provide driver/unit recommendations.
+
+ROUTE DETAILS:
+- Origin: ${origin}
+- Destination: ${destination}
+- Distance: ${estimatedMiles} miles
+- Estimated Revenue: $${actualRevenue || 'Not specified'}
+${orderData ? `- Order ID: ${orderData.id}
+- Customer: ${orderData.customer_id || 'Unknown'}
+- Status: ${orderData.status || 'Unknown'}` : ''}
+
+AVAILABLE DRIVERS (${availableDrivers.length}):
+${availableDrivers.slice(0, 5).map((d: any, i: number) => 
+  `${i + 1}. ${d.name || d.driver_name || d.id} - Type: ${d.driver_type || 'Unknown'} - Base: $${d.base_wage_cpm || 'N/A'}/mi - Available: ${d.hoursAvailable || d.hours_available || 'Unknown'}hrs`
+).join('\n')}
+
+AVAILABLE UNITS (${availableUnits.length}):
+${availableUnits.slice(0, 5).map((u: any, i: number) => 
+  `${i + 1}. ${u.unitNumber || u.unit_number || u.id} - Type: ${u.type || u.unit_type || 'Unknown'} - Weekly Cost: $${u.total_weekly_cost || 'N/A'} - Location: ${u.location || 'Unknown'}`
+).join('\n')}
+
+YOUR TASK:
+Analyze costs, route efficiency, and provide:
+1. Best 3 driver recommendations with cost analysis
+2. Border crossing analysis if applicable
+3. Route optimization insights
+4. Cost comparison between driver types
+5. Estimated total trip cost and time
+
+Respond with ONLY valid JSON (no markdown):
+{
+  "recommendation": "Overall best recommendation with driver name",
+  "totalDistance": ${estimatedMiles},
+  "estimatedTime": "X hours driving time",
+  "borderCrossings": 0 or 1 or 2,
+  "estimatedCost": calculated total cost as number,
+  "driverRecommendations": [
+    {
+      "driverId": "actual driver ID from list",
+      "driverName": "driver name from list",
+      "unit": "recommended unit number",
+      "driverType": "COM|RNR|OO",
+      "weeklyCost": weekly cost as number,
+      "baseWage": base wage as number,
+      "fuelRate": fuel rate as number,
+      "reason": "why this driver is optimal",
+      "estimatedCost": total cost as number,
+      "totalCpm": cost per mile as number
+    }
+  ],
+  "costComparison": [
+    {
+      "type": "driver type",
+      "driver": "driver name",
+      "weeklyCost": number,
+      "estimatedCost": number,
+      "pros": ["advantage 1", "advantage 2"],
+      "cons": ["disadvantage 1"]
+    }
+  ],
+  "insights": ["insight 1", "insight 2", "insight 3"]
+}`;
+
+    const message = await anthropic.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 3000,
+      messages: [{ role: 'user', content: prompt }],
     });
 
-    // Sort by cost (ascending)
-    driverRecommendations.sort((a: any, b: any) => a.estimatedCost - b.estimatedCost);
+    const content = message.content[0];
+    if (content.type === 'text') {
+      try {
+        // Extract JSON from response
+        let jsonText = content.text;
+        jsonText = jsonText.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+        
+        const jsonMatch = jsonText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const result = JSON.parse(jsonMatch[0]);
+          return NextResponse.json(result);
+        }
+        
+        throw new Error('No JSON found in Claude response');
+      } catch (parseError) {
+        console.error('Error parsing Claude response:', parseError, content.text);
+        return NextResponse.json(
+          { error: 'Failed to parse AI response' },
+          { status: 500 }
+        );
+      }
+    }
 
-    // Create cost comparison
-    const costComparison = driverRecommendations.slice(0, 3).map((rec: any) => ({
-      type: rec.driverType,
-      driver: rec.driverName,
-      weeklyCost: rec.weeklyCost,
-      estimatedCost: rec.estimatedCost,
-      pros: getDriverPros(rec.driverType),
-      cons: getDriverCons(rec.driverType),
-    }));
-
-    // Generate insights
-    const insights = generateInsights({
-      estimatedMiles,
-      borderCrossings,
-      revenue,
-      lowestCost: driverRecommendations[0].estimatedCost,
-      driverType: driverRecommendations[0].driverType,
-    });
-
-    return NextResponse.json({
-      recommendation: `Use ${driverRecommendations[0].driverName} (${driverRecommendations[0].driverType}) for optimal cost efficiency`,
-      totalDistance: estimatedMiles,
-      estimatedTime: `${Math.round((estimatedMiles / 60) * 10) / 10} hours`,
-      borderCrossings,
-      estimatedCost: driverRecommendations[0].estimatedCost,
-      driverRecommendations: driverRecommendations.slice(0, 3),
-      costComparison,
-      insights,
-    });
+    throw new Error('Invalid AI response format');
   } catch (error: any) {
     console.error('Route optimization error:', error);
     return NextResponse.json(
-      { error: 'Failed to generate route optimization' },
+      { error: error.message || 'Failed to generate route optimization' },
       { status: 500 }
     );
   }
 }
 
 function estimateDistance(origin: string, destination: string): number {
-  // Simple estimation - you can replace with Google Maps API
+  // Simple estimation fallback
   const cities: Record<string, { lat: number; lon: number }> = {
+    'London': { lat: 42.9849, lon: -81.2453 },
+    'Cleveland': { lat: 41.4993, lon: -81.6944 },
     'Guelph': { lat: 43.5448, lon: -80.2482 },
     'Buffalo': { lat: 42.8864, lon: -78.8784 },
     'Chicago': { lat: 41.8781, lon: -87.6298 },
@@ -125,78 +190,5 @@ function estimateDistance(origin: string, destination: string): number {
   }
 
   return 500; // default
-}
-
-function detectBorderCrossings(origin: string, destination: string): number {
-  const usKeywords = ['USA', 'US', 'United States', 'Buffalo', 'NY', 'Chicago', 'IL'];
-  const caKeywords = ['Canada', 'CA', 'Ontario', 'ON', 'Toronto', 'Guelph'];
-
-  const originUS = usKeywords.some(k => origin.includes(k));
-  const originCA = caKeywords.some(k => origin.includes(k));
-  const destUS = usKeywords.some(k => destination.includes(k));
-  const destCA = caKeywords.some(k => destination.includes(k));
-
-  if ((originUS && destCA) || (originCA && destUS)) {
-    return 2; // round trip crosses twice
-  }
-
-  return 0;
-}
-
-function getCostReason(driverType: string, cost: number, revenue?: number): string {
-  if (driverType === 'RNR') {
-    return 'Most cost-effective option with lower weekly commitment';
-  } else if (driverType === 'COM') {
-    return 'Reliable company driver with predictable costs';
-  } else {
-    return 'Higher cost but more flexible for specialized routes';
-  }
-}
-
-function getDriverPros(type: string): string[] {
-  const pros: Record<string, string[]> = {
-    RNR: ['Lowest base wage', 'Short-term flexibility', 'Lower commitment'],
-    COM: ['Reliable', 'Company-owned equipment', 'Predictable costs'],
-    OO: ['Experienced', 'Own equipment', 'Flexible routing'],
-  };
-  return pros[type] || [];
-}
-
-function getDriverCons(type: string): string[] {
-  const cons: Record<string, string[]> = {
-    RNR: ['Less reliable long-term', 'May need training'],
-    COM: ['Higher wages', 'Benefits overhead'],
-    OO: ['Highest per-mile cost', 'Scheduling dependencies'],
-  };
-  return cons[type] || [];
-}
-
-function generateInsights(data: {
-  estimatedMiles: number;
-  borderCrossings: number;
-  revenue?: number;
-  lowestCost: number;
-  driverType: string;
-}): string[] {
-  const insights: string[] = [];
-
-  if (data.borderCrossings > 0) {
-    insights.push(`⚠️ Route includes ${data.borderCrossings} border crossings ($${data.borderCrossings * 150} total)`);
-  }
-
-  if (data.revenue && data.lowestCost > data.revenue) {
-    const loss = data.lowestCost - data.revenue;
-    insights.push(`⚠️ This load is unprofitable: $${loss.toLocaleString()} loss with best driver option`);
-  }
-
-  if (data.estimatedMiles > 500) {
-    insights.push(`ℹ️ Long haul route (${data.estimatedMiles} miles) - consider HOS regulations`);
-  }
-
-  if (data.driverType === 'RNR') {
-    insights.push(`✅ Rental driver recommended for cost efficiency on this route`);
-  }
-
-  return insights;
 }
 

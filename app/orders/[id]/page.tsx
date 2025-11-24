@@ -70,11 +70,17 @@ export default function OrderDetailPage() {
       if (!data) return null;
       const pickup = data.snapshot.stops.find(s => s.type === 'Pickup')?.location || '';
       const delivery = data.snapshot.stops.find(s => s.type === 'Delivery')?.location || '';
+      
+      // Extract revenue from pricing totals
+      const revenueStr = data.pricing.totals.value.replace(/[^0-9.]/g, '');
+      const revenue = parseFloat(revenueStr) || undefined;
+      
       return getRouteOptimization({
         origin: pickup,
         destination: delivery,
         orderId,
         miles: data.laneMiles,
+        revenue,
       });
     },
     enabled: false,

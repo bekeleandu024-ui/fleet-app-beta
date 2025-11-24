@@ -49,11 +49,18 @@ export async function getRouteOptimization(params: {
     const response = await fetch('/api/ai/route-optimization', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(params),
+      body: JSON.stringify({
+        origin: params.origin,
+        destination: params.destination,
+        orderId: params.orderId,
+        miles: params.miles,
+        revenue: params.revenue,
+      }),
     });
 
     if (!response.ok) {
-      throw new Error('Failed to get route optimization');
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Failed to get route optimization');
     }
 
     return await response.json();
