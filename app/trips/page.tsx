@@ -26,8 +26,8 @@ export default function TripsPage() {
         header: "Trip",
         cell: (row) => (
           <div className="flex flex-col">
-            <span className="font-bold text-slate-100">{row.tripNumber}</span>
-            <span className="text-xs text-slate-500">{row.status}</span>
+            <span className="font-bold text-neutral-100">{row.tripNumber}</span>
+            <span className="text-xs text-neutral-500">{row.status}</span>
           </div>
         ),
         widthClass: "min-w-[160px]",
@@ -39,8 +39,8 @@ export default function TripsPage() {
         header: "PU→DEL",
         cell: (row) => (
           <div className="flex flex-col">
-            <span className="text-slate-200">{row.pickup}</span>
-            <span className="text-xs text-slate-500">{row.delivery}</span>
+            <span className="text-neutral-200">{row.pickup}</span>
+            <span className="text-xs text-neutral-500">{row.delivery}</span>
           </div>
         ),
         widthClass: "min-w-[200px]",
@@ -80,6 +80,7 @@ export default function TripsPage() {
   ];
 
   return (
+    <>
     <SectionBanner
       title="Trips & Tracking"
       subtitle="Monitor live trips, exceptions, and telemetry pings."
@@ -97,28 +98,28 @@ export default function TripsPage() {
     >
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <Filter label="Status">
-          <Select defaultValue={data.filters.statuses[0] ?? ""}>
+          <Select defaultValue={data.filters.statuses[0] ?? ""} className="bg-neutral-900 border-neutral-700 text-neutral-200">
             {data.filters.statuses.map((status) => (
               <option key={status}>{status}</option>
             ))}
           </Select>
         </Filter>
         <Filter label="Exception">
-          <Select defaultValue={data.filters.exceptions[0] ?? ""}>
+          <Select defaultValue={data.filters.exceptions[0] ?? ""} className="bg-neutral-900 border-neutral-700 text-neutral-200">
             {data.filters.exceptions.map((exception) => (
               <option key={exception}>{exception}</option>
             ))}
           </Select>
         </Filter>
         <Filter label="Date Range">
-          <Select defaultValue={data.filters.dateRanges[0] ?? ""}>
+          <Select defaultValue={data.filters.dateRanges[0] ?? ""} className="bg-neutral-900 border-neutral-700 text-neutral-200">
             {data.filters.dateRanges.map((range) => (
               <option key={range}>{range}</option>
             ))}
           </Select>
         </Filter>
       </div>
-      <div className="-mx-6 mt-4 overflow-hidden rounded-xl border border-slate-800/70 bg-slate-950/70 shadow-lg shadow-black/40">
+      <div className="mt-4 overflow-hidden rounded-xl border border-neutral-800 bg-black shadow-lg shadow-black/60">
         <DataTable
           columns={columns}
           data={data.data}
@@ -129,7 +130,7 @@ export default function TripsPage() {
             <Button
               size="sm"
               variant="plain"
-              className="text-xs text-slate-400 hover:text-slate-200"
+              className="text-xs text-neutral-400 hover:text-neutral-200 bg-neutral-800 hover:bg-neutral-700 border-neutral-700"
               onClick={(event) => {
                 event.stopPropagation();
                 router.push(`/trips/${row.id}`);
@@ -141,6 +142,7 @@ export default function TripsPage() {
         />
       </div>
     </SectionBanner>
+    </>
   );
 }
 
@@ -160,7 +162,7 @@ function TripsSkeleton() {
 function Filter({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="grid gap-2 text-sm">
-      <span className="text-xs uppercase tracking-wide text-slate-500 font-semibold">{label}</span>
+      <span className="text-xs uppercase tracking-wide text-neutral-500 font-semibold">{label}</span>
       {children}
     </label>
   );

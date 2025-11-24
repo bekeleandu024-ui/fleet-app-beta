@@ -17,7 +17,7 @@ const variantStyles = {
   success: "border-emerald-500/40 bg-emerald-950/40 shadow-emerald-500/10",
   warning: "border-amber-500/40 bg-amber-950/40 shadow-amber-500/10",
   danger: "border-rose-500/40 bg-rose-950/40 shadow-rose-500/10",
-  info: "border-cyan-500/40 bg-cyan-950/40 shadow-cyan-500/10",
+  info: "border-slate-600/40 bg-slate-900/60 shadow-slate-500/10",
 };
 
 const trendStyles = {

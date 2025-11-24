@@ -31,7 +31,7 @@ export function SectionBanner({
     <section
       id={id}
       className={cn(
-        "flex flex-col gap-4 rounded-xl border border-slate-800/70 bg-slate-900/60 text-slate-300 shadow-lg shadow-black/40 hover:border-emerald-500/30 transition-all duration-200",
+        "flex flex-col gap-4 rounded-xl border border-neutral-800 bg-black text-slate-300 shadow-lg shadow-black/60 hover:border-neutral-700 transition-all duration-200",
         dense ? "p-5" : "p-6",
         className
       )}

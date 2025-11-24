@@ -2,8 +2,8 @@
 
 :root {
   color-scheme: dark;
-  /* Primary backgrounds - very dark blue-black */
-  --bg: #0a0d16;
+  /* Primary backgrounds - very dark black */
+  --bg: #000000;
   --surface-1: rgba(15, 23, 42, 0.6); /* slate-900/60 */
   --surface-2: rgba(2, 6, 23, 0.7); /* slate-950/70 */
   --surface-3: #1e293b; /* slate-800 */

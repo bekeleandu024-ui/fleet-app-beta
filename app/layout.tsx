@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import "@/styles/globals.css";
+import "./globals.css";
 
 import { AppShell } from "@/components/app-shell";
 import { QueryProvider } from "@/components/query-provider";
@@ -17,7 +17,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} min-h-screen bg-[#0a0d16] text-slate-300 antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} min-h-screen bg-black text-slate-300 antialiased`}
+        style={{ colorScheme: 'dark' }}
       >
         <QueryProvider>
           <AppShell>{children}</AppShell>

@@ -14,19 +14,19 @@ const statusConfig: Record<string, {
 }> = {
   // Order statuses
   PendingInfo: { color: "bg-amber-500/20 text-amber-400 border-amber-500/50 shadow-sm shadow-amber-500/10", icon: "⏳" },
-  Qualified: { color: "bg-cyan-500/20 text-cyan-400 border-cyan-500/50 shadow-sm shadow-cyan-500/10", icon: "✓" },
+  Qualified: { color: "bg-slate-500/20 text-slate-400 border-slate-500/50 shadow-sm shadow-slate-500/10", icon: "✓" },
   Booked: { color: "bg-emerald-500/20 text-emerald-400 border-emerald-500/50 shadow-sm shadow-emerald-500/10", icon: "📋" },
   
   // Trip statuses
   Created: { color: "bg-slate-500/20 text-slate-400 border-slate-500/50 shadow-sm shadow-slate-500/10", icon: "○" },
-  "In Progress": { color: "bg-cyan-500/20 text-cyan-400 border-cyan-500/50 shadow-sm shadow-cyan-500/10", icon: "▶" },
+  "In Progress": { color: "bg-slate-500/20 text-slate-400 border-slate-500/50 shadow-sm shadow-slate-500/10", icon: "▶" },
   Completed: { color: "bg-emerald-500/20 text-emerald-400 border-emerald-500/50 shadow-sm shadow-emerald-500/10", icon: "✓" },
   Closed: { color: "bg-slate-600/20 text-slate-500 border-slate-600/50 shadow-sm shadow-slate-600/10", icon: "✓✓" },
   "At Risk": { color: "bg-rose-500/20 text-rose-400 border-rose-500/50 shadow-sm shadow-rose-500/10", icon: "⚠" },
   
   // Customs statuses
   Pending: { color: "bg-amber-500/20 text-amber-400 border-amber-500/50 shadow-sm shadow-amber-500/10", icon: "⏳" },
-  "In Review": { color: "bg-cyan-500/20 text-cyan-400 border-cyan-500/50 shadow-sm shadow-cyan-500/10", icon: "👁" },
+  "In Review": { color: "bg-slate-500/20 text-slate-400 border-slate-500/50 shadow-sm shadow-slate-500/10", icon: "👁" },
   Approved: { color: "bg-emerald-500/20 text-emerald-400 border-emerald-500/50 shadow-sm shadow-emerald-500/10", icon: "✓" },
   Rejected: { color: "bg-rose-500/20 text-rose-400 border-rose-500/50 shadow-sm shadow-rose-500/10", icon: "✗" },
   Cleared: { color: "bg-emerald-500/20 text-emerald-400 border-emerald-500/50 shadow-sm shadow-emerald-500/10", icon: "✓✓" },
