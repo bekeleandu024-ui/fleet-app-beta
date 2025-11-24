@@ -49,11 +49,22 @@ export default function OrderDetailPage() {
   const [aiInsights, setAiInsights] = useState<any>(null);
   const [loadingInsights, setLoadingInsights] = useState(false);
 
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError, error } = useQuery({
     queryKey: queryKeys.order(orderId),
     queryFn: () => fetchOrderDetail(orderId),
     enabled: Boolean(orderId),
+    retry: 1,
   });
+
+  // Debug logging
+  useEffect(() => {
+    if (isError) {
+      console.error("Order fetch error:", error);
+    }
+    if (data) {
+      console.log("Order data loaded:", data);
+    }
+  }, [data, isError, error]);
 
   const [bookingGuardrails, setBookingGuardrails] = useState<string[]>([]);
   const [loadingGuardrails, setLoadingGuardrails] = useState(false);

@@ -4,6 +4,41 @@ type ServiceName = "orders" | "masterData" | "dispatch" | "tracking";
 
 const demoOrders = [
   {
+    id: "RLOCL0001",
+    reference: "RLOCL0001",
+    pickup_location: "Hamilton, ON",
+    dropoff_location: "Columbus, OH",
+    status: "planning",
+    created_at: "2025-02-10T08:00:00Z",
+    pickup_window_start: "2025-02-13T10:00:00Z",
+    delivery_window_start: "2025-02-14T16:00:00Z",
+    pickup_time: "2025-02-13T10:00:00Z",
+    delivery_time: "2025-02-14T18:00:00Z",
+    customer_name: "Cross Border Logistics",
+    estimated_cost: 1900,
+    revenue: 2000,
+    lane_miles: 380,
+    commodity: "General Freight",
+    service_level: "Standard",
+    special_instructions: "Customs documentation required - US/Canada border crossing",
+    stops: [
+      {
+        id: "RLOCL0001-pu",
+        type: "pickup",
+        location: "Hamilton, ON",
+        window_start: "2025-02-13T10:00:00Z",
+        window_end: "2025-02-13T14:00:00Z",
+      },
+      {
+        id: "RLOCL0001-del",
+        type: "delivery",
+        location: "Columbus, OH",
+        window_start: "2025-02-14T16:00:00Z",
+        window_end: "2025-02-14T20:00:00Z",
+      },
+    ],
+  },
+  {
     id: "ord-1001",
     pickup_location: "Dallas, TX",
     dropoff_location: "Atlanta, GA",
@@ -135,6 +170,7 @@ const demoOrders = [
 ];
 
 const demoOrderCost: Record<string, Record<string, any>> = {
+  "RLOCL0001": { total_cost: 1900, revenue: 2000, linehaul_cost: 1400, fuel_cost: 410, accessorial_cost: 90, margin_analysis: { target_margin: 0.05 } },
   "ord-1001": { total_cost: 3200, revenue: 4200, linehaul_cost: 2400, fuel_cost: 550, accessorial_cost: 250, margin_analysis: { target_margin: 0.05 } },
   "ord-1002": { total_cost: 4100, revenue: 5200, linehaul_cost: 3000, fuel_cost: 800, accessorial_cost: 300, margin_analysis: { target_margin: 0.2 } },
   "ord-1003": { total_cost: 2600, revenue: 3400, linehaul_cost: 2000, fuel_cost: 400, accessorial_cost: 200, margin_analysis: { target_margin: 0.17 } },

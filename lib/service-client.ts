@@ -38,7 +38,7 @@ export async function serviceFetch<T>(service: ServiceName, path: string, option
       ...(options.headers ?? {}),
     },
     // Add timeout to fail fast if service is down
-    signal: AbortSignal.timeout(3000),
+    signal: AbortSignal.timeout(10000), // Increased to 10 seconds
   };
 
   if (options.body !== undefined) {

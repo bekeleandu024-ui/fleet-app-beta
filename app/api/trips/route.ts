@@ -28,15 +28,20 @@ interface BackendTripsResponse {
 }
 
 interface TripStop {
+  id?: string;
   stopType: string;
-  location: string;
+  location?: string;
+  name?: string;
   address?: string;
+  street?: string;
   city?: string;
   state?: string;
   zip?: string;
+  postal?: string;
   country?: string;
   appointmentStart?: string;
   appointmentEnd?: string;
+  scheduledAt?: string;
   notes?: string;
   sequence?: number;
 }
@@ -77,15 +82,23 @@ export async function POST(request: Request) {
       const pickupStop = body.stops.find(s => s.stopType === "Pickup") || body.stops[0];
       const deliveryStop = [...body.stops].reverse().find(s => s.stopType === "Delivery") || body.stops[body.stops.length - 1];
       
+      // Build location string from stop data (name or city, state)
+      const buildLocation = (stop: TripStop) => {
+        if (stop.location) return stop.location;
+        if (stop.name) return stop.name;
+        if (stop.city && stop.state) return `${stop.city}, ${stop.state}`;
+        return stop.address || stop.street || stop.city || "Unknown";
+      };
+      
       pickupData = {
-        location: pickupStop.location,
-        windowStart: pickupStop.appointmentStart,
+        location: buildLocation(pickupStop),
+        windowStart: pickupStop.appointmentStart || pickupStop.scheduledAt,
         windowEnd: pickupStop.appointmentEnd,
       };
       
       deliveryData = {
-        location: deliveryStop.location,
-        windowStart: deliveryStop.appointmentStart,
+        location: buildLocation(deliveryStop),
+        windowStart: deliveryStop.appointmentStart || deliveryStop.scheduledAt,
         windowEnd: deliveryStop.appointmentEnd,
       };
     } else {

@@ -143,7 +143,6 @@ export const orderDetailSchema = z.object({
     totals: keyValueSchema.extend({ helper: z.string().optional() }),
   }),
   booking: z.object({
-    guardrails: z.array(z.string()),
     recommendedDriverId: z.string().optional(),
     recommendedUnitId: z.string().optional(),
     driverOptions: z.array(bookingDriverSchema),

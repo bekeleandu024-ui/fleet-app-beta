@@ -144,7 +144,7 @@ export function DataTable<T>({
                         : undefined
                     }
                     className={cn(
-                      "transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/50 focus-visible:ring-offset-0",
+                      "transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-600/50 focus-visible:ring-offset-0",
                       clickable
                         ? "cursor-pointer hover:bg-slate-900/70 focus-visible:bg-slate-900/70"
                         : "hover:bg-slate-900/40"

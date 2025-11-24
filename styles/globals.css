@@ -18,11 +18,11 @@
   --text: #cbd5e1; /* slate-300 */
   --text-bright: rgba(255, 255, 255, 0.9);
   
-  /* Accent colors - emerald/cyan */
-  --brand: #06b6d4; /* cyan-500 */
-  --brand-light: #22d3ee; /* cyan-400 */
-  --accent: #10b981; /* emerald-500 */
-  --accent-light: #34d399; /* emerald-400 */
+  /* Accent colors - neutral grey */
+  --brand: #64748b; /* slate-500 */
+  --brand-light: #94a3b8; /* slate-400 */
+  --accent: #64748b; /* slate-500 */
+  --accent-light: #94a3b8; /* slate-400 */
   
   /* Status colors */
   --ok: #10b981;
@@ -155,13 +155,13 @@ body {
   }
 
   :focus-visible {
-    outline: 2px solid var(--brand);
+    outline: 2px solid #475569;
     outline-offset: 2px;
     transition: outline 180ms ease;
   }
 
   ::selection {
-    background-color: color-mix(in srgb, var(--brand) 35%, transparent);
+    background-color: rgba(71, 85, 105, 0.35);
     color: var(--text);
   }
 
