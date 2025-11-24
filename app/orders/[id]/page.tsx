@@ -55,6 +55,9 @@ export default function OrderDetailPage() {
     enabled: Boolean(orderId),
   });
 
+  const [bookingGuardrails, setBookingGuardrails] = useState<string[]>([]);
+  const [loadingGuardrails, setLoadingGuardrails] = useState(false);
+
   // Initialize form values when data loads
   useEffect(() => {
     if (data) {
@@ -86,10 +89,11 @@ export default function OrderDetailPage() {
     const benefits = pricing.benefitsPct ? baseWage * pricing.benefitsPct : 0;
     
     // Events and accessorials
-    const borderCrossing = 150; // Detect if cross-border
-    const pickup = 35;
-    const delivery = 35;
-    const events = borderCrossing + pickup + delivery;
+    const borderCrossing = 15; // Detect if cross-border
+    const dropHook = 15; // Drop/hook event
+    const pickup = 30;
+    const delivery = 30;
+    const events = borderCrossing + dropHook + pickup + delivery;
     
     // Weekly allocations for COM/RNR
     const weeklyAllocation = pricing.hasWeekly ? 200 : 0; // Prorated estimate
@@ -166,7 +170,33 @@ export default function OrderDetailPage() {
       }
     }
 
+    async function fetchGuardrails() {
+      if (!data) return;
+      
+      setLoadingGuardrails(true);
+      try {
+        const response = await fetch("/api/ai/booking-guardrails", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ orderData: data }),
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch guardrails");
+        }
+
+        const guardrails = await response.json();
+        setBookingGuardrails(Array.isArray(guardrails) ? guardrails : []);
+      } catch (error) {
+        console.error("Error fetching booking guardrails:", error);
+        setBookingGuardrails(["Review order details before booking"]);
+      } finally {
+        setLoadingGuardrails(false);
+      }
+    }
+
     fetchInsights();
+    fetchGuardrails();
   }, [data]);
 
 
@@ -213,7 +243,8 @@ export default function OrderDetailPage() {
       }
 
       const trip = await response.json();
-      alert(`Trip ${trip.id.slice(0, 8)} booked successfully! Redirecting to trips page...`);
+      const tripId = trip?.id ? String(trip.id).slice(0, 8) : "New";
+      alert(`Trip ${tripId} booked successfully! Redirecting to trips page...`);
       setNotes("");
       
       // Redirect to trips page after successful booking
@@ -399,22 +430,10 @@ export default function OrderDetailPage() {
                 </p>
               </dl>
             ) : (
-              // Show default pricing from backend
-              <dl className="space-y-2 text-sm">
-                {data.pricing.items.map((item) => (
-                  <div key={item.label} className="flex items-center justify-between py-2 border-b border-neutral-800 last:border-0">
-                    <dt className="text-xs text-neutral-500">{item.label}</dt>
-                    <dd className="font-semibold text-neutral-200">{item.value}</dd>
-                  </div>
-                ))}
-                <div className="flex items-center justify-between pt-2 border-t-2 border-neutral-700 font-semibold text-neutral-200">
-                  <span>{data.pricing.totals.label}</span>
-                  <span>{data.pricing.totals.value}</span>
-                </div>
-                {data.pricing.totals.helper && (
-                  <p className="text-xs text-neutral-500 mt-2">{data.pricing.totals.helper}</p>
-                )}
-              </dl>
+              // Show empty state until pricing configuration selected
+              <div className="flex items-center justify-center py-8 text-sm text-neutral-500">
+                Select a pricing configuration to calculate costs
+              </div>
             )}
           </article>
         </div>
@@ -498,11 +517,22 @@ export default function OrderDetailPage() {
           </article>
 
           {/* Guardrails */}
-          <RecommendationCallout
-            title="Booking Guardrails"
-            description="Constraints enforced before booking"
-            bullets={data.booking.guardrails}
-          />
+          {loadingGuardrails ? (
+            <article className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-4">
+              <h3 className="text-sm font-semibold text-neutral-200 mb-2">Booking Guardrails</h3>
+              <div className="animate-pulse space-y-2">
+                <div className="h-4 bg-neutral-800 rounded w-full"></div>
+                <div className="h-4 bg-neutral-800 rounded w-5/6"></div>
+                <div className="h-4 bg-neutral-800 rounded w-4/5"></div>
+              </div>
+            </article>
+          ) : (
+            <RecommendationCallout
+              title="Booking Guardrails"
+              description="Order-specific constraints"
+              bullets={bookingGuardrails}
+            />
+          )}
         </div>
       </section>
     </div>

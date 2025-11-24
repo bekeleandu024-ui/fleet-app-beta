@@ -14,11 +14,6 @@ type OrderStop = {
 };
 
 const STATUS_OPTIONS = ["New", "Planning", "In Transit", "At Risk", "Delivered", "Exception"];
-const BOOKING_GUARDRAILS = [
-  "Driver must have valid CDL",
-  "Unit must be inspected within 30 days",
-  "Driver hours of service must be available",
-];
 
 export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params;
@@ -285,7 +280,6 @@ function buildBooking(
   const recommendedUnit = order.unit_id ?? primaryTrip?.unit_id ?? unitOptions[0]?.id;
 
   return {
-    guardrails: BOOKING_GUARDRAILS,
     recommendedDriverId: recommendedDriver,
     recommendedUnitId: recommendedUnit,
     driverOptions,

@@ -36,10 +36,10 @@ INSERT INTO costing_rules (rule_key, rule_type, rule_value, description) VALUES
 
 -- Accessorial costs (per event)
 INSERT INTO costing_rules (rule_key, rule_type, rule_value, description) VALUES
-('BC_PER', 'GLOBAL', 150.00, 'Border crossing cost per event'),
-('DH_PER', 'GLOBAL', 50.00, 'Drop/hook cost per event'),
-('PICK_PER', 'GLOBAL', 35.00, 'Pickup cost per event'),
-('DEL_PER', 'GLOBAL', 35.00, 'Delivery cost per event');
+('BC_PER', 'GLOBAL', 15.00, 'Border crossing cost per event'),
+('DH_PER', 'GLOBAL', 15.00, 'Drop/hook cost per event'),
+('PICK_PER', 'GLOBAL', 30.00, 'Pickup cost per event'),
+('DEL_PER', 'GLOBAL', 30.00, 'Delivery cost per event');
 
 -- Event types
 INSERT INTO event_types (event_code, event_name, cost_per_event, is_automatic) VALUES
