@@ -64,13 +64,63 @@ export default function OrderDetailPage() {
     }
   }, [data]);
 
-  // Pricing configuration options based on driver/unit selection
+  // Pricing configuration options based on driver type
   const pricingOptions = [
-    { id: "standard", label: "Standard Rate", description: "Base linehaul + fuel" },
-    { id: "premium", label: "Premium Rate", description: "Enhanced service level" },
-    { id: "discount", label: "Discount Rate", description: "Volume customer pricing" },
-    { id: "spot", label: "Spot Market", description: "Current market rate" },
+    { id: "oo", label: "OO (Owner Operator)", description: "$0.70/mi base + $0.50 fuel", baseRate: 0.70, fuelRate: 0.50, hasWeekly: false },
+    { id: "oo-z1", label: "OO Z1 (Zone 1)", description: "$0.72/mi base + $0.50 fuel", baseRate: 0.72, fuelRate: 0.50, hasWeekly: false },
+    { id: "oo-z2", label: "OO Z2 (Zone 2)", description: "$0.68/mi base + $0.50 fuel", baseRate: 0.68, fuelRate: 0.50, hasWeekly: false },
+    { id: "oo-z3", label: "OO Z3 (Zone 3)", description: "$0.65/mi base + $0.50 fuel", baseRate: 0.65, fuelRate: 0.50, hasWeekly: false },
+    { id: "rnr", label: "RNR (Rental Driver)", description: "$0.38/mi + maintenance", baseRate: 0.38, fuelRate: 0.42, rmRate: 0.16, hasWeekly: true, benefitsPct: 0.12 },
+    { id: "com", label: "COM (Company Driver)", description: "$0.45/mi + full benefits", baseRate: 0.45, fuelRate: 0.45, rmRate: 0.16, hasWeekly: true, benefitsPct: 0.12 },
   ];
+
+  // Calculate pricing based on selected driver type
+  const calculatePricing = (pricingType: string, miles: number) => {
+    const pricing = pricingOptions.find(p => p.id === pricingType);
+    if (!pricing || !miles) return null;
+
+    // Base calculation
+    const baseWage = miles * pricing.baseRate;
+    const fuel = miles * pricing.fuelRate;
+    const rm = pricing.rmRate ? miles * pricing.rmRate : 0;
+    const benefits = pricing.benefitsPct ? baseWage * pricing.benefitsPct : 0;
+    
+    // Events and accessorials
+    const borderCrossing = 150; // Detect if cross-border
+    const pickup = 35;
+    const delivery = 35;
+    const events = borderCrossing + pickup + delivery;
+    
+    // Weekly allocations for COM/RNR
+    const weeklyAllocation = pricing.hasWeekly ? 200 : 0; // Prorated estimate
+    
+    const linehaul = baseWage + benefits + weeklyAllocation;
+    const fuelSurcharge = fuel;
+    const accessorials = rm + events;
+    const totalCost = linehaul + fuelSurcharge + accessorials;
+    const revenue = Math.round(totalCost / 0.95); // 5% margin
+    
+    return {
+      linehaul: Math.round(linehaul),
+      fuel: Math.round(fuelSurcharge),
+      accessorials: Math.round(accessorials),
+      totalCost: Math.round(totalCost),
+      revenue,
+      margin: 5,
+    };
+  };
+
+  // Recalculate pricing when driver type changes
+  const [calculatedPricing, setCalculatedPricing] = useState<any>(null);
+  
+  useEffect(() => {
+    if (selectedPricing && data?.laneMiles) {
+      const pricing = calculatePricing(selectedPricing, data.laneMiles);
+      setCalculatedPricing(pricing);
+    } else {
+      setCalculatedPricing(null);
+    }
+  }, [selectedPricing, data?.laneMiles]);
 
   // Filter pricing based on driver type if needed
   const availablePricing = selectedDriver && selectedUnit ? pricingOptions : pricingOptions;
@@ -321,20 +371,50 @@ export default function OrderDetailPage() {
               <h2 className="text-sm font-semibold text-neutral-200">Pricing</h2>
               <Gauge className="w-4 h-4 text-neutral-500" />
             </div>
-            <dl className="space-y-2 text-sm">
-              {data.pricing.items.map((item) => (
-                <div key={item.label} className="flex items-center justify-between py-2 border-b border-neutral-800 last:border-0">
-                  <dt className="text-xs text-neutral-500">{item.label}</dt>
-                  <dd className="font-semibold text-neutral-200">{item.value}</dd>
+            {calculatedPricing ? (
+              // Show calculated pricing based on selected driver type
+              <dl className="space-y-2 text-sm">
+                <div className="flex items-center justify-between py-2 border-b border-neutral-800">
+                  <dt className="text-xs text-neutral-500">Linehaul</dt>
+                  <dd className="font-semibold text-neutral-200">${calculatedPricing.linehaul.toFixed(2)}</dd>
                 </div>
-              ))}
-              <div className="flex items-center justify-between pt-2 border-t-2 border-neutral-700 font-semibold text-neutral-200">
-                <span>{data.pricing.totals.label}</span>
-                <span>{data.pricing.totals.value}</span>
-              </div>
-            </dl>
-            {data.pricing.totals.helper && (
-              <p className="text-xs text-neutral-500 mt-2">{data.pricing.totals.helper}</p>
+                <div className="flex items-center justify-between py-2 border-b border-neutral-800">
+                  <dt className="text-xs text-neutral-500">Fuel Surcharge</dt>
+                  <dd className="font-semibold text-neutral-200">${calculatedPricing.fuel.toFixed(2)}</dd>
+                </div>
+                <div className="flex items-center justify-between py-2 border-b border-neutral-800">
+                  <dt className="text-xs text-neutral-500">Accessorials</dt>
+                  <dd className="font-semibold text-neutral-200">${calculatedPricing.accessorials.toFixed(2)}</dd>
+                </div>
+                <div className="flex items-center justify-between py-2 border-b border-neutral-800">
+                  <dt className="text-xs text-neutral-500">Target Margin</dt>
+                  <dd className="font-semibold text-neutral-200">{calculatedPricing.margin}%</dd>
+                </div>
+                <div className="flex items-center justify-between pt-2 border-t-2 border-neutral-700 font-semibold text-neutral-200">
+                  <span>Cost Basis</span>
+                  <span>${calculatedPricing.totalCost.toFixed(2)}</span>
+                </div>
+                <p className="text-xs text-neutral-500 mt-2">
+                  Revenue ${calculatedPricing.revenue.toFixed(2)} • {data.laneMiles} miles
+                </p>
+              </dl>
+            ) : (
+              // Show default pricing from backend
+              <dl className="space-y-2 text-sm">
+                {data.pricing.items.map((item) => (
+                  <div key={item.label} className="flex items-center justify-between py-2 border-b border-neutral-800 last:border-0">
+                    <dt className="text-xs text-neutral-500">{item.label}</dt>
+                    <dd className="font-semibold text-neutral-200">{item.value}</dd>
+                  </div>
+                ))}
+                <div className="flex items-center justify-between pt-2 border-t-2 border-neutral-700 font-semibold text-neutral-200">
+                  <span>{data.pricing.totals.label}</span>
+                  <span>{data.pricing.totals.value}</span>
+                </div>
+                {data.pricing.totals.helper && (
+                  <p className="text-xs text-neutral-500 mt-2">{data.pricing.totals.helper}</p>
+                )}
+              </dl>
             )}
           </article>
         </div>

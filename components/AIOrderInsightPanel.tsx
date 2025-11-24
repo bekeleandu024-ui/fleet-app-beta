@@ -112,31 +112,20 @@ export function AIOrderInsightPanel({ insights }: { insights: InsightsData | nul
       </div>
 
       {/* Insights */}
-      <div className="space-y-3">
+      <div className="space-y-1.5">
         {insights.insights.map((insight, index) => (
           <div 
             key={index}
-            className={`rounded-lg p-4 ${severityStyles[insight.severity]}`}
+            className={`rounded p-2 ${severityStyles[insight.severity]}`}
           >
-            <div className="flex items-start gap-3">
-              <div className="mt-0.5">{getSeverityIcon(insight.severity)}</div>
-              <div className="flex-1 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-neutral-500 uppercase tracking-wide">
-                    {insight.category}
-                  </span>
+            <div className="flex items-start gap-2">
+              <div>{getSeverityIcon(insight.severity)}</div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-medium text-neutral-500 uppercase">{insight.category}</span>
+                  <h3 className="text-xs font-semibold text-neutral-200">{insight.title}</h3>
                 </div>
-                <h3 className="text-sm font-semibold text-neutral-200">{insight.title}</h3>
-                <p className="text-xs text-neutral-300">{insight.description}</p>
-                <div className="pt-2 border-t border-neutral-700">
-                  <div className="flex items-start gap-2 text-xs">
-                    <span className="text-neutral-500">💡</span>
-                    <div>
-                      <span className="text-neutral-500">Recommendation: </span>
-                      <span className="text-neutral-300">{insight.recommendation}</span>
-                    </div>
-                  </div>
-                </div>
+                <p className="text-xs text-neutral-400 mt-0.5">{insight.recommendation}</p>
               </div>
             </div>
           </div>
