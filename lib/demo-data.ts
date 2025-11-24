@@ -135,11 +135,11 @@ const demoOrders = [
 ];
 
 const demoOrderCost: Record<string, Record<string, any>> = {
-  "ord-1001": { total_cost: 3200, revenue: 4200, linehaul_cost: 2400, fuel_cost: 550, accessorial_cost: 250, margin_analysis: { target_margin: 0.18 } },
+  "ord-1001": { total_cost: 3200, revenue: 4200, linehaul_cost: 2400, fuel_cost: 550, accessorial_cost: 250, margin_analysis: { target_margin: 0.05 } },
   "ord-1002": { total_cost: 4100, revenue: 5200, linehaul_cost: 3000, fuel_cost: 800, accessorial_cost: 300, margin_analysis: { target_margin: 0.2 } },
   "ord-1003": { total_cost: 2600, revenue: 3400, linehaul_cost: 2000, fuel_cost: 400, accessorial_cost: 200, margin_analysis: { target_margin: 0.17 } },
   "ord-1004": { total_cost: 3000, revenue: 3950, linehaul_cost: 2200, fuel_cost: 550, accessorial_cost: 250, margin_analysis: { target_margin: 0.16 } },
-  "ord-1005": { total_cost: 1800, revenue: 2400, linehaul_cost: 1350, fuel_cost: 300, accessorial_cost: 150, margin_analysis: { target_margin: 0.18 } },
+  "ord-1005": { total_cost: 1800, revenue: 2400, linehaul_cost: 1350, fuel_cost: 300, accessorial_cost: 150, margin_analysis: { target_margin: 0.05 } },
 };
 
 const demoCustomerView: Record<string, Record<string, any>> = demoOrders.reduce(

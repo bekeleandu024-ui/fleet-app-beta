@@ -43,7 +43,7 @@ export default function OrderDetailPage() {
   const queryClient = useQueryClient();
   const [selectedDriver, setSelectedDriver] = useState("");
   const [selectedUnit, setSelectedUnit] = useState("");
-  const [selectedStatus, setSelectedStatus] = useState("");
+  const [selectedPricing, setSelectedPricing] = useState("");
   const [notes, setNotes] = useState("");
   const [isBooking, setIsBooking] = useState(false);
   const [aiInsights, setAiInsights] = useState<any>(null);
@@ -60,9 +60,20 @@ export default function OrderDetailPage() {
     if (data) {
       setSelectedDriver(data.booking.recommendedDriverId || "");
       setSelectedUnit(data.booking.recommendedUnitId || "");
-      setSelectedStatus(data.status || "");
+      setSelectedPricing("");
     }
   }, [data]);
+
+  // Pricing configuration options based on driver/unit selection
+  const pricingOptions = [
+    { id: "standard", label: "Standard Rate", description: "Base linehaul + fuel" },
+    { id: "premium", label: "Premium Rate", description: "Enhanced service level" },
+    { id: "discount", label: "Discount Rate", description: "Volume customer pricing" },
+    { id: "spot", label: "Spot Market", description: "Current market rate" },
+  ];
+
+  // Filter pricing based on driver type if needed
+  const availablePricing = selectedDriver && selectedUnit ? pricingOptions : pricingOptions;
 
   // Fetch AI insights when data loads
   useEffect(() => {
@@ -276,11 +287,16 @@ export default function OrderDetailPage() {
                     <li key={stop.id} className="rounded-lg border border-neutral-800 bg-neutral-900/50 p-2">
                       <div className="flex items-center justify-between text-xs text-neutral-500 mb-1">
                         <span className="font-medium">{stop.type}</span>
-                        <span>
-                          {new Date(stop.windowStart).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} –
-                          {" "}
-                          {new Date(stop.windowEnd).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                        </span>
+                        <div className="text-right">
+                          <div>
+                            {new Date(stop.windowStart).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" })}
+                          </div>
+                          <div>
+                            {new Date(stop.windowStart).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} –
+                            {" "}
+                            {new Date(stop.windowEnd).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                          </div>
+                        </div>
                       </div>
                       <p className="text-sm text-neutral-200">{stop.location}</p>
                       {stop.instructions && (
@@ -354,21 +370,25 @@ export default function OrderDetailPage() {
                 >
                   {data.booking.unitOptions.map((unit) => (
                     <option key={unit.id} value={unit.id}>
-                      {unit.id} • {unit.type} ({unit.status})
+                      {unit.type} ({unit.status})
                     </option>
                   ))}
                 </select>
               </label>
               
               <label className="block">
-                <span className="block text-xs text-neutral-500 mb-1">Status</span>
+                <span className="block text-xs text-neutral-500 mb-1">Pricing Configuration</span>
                 <select 
                   className="w-full rounded-md border border-neutral-800 bg-neutral-900 px-3 py-2 text-sm text-neutral-200"
-                  value={selectedStatus}
-                  onChange={(e) => setSelectedStatus(e.target.value)}
+                  value={selectedPricing}
+                  onChange={(e) => setSelectedPricing(e.target.value)}
+                  disabled={!selectedDriver || !selectedUnit}
                 >
-                  {data.booking.statusOptions.map((status) => (
-                    <option key={status} value={status}>{status}</option>
+                  <option value="">Select pricing...</option>
+                  {availablePricing.map((pricing) => (
+                    <option key={pricing.id} value={pricing.id}>
+                      {pricing.label} - {pricing.description}
+                    </option>
                   ))}
                 </select>
               </label>

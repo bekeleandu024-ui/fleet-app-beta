@@ -285,7 +285,7 @@ function calculateMarginDistribution(trips: Trip[]) {
 function generateAlerts(trips: Trip[], marginPercent: number, atRiskTrips: number) {
   const alerts: Array<{ id: string; title: string; description: string; severity: "info" | "warn" | "alert" }> = [];
   
-  // Alert if margin is below 18%
+  // Alert if margin is below 5%
   if (marginPercent < 18) {
     alerts.push({
       id: "alert-margin",

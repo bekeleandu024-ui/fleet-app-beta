@@ -90,6 +90,7 @@ RULES:
 9. Prioritize insights: critical first, then warnings, then info
 10. Limit to 5 most important insights
 11. Be specific in recommendations - use actual driver names and unit numbers from the data
+12. Target margin is 5% (company standard) - flag if below 3% as critical, 3-5% as warning
 
 IMPORTANT: The booking.driverOptions and booking.unitOptions arrays contain the ACTUAL available resources. 
 If these arrays have items, resources ARE available. Extract the recommended driver/unit using the recommendedDriverId/recommendedUnitId.

@@ -87,7 +87,7 @@ export const costingTools = {
       }
       
       const total = linehaul + fuel;
-      const margin = 0.18;
+      const margin = 0.05;
       const revenue = total / (1 - margin);
       
       return {
