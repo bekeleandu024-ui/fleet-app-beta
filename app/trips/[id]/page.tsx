@@ -19,6 +19,7 @@ import {
 
 import { TripTicket } from "@/components/trips/trip-ticket";
 import { DriverCostComparison } from "@/components/trips/driver-cost-comparison";
+import { CostingBreakdown } from "@/components/costing/costing-breakdown";
 import AIInsights from "@/components/AIInsights";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -27,6 +28,7 @@ import { fetchTripDetail } from "@/lib/api";
 import { getTripInsights } from "@/lib/ai-service";
 import { formatCurrency, formatDateTime } from "@/lib/format";
 import { queryKeys } from "@/lib/query";
+import { calculateTripCost, type DriverType } from "@/lib/costing";
 
 export default function TripDetailPage() {
   const params = useParams<{ id: string }>();
@@ -68,8 +70,15 @@ export default function TripDetailPage() {
     );
   }
 
-  const distanceMiles = aiInsights?.routeOptimization?.distance ?? data.metrics?.distanceMiles;
+  const distanceMiles = data.metrics?.distanceMiles ?? aiInsights?.routeOptimization?.distance;
   const activeExceptions = data.exceptions.filter((e) => e.severity === "alert" || e.severity === "warn");
+
+  // Calculate accurate costing if we have distance and driver type
+  const driverTypeMap: Record<string, DriverType> = { COM: 'COM', RNR: 'RNR', OO: 'OO' };
+  const driverType = driverTypeMap[data.driverType as string] || 'COM';
+  const tripCost = distanceMiles 
+    ? calculateTripCost(driverType, distanceMiles, data.pickup, data.delivery)
+    : null;
 
   return (
     <div className="space-y-4">
@@ -163,66 +172,26 @@ export default function TripDetailPage() {
         </Card>
 
         {/* MIDDLE COLUMN - Cost Analysis + Network Context */}
-        <Card className="col-span-12 lg:col-span-6 border-neutral-800/70 bg-neutral-900/60 p-4">
-          <div className="space-y-4">
-            {distanceMiles && (
-              <div className="border-b border-neutral-800 pb-4">
-                <DriverCostComparison distanceMiles={typeof distanceMiles === "number" ? distanceMiles : Number(distanceMiles)} />
-              </div>
-            )}
+        <div className="col-span-12 lg:col-span-6 space-y-4">
+          {tripCost && distanceMiles && (
+            <CostingBreakdown
+              driverType={driverType}
+              distance={distanceMiles}
+              cost={tripCost}
+              actualRevenue={data.metrics?.recommendedRevenue}
+            />
+          )}
 
-            <div className="border-b border-neutral-800 pb-4">
-              <div className="mb-3 flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-semibold text-neutral-100">Cost Analysis</p>
-                  <p className="text-xs text-neutral-500">Trip costs and revenue</p>
-                </div>
-                <DollarChip />
+          <Card className="border-neutral-800/70 bg-neutral-900/60 p-4">
+            <div className="flex items-start justify-between gap-3 mb-3">
+              <div>
+                <p className="text-sm font-semibold text-neutral-100">Network Context</p>
+                <p className="text-xs text-neutral-500">Exceptions and activity</p>
               </div>
-              <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm text-neutral-200">
-                <DetailRow
-                  label="Linehaul"
-                  value={formatCurrency(aiInsights?.costAnalysis.linehaulCost ?? data.metrics?.linehaul ?? null)}
-                />
-                <DetailRow
-                  label="Fuel"
-                  value={formatCurrency(aiInsights?.costAnalysis.fuelCost ?? data.metrics?.fuel ?? null)}
-                />
-                <DetailRow
-                  label="Driver Cost"
-                  value={formatCurrency(aiInsights?.costAnalysis.driverCost ?? null)}
-                />
-                <DetailRow
-                  label="Total Cost"
-                  value={formatCurrency(aiInsights?.costAnalysis.totalCost ?? data.metrics?.totalCost ?? null)}
-                  emphasize
-                />
-                <DetailRow
-                  label="Rec. Revenue"
-                  value={formatCurrency(aiInsights?.costAnalysis.recommendedRevenue ?? data.metrics?.recommendedRevenue ?? null)}
-                />
-                <DetailRow
-                  label="Margin"
-                  value={
-                    aiInsights?.costAnalysis.margin !== undefined
-                      ? `${aiInsights.costAnalysis.margin}%`
-                      : data.metrics?.marginPct !== undefined
-                        ? `${data.metrics.marginPct}%`
-                        : "—"
-                  }
-                  emphasize
-                />
-              </div>
+              <Sparkles className="h-4 w-4 text-neutral-500" />
             </div>
 
             <div className="border-b border-neutral-800 pb-4">
-              <div className="flex items-start justify-between gap-3 mb-3">
-                <div>
-                  <p className="text-sm font-semibold text-neutral-100">Network Context</p>
-                  <p className="text-xs text-neutral-500">Exceptions and activity</p>
-                </div>
-                <Sparkles className="h-4 w-4 text-neutral-500" />
-              </div>
 
               <div className="space-y-3">
                 <div>
@@ -273,8 +242,8 @@ export default function TripDetailPage() {
                 </div>
               </div>
             </div>
-          </div>
-        </Card>
+          </Card>
+        </div>
 
         {/* RIGHT COLUMN - AI Insights */}
         <div className="col-span-12 lg:col-span-3">

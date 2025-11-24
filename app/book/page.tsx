@@ -10,6 +10,8 @@ import { DriverUnitSelector } from "@/components/booking/driver-unit-selector";
 import { RateSelector } from "@/components/booking/rate-selector";
 import { StopManager, type TripStop } from "@/components/booking/stop-manager";
 import { RevenueCalculator } from "@/components/booking/revenue-calculator";
+import { CostingCard } from "@/components/costing/costing-card";
+import { getAllCostingOptions } from "@/lib/costing";
 
 interface Order {
   id: string;
@@ -473,6 +475,38 @@ export default function BookTripPage() {
         <div className="mb-4 rounded-lg border border-dashed border-neutral-800 bg-neutral-950/40 p-6 text-center">
           <p className="text-sm text-neutral-400">Select a qualified order from the right panel to begin booking</p>
         </div>
+      )}
+
+      {/* Driver Type Cost Comparison */}
+      {selectedOrder && actualMiles > 0 && (
+        <Card className="mb-4 rounded-lg border border-neutral-800 bg-neutral-900/60 p-4">
+          <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+            <TrendingUp className="h-4 w-4 text-emerald-400" />
+            Driver Type Cost Comparison
+          </h3>
+          <div className="grid grid-cols-3 gap-3">
+            {getAllCostingOptions(
+              actualMiles,
+              selectedOrder.pickup || "Unknown",
+              selectedOrder.delivery || "Unknown"
+            ).map((option) => (
+              <CostingCard
+                key={option.driverType}
+                driverType={option.driverType}
+                label={option.label}
+                cost={option.cost}
+                distance={actualMiles}
+                isRecommended={option.cost.total === Math.min(
+                  ...getAllCostingOptions(
+                    actualMiles,
+                    selectedOrder.pickup || "Unknown",
+                    selectedOrder.delivery || "Unknown"
+                  ).map(o => o.cost.total)
+                )}
+              />
+            ))}
+          </div>
+        </Card>
       )}
 
       {/* Three Column Layout */}
