@@ -43,10 +43,15 @@ export async function GET(
 }
 
 async function fetchOrderData(orderId: string) {
-  return serviceFetch('orders', `/api/orders/${orderId}`);
+  console.log('Fetching order data for:', orderId);
+  const data = await serviceFetch('orders', `/api/orders/${orderId}`);
+  console.log('Order data received:', data ? 'success' : 'null');
+  return data;
 }
 
 async function enrichOrderData(order: any) {
+  console.log('Enriching order data...');
+  
   // Fetch available drivers and units for this route
   const results = await Promise.allSettled([
     serviceFetch('masterData', `/api/metadata/drivers`),
@@ -56,13 +61,23 @@ async function enrichOrderData(order: any) {
   const driversData = results[0].status === 'fulfilled' ? results[0].value : { drivers: [] };
   const unitsData = results[1].status === 'fulfilled' ? results[1].value : { units: [] };
 
-  // Extract and filter drivers/units
-  const allDrivers = (driversData as any).drivers || [];
-  const allUnits = (unitsData as any).units || [];
+  console.log('Drivers result:', results[0].status, driversData);
+  console.log('Units result:', results[1].status, unitsData);
 
-  // Simple filtering - take first 5 available
-  const availableDrivers = allDrivers.slice(0, 5);
-  const availableUnits = allUnits.slice(0, 5);
+  // Extract and filter drivers/units
+  const allDrivers = (driversData as any).drivers || (driversData as any).data || [];
+  const allUnits = (unitsData as any).units || (unitsData as any).data || [];
+
+  // Filter to only ready/available resources
+  const availableDrivers = allDrivers
+    .filter((d: any) => d.status === 'Ready' || d.status === 'Available')
+    .slice(0, 5);
+  
+  const availableUnits = allUnits
+    .filter((u: any) => u.status === 'Available' || u.status === 'Ready')
+    .slice(0, 5);
+
+  console.log(`Found ${availableDrivers.length} available drivers, ${availableUnits.length} available units`);
 
   // Build costing estimate
   const costing = {
@@ -83,73 +98,84 @@ async function enrichOrderData(order: any) {
 async function generateOrderInsights(data: any) {
   const { order, availableDrivers, availableUnits, costing } = data;
 
-  const prompt = `You are a logistics AI assistant analyzing a freight order. Generate dispatch recommendations.
+  console.log('Generating insights for order:', {
+    orderId: order.id,
+    status: order.status,
+    pickup: order.pickup_location,
+    delivery: order.dropoff_location,
+    availableDrivers: availableDrivers.length,
+    availableUnits: availableUnits.length,
+  });
+
+  const prompt = `You are a logistics AI assistant analyzing a freight order. Provide actionable dispatch recommendations.
 
 ORDER DETAILS:
 - Order ID: ${order.id}
-- Status: ${order.status}
-- Customer: ${order.customer}
-- Route: ${order.pickup_location} → ${order.dropoff_location}
-- Service Level: ${order.serviceLevel || 'Standard'}
-- Commodity: ${order.commodity || 'General'}
-- Age: ${order.ageHours || 0} hours
+- Status: ${order.status || 'Unknown'}
+- Customer: ${order.customer_id || 'Unknown'}
+- Route: ${order.pickup_location || 'N/A'} → ${order.dropoff_location || 'N/A'}
+- Order Type: ${order.order_type || 'Standard'}
+- Created: ${order.created_at || 'N/A'}
+- Special Instructions: ${order.special_instructions || 'None'}
 
-PICKUP WINDOW:
-- Start: ${order.pickup_window_start}
-- End: ${order.pickup_window_end}
-
-DELIVERY WINDOW:
-- Start: ${order.delivery_window_start}
-- End: ${order.delivery_window_end}
+TIME WINDOWS:
+- Pickup: ${order.pickup_time || order.pu_window_start || 'Not specified'}
+- Delivery: ${order.dropoff_time || order.del_window_start || 'Not specified'}
 
 COSTING:
-- Estimated Cost: $${costing.totalCost || 'N/A'}
-- Estimated Revenue: $${costing.revenue || 'N/A'}
-- Target Margin: ${costing.margin || 'N/A'}%
-- Distance: ${costing.miles || 'N/A'} miles
+- Estimated Cost: $${costing.totalCost || 'Not calculated'}
+- Estimated Revenue: $${costing.revenue || 'Not calculated'}
+- Target Margin: ${costing.margin || 'Not set'}%
+- Distance: ${costing.miles || 'Unknown'} miles
 
-AVAILABLE DRIVERS (Top 5):
-${availableDrivers.map((d: any, i: number) => 
-  `${i + 1}. ${d.name} - ${d.region} - ${d.hoursAvailable || 0}hrs available`
-).join('\n')}
+AVAILABLE DRIVERS:
+${availableDrivers.length > 0 ? availableDrivers.slice(0, 5).map((d: any, i: number) => 
+  `${i + 1}. ${d.name || d.id} - Region: ${d.region || 'Unknown'} - Available: ${d.hoursAvailable || 'Unknown'}hrs - Status: ${d.status || 'Unknown'}`
+).join('\n') : 'No driver data available'}
 
-AVAILABLE UNITS (Top 5):
-${availableUnits.map((u: any, i: number) => 
-  `${i + 1}. ${u.unitNumber} - ${u.type} - ${u.location}`
-).join('\n')}
+AVAILABLE UNITS:
+${availableUnits.length > 0 ? availableUnits.slice(0, 5).map((u: any, i: number) => 
+  `${i + 1}. ${u.unitNumber || u.id} - Type: ${u.type || 'Unknown'} - Location: ${u.location || 'Unknown'} - Status: ${u.status || 'Unknown'}`
+).join('\n') : 'No unit data available'}
 
-ANALYZE AND PROVIDE:
-1. **Urgency Assessment** - How urgent is this order? (based on age and windows)
-2. **Driver Recommendation** - Which driver is best and why?
-3. **Unit Recommendation** - Which unit is best and why?
-4. **Cost Optimization** - Any ways to improve margin?
-5. **Risk Factors** - Potential issues (tight windows, distance, weather, etc.)
-6. **Dispatch Priority** - Should this be dispatched immediately?
+YOUR TASK:
+Analyze this order and provide:
+1. Overall dispatch readiness assessment
+2. Best driver match with specific reasoning
+3. Best unit match with specific reasoning  
+4. Critical missing data or blockers
+5. Cost/margin optimization opportunities
+6. Risk factors (time windows, distance, equipment, etc.)
+7. Urgency level and recommended actions
 
-Format as JSON:
+Be specific and actionable. If data is missing, call it out clearly.
+
+Respond with ONLY valid JSON (no markdown, no code blocks):
 {
-  "summary": "Brief overview",
-  "urgency": "low" | "medium" | "high" | "critical",
+  "summary": "1-2 sentence order assessment with key concern or status",
+  "urgency": "low|medium|high|critical",
   "recommendedDriver": {
-    "id": "driver_id",
-    "name": "Driver name",
-    "reason": "Why this driver"
+    "id": "actual driver ID from the list above",
+    "name": "Driver name from the list",
+    "reason": "Specific reason why this driver is optimal (location, hours, experience)"
   },
   "recommendedUnit": {
-    "id": "unit_id",
-    "number": "Unit number",
-    "reason": "Why this unit"
+    "id": "actual unit ID from the list above", 
+    "number": "Unit number from the list",
+    "reason": "Specific reason why this unit is optimal (type match, location, availability)"
   },
   "insights": [
     {
-      "category": "URGENCY" | "DRIVER" | "UNIT" | "COST" | "RISK" | "DISPATCH",
-      "title": "Insight title",
-      "description": "Detailed explanation",
-      "severity": "info" | "success" | "warning" | "error",
-      "action": "Recommended action"
+      "category": "URGENCY|DRIVER|UNIT|COST|RISK|DISPATCH",
+      "title": "Short actionable title",
+      "description": "Clear explanation of the issue or opportunity",
+      "severity": "info|success|warning|error",
+      "action": "Specific recommended action"
     }
   ]
-}`;
+}
+
+IMPORTANT: Return ONLY the JSON object, nothing else.`;
 
   const message = await anthropic.messages.create({
     model: 'claude-sonnet-4-20250514',

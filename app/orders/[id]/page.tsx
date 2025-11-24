@@ -48,14 +48,6 @@ export default function OrderDetailPage() {
   const [selectedStatus, setSelectedStatus] = useState("");
   const [notes, setNotes] = useState("");
   const [isBooking, setIsBooking] = useState(false);
-  const [isQualifying, setIsQualifying] = useState(false);
-  const [qualificationNotes, setQualificationNotes] = useState("");
-  const [expandedAISections, setExpandedAISections] = useState({
-    operational: true,
-    suggestions: false,
-    financial: false,
-    risks: false,
-  });
 
   const { data, isLoading, isError } = useQuery({
     queryKey: queryKeys.order(orderId),
@@ -158,48 +150,7 @@ export default function OrderDetailPage() {
     alert("Status update feature coming soon");
   };
 
-  // Qualify order mutation
-  const qualifyMutation = useMutation({
-    mutationFn: async (notes: string) => {
-      const response = await fetch(`/api/orders/${orderId}/qualify`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ notes }),
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to qualify order');
-      }
-      
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.order(orderId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.orders() });
-      setIsQualifying(false);
-      setQualificationNotes("");
-      alert("Order qualified successfully!");
-    },
-    onError: (error: any) => {
-      alert(error.message || "Failed to qualify order");
-    },
-  });
 
-  const handleQualify = () => {
-    if (!qualificationNotes.trim()) {
-      alert("Please add qualification notes");
-      return;
-    }
-    
-    qualifyMutation.mutate(qualificationNotes);
-  };
-
-  const canQualify = data?.status === "PendingInfo" || data?.status === "New";
-  const isQualified = data?.status === "Qualified" || data?.status === "Booked";
-
-  const toggleAISection = (section: keyof typeof expandedAISections) => {
-    setExpandedAISections(prev => ({ ...prev, [section]: !prev[section] }));
-  };
 
   // Collect all missing data
   const missingData = [];
@@ -229,8 +180,7 @@ export default function OrderDetailPage() {
   // Progress steps
   const progressSteps = [
     { label: "Created", active: true },
-    { label: "Needs Qualification", active: canQualify },
-    { label: "Ready for Dispatch", active: isQualified && !isBooking },
+    { label: "Ready to Book", active: !isBooking },
     { label: "Booked", active: data.status === "Booked" || data.status === "In Transit" },
     { label: "In Transit", active: data.status === "In Transit" },
     { label: "Delivered", active: data.status === "Delivered" },
@@ -275,8 +225,48 @@ export default function OrderDetailPage() {
       {/* 3-Column Layout */}
       <section className="grid grid-cols-12 gap-4">
         
-        {/* LEFT COLUMN - Order Details (70% - Scrollable) */}
-        <div className="col-span-12 lg:col-span-8 space-y-4 max-h-screen overflow-y-auto pr-2">
+        {/* LEFT COLUMN - AI Insights & Route Optimization */}
+        <div className="col-span-12 lg:col-span-4 space-y-4">
+          {/* Claude AI Insights */}
+          <AIInsights type="order" id={orderId} />
+
+          {/* Route Optimization */}
+          {!showAIInsights ? (
+            <article className="rounded-xl border border-violet-700 bg-gradient-to-br from-violet-900/40 to-purple-900/40 p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Sparkles className="w-4 h-4 text-violet-400" />
+                <h2 className="text-sm font-semibold text-violet-200">Route Optimization</h2>
+              </div>
+              <p className="text-xs text-violet-300 mb-3">
+                AI-powered driver recommendations and cost analysis
+              </p>
+              <Button
+                onClick={handleGetAIRecommendation}
+                disabled={aiLoading}
+                variant="primary"
+                size="sm"
+                className="w-full bg-violet-600 hover:bg-violet-700"
+              >
+                {aiLoading ? 'Analyzing...' : 'Get AI Recommendation'}
+              </Button>
+            </article>
+          ) : (
+            showAIInsights && aiInsights && (
+              <AIInsightsPanel
+                recommendation={aiInsights.recommendation}
+                driverRecommendations={aiInsights.driverRecommendations}
+                costComparison={aiInsights.costComparison}
+                insights={aiInsights.insights}
+                totalDistance={aiInsights.totalDistance}
+                estimatedTime={aiInsights.estimatedTime}
+                borderCrossings={aiInsights.borderCrossings}
+              />
+            )
+          )}
+        </div>
+
+        {/* CENTER COLUMN - Order Summary & Pricing */}
+        <div className="col-span-12 lg:col-span-4 space-y-4 max-h-screen overflow-y-auto pr-2">
           {/* Order Summary */}
           <article className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-4">
             <h2 className="text-sm font-medium text-neutral-400 uppercase tracking-wide mb-3">Order Summary</h2>
@@ -343,67 +333,9 @@ export default function OrderDetailPage() {
           </article>
         </div>
 
-        {/* CENTER COLUMN - Booking & Actions */}
+        {/* RIGHT COLUMN - Booking Console & Guardrails */}
         <div className="col-span-12 lg:col-span-4 space-y-4">
           
-          {/* Qualification Alert */}
-          {canQualify && !isQualifying && (
-            <article className="rounded-xl border border-amber-700 bg-gradient-to-br from-amber-900/40 to-orange-900/40 p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <AlertCircle className="w-4 h-4 text-amber-400" />
-                <h2 className="text-sm font-semibold text-amber-200">Needs Qualification</h2>
-              </div>
-              <p className="text-xs text-amber-300 mb-3">
-                Review and verify order details before booking
-              </p>
-              <Button
-                onClick={() => setIsQualifying(true)}
-                variant="primary"
-                size="sm"
-                className="w-full bg-amber-600 hover:bg-amber-700"
-              >
-                Qualify Order
-              </Button>
-            </article>
-          )}
-
-          {/* Qualification Form */}
-          {isQualifying && (
-            <article className="rounded-xl border border-emerald-700 bg-gradient-to-br from-emerald-900/40 to-teal-900/40 p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                <h2 className="text-sm font-semibold text-emerald-200">Qualify Order</h2>
-              </div>
-              <textarea
-                className="w-full h-24 px-3 py-2 bg-black/40 border border-emerald-800 rounded-md text-white text-sm focus:border-emerald-500 focus:outline-none resize-none mb-3"
-                placeholder="Verification notes: pickup/delivery details, equipment, special handling..."
-                value={qualificationNotes}
-                onChange={(e) => setQualificationNotes(e.target.value)}
-              />
-              <div className="flex gap-2">
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={handleQualify}
-                  disabled={qualifyMutation.isPending}
-                  className="flex-1 bg-emerald-600 hover:bg-emerald-700"
-                >
-                  {qualifyMutation.isPending ? "Qualifying..." : "Qualify"}
-                </Button>
-                <Button
-                  variant="subtle"
-                  size="sm"
-                  onClick={() => {
-                    setIsQualifying(false);
-                    setQualificationNotes("");
-                  }}
-                >
-                  Cancel
-                </Button>
-              </div>
-            </article>
-          )}
-
           {/* Booking Console */}
           <article className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-4">
             <h2 className="text-sm font-semibold text-neutral-200 mb-3">Booking Console</h2>
@@ -482,48 +414,8 @@ export default function OrderDetailPage() {
             bullets={data.booking.guardrails}
           />
         </div>
-
-        {/* RIGHT COLUMN - AI Insights */}
-        <div className="col-span-12 lg:col-span-4 space-y-4">
-          {/* Claude AI Insights */}
-          <AIInsights type="order" id={orderId} />
-
-          {/* Route Optimization */}
-          {!showAIInsights ? (
-            <article className="rounded-xl border border-violet-700 bg-gradient-to-br from-violet-900/40 to-purple-900/40 p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <Sparkles className="w-4 h-4 text-violet-400" />
-                <h2 className="text-sm font-semibold text-violet-200">Route Optimization</h2>
-              </div>
-              <p className="text-xs text-violet-300 mb-3">
-                AI-powered driver recommendations and cost analysis
-              </p>
-              <Button
-                onClick={handleGetAIRecommendation}
-                disabled={aiLoading}
-                variant="primary"
-                size="sm"
-                className="w-full bg-violet-600 hover:bg-violet-700"
-              >
-                {aiLoading ? 'Analyzing...' : 'Get AI Recommendation'}
-              </Button>
-            </article>
-          ) : (
-            showAIInsights && aiInsights && (
-              <AIInsightsPanel
-                recommendation={aiInsights.recommendation}
-                driverRecommendations={aiInsights.driverRecommendations}
-                costComparison={aiInsights.costComparison}
-                insights={aiInsights.insights}
-                totalDistance={aiInsights.totalDistance}
-                estimatedTime={aiInsights.estimatedTime}
-                borderCrossings={aiInsights.borderCrossings}
-              />
-            )
-          )}
-        </div>
       </section>
-    </>
+    </div>
   );
 }
 
