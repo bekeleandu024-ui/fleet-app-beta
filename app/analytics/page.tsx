@@ -79,7 +79,7 @@ export default function AnalyticsPage() {
   if (isError || !data) {
     return (
       <SectionBanner title="Margin analytics" subtitle="Monitor profitability, trends, and driver performance." aria-live="polite">
-        <p className="text-sm text-neutral-400">Unable to load analytics right now. Please try again shortly.</p>
+        <p className="text-sm text-zinc-400">Unable to load analytics right now. Please try again shortly.</p>
       </SectionBanner>
     );
   }
@@ -108,9 +108,9 @@ export default function AnalyticsPage() {
             subtitle="Monitor margin health, revenue efficiency, and risk before month-end."
             aria-live="polite"
           >
-          <div className="flex flex-wrap items-center gap-3 text-sm text-neutral-400">
+          <div className="flex flex-wrap items-center gap-3 text-sm text-zinc-400">
             <Chip tone="brand">{summary.periodLabel}</Chip>
-            <span className="text-xs text-neutral-500">Last refreshed {formatDateTime(updatedAt)}</span>
+            <span className="text-xs text-zinc-500">Last refreshed {formatDateTime(updatedAt)}</span>
           </div>
           <div className="grid gap-4 md:grid-cols-3">
             <SummaryStat label="Total revenue" value={formatCurrency(summary.totalRevenue)} helper="Booked linehaul + FSC" />
@@ -146,7 +146,7 @@ export default function AnalyticsPage() {
           subtitle="Weekly totals with margin overlay"
           footer={
             <span className="flex items-center gap-2">
-              <TrendingUp className="size-4 text-emerald-400" aria-hidden="true" />
+              <TrendingUp className="size-4 text-blue-400" aria-hidden="true" />
               <span>
                 {formatCurrency(revenueTotals.revenue)} revenue vs {formatCurrency(revenueTotals.cost)} cost captured this period.
               </span>
@@ -196,8 +196,8 @@ export default function AnalyticsPage() {
                   type="monotone"
                   dataKey="revenue"
                   name="Revenue"
-                  stroke="#34d399"
-                  fill="#10b98133"
+                  stroke="#3b82f6"
+                  fill="#3b82f633"
                   strokeWidth={2}
                   dot={false}
                 />
@@ -206,8 +206,8 @@ export default function AnalyticsPage() {
                   type="monotone"
                   dataKey="cost"
                   name="Cost"
-                  stroke="#818cf8"
-                  fill="#6366f133"
+                  stroke="#a1a1aa"
+                  fill="#a1a1aa33"
                   strokeWidth={2}
                   dot={false}
                 />
@@ -250,7 +250,7 @@ export default function AnalyticsPage() {
                     }}
                   />
                   <Legend iconType="circle" iconSize={10} />
-                  <Bar dataKey="marginPercent" name="Margin %" fill="#34d399" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="marginPercent" name="Margin %" fill="#3b82f6" radius={[6, 6, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -269,7 +269,7 @@ export default function AnalyticsPage() {
                     contentStyle={{ background: "#111827", borderRadius: "0.75rem", border: "1px solid #1f2937", color: "#e5e7eb" }}
                     formatter={(value) => [formatNumber(Number(value)), "Trips"]}
                   />
-                  <Bar dataKey="trips" name="Trips" fill="#60a5fa" radius={[0, 6, 6, 0]} />
+                  <Bar dataKey="trips" name="Trips" fill="#a1a1aa" radius={[0, 6, 6, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -287,12 +287,12 @@ export default function AnalyticsPage() {
             {driverPerformance.map((driver) => (
               <li
                 key={driver.driverId}
-                className="rounded-lg border border-neutral-800 bg-neutral-950/60 p-3"
+                className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-3"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-sm font-semibold text-neutral-100">{driver.driverName}</p>
-                    <p className="text-xs text-neutral-500">
+                    <p className="text-sm font-semibold text-zinc-100">{driver.driverName}</p>
+                    <p className="text-xs text-zinc-500">
                       {driver.trips} trips · {formatCurrency(driver.revenue)}
                     </p>
                   </div>
@@ -310,11 +310,11 @@ export default function AnalyticsPage() {
         <SectionBanner title="Lane profitability" subtitle="Focus lanes needing price or cost attention" dense>
           <ul className="space-y-3">
             {lanePerformance.map((lane) => (
-              <li key={lane.lane} className="rounded-lg border border-neutral-800 bg-neutral-950/60 p-3">
+              <li key={lane.lane} className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-3">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-sm font-semibold text-neutral-100">{lane.lane}</p>
-                    <p className="text-xs text-neutral-500">
+                    <p className="text-sm font-semibold text-zinc-100">{lane.lane}</p>
+                    <p className="text-xs text-zinc-500">
                       {formatCurrency(lane.revenue)} · {formatNumber(lane.miles)} mi
                     </p>
                   </div>
@@ -332,16 +332,16 @@ export default function AnalyticsPage() {
         <SectionBanner title="Alerts" subtitle="AI surfaced risk and opportunities" dense>
           <ul className="space-y-3">
             {alerts.length === 0 ? (
-              <li className="rounded-lg border border-neutral-800 bg-neutral-950/60 p-4 text-sm text-neutral-400">
+              <li className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-4 text-sm text-zinc-400">
                 No active analytics alerts.
               </li>
             ) : (
               alerts.map((alert) => (
-                <li key={alert.id} className="rounded-lg border border-neutral-800 bg-neutral-950/60 p-4">
+                <li key={alert.id} className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="space-y-1">
-                      <p className="text-sm font-semibold text-neutral-100">{alert.title}</p>
-                      <p className="text-sm text-neutral-400">{alert.description}</p>
+                      <p className="text-sm font-semibold text-zinc-100">{alert.title}</p>
+                      <p className="text-sm text-zinc-400">{alert.description}</p>
                     </div>
                     <StatChip
                       label="Severity"
@@ -380,9 +380,9 @@ function AIInsightsSection({
         aria-live="polite"
       >
         <div className="grid gap-4 md:grid-cols-3">
-          <div className="h-32 animate-pulse rounded-lg bg-neutral-900/60" />
-          <div className="h-32 animate-pulse rounded-lg bg-neutral-900/60" />
-          <div className="h-32 animate-pulse rounded-lg bg-neutral-900/60" />
+          <div className="h-32 animate-pulse rounded-lg bg-zinc-900/60" />
+          <div className="h-32 animate-pulse rounded-lg bg-zinc-900/60" />
+          <div className="h-32 animate-pulse rounded-lg bg-zinc-900/60" />
         </div>
       </SectionBanner>
     );
@@ -400,25 +400,25 @@ function AIInsightsSection({
         aria-live="polite"
       >
         <div className="flex items-center gap-2 mb-4">
-          <Brain className="size-5 text-indigo-400" aria-hidden="true" />
+          <Brain className="size-5 text-blue-400" aria-hidden="true" />
           <button
             onClick={onRefresh}
-            className="text-sm text-indigo-400 hover:text-indigo-300"
+            className="text-sm text-blue-400 hover:text-blue-300"
             aria-label="Refresh AI insights"
           >
             Refresh Insights
           </button>
         </div>
 
-        <div className="rounded-lg border border-neutral-800 bg-linear-to-br from-indigo-950/40 to-neutral-950/60 p-5">
+        <div className="rounded-lg border border-zinc-800 bg-linear-to-br from-blue-950/40 to-black/60 p-5">
           <div className="flex items-start justify-between gap-4 mb-3">
             <div>
-              <p className="text-lg font-semibold text-neutral-100 mb-2">Executive Summary</p>
-              <p className="text-sm text-neutral-300 leading-relaxed">{insights.executiveSummary}</p>
+              <p className="text-lg font-semibold text-zinc-100 mb-2">Executive Summary</p>
+              <p className="text-sm text-zinc-300 leading-relaxed">{insights.executiveSummary}</p>
             </div>
             <div className="flex flex-col items-center gap-1 min-w-20">
-              <div className="text-3xl font-bold text-emerald-400">{healthScore}</div>
-              <div className="text-xs text-neutral-500 uppercase tracking-wide">Health Score</div>
+              <div className="text-3xl font-bold text-blue-400">{healthScore}</div>
+              <div className="text-xs text-zinc-500 uppercase tracking-wide">Health Score</div>
               <StatChip
                 label="Risk"
                 value={riskLevel.toUpperCase()}
@@ -430,7 +430,7 @@ function AIInsightsSection({
 
         <div className="grid gap-4 md:grid-cols-3 mt-4">
           <InsightCard
-            icon={<TrendingUp className="size-5 text-emerald-400" />}
+            icon={<TrendingUp className="size-5 text-blue-400" />}
             title="Trend Analysis"
             items={[
               { label: "Revenue", value: insights.trendAnalysis?.revenue },
@@ -468,17 +468,17 @@ function AIInsightsSection({
           <SectionBanner title="Anomaly Detection" subtitle="AI-detected issues requiring attention" dense>
             <ul className="space-y-3">
               {insights.anomalyDetection.map((anomaly: any, idx: number) => (
-                <li key={idx} className="rounded-lg border border-neutral-800 bg-neutral-950/60 p-4">
+                <li key={idx} className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-4">
                   <div className="flex items-start justify-between gap-3 mb-2">
-                    <p className="text-sm font-semibold text-neutral-100">{anomaly.finding}</p>
+                    <p className="text-sm font-semibold text-zinc-100">{anomaly.finding}</p>
                     <StatChip
                       label={anomaly.type}
                       value={anomaly.severity.toUpperCase()}
                       variant={anomaly.severity === "critical" ? "alert" : anomaly.severity === "warning" ? "warn" : "default"}
                     />
                   </div>
-                  <p className="text-xs text-neutral-400 mb-2">{anomaly.impact}</p>
-                  <div className="flex items-start gap-2 text-xs text-emerald-400">
+                  <p className="text-xs text-zinc-400 mb-2">{anomaly.impact}</p>
+                  <div className="flex items-start gap-2 text-xs text-blue-400">
                     <Lightbulb className="size-3 mt-0.5 shrink-0" />
                     <span>{anomaly.recommendation}</span>
                   </div>
@@ -491,15 +491,15 @@ function AIInsightsSection({
           <SectionBanner title="Predictions" subtitle="AI forecasts based on current trends" dense>
             <ul className="space-y-3">
               {insights.predictions?.map((prediction: any, idx: number) => (
-                <li key={idx} className="rounded-lg border border-neutral-800 bg-neutral-950/60 p-4">
+                <li key={idx} className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-4">
                   <div className="flex items-start justify-between gap-3 mb-2">
-                    <p className="text-sm font-semibold text-neutral-100 capitalize">{prediction.metric} Forecast</p>
+                    <p className="text-sm font-semibold text-zinc-100 capitalize">{prediction.metric} Forecast</p>
                     <Chip tone={prediction.confidence === "high" ? "ok" : prediction.confidence === "medium" ? "warn" : "neutral"}>
                       {prediction.confidence}
                     </Chip>
                   </div>
-                  <p className="text-xs text-neutral-300 mb-2">{prediction.forecast}</p>
-                  <p className="text-xs text-neutral-500">{prediction.reasoning}</p>
+                  <p className="text-xs text-zinc-300 mb-2">{prediction.forecast}</p>
+                  <p className="text-xs text-zinc-500">{prediction.reasoning}</p>
                 </li>
               ))}
             </ul>
@@ -516,7 +516,7 @@ function AIInsightsSection({
         >
           <ul className="space-y-3">
             {insights.strategicRecommendations.map((rec: any, idx: number) => (
-              <li key={idx} className="rounded-lg border border-neutral-800 bg-neutral-950/60 p-4">
+              <li key={idx} className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-4">
                 <div className="flex items-start justify-between gap-3 mb-2">
                   <div className="flex items-start gap-2 flex-1">
                     <Zap
@@ -529,15 +529,15 @@ function AIInsightsSection({
                       }`}
                     />
                     <div>
-                      <p className="text-sm font-semibold text-neutral-100">{rec.action}</p>
-                      <p className="text-xs text-neutral-400 mt-1">{rec.expectedImpact}</p>
+                      <p className="text-sm font-semibold text-zinc-100">{rec.action}</p>
+                      <p className="text-xs text-zinc-400 mt-1">{rec.expectedImpact}</p>
                     </div>
                   </div>
                   <div className="flex flex-col items-end gap-1">
                     <Chip tone={rec.priority === "high" ? "alert" : rec.priority === "medium" ? "warn" : "neutral"}>
                       {rec.priority}
                     </Chip>
-                    <span className="text-xs text-neutral-500">{rec.timeframe}</span>
+                    <span className="text-xs text-zinc-500">{rec.timeframe}</span>
                   </div>
                 </div>
               </li>
@@ -585,16 +585,16 @@ function AIInsightsSection({
 
 function InsightCard({ icon, title, items }: { icon: React.ReactNode; title: string; items: Array<{ label: string; value?: string }> }) {
   return (
-    <div className="rounded-lg border border-neutral-800 bg-neutral-950/60 p-4">
+    <div className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-4">
       <div className="flex items-center gap-2 mb-3">
         {icon}
-        <p className="text-sm font-semibold text-neutral-100">{title}</p>
+        <p className="text-sm font-semibold text-zinc-100">{title}</p>
       </div>
       <ul className="space-y-2">
         {items.map((item, idx) => (
           <li key={idx} className="text-xs">
-            <span className="text-neutral-500">{item.label}:</span>
-            <p className="text-neutral-300 mt-0.5 leading-relaxed">{item.value || "N/A"}</p>
+            <span className="text-zinc-500">{item.label}:</span>
+            <p className="text-zinc-300 mt-0.5 leading-relaxed">{item.value || "N/A"}</p>
           </li>
         ))}
       </ul>
@@ -604,16 +604,16 @@ function InsightCard({ icon, title, items }: { icon: React.ReactNode; title: str
 
 function DetailedInsightCard({ title, insights }: { title: string; insights: Array<{ label: string; value: string; icon: string }> }) {
   return (
-    <div className="rounded-lg border border-neutral-800 bg-neutral-950/60 p-4">
-      <p className="text-sm font-semibold text-neutral-100 mb-3">{title}</p>
+    <div className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-4">
+      <p className="text-sm font-semibold text-zinc-100 mb-3">{title}</p>
       <ul className="space-y-3">
         {insights.map((insight, idx) => (
           <li key={idx}>
             <div className="flex items-start gap-2">
               <span className="text-base shrink-0 mt-0.5">{insight.icon}</span>
               <div>
-                <p className="text-xs font-medium text-neutral-400 mb-1">{insight.label}</p>
-                <p className="text-xs text-neutral-300 leading-relaxed">{insight.value}</p>
+                <p className="text-xs font-medium text-zinc-400 mb-1">{insight.label}</p>
+                <p className="text-xs text-zinc-300 leading-relaxed">{insight.value}</p>
               </div>
             </div>
           </li>
@@ -636,10 +636,10 @@ function severityToVariant(severity: "info" | "warn" | "alert") {
 
 function SummaryStat({ label, value, helper }: { label: string; value: string; helper?: string }) {
   return (
-    <div className="rounded-lg border border-neutral-800 bg-neutral-950/60 p-4">
-      <p className="text-xs uppercase tracking-wide text-neutral-500">{label}</p>
-      <p className="mt-2 text-lg font-semibold text-neutral-100">{value}</p>
-      {helper ? <p className="mt-1 text-xs text-neutral-500">{helper}</p> : null}
+    <div className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-4">
+      <p className="text-xs uppercase tracking-wide text-zinc-500">{label}</p>
+      <p className="mt-2 text-lg font-semibold text-zinc-100">{value}</p>
+      {helper ? <p className="mt-1 text-xs text-zinc-500">{helper}</p> : null}
     </div>
   );
 }
@@ -649,26 +649,26 @@ function AnalyticsSkeleton() {
     <div className="grid gap-6 xl:grid-cols-[2fr,1fr]">
       <SectionBanner title="Margin analytics" subtitle="Monitor profitability, trends, and driver performance." aria-live="polite">
         <div className="grid gap-4 md:grid-cols-3">
-          <div className="h-24 animate-pulse rounded-lg bg-neutral-900/60" />
-          <div className="h-24 animate-pulse rounded-lg bg-neutral-900/60" />
-          <div className="h-24 animate-pulse rounded-lg bg-neutral-900/60" />
+          <div className="h-24 animate-pulse rounded-lg bg-zinc-900/60" />
+          <div className="h-24 animate-pulse rounded-lg bg-zinc-900/60" />
+          <div className="h-24 animate-pulse rounded-lg bg-zinc-900/60" />
         </div>
-        <div className="h-10 animate-pulse rounded-full bg-neutral-900/60" />
+        <div className="h-10 animate-pulse rounded-full bg-zinc-900/60" />
       </SectionBanner>
       <SectionBanner title="Revenue vs cost trend" subtitle="Weekly totals with margin overlay">
-        <div className="h-72 animate-pulse rounded-lg bg-neutral-900/60" />
+        <div className="h-72 animate-pulse rounded-lg bg-zinc-900/60" />
       </SectionBanner>
       <SectionBanner title="Margin composition" subtitle="Segments generating the strongest contribution">
-        <div className="h-64 animate-pulse rounded-lg bg-neutral-900/60" />
+        <div className="h-64 animate-pulse rounded-lg bg-zinc-900/60" />
       </SectionBanner>
       <SectionBanner title="Driver margin leaders" subtitle="Top drivers ranked by contribution margin" dense>
-        <div className="h-64 animate-pulse rounded-lg bg-neutral-900/60" />
+        <div className="h-64 animate-pulse rounded-lg bg-zinc-900/60" />
       </SectionBanner>
       <SectionBanner title="Lane profitability" subtitle="Focus lanes needing price or cost attention" dense>
-        <div className="h-64 animate-pulse rounded-lg bg-neutral-900/60" />
+        <div className="h-64 animate-pulse rounded-lg bg-zinc-900/60" />
       </SectionBanner>
       <SectionBanner title="Alerts" subtitle="AI surfaced risk and opportunities" dense>
-        <div className="h-40 animate-pulse rounded-lg bg-neutral-900/60" />
+        <div className="h-40 animate-pulse rounded-lg bg-zinc-900/60" />
       </SectionBanner>
     </div>
   );

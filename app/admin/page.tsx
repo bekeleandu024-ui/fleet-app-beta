@@ -613,7 +613,7 @@ function AdminSection<TRecord extends { id: string }, TCreate, TUpdate>({
         ) : null}
         <div className="relative">
           <DataTable
-            className="rounded-lg border border-[var(--border)] bg-[var(--surface-1)]"
+            className="rounded-lg border border-zinc-800 bg-zinc-900/40"
             columns={columns}
             data={records}
             busy={busy}
@@ -650,7 +650,7 @@ function AdminSection<TRecord extends { id: string }, TCreate, TUpdate>({
           />
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute inset-y-0 right-0 w-12 rounded-r-lg bg-gradient-to-l from-[var(--surface-1)] to-transparent"
+            className="pointer-events-none absolute inset-y-0 right-0 w-12 rounded-r-lg bg-gradient-to-l from-zinc-900/40 to-transparent"
           />
         </div>
       </div>
@@ -685,8 +685,8 @@ function AdminSection<TRecord extends { id: string }, TCreate, TUpdate>({
                 <div className="space-y-3">
                   {fields.map((field) => (
                     <div key={String(field.name)} className="grid gap-1">
-                      <span className="text-xs uppercase tracking-wide text-neutral-500">{field.label}</span>
-                      <span className="rounded-md border border-neutral-800 bg-neutral-900/60 px-3 py-2 text-neutral-100">
+                      <span className="text-xs uppercase tracking-wide text-zinc-500">{field.label}</span>
+                      <span className="rounded-md border border-zinc-800 bg-zinc-900/60 px-3 py-2 text-zinc-100">
                         {String((dialogState.record as Record<string, unknown>)[String(field.name)] ?? "—")}
                       </span>
                     </div>
@@ -712,7 +712,7 @@ function AdminSection<TRecord extends { id: string }, TCreate, TUpdate>({
                   const disabled = dialogState.mode === "edit" && field.readOnlyOnEdit;
                   return (
                     <label key={key} className="grid gap-2 text-sm">
-                      <span className="text-xs uppercase tracking-wide text-neutral-500">{field.label}</span>
+                      <span className="text-xs uppercase tracking-wide text-zinc-500">{field.label}</span>
                       {field.kind === "select" && field.options ? (
                         <Select
                           value={value}

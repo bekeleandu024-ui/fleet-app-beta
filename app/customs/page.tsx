@@ -39,8 +39,8 @@ export default function CustomsPage() {
         header: "Trip",
         cell: (row) => (
           <div className="flex flex-col">
-            <span className="font-semibold text-neutral-200">{row.tripNumber}</span>
-            <span className="text-xs text-neutral-500">{row.driverName}</span>
+            <span className="font-semibold text-zinc-200">{row.tripNumber}</span>
+            <span className="text-xs text-zinc-500">{row.driverName}</span>
           </div>
         ),
         widthClass: "min-w-[160px]",
@@ -88,7 +88,7 @@ export default function CustomsPage() {
         cell: (row) => (
           <div className="flex flex-col">
             <span>{row.borderCrossingPoint}</span>
-            <span className="text-xs text-neutral-500">{directionLabel(row.crossingDirection)}</span>
+            <span className="text-xs text-zinc-500">{directionLabel(row.crossingDirection)}</span>
           </div>
         ),
         widthClass: "min-w-[220px]",
@@ -101,13 +101,13 @@ export default function CustomsPage() {
             <span
               className={
                 row.submittedDocsCount >= row.requiredDocsCount
-                  ? "text-emerald-400"
+                  ? "text-blue-400"
                   : "text-amber-400"
               }
             >
               {row.submittedDocsCount}
             </span>
-            <span className="text-neutral-500"> / {row.requiredDocsCount}</span>
+            <span className="text-zinc-500"> / {row.requiredDocsCount}</span>
           </div>
         ),
         align: "center",
@@ -142,7 +142,7 @@ export default function CustomsPage() {
         subtitle="Manage border crossing documentation and approvals"
         aria-live="polite"
       >
-        <p className="text-sm text-neutral-400">Customs data unavailable.</p>
+        <p className="text-sm text-zinc-400">Customs data unavailable.</p>
       </SectionBanner>
     );
   }
@@ -163,7 +163,7 @@ export default function CustomsPage() {
         <div className="flex flex-wrap items-center gap-2">
           {stats.map((stat) => (
             <Chip key={stat.label} tone={stat.tone} className="gap-2 text-xs">
-              <span className="text-base font-semibold text-neutral-200">{stat.value}</span>
+              <span className="text-base font-semibold text-zinc-200">{stat.value}</span>
               <span className="uppercase tracking-wide">{stat.label}</span>
             </Chip>
           ))}
@@ -212,7 +212,7 @@ export default function CustomsPage() {
           </Select>
         </Filter>
       </div>
-      <div className="-mx-6 mt-4 overflow-hidden rounded-lg border border-neutral-800 bg-neutral-900/60">
+      <div className="-mx-6 mt-4 overflow-hidden rounded-lg border border-zinc-800 bg-zinc-900/60">
         <DataTable
           columns={columns}
           data={data.data}
@@ -223,7 +223,7 @@ export default function CustomsPage() {
             <Button
               size="sm"
               variant="plain"
-              className="text-xs text-neutral-500 hover:text-neutral-200"
+              className="text-xs text-zinc-500 hover:text-zinc-200"
               onClick={(event) => {
                 event.stopPropagation();
                 router.push(`/customs/${row.id}`);
@@ -247,10 +247,10 @@ function CustomsSkeleton() {
     >
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         {Array.from({ length: 4 }).map((_, index) => (
-          <div key={index} className="h-11 animate-pulse rounded-lg bg-neutral-900/50" />
+          <div key={index} className="h-11 animate-pulse rounded-lg bg-zinc-900/50" />
         ))}
       </div>
-      <div className="mt-6 h-64 w-full animate-pulse rounded-lg bg-neutral-900/50" />
+      <div className="mt-6 h-64 w-full animate-pulse rounded-lg bg-zinc-900/50" />
     </SectionBanner>
   );
 }
@@ -258,7 +258,7 @@ function CustomsSkeleton() {
 function Filter({ label, children }: { label: string; children: ReactNode }) {
   return (
     <label className="grid gap-2 text-sm">
-      <span className="text-xs uppercase tracking-wide text-neutral-500">{label}</span>
+      <span className="text-xs uppercase tracking-wide text-zinc-500">{label}</span>
       {children}
     </label>
   );

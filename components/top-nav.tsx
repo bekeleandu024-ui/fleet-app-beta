@@ -99,19 +99,19 @@ export function TopNav() {
   }, []);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-slate-800/70 bg-[#0a0d16]/95 backdrop-blur-xl shadow-lg shadow-black/20">
+    <header className="sticky top-0 z-50 border-b border-zinc-800/70 bg-black/95 backdrop-blur-xl shadow-lg shadow-black/20">
       <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-4 px-6 py-4 lg:px-10">
         <div className="flex flex-wrap items-center gap-3">
-          <Link href="/" className="text-lg font-bold text-white hover:text-slate-300 transition-colors">
+          <Link href="/" className="text-lg font-bold text-white hover:text-zinc-300 transition-colors">
             Fleet Dispatch
           </Link>
           <div className="ml-auto hidden flex-1 items-center gap-3 md:flex">
             <form className="relative flex-1 max-w-xl" onSubmit={handleSubmit}>
-              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-500" />
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -tranzinc-y-1/2 text-zinc-500" />
               <Input
                 type="search"
                 placeholder="Search order # / driver / unit / customer"
-                className="h-11 w-full pl-10 text-sm bg-slate-900/60 border-slate-800/70 text-slate-200 placeholder:text-slate-500 focus:border-slate-600/80 focus:ring-2 focus:ring-slate-600/30 rounded-xl transition-all"
+                className="h-11 w-full pl-10 text-sm bg-zinc-900/60 border-zinc-800/70 text-zinc-200 placeholder:text-zinc-500 focus:border-zinc-600/80 focus:ring-2 focus:ring-zinc-600/30 rounded-xl transition-all"
                 aria-label="Global search"
                 value={searchTerm}
                 onChange={handleInputChange}
@@ -129,11 +129,11 @@ export function TopNav() {
           </div>
           <div className="flex w-full flex-col gap-3 md:hidden">
             <form className="relative w-full" onSubmit={handleSubmit}>
-              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-500" />
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -tranzinc-y-1/2 text-zinc-500" />
               <Input
                 type="search"
                 placeholder="Search"
-                className="h-11 w-full pl-10 bg-slate-900/60 border-slate-800/70 text-slate-200 placeholder:text-slate-500 focus:border-slate-600/80 rounded-xl"
+                className="h-11 w-full pl-10 bg-zinc-900/60 border-zinc-800/70 text-zinc-200 placeholder:text-zinc-500 focus:border-zinc-600/80 rounded-xl"
                 aria-label="Global search"
                 value={searchTerm}
                 onChange={handleInputChange}
@@ -160,8 +160,8 @@ export function TopNav() {
                 className={cn(
                   "rounded-full border px-4 py-2 text-sm font-medium transition-all duration-200",
                   active
-                    ? "border-slate-600/80 bg-slate-900/80 text-white shadow-lg shadow-black/40"
-                    : "border-transparent text-slate-400 hover:border-slate-700 hover:bg-slate-900/50 hover:text-slate-200"
+                    ? "border-zinc-600/80 bg-zinc-900/80 text-white shadow-lg shadow-black/40"
+                    : "border-transparent text-zinc-400 hover:border-zinc-700 hover:bg-zinc-900/50 hover:text-zinc-200"
                 )}
               >
                 {item.label}

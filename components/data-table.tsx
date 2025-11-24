@@ -43,16 +43,16 @@ export function DataTable<T>({
   return (
     <div
       className={cn(
-        "w-full overflow-x-auto scrollbar-thin scrollbar-thumb-[var(--border)] scrollbar-track-transparent",
+        "w-full overflow-x-auto scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent",
         className
       )}
     >
       <div className="inline-block min-w-full align-middle">
         <table
-          className="min-w-full table-auto divide-y divide-border text-sm"
+          className="min-w-full table-auto divide-y divide-zinc-800/50 text-sm"
           role="grid"
         >
-          <thead className="bg-slate-900/80 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
+          <thead className="bg-zinc-900/80 text-left text-xs font-bold uppercase tracking-wide text-zinc-500">
             <tr>
               {dataColumns.map((column) => (
                 <th
@@ -82,7 +82,7 @@ export function DataTable<T>({
               ) : null}
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-800/50 bg-slate-950/70">
+          <tbody className="divide-y divide-zinc-800/50 bg-black/40">
             {busy ? (
               <Fragment>
                 {Array.from({ length: 5 }).map((_, index) => (
@@ -91,7 +91,7 @@ export function DataTable<T>({
                       colSpan={dataColumns.length + (rowActions ? 1 : 0)}
                       className="px-4 py-4"
                     >
-                      <div className="h-3 w-1/2 animate-pulse rounded bg-slate-800/50" />
+                      <div className="h-3 w-1/2 animate-pulse rounded bg-zinc-800/50" />
                     </td>
                   </tr>
                 ))}
@@ -100,7 +100,7 @@ export function DataTable<T>({
               <tr>
                 <td
                   colSpan={dataColumns.length + (rowActions ? 1 : 0)}
-                  className="px-4 py-8 text-center text-sm text-slate-400"
+                  className="px-4 py-8 text-center text-sm text-zinc-400"
                 >
                   {emptyMessage}
                 </td>
@@ -144,17 +144,17 @@ export function DataTable<T>({
                         : undefined
                     }
                     className={cn(
-                      "transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-600/50 focus-visible:ring-offset-0",
+                      "transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/50 focus-visible:ring-offset-0",
                       clickable
-                        ? "cursor-pointer hover:bg-slate-900/70 focus-visible:bg-slate-900/70"
-                        : "hover:bg-slate-900/40"
+                        ? "cursor-pointer hover:bg-zinc-900/70 focus-visible:bg-zinc-900/70"
+                        : "hover:bg-zinc-900/40"
                   )}
                 >
                   {dataColumns.map((column) => (
                     <td
                       key={`${rowKey}-${column.key}`}
                       className={cn(
-                        "px-4 py-3 align-middle text-sm text-slate-300 whitespace-nowrap",
+                        "px-4 py-3 align-middle text-sm text-zinc-300 whitespace-nowrap",
                         column.widthClass,
                         column.align === "center" && "text-center",
                         column.align === "right" && "text-right"
@@ -166,7 +166,7 @@ export function DataTable<T>({
                     {rowActions ? (
                       <td
                         className={cn(
-                          "px-4 py-3 text-right align-middle text-sm text-slate-300 whitespace-nowrap",
+                          "px-4 py-3 text-right align-middle text-sm text-zinc-300 whitespace-nowrap",
                           actionsColumn?.widthClass
                         )}
                       >

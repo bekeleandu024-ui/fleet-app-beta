@@ -344,20 +344,20 @@ export default function CreateOrderPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-neutral-950">
+    <div className="min-h-screen flex flex-col bg-black text-zinc-300">
       {/* Header */}
-      <div className="border-b border-neutral-800 bg-neutral-900/50 px-6 py-4">
+      <div className="border-b border-zinc-800 bg-black px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Button size="sm" variant="subtle" onClick={() => router.back()}>
+            <Button size="sm" variant="subtle" onClick={() => router.back()} className="text-zinc-400 hover:text-white hover:bg-zinc-800">
               <ArrowLeft className="w-4 h-4" />
             </Button>
             <div>
-              <h1 className="text-xl font-semibold text-neutral-100">Create New Order</h1>
-              <p className="text-sm text-neutral-400">OCR intake or manual entry</p>
+              <h1 className="text-xl font-semibold text-white">Create New Order</h1>
+              <p className="text-sm text-zinc-400">OCR intake or manual entry</p>
             </div>
           </div>
-          <Chip tone="default">{formData.status}</Chip>
+          <Chip tone="default" className="bg-zinc-800 text-zinc-300 border-zinc-700">{formData.status}</Chip>
         </div>
       </div>
 
@@ -398,13 +398,13 @@ export default function CreateOrderPage() {
         
         {/* LEFT: Actions & Buttons */}
         <div className="col-span-2 space-y-4">
-          <Card className="h-fit sticky top-6">
+          <Card className="h-fit sticky top-6 bg-zinc-900/40 border-zinc-800/60">
             <div className="p-4 space-y-3">
-              <h3 className="text-sm font-semibold text-neutral-300 mb-3">Actions</h3>
+              <h3 className="text-sm font-semibold text-zinc-300 mb-3">Actions</h3>
               
               <Button
                 variant="primary"
-                className="w-full"
+                className="w-full bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700"
                 onClick={calculateEstimate}
                 disabled={!formData.origin || !formData.destination}
               >
@@ -414,7 +414,7 @@ export default function CreateOrderPage() {
 
               <Button
                 variant="success"
-                className="w-full"
+                className="w-full bg-blue-950/50 hover:bg-blue-900/50 text-blue-200 border border-blue-800/50 shadow-lg shadow-blue-900/20"
                 onClick={handleSubmit}
                 disabled={!isValid || createMutation.isPending}
               >
@@ -423,19 +423,19 @@ export default function CreateOrderPage() {
               </Button>
 
               {estimatedCost !== null && (
-                <div className="mt-4 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-                  <div className="text-xs text-neutral-400 mb-1">Estimated Cost</div>
+                <div className="mt-4 p-3 rounded-lg bg-emerald-950/30 border border-emerald-900/50">
+                  <div className="text-xs text-zinc-400 mb-1">Estimated Cost</div>
                   <div className="text-2xl font-bold text-emerald-400">
                     ${estimatedCost.toLocaleString()}
                   </div>
-                  <div className="text-xs text-neutral-500 mt-1">
+                  <div className="text-xs text-zinc-500 mt-1">
                     {calculateMiles(formData.origin, formData.destination)} miles
                   </div>
                 </div>
               )}
 
               {!isValid && (
-                <p className="text-xs text-amber-400 mt-3">
+                <p className="text-xs text-amber-500/80 mt-3">
                   Fill required fields
                 </p>
               )}
@@ -446,20 +446,20 @@ export default function CreateOrderPage() {
         {/* CENTER: OCR Intake & Form */}
         <div className="col-span-6 space-y-4">
           {/* OCR Intake */}
-          <Card>
+          <Card className="bg-zinc-900/40 border-zinc-800/60">
             <div className="p-4">
               <div className="flex items-center gap-2 mb-3">
-                <Sparkles className="w-4 h-4 text-violet-400" />
-                <h3 className="text-sm font-semibold text-neutral-200">OCR Order Intake</h3>
+                <Sparkles className="w-4 h-4 text-indigo-400" />
+                <h3 className="text-sm font-semibold text-zinc-200">OCR Order Intake</h3>
                 {isProcessingOCR && (
-                  <span className="text-xs text-violet-400">Processing with AI...</span>
+                  <span className="text-xs text-indigo-400">Processing with AI...</span>
                 )}
               </div>
               <div
                 className={`relative rounded-lg border-2 border-dashed transition-colors ${
                   isDragging
-                    ? "border-violet-400 bg-violet-500/10"
-                    : "border-neutral-700 bg-neutral-900/60"
+                    ? "border-indigo-500/50 bg-indigo-500/10"
+                    : "border-zinc-800 bg-black/20"
                 }`}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
@@ -467,7 +467,7 @@ export default function CreateOrderPage() {
               >
                 <textarea
                   rows={4}
-                  className="w-full bg-transparent px-4 py-3 text-sm text-neutral-200 placeholder-neutral-500 focus:outline-none resize-none"
+                  className="w-full bg-transparent px-4 py-3 text-sm text-zinc-300 placeholder-zinc-600 focus:outline-none resize-none"
                   placeholder="Paste text or drag screenshot here... AI will auto-populate fields."
                   value={ocrText}
                   onChange={(e) => setOcrText(e.target.value)}
@@ -483,7 +483,7 @@ export default function CreateOrderPage() {
                   />
                   <label
                     htmlFor="screenshot-upload"
-                    className="flex items-center gap-1 text-xs text-neutral-500 hover:text-violet-400 cursor-pointer transition-colors"
+                    className="flex items-center gap-1 text-xs text-zinc-500 hover:text-indigo-400 cursor-pointer transition-colors"
                   >
                     <Upload className="w-3 h-3" />
                     <span>Upload screenshot</span>
@@ -494,16 +494,16 @@ export default function CreateOrderPage() {
           </Card>
 
           {/* Order Form */}
-          <Card>
+          <Card className="bg-zinc-900/40 border-zinc-800/60">
             <div className="p-4 space-y-4">
               <div className="flex items-center gap-2 mb-2">
                 <FileText className="w-4 h-4 text-blue-400" />
-                <h3 className="text-sm font-semibold text-neutral-200">Order Details</h3>
+                <h3 className="text-sm font-semibold text-zinc-200">Order Details</h3>
               </div>
 
               {/* Customer */}
               <FormField label="Customer" required>
-                <Select value={formData.customerId} onChange={(e) => handleCustomerSelect(e.target.value)}>
+                <Select value={formData.customerId} onChange={(e) => handleCustomerSelect(e.target.value)} className="bg-black/20 border-zinc-800 text-zinc-300 focus:border-blue-900/50">
                   <option value="">Select Customer</option>
                   {customers?.map((customer) => (
                     <option key={customer.id} value={customer.id}>
@@ -517,9 +517,9 @@ export default function CreateOrderPage() {
               <div className="grid grid-cols-2 gap-3">
                 <FormField label="Origin" required>
                   <div className="relative">
-                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
+                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
                     <Input
-                      className="pl-9"
+                      className="pl-9 bg-black/20 border-zinc-800 text-zinc-300 focus:border-blue-900/50 placeholder:text-zinc-600"
                       placeholder="Full address: Street, City, State, ZIP"
                       value={formData.origin}
                       onChange={(e) => handleInputChange("origin", e.target.value)}
@@ -529,9 +529,9 @@ export default function CreateOrderPage() {
 
                 <FormField label="Destination" required>
                   <div className="relative">
-                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
+                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
                     <Input
-                      className="pl-9"
+                      className="pl-9 bg-black/20 border-zinc-800 text-zinc-300 focus:border-blue-900/50 placeholder:text-zinc-600"
                       placeholder="Full address: Street, City, State, ZIP"
                       value={formData.destination}
                       onChange={(e) => handleInputChange("destination", e.target.value)}
@@ -542,42 +542,46 @@ export default function CreateOrderPage() {
 
               {/* Pickup Windows */}
               <div className="space-y-2">
-                <label className="text-xs text-neutral-500 flex items-center gap-2">
+                <label className="text-xs text-zinc-500 flex items-center gap-2">
                   <Calendar className="w-3 h-3" />
                   Pickup Window
-                  <span className="text-rose-400">*</span>
+                  <span className="text-rose-500/80">*</span>
                 </label>
                 <div className="grid grid-cols-2 gap-3">
                   <Input
                     type="datetime-local"
                     value={formData.puWindowStart}
                     onChange={(e) => handleInputChange("puWindowStart", e.target.value)}
+                    className="bg-black/20 border-zinc-800 text-zinc-300 focus:border-blue-900/50"
                   />
                   <Input
                     type="datetime-local"
                     value={formData.puWindowEnd}
                     onChange={(e) => handleInputChange("puWindowEnd", e.target.value)}
+                    className="bg-black/20 border-zinc-800 text-zinc-300 focus:border-blue-900/50"
                   />
                 </div>
               </div>
 
               {/* Delivery Windows */}
               <div className="space-y-2">
-                <label className="text-xs text-neutral-500 flex items-center gap-2">
+                <label className="text-xs text-zinc-500 flex items-center gap-2">
                   <Calendar className="w-3 h-3" />
                   Delivery Window
-                  <span className="text-rose-400">*</span>
+                  <span className="text-rose-500/80">*</span>
                 </label>
                 <div className="grid grid-cols-2 gap-3">
                   <Input
                     type="datetime-local"
                     value={formData.delWindowStart}
                     onChange={(e) => handleInputChange("delWindowStart", e.target.value)}
+                    className="bg-black/20 border-zinc-800 text-zinc-300 focus:border-blue-900/50"
                   />
                   <Input
                     type="datetime-local"
                     value={formData.delWindowEnd}
                     onChange={(e) => handleInputChange("delWindowEnd", e.target.value)}
+                    className="bg-black/20 border-zinc-800 text-zinc-300 focus:border-blue-900/50"
                   />
                 </div>
               </div>
@@ -585,9 +589,9 @@ export default function CreateOrderPage() {
               {/* Required Truck */}
               <FormField label="Required Truck">
                 <div className="relative">
-                  <Truck className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
+                  <Truck className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
                   <Select
-                    className="pl-9"
+                    className="pl-9 bg-black/20 border-zinc-800 text-zinc-300 focus:border-blue-900/50"
                     value={formData.requiredTruck}
                     onChange={(e) => handleInputChange("requiredTruck", e.target.value)}
                   >
@@ -604,7 +608,7 @@ export default function CreateOrderPage() {
               <FormField label="Notes">
                 <textarea
                   rows={3}
-                  className="w-full rounded-lg border border-neutral-800 bg-neutral-900/60 px-3 py-2 text-sm text-neutral-200 placeholder-neutral-500"
+                  className="w-full rounded-lg border border-zinc-800 bg-black/20 px-3 py-2 text-sm text-zinc-300 placeholder-zinc-600 focus:outline-none focus:border-blue-900/50"
                   placeholder="Special instructions, requirements..."
                   value={formData.notes}
                   onChange={(e) => handleInputChange("notes", e.target.value)}
@@ -614,7 +618,7 @@ export default function CreateOrderPage() {
               {/* Status & Source */}
               <div className="grid grid-cols-2 gap-3">
                 <FormField label="Status">
-                  <Select value={formData.status} onChange={(e) => handleInputChange("status", e.target.value)}>
+                  <Select value={formData.status} onChange={(e) => handleInputChange("status", e.target.value)} className="bg-black/20 border-zinc-800 text-zinc-300 focus:border-blue-900/50">
                     {orderStatuses.map((status) => (
                       <option key={status} value={status}>
                         {status}
@@ -624,7 +628,7 @@ export default function CreateOrderPage() {
                 </FormField>
 
                 <FormField label="Source">
-                  <Select value={formData.source} onChange={(e) => handleInputChange("source", e.target.value)}>
+                  <Select value={formData.source} onChange={(e) => handleInputChange("source", e.target.value)} className="bg-black/20 border-zinc-800 text-zinc-300 focus:border-blue-900/50">
                     {orderSources.map((source) => (
                       <option key={source} value={source}>
                         {source}
@@ -638,7 +642,7 @@ export default function CreateOrderPage() {
               <FormField label="Qualification Notes">
                 <textarea
                   rows={2}
-                  className="w-full rounded-lg border border-neutral-800 bg-neutral-900/60 px-3 py-2 text-sm text-neutral-200 placeholder-neutral-500"
+                  className="w-full rounded-lg border border-zinc-800 bg-black/20 px-3 py-2 text-sm text-zinc-300 placeholder-zinc-600 focus:outline-none focus:border-blue-900/50"
                   placeholder="Qualification requirements, constraints..."
                   value={formData.qualificationNotes}
                   onChange={(e) => handleInputChange("qualificationNotes", e.target.value)}
@@ -650,40 +654,40 @@ export default function CreateOrderPage() {
 
         {/* RIGHT: Live Order Ticket Preview */}
         <div className="col-span-4">
-          <Card className="h-fit sticky top-6">
+          <Card className="h-fit sticky top-6 bg-[#0B0E14] border-blue-950/30 shadow-2xl shadow-black">
             <div className="p-4">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-semibold text-neutral-200">Order Ticket Preview</h3>
-                <Chip tone="default" className="text-xs">Live</Chip>
+                <h3 className="text-sm font-semibold text-zinc-200">Order Ticket Preview</h3>
+                <Chip tone="default" className="text-xs bg-zinc-900 border-zinc-800 text-zinc-400">Live</Chip>
               </div>
 
               <div className="space-y-4 text-sm">
                 {/* Order ID */}
-                <div className="p-3 rounded-lg bg-neutral-900/60 border border-neutral-800">
-                  <div className="text-xs text-neutral-500 mb-1">Order ID</div>
-                  <div className="font-mono text-neutral-300">
+                <div className="p-3 rounded-lg bg-black/40 border border-zinc-800/50">
+                  <div className="text-xs text-zinc-500 mb-1">Order ID</div>
+                  <div className="font-mono text-zinc-300">
                     {generatePreviewOrderId()}
                   </div>
                 </div>
 
                 {/* Customer */}
                 <div>
-                  <div className="text-xs text-neutral-500 mb-1">Customer</div>
-                  <div className="text-neutral-200 font-medium">
+                  <div className="text-xs text-zinc-500 mb-1">Customer</div>
+                  <div className="text-zinc-200 font-medium">
                     {formData.customer || "—"}
                   </div>
                 </div>
 
                 {/* Route */}
                 <div>
-                  <div className="text-xs text-neutral-500 mb-2">Route</div>
+                  <div className="text-xs text-zinc-500 mb-2">Route</div>
                   <div className="space-y-2">
                     <div className="flex items-start gap-2">
-                      <div className="w-2 h-2 rounded-full bg-emerald-500 mt-1.5" />
+                      <div className="w-2 h-2 rounded-full bg-emerald-500 mt-1.5 shadow-[0_0_8px_rgba(16,185,129,0.4)]" />
                       <div className="flex-1">
-                        <div className="text-neutral-200">{formData.origin || "Origin"}</div>
+                        <div className="text-zinc-200">{formData.origin || "Origin"}</div>
                         {formData.puWindowStart && (
-                          <div className="text-xs text-neutral-500">
+                          <div className="text-xs text-zinc-500">
                             {new Date(formData.puWindowStart).toLocaleString("en-US", {
                               month: "short",
                               day: "numeric",
@@ -694,13 +698,13 @@ export default function CreateOrderPage() {
                         )}
                       </div>
                     </div>
-                    <div className="pl-1 border-l-2 border-dashed border-neutral-700 h-8" />
+                    <div className="pl-1 border-l-2 border-dashed border-zinc-800 h-8 ml-[3px]" />
                     <div className="flex items-start gap-2">
-                      <div className="w-2 h-2 rounded-full bg-rose-500 mt-1.5" />
+                      <div className="w-2 h-2 rounded-full bg-rose-500 mt-1.5 shadow-[0_0_8px_rgba(244,63,94,0.4)]" />
                       <div className="flex-1">
-                        <div className="text-neutral-200">{formData.destination || "Destination"}</div>
+                        <div className="text-zinc-200">{formData.destination || "Destination"}</div>
                         {formData.delWindowStart && (
-                          <div className="text-xs text-neutral-500">
+                          <div className="text-xs text-zinc-500">
                             {new Date(formData.delWindowStart).toLocaleString("en-US", {
                               month: "short",
                               day: "numeric",
@@ -716,17 +720,17 @@ export default function CreateOrderPage() {
 
                 {/* Equipment */}
                 <div>
-                  <div className="text-xs text-neutral-500 mb-1">Equipment</div>
+                  <div className="text-xs text-zinc-500 mb-1">Equipment</div>
                   <div className="flex items-center gap-2">
-                    <Truck className="w-4 h-4 text-neutral-500" />
-                    <span className="text-neutral-200">{formData.requiredTruck}</span>
+                    <Truck className="w-4 h-4 text-zinc-500" />
+                    <span className="text-zinc-200">{formData.requiredTruck}</span>
                   </div>
                 </div>
 
                 {/* Status */}
                 <div>
-                  <div className="text-xs text-neutral-500 mb-1">Status</div>
-                  <Chip tone={formData.status === "Qualified" ? "success" : "default"}>
+                  <div className="text-xs text-zinc-500 mb-1">Status</div>
+                  <Chip tone={formData.status === "Qualified" ? "success" : "default"} className={formData.status !== "Qualified" ? "bg-zinc-900 border-zinc-800 text-zinc-400" : ""}>
                     {formData.status}
                   </Chip>
                 </div>
@@ -734,8 +738,8 @@ export default function CreateOrderPage() {
                 {/* Notes */}
                 {formData.notes && (
                   <div>
-                    <div className="text-xs text-neutral-500 mb-1">Notes</div>
-                    <div className="text-neutral-300 text-xs p-2 rounded bg-neutral-900/60">
+                    <div className="text-xs text-zinc-500 mb-1">Notes</div>
+                    <div className="text-zinc-300 text-xs p-2 rounded bg-zinc-900/40 border border-zinc-800/50">
                       {formData.notes}
                     </div>
                   </div>
@@ -744,18 +748,18 @@ export default function CreateOrderPage() {
                 {/* Qualification */}
                 {formData.qualificationNotes && (
                   <div>
-                    <div className="text-xs text-neutral-500 mb-1">Qualification</div>
-                    <div className="text-neutral-300 text-xs p-2 rounded bg-amber-500/10 border border-amber-500/20">
+                    <div className="text-xs text-zinc-500 mb-1">Qualification</div>
+                    <div className="text-zinc-300 text-xs p-2 rounded bg-amber-950/20 border border-amber-900/30">
                       {formData.qualificationNotes}
                     </div>
                   </div>
                 )}
 
                 {/* Source */}
-                <div className="pt-3 border-t border-neutral-800">
+                <div className="pt-3 border-t border-zinc-800/50">
                   <div className="flex justify-between text-xs">
-                    <span className="text-neutral-500">Source</span>
-                    <span className="text-neutral-300">{formData.source}</span>
+                    <span className="text-zinc-500">Source</span>
+                    <span className="text-zinc-300">{formData.source}</span>
                   </div>
                 </div>
               </div>
@@ -790,9 +794,9 @@ function FormField({
 }) {
   return (
     <label className={`grid gap-2 text-sm ${className || ""}`}>
-      <span className="text-xs uppercase tracking-wide text-neutral-500">
+      <span className="text-xs uppercase tracking-wide text-zinc-500">
         {label}
-        {required && <span className="text-rose-400 ml-1">*</span>}
+        {required && <span className="text-rose-500/80 ml-1">*</span>}
       </span>
       {children}
     </label>

@@ -98,28 +98,28 @@ export default function TripsPage() {
     >
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <Filter label="Status">
-          <Select defaultValue={data.filters.statuses[0] ?? ""} className="bg-neutral-900 border-neutral-700 text-neutral-200">
+          <Select defaultValue={data.filters.statuses[0] ?? ""} className="bg-black/40 border-zinc-800 text-zinc-200 focus:border-blue-900/50">
             {data.filters.statuses.map((status) => (
               <option key={status}>{status}</option>
             ))}
           </Select>
         </Filter>
         <Filter label="Exception">
-          <Select defaultValue={data.filters.exceptions[0] ?? ""} className="bg-neutral-900 border-neutral-700 text-neutral-200">
+          <Select defaultValue={data.filters.exceptions[0] ?? ""} className="bg-black/40 border-zinc-800 text-zinc-200 focus:border-blue-900/50">
             {data.filters.exceptions.map((exception) => (
               <option key={exception}>{exception}</option>
             ))}
           </Select>
         </Filter>
         <Filter label="Date Range">
-          <Select defaultValue={data.filters.dateRanges[0] ?? ""} className="bg-neutral-900 border-neutral-700 text-neutral-200">
+          <Select defaultValue={data.filters.dateRanges[0] ?? ""} className="bg-black/40 border-zinc-800 text-zinc-200 focus:border-blue-900/50">
             {data.filters.dateRanges.map((range) => (
               <option key={range}>{range}</option>
             ))}
           </Select>
         </Filter>
       </div>
-      <div className="mt-4 overflow-hidden rounded-xl border border-neutral-800 bg-black shadow-lg shadow-black/60">
+      <div className="mt-4 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900/40 shadow-lg shadow-black/60">
         <DataTable
           columns={columns}
           data={data.data}
@@ -130,7 +130,7 @@ export default function TripsPage() {
             <Button
               size="sm"
               variant="plain"
-              className="text-xs text-neutral-400 hover:text-neutral-200 bg-neutral-800 hover:bg-neutral-700 border-neutral-700"
+              className="text-xs text-zinc-400 hover:text-zinc-200 bg-zinc-800 hover:bg-zinc-700 border-zinc-700"
               onClick={(event) => {
                 event.stopPropagation();
                 router.push(`/trips/${row.id}`);
@@ -162,7 +162,7 @@ function TripsSkeleton() {
 function Filter({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="grid gap-2 text-sm">
-      <span className="text-xs uppercase tracking-wide text-neutral-500 font-semibold">{label}</span>
+      <span className="text-xs uppercase tracking-wide text-zinc-500 font-semibold">{label}</span>
       {children}
     </label>
   );

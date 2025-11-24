@@ -127,10 +127,13 @@ export async function POST(request: Request) {
       miles: body.miles,
       totalRevenue: body.totalRevenue,
       totalCost: body.totalCost,
+      totalCpm: body.totalCpm,
       marginPct: body.totalRevenue && body.totalCost 
         ? Math.round(((body.totalRevenue - body.totalCost) / body.totalRevenue) * 100 * 100) / 100
         : undefined,
     };
+    
+    console.log('📦 API forwarding trip payload:', { totalCost: body.totalCost, totalCpm: body.totalCpm, miles: body.miles });
 
     const trip = await serviceFetch("tracking", "/api/trips", {
       method: "POST",

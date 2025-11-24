@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Package, CheckCircle, Sparkles, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -96,6 +96,9 @@ export default function BookTripPage() {
   // Driver type and rate filtering
   const [driverType, setDriverType] = useState<string>("");
   const [filteredRates, setFilteredRates] = useState<RateCard[]>([]);
+  
+  // Selected costing option
+  const [selectedCostingOption, setSelectedCostingOption] = useState<any>(null);
   
   // AI Recommendations
   const [recommendedDriverId, setRecommendedDriverId] = useState<string | null>(null);
@@ -313,10 +316,52 @@ export default function BookTripPage() {
   const actualMiles = routeDistance || miles || 0;
   const totalCost = actualMiles * totalCpm;
 
+  // Memoize costing options to prevent duplicates
+  const costingOptions = useMemo(
+    () => {
+      if (!selectedOrder || actualMiles === 0) return [];
+      
+      const allOptions = getAllCostingOptions(
+        actualMiles,
+        selectedOrder.pickup || "Unknown",
+        selectedOrder.delivery || "Unknown"
+      );
+      
+      // If driver is selected, filter by driver type
+      if (driverType) {
+        // Map driver types to our costing types
+        const typeMap: Record<string, string> = {
+          'COM': 'COM',
+          'Company': 'COM',
+          'RNR': 'RNR',
+          'Rental': 'RNR',
+          'Rail and Ramp': 'RNR',
+          'OO': 'OO',
+          'Owner Operator': 'OO'
+        };
+        
+        const mappedType = typeMap[driverType];
+        
+        if (mappedType === 'OO') {
+          // For OO, show the appropriate zone based on distance
+          const zone = actualMiles < 500 ? 'zone1' : actualMiles <= 1500 ? 'zone2' : 'zone3';
+          return allOptions.filter(opt => opt.driverType === 'OO' && opt.zone === zone);
+        } else {
+          // For COM/RNR, show only that type
+          return allOptions.filter(opt => opt.driverType === mappedType);
+        }
+      }
+      
+      // No driver selected, show all options
+      return allOptions;
+    },
+    [actualMiles, selectedOrder?.pickup, selectedOrder?.delivery, driverType]
+  );
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedOrder || !driverId || !unitId || !rateId) {
-      setMessage({ type: "error", text: "Please select an order, driver, unit, and rate" });
+    if (!selectedOrder || !driverId || !unitId || !driverType) {
+      setMessage({ type: "error", text: "Please select an order, driver, unit, and driver type" });
       return;
     }
 
@@ -324,11 +369,29 @@ export default function BookTripPage() {
       setMessage({ type: "error", text: "At least 2 stops (pickup and delivery) are required" });
       return;
     }
+    
+    if (!selectedCostingOption) {
+      setMessage({ type: "error", text: "Please select a cost option before booking" });
+      return;
+    }
 
     setIsSubmitting(true);
     setMessage(null);
 
     try {
+      // Use selected costing option or find by driver type
+      const costOption = selectedCostingOption || costingOptions.find(opt => opt.driverType === driverType);
+      const calculatedCost = costOption?.cost.directTripCost || 0;
+      const calculatedCPM = costOption?.cost.totalCPM || 0;
+      
+      console.log('🚛 Booking trip with costing:', {
+        selectedCostingOption,
+        costOption,
+        calculatedCost,
+        calculatedCPM,
+        actualMiles
+      });
+      
       const response = await fetch("/api/trips", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -338,14 +401,12 @@ export default function BookTripPage() {
           driver: driverName,
           unitId,
           unit: unitCode,
-          rateId,
-          tripType: selectedRate?.rate_type,
-          tripZone: selectedRate?.zone,
-          miles,
+          tripType: driverType,
+          miles: actualMiles,
           rpm,
           totalRevenue,
-          totalCpm,
-          totalCost,
+          totalCost: calculatedCost,
+          totalCpm: calculatedCPM,
           stops: stops.map((s, idx) => ({ ...s, sequence: idx })),
         }),
       });
@@ -366,97 +427,97 @@ export default function BookTripPage() {
   };
 
   return (
-    <div className="min-h-screen bg-neutral-950 p-6">
+    <div className="min-h-screen bg-black p-6">
       {/* Header */}
       <div className="mb-4">
         <h1 className="text-2xl font-semibold text-white mb-1">Trip Booking Control Center</h1>
-        <p className="text-sm text-neutral-400">AI-powered recommendations, dispatch console, and real-time resource availability.</p>
+        <p className="text-sm text-zinc-400">AI-powered recommendations, dispatch console, and real-time resource availability.</p>
       </div>
 
       {/* Order Snapshot - Horizontal Card at Top */}
       {selectedOrder ? (
-        <Card className="mb-4 rounded-lg border border-neutral-800 bg-neutral-900/60 p-4">
+        <Card className="mb-4 rounded-lg border border-zinc-800/70 bg-zinc-900/40 p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-6">
               <div>
-                <p className="text-[10px] uppercase tracking-wide text-neutral-500 mb-1">Customer</p>
+                <p className="text-[10px] uppercase tracking-wide text-zinc-500 mb-1">Customer</p>
                 <p className="text-sm font-semibold text-white">{selectedOrder.customer}</p>
               </div>
-              <div className="h-8 w-px bg-neutral-700" />
+              <div className="h-8 w-px bg-zinc-800" />
               <div>
-                <p className="text-[10px] uppercase tracking-wide text-neutral-500 mb-1">Route</p>
-                <p className="text-sm text-neutral-300">{selectedOrder.pickup} → {selectedOrder.delivery}</p>
+                <p className="text-[10px] uppercase tracking-wide text-zinc-500 mb-1">Route</p>
+                <p className="text-sm text-zinc-300">{selectedOrder.pickup} → {selectedOrder.delivery}</p>
               </div>
-              <div className="h-8 w-px bg-neutral-700" />
+              <div className="h-8 w-px bg-zinc-800" />
               <div>
-                <p className="text-[10px] uppercase tracking-wide text-neutral-500 mb-1">Pickup Window</p>
-                <p className="text-sm text-neutral-300">{selectedOrder.window}</p>
+                <p className="text-[10px] uppercase tracking-wide text-zinc-500 mb-1">Pickup Window</p>
+                <p className="text-sm text-zinc-300">{selectedOrder.window}</p>
               </div>
-              <div className="h-8 w-px bg-neutral-700" />
+              <div className="h-8 w-px bg-zinc-800" />
               <div>
-                <p className="text-[10px] uppercase tracking-wide text-neutral-500 mb-1">Distance</p>
-                <p className="text-sm text-neutral-300">
+                <p className="text-[10px] uppercase tracking-wide text-zinc-500 mb-1">Distance</p>
+                <p className="text-sm text-zinc-300">
                   {routeLoading ? (
-                    <span className="text-neutral-500 animate-pulse">Calculating...</span>
+                    <span className="text-zinc-500 animate-pulse">Calculating...</span>
                   ) : routeDistance ? (
                     `${routeDistance} mi`
                   ) : selectedOrder.laneMiles ? (
                     `${selectedOrder.laneMiles} mi`
                   ) : (
-                    <span className="text-neutral-500">--</span>
+                    <span className="text-zinc-500">--</span>
                   )}
                 </p>
               </div>
-              <div className="h-8 w-px bg-neutral-700" />
+              <div className="h-8 w-px bg-zinc-800" />
               <div>
-                <p className="text-[10px] uppercase tracking-wide text-neutral-500 mb-1">Duration</p>
-                <p className="text-sm text-neutral-300">
+                <p className="text-[10px] uppercase tracking-wide text-zinc-500 mb-1">Duration</p>
+                <p className="text-sm text-zinc-300">
                   {routeLoading ? (
-                    <span className="text-neutral-500 animate-pulse">Calculating...</span>
+                    <span className="text-zinc-500 animate-pulse">Calculating...</span>
                   ) : routeDuration ? (
                     `${routeDuration} hrs`
                   ) : selectedOrder.laneMiles ? (
                     `${Math.round(selectedOrder.laneMiles / 50)} hrs`
                   ) : (
-                    <span className="text-neutral-500">--</span>
+                    <span className="text-zinc-500">--</span>
                   )}
                 </p>
               </div>
               {selectedOrder.commodity && (
                 <>
-                  <div className="h-8 w-px bg-neutral-700" />
+                  <div className="h-8 w-px bg-zinc-800" />
                   <div>
-                    <p className="text-[10px] uppercase tracking-wide text-neutral-500 mb-1">Commodity</p>
-                    <p className="text-sm text-neutral-300">{selectedOrder.commodity}</p>
+                    <p className="text-[10px] uppercase tracking-wide text-zinc-500 mb-1">Commodity</p>
+                    <p className="text-sm text-zinc-300">{selectedOrder.commodity}</p>
                   </div>
                 </>
               )}
               {driverName && unitCode && (
                 <>
-                  <div className="h-8 w-px bg-neutral-700" />
+                  <div className="h-8 w-px bg-zinc-800" />
                   <div>
-                    <p className="text-[10px] uppercase tracking-wide text-neutral-500 mb-1">Driver / Unit</p>
+                    <p className="text-[10px] uppercase tracking-wide text-zinc-500 mb-1">Driver / Unit</p>
                     <p className="text-sm text-white font-semibold">{driverName} · {unitCode}</p>
                   </div>
                 </>
               )}
               {driverType && (
                 <>
-                  <div className="h-8 w-px bg-neutral-700" />
+                  <div className="h-8 w-px bg-zinc-800" />
                   <div>
-                    <p className="text-[10px] uppercase tracking-wide text-neutral-500 mb-1">Type</p>
-                    <p className="text-sm text-emerald-400 font-semibold">{driverType}</p>
+                    <p className="text-[10px] uppercase tracking-wide text-zinc-500 mb-1">Type</p>
+                    <p className="text-sm text-blue-400 font-semibold">{driverType}</p>
                   </div>
                 </>
               )}
               {rateId && actualMiles > 0 && (
                 <>
-                  <div className="h-8 w-px bg-neutral-700" />
+                  <div className="h-8 w-px bg-zinc-800" />
                   <div>
-                    <p className="text-[10px] uppercase tracking-wide text-neutral-500 mb-1">Total Cost</p>
+                    <p className="text-[10px] uppercase tracking-wide text-zinc-500 mb-1">Total Cost</p>
                     <p className="text-sm text-rose-400 font-bold">
                       ${totalCost.toFixed(2)}
-                      <span className="text-[10px] text-neutral-500 ml-1">
+                      <span className="text-[10px] text-zinc-500 ml-1">
                         (${totalCpm.toFixed(2)} × {actualMiles} mi)
                       </span>
                     </p>
@@ -465,48 +526,16 @@ export default function BookTripPage() {
               )}
             </div>
             {selectedOrder.serviceLevel && (
-              <span className="px-3 py-1.5 text-xs font-semibold text-white bg-slate-700 rounded">
+              <span className="px-3 py-1.5 text-xs font-semibold text-white bg-zinc-800 rounded">
                 {selectedOrder.serviceLevel.toUpperCase()}
               </span>
             )}
           </div>
         </Card>
       ) : (
-        <div className="mb-4 rounded-lg border border-dashed border-neutral-800 bg-neutral-950/40 p-6 text-center">
-          <p className="text-sm text-neutral-400">Select a qualified order from the right panel to begin booking</p>
+        <div className="mb-4 rounded-lg border border-dashed border-zinc-800 bg-zinc-900/20 p-6 text-center">
+          <p className="text-sm text-zinc-400">Select a qualified order from the right panel to begin booking</p>
         </div>
-      )}
-
-      {/* Driver Type Cost Comparison */}
-      {selectedOrder && actualMiles > 0 && (
-        <Card className="mb-4 rounded-lg border border-neutral-800 bg-neutral-900/60 p-4">
-          <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
-            <TrendingUp className="h-4 w-4 text-emerald-400" />
-            Driver Type Cost Comparison
-          </h3>
-          <div className="grid grid-cols-3 gap-3">
-            {getAllCostingOptions(
-              actualMiles,
-              selectedOrder.pickup || "Unknown",
-              selectedOrder.delivery || "Unknown"
-            ).map((option) => (
-              <CostingCard
-                key={option.driverType}
-                driverType={option.driverType}
-                label={option.label}
-                cost={option.cost}
-                distance={actualMiles}
-                isRecommended={option.cost.total === Math.min(
-                  ...getAllCostingOptions(
-                    actualMiles,
-                    selectedOrder.pickup || "Unknown",
-                    selectedOrder.delivery || "Unknown"
-                  ).map(o => o.cost.total)
-                )}
-              />
-            ))}
-          </div>
-        </Card>
       )}
 
       {/* Three Column Layout */}
@@ -525,37 +554,61 @@ export default function BookTripPage() {
         {/* CENTER COLUMN: Trip Booking Form */}
         <div className="col-span-6">
           <form onSubmit={handleSubmit}>
-            <Card className="rounded-lg border border-neutral-800 bg-neutral-900/60 p-5">
+            <Card className="rounded-lg border border-zinc-800/70 bg-zinc-900/40 p-5">
               <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                <Package className="h-5 w-5 text-emerald-400" />
+                <Package className="h-5 w-5 text-blue-400" />
                 Trip Booking Form
               </h3>
               
-              {/* Rate Card */}
-              <RateSelector
-                rates={filteredRates.length > 0 ? filteredRates : rates}
-                selectedRateId={rateId}
-                recommendedRateId={recommendedRateId}
-                onRateSelect={setRateId}
-              />
-              
-              {/* Rate Filter Info */}
-              {driverType && filteredRates.length > 0 && (
-                <div className="mt-2 text-xs text-neutral-400 flex items-center gap-1">
-                  <CheckCircle className="h-3 w-3 text-emerald-400" />
-                  <span>
-                    Showing rates for {driverType} · {routeDistance || miles || 0 >= 500 ? "Long Haul" : "Short Haul"}
-                  </span>
+              {/* Driver Type Cost Comparison */}
+              {costingOptions.length > 0 && (
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-xs font-medium text-zinc-400">
+                      Select Driver Type ({costingOptions.length} options)
+                    </h4>
+                    {selectedCostingOption && (
+                      <span className="text-[10px] text-blue-400 font-medium">
+                        ✓ {selectedCostingOption.label} selected
+                      </span>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-1 gap-3">
+                    {costingOptions.map((option, index) => (
+                      <CostingCard
+                        key={`form-costing-${option.driverType}-${option.zone || index}`}
+                        driverType={option.driverType}
+                        label={option.label}
+                        cost={option.cost}
+                        distance={actualMiles}
+                        isRecommended={option.cost.directTripCost === Math.min(
+                          ...costingOptions.map(o => o.cost.directTripCost)
+                        )}
+                        isSelected={selectedCostingOption?.driverType === option.driverType && 
+                                    selectedCostingOption?.zone === option.zone}
+                        onSelect={() => {
+                          // Store the full costing option
+                          setSelectedCostingOption(option);
+                          // Set the driver type
+                          setDriverType(option.driverType);
+                          // Auto-calculate revenue based on cost
+                          const revenue = option.cost.recommendedRevenue;
+                          setTotalRevenue(revenue);
+                          setRpm(actualMiles > 0 ? revenue / actualMiles : 0);
+                        }}
+                      />
+                    ))}
+                  </div>
                 </div>
               )}
 
               {/* Manual Revenue Input */}
               <div className="mt-4">
-                <label className="text-xs font-medium text-neutral-400 mb-1.5 block">
+                <label className="text-xs font-medium text-zinc-400 mb-1.5 block">
                   Manual Revenue Override (Optional)
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-neutral-500">$</span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-zinc-500">$</span>
                   <input
                     type="number"
                     step="0.01"
@@ -563,11 +616,11 @@ export default function BookTripPage() {
                     value={manualRevenue}
                     onChange={(e) => setManualRevenue(e.target.value)}
                     placeholder={totalRevenue > 0 ? totalRevenue.toFixed(2) : "Auto-calculated (5% margin)"}
-                    className="w-full pl-7 pr-3 py-2 bg-neutral-950/60 border border-neutral-700 rounded-lg text-sm text-white placeholder:text-neutral-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                    className="w-full pl-7 pr-3 py-2 bg-black/20 border border-zinc-800 rounded-lg text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                   />
                 </div>
                 {!manualRevenue && totalRevenue > 0 && (
-                  <p className="text-[10px] text-neutral-500 mt-1">
+                  <p className="text-[10px] text-zinc-500 mt-1">
                     Auto: ${totalRevenue.toFixed(2)} (5% margin on ${totalCost.toFixed(2)} cost)
                   </p>
                 )}
@@ -575,22 +628,22 @@ export default function BookTripPage() {
 
               {/* Trip Start Date */}
               <div className="mt-4">
-                <label className="text-xs font-medium text-neutral-400 mb-1.5 block">
+                <label className="text-xs font-medium text-zinc-400 mb-1.5 block">
                   Trip Start Date & Time
                 </label>
                 <input
                   type="datetime-local"
                   value={tripStartDate}
                   onChange={(e) => setTripStartDate(e.target.value)}
-                  className="w-full px-3 py-2 bg-neutral-950/60 border border-neutral-700 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                  className="w-full px-3 py-2 bg-black/20 border border-zinc-800 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                 />
               </div>
 
               {/* Submit Button */}
               <Button
                 type="submit"
-                disabled={isSubmitting || !selectedOrder || !driverId || !unitId || !rateId}
-                className="w-full mt-4 bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-semibold py-3"
+                disabled={isSubmitting || !selectedOrder || !driverId || !unitId || !driverType || totalRevenue === 0}
+                className="w-full mt-4 bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3"
               >
                 {isSubmitting ? "Booking Trip..." : (
                   <>
@@ -603,7 +656,7 @@ export default function BookTripPage() {
               {message && (
                 <div className={`mt-3 rounded border p-3 text-sm ${
                   message.type === "success" 
-                    ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+                    ? "border-blue-500/30 bg-blue-500/10 text-blue-400"
                     : "border-rose-500/30 bg-rose-500/10 text-rose-400"
                 }`}>
                   {message.text}
@@ -617,7 +670,7 @@ export default function BookTripPage() {
         <div className="col-span-3 space-y-3">
           
           {/* Available Orders */}
-          <Card className="rounded-lg border border-neutral-800 bg-neutral-900/60 p-3">
+          <Card className="rounded-lg border border-zinc-800/70 bg-zinc-900/40 p-3">
             <h3 className="text-xs font-bold text-white mb-3 uppercase tracking-wider flex items-center gap-2">
               <Package className="h-3.5 w-3.5" />
               Available Orders
@@ -630,23 +683,23 @@ export default function BookTripPage() {
                   onClick={() => router.push(`/book?orderId=${order.id}`)}
                   className={`w-full text-left rounded-lg p-2.5 transition-all text-xs border ${
                     selectedOrderId === order.id
-                      ? "bg-emerald-500/20 border-emerald-500/50 shadow-lg shadow-emerald-500/10"
-                      : "bg-neutral-950/50 hover:bg-neutral-800/50 border-neutral-800/50"
+                      ? "bg-blue-900/20 border-blue-800/50 shadow-lg shadow-blue-900/10"
+                      : "bg-zinc-900/30 hover:bg-zinc-800/50 border-zinc-800/50"
                   }`}
                 >
                   <p className="font-bold text-white mb-1">{order.customer}</p>
-                  <p className="text-[10px] text-neutral-400">{order.pickup} → {order.delivery}</p>
-                  {order.window && <p className="text-[10px] text-neutral-500 mt-1">{order.window}</p>}
+                  <p className="text-[10px] text-zinc-400">{order.pickup} → {order.delivery}</p>
+                  {order.window && <p className="text-[10px] text-zinc-500 mt-1">{order.window}</p>}
                 </button>
               ))}
               {orders.filter(o => o.status === "New" || o.status === "Planning").length === 0 && (
-                <p className="text-xs text-neutral-500 text-center py-6">No available orders</p>
+                <p className="text-xs text-zinc-500 text-center py-6">No available orders</p>
               )}
             </div>
           </Card>
 
           {/* Available Drivers */}
-          <Card className="rounded-lg border border-neutral-800 bg-neutral-900/60 p-3">
+          <Card className="rounded-lg border border-zinc-800/70 bg-zinc-900/40 p-3">
             <h3 className="text-xs font-bold text-white mb-2 uppercase tracking-wider flex items-center gap-2">
               <TrendingUp className="h-3.5 w-3.5" />
               Available Drivers
@@ -658,22 +711,22 @@ export default function BookTripPage() {
                   onClick={() => setDriverId(driver.id)}
                   className={`rounded p-1.5 cursor-pointer transition-all border ${
                     driverId === driver.id
-                      ? "bg-emerald-500/20 border-emerald-500/50"
-                      : "bg-neutral-950/50 hover:bg-neutral-800/50 border-neutral-800/50"
+                      ? "bg-blue-900/20 border-blue-800/50"
+                      : "bg-zinc-900/30 hover:bg-zinc-800/50 border-zinc-800/50"
                   }`}
                 >
                   <p className="text-[11px] font-semibold text-white leading-tight">{driver.name}</p>
-                  <p className="text-[9px] text-neutral-400 mt-0.5">{driver.homeBase} • {driver.hoursAvailableToday}h</p>
+                  <p className="text-[9px] text-zinc-400 mt-0.5">{driver.homeBase} • {driver.hoursAvailableToday}h</p>
                 </div>
               ))}
               {drivers.length === 0 && (
-                <p className="text-xs text-neutral-500 text-center py-4">No drivers available</p>
+                <p className="text-xs text-zinc-500 text-center py-4">No drivers available</p>
               )}
             </div>
           </Card>
 
           {/* Available Units */}
-          <Card className="rounded-lg border border-neutral-800 bg-neutral-900/60 p-3">
+          <Card className="rounded-lg border border-zinc-800/70 bg-zinc-900/40 p-3">
             <h3 className="text-xs font-bold text-white mb-2 uppercase tracking-wider flex items-center gap-2">
               <Sparkles className="h-3.5 w-3.5" />
               Available Units
@@ -685,16 +738,16 @@ export default function BookTripPage() {
                   onClick={() => setUnitId(unit.id)}
                   className={`rounded p-1.5 cursor-pointer transition-all border ${
                     unitId === unit.id
-                      ? "bg-emerald-500/20 border-emerald-500/50"
-                      : "bg-neutral-950/50 hover:bg-neutral-800/50 border-neutral-800/50"
+                      ? "bg-blue-900/20 border-blue-800/50"
+                      : "bg-zinc-900/30 hover:bg-zinc-800/50 border-zinc-800/50"
                   }`}
                 >
                   <p className="text-[11px] font-semibold text-white leading-tight">{unit.code}</p>
-                  <p className="text-[9px] text-neutral-400 mt-0.5">{unit.type} • {unit.status}</p>
+                  <p className="text-[9px] text-zinc-400 mt-0.5">{unit.type} • {unit.status}</p>
                 </div>
               ))}
               {units.length === 0 && (
-                <p className="text-xs text-neutral-500 text-center py-4">No units available</p>
+                <p className="text-xs text-zinc-500 text-center py-4">No units available</p>
               )}
             </div>
           </Card>

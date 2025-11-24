@@ -16,10 +16,10 @@ import type { OrderListItem } from "@/lib/types";
 
 const statusTone: Record<string, string> = {
   New: "text-emerald-400",
-  Planning: "text-slate-200",
+  Planning: "text-zinc-200",
   "In Transit": "text-cyan-400",
   "At Risk": "text-amber-400",
-  Delivered: "text-slate-500",
+  Delivered: "text-zinc-500",
   Exception: "text-rose-400",
 };
 
@@ -72,8 +72,8 @@ export default function OrdersPage() {
         ),
         cell: (row) => (
           <div className="flex flex-col">
-            <span className="font-bold text-slate-100">{row.id}</span>
-            <span className="text-xs text-slate-500">{row.reference}</span>
+            <span className="font-bold text-zinc-100">{row.id}</span>
+            <span className="text-xs text-zinc-500">{row.reference}</span>
           </div>
         ),
         widthClass: "w-40",
@@ -94,8 +94,8 @@ export default function OrdersPage() {
         header: "PU→DEL",
         cell: (row) => (
           <div className="flex flex-col text-sm">
-            <span className="text-slate-200">{row.pickup}</span>
-            <span className="text-xs text-slate-500">{row.delivery}</span>
+            <span className="text-zinc-200">{row.pickup}</span>
+            <span className="text-xs text-zinc-500">{row.delivery}</span>
           </div>
         ),
         widthClass: "w-52",
@@ -120,7 +120,7 @@ export default function OrdersPage() {
           </button>
         ),
         cell: (row) => (
-          <span className={`text-sm font-bold ${statusTone[row.status] ?? "text-slate-200"}`}>{row.status}</span>
+          <span className={`text-sm font-bold ${statusTone[row.status] ?? "text-zinc-200"}`}>{row.status}</span>
         ),
         widthClass: "w-32",
       },
@@ -233,23 +233,23 @@ export default function OrdersPage() {
 
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         {stats.map((stat) => (
-          <div key={stat.label} className="rounded-xl border border-slate-800/70 bg-slate-900/60 p-5 shadow-lg shadow-black/40 hover:border-emerald-500/60 transition-all duration-200">
+          <div key={stat.label} className="rounded-xl border border-zinc-800/70 bg-zinc-900/40 p-5 shadow-lg shadow-black/40 hover:border-zinc-700 transition-all duration-200">
             <p className="text-2xl font-bold text-white">{stat.value}</p>
-            <p className="text-xs uppercase tracking-wide text-slate-500 font-semibold">{stat.label}</p>
+            <p className="text-xs uppercase tracking-wide text-zinc-500 font-semibold">{stat.label}</p>
           </div>
         ))}
       </div>
 
       {/* Filters */}
-      <div className="flex items-center gap-4 rounded-xl border border-slate-800/70 bg-slate-900/60 p-4 shadow-md shadow-black/30">
+      <div className="flex items-center gap-4 rounded-xl border border-zinc-800/70 bg-zinc-900/40 p-4 shadow-md shadow-black/30">
         <div className="flex items-center gap-2">
-          <Filter className="h-4 w-4 text-slate-500" />
-          <span className="text-sm font-bold text-slate-200">Filters:</span>
+          <Filter className="h-4 w-4 text-zinc-500" />
+          <span className="text-sm font-bold text-zinc-200">Filters:</span>
         </div>
         <div className="flex items-center gap-2">
-          <label className="text-xs text-slate-500 font-semibold">Status:</label>
+          <label className="text-xs text-zinc-500 font-semibold">Status:</label>
           <select
-            className="rounded-full border border-slate-800/70 bg-slate-950/70 px-4 py-1.5 text-sm text-white focus:border-cyan-500/60 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 transition-all duration-200"
+            className="rounded-full border border-zinc-800 bg-black/40 px-4 py-1.5 text-sm text-zinc-300 focus:border-blue-900/50 focus:outline-none focus:ring-2 focus:ring-blue-900/20 transition-all duration-200"
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
           >
@@ -262,9 +262,9 @@ export default function OrdersPage() {
           </select>
         </div>
         <div className="flex items-center gap-2">
-          <label className="text-xs text-slate-500 font-semibold">Customer:</label>
+          <label className="text-xs text-zinc-500 font-semibold">Customer:</label>
           <select
-            className="rounded-full border border-slate-800/70 bg-slate-950/70 px-4 py-1.5 text-sm text-white focus:border-cyan-500/60 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 transition-all duration-200"
+            className="rounded-full border border-zinc-800 bg-black/40 px-4 py-1.5 text-sm text-zinc-300 focus:border-blue-900/50 focus:outline-none focus:ring-2 focus:ring-blue-900/20 transition-all duration-200"
             value={filterCustomer}
             onChange={(e) => setFilterCustomer(e.target.value)}
           >
@@ -291,8 +291,8 @@ export default function OrdersPage() {
 
       <div className="space-y-3">
         {filteredAndSortedData.length === 0 ? (
-          <div className="rounded-xl border border-slate-800/70 bg-slate-900/60 p-8 text-center">
-            <p className="text-slate-400">No orders found matching your filters.</p>
+          <div className="rounded-xl border border-zinc-800/70 bg-zinc-900/40 p-8 text-center">
+            <p className="text-zinc-400">No orders found matching your filters.</p>
           </div>
         ) : (
           filteredAndSortedData.map((order) => {
@@ -303,7 +303,7 @@ export default function OrdersPage() {
             
             // Status color mapping
             const statusConfig: Record<string, { color: string; progress: number }> = {
-              'New': { color: 'bg-slate-500', progress: 25 },
+              'New': { color: 'bg-zinc-500', progress: 25 },
               'Qualifying': { color: 'bg-amber-500', progress: 50 },
               'Qualified': { color: 'bg-emerald-500', progress: 75 },
               'Ready to Book': { color: 'bg-cyan-500', progress: 90 },
@@ -312,12 +312,12 @@ export default function OrdersPage() {
               'Exception': { color: 'bg-rose-500', progress: 50 },
             };
             
-            const currentStatus = statusConfig[order.status] || { color: 'bg-slate-500', progress: 25 };
+            const currentStatus = statusConfig[order.status] || { color: 'bg-zinc-500', progress: 25 };
             
             return (
               <div
                 key={order.id}
-                className="rounded-lg border border-slate-800/70 bg-slate-900/60 p-3 shadow-md shadow-black/30 hover:border-emerald-500/40 transition-all duration-200"
+                className="rounded-lg border border-zinc-800/70 bg-zinc-900/40 p-3 shadow-md shadow-black/30 hover:border-zinc-700 transition-all duration-200"
               >
                 {/* Top section: Customer name and timestamp */}
                 <div className="flex items-start justify-between mb-1.5">
@@ -325,17 +325,17 @@ export default function OrdersPage() {
                     {order.customer}
                   </h3>
                   <div className="text-right">
-                    <div className="text-[10px] text-slate-500 uppercase tracking-wide">Created</div>
-                    <div className="text-xs text-slate-300">
+                    <div className="text-[10px] text-zinc-500 uppercase tracking-wide">Created</div>
+                    <div className="text-xs text-zinc-300">
                       {order.window}
                     </div>
                   </div>
                 </div>
 
                 {/* Route: Origin → Destination */}
-                <div className="mb-2 text-xs text-slate-300">
+                <div className="mb-2 text-xs text-zinc-300">
                   <span>{order.pickup}</span>
-                  <span className="mx-1.5 text-slate-600">→</span>
+                  <span className="mx-1.5 text-zinc-600">→</span>
                   <span>{order.delivery}</span>
                 </div>
 
@@ -352,14 +352,14 @@ export default function OrdersPage() {
                       </span>
                     </div>
                     {order.laneMiles !== undefined && (
-                      <span className="text-[10px] font-medium text-slate-400">
+                      <span className="text-[10px] font-medium text-zinc-400">
                         {order.laneMiles} mi
                       </span>
                     )}
                   </div>
 
                   {/* Progress Bar */}
-                  <div className="w-full bg-slate-800/50 rounded-full h-1 overflow-hidden">
+                  <div className="w-full bg-zinc-800/50 rounded-full h-1 overflow-hidden">
                     <div 
                       className={`h-full ${currentStatus.color} transition-all duration-500 ease-out`}
                       style={{ width: `${currentStatus.progress}%` }}
@@ -369,14 +369,14 @@ export default function OrdersPage() {
 
                 {/* Equipment */}
                 {order.serviceLevel && (
-                  <div className="mb-1 text-[11px] text-slate-400">
+                  <div className="mb-1 text-[11px] text-zinc-400">
                     Equipment: {order.serviceLevel}
                   </div>
                 )}
 
                 {/* Notes/Commodity */}
                 {order.commodity && order.commodity !== "General Freight" && (
-                  <div className="mb-1.5 text-[11px] text-slate-400">
+                  <div className="mb-1.5 text-[11px] text-zinc-400">
                     {order.commodity}
                   </div>
                 )}
@@ -385,13 +385,13 @@ export default function OrdersPage() {
                 <div className="flex items-center justify-end gap-2 mt-2">
                   <button
                     onClick={() => router.push(`/orders/${order.id}`)}
-                    className="text-xs text-slate-400 hover:text-white transition-colors"
+                    className="text-xs text-zinc-400 hover:text-white transition-colors"
                   >
                     View details
                   </button>
                   <button
                     onClick={() => router.push(`/book?orderId=${order.id}`)}
-                    className="px-3 py-1 text-xs font-medium text-white bg-blue-600 hover:bg-blue-500 rounded shadow-md shadow-blue-600/40 hover:shadow-blue-500/50 transition-all duration-200"
+                    className="px-3 py-1 text-xs font-medium text-blue-200 bg-blue-950/50 hover:bg-blue-900/50 border border-blue-800/50 rounded shadow-md shadow-blue-900/20 hover:shadow-blue-900/30 transition-all duration-200"
                   >
                     Book Trip
                   </button>

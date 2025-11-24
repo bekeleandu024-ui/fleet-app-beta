@@ -312,7 +312,66 @@ export function calculateTripCost(
 }
 
 /**
- * Get all costing options for a trip (for comparison on booking page)
+ * Calculate trip cost using specific OO zone rates (for comparison cards)
+ */
+function calculateTripCostWithZone(
+  zone: OOZone,
+  distance: number,
+  pickupLocation: string = '',
+  deliveryLocation: string = '',
+  options: {
+    pickups?: number;
+    deliveries?: number;
+    dropHooks?: number;
+  } = {}
+): TripCost {
+  const {
+    pickups = 1,
+    deliveries = 1,
+    dropHooks = 0,
+  } = options;
+  
+  const borderCrossings = isCrossBorder(pickupLocation, deliveryLocation) ? 1 : 0;
+  const rates = COSTING_RATES.OO[zone];
+  
+  // Calculate mileage costs using specific zone rates
+  const wage = distance * rates.wage;
+  const fuel = distance * rates.fuel;
+  const truckMaint = distance * rates.truckMaint;
+  const trailerMaint = distance * rates.trailerMaint;
+  
+  const mileageCosts: MileageCosts = {
+    wage,
+    fuel,
+    benefits: 0,
+    performance: 0,
+    safety: 0,
+    step: 0,
+    truckMaint,
+    trailerMaint,
+    rolling: 0,
+    subtotal: wage + fuel + truckMaint + trailerMaint,
+  };
+  
+  const eventCosts = calculateEventCosts(pickups, deliveries, borderCrossings, dropHooks);
+  const directTripCost = mileageCosts.subtotal + eventCosts.subtotal;
+  const fullyAllocatedCost = directTripCost;
+  const recommendedRevenue = fullyAllocatedCost * 1.22;
+  const totalCPM = distance > 0 ? directTripCost / distance : 0;
+  
+  return {
+    mileageCosts,
+    eventCosts,
+    directTripCost,
+    fullyAllocatedCost,
+    recommendedRevenue,
+    totalCPM,
+  };
+}
+
+/**
+ * Get all 5 costing options for a trip (for comparison on booking page)
+ * Always returns all 5 driver type options regardless of distance
  */
 export function getAllCostingOptions(
   distance: number,
@@ -323,61 +382,35 @@ export function getAllCostingOptions(
     deliveries?: number;
     dropHooks?: number;
   } = {}
-): Array<{ driverType: DriverType; label: string; cost: TripCost }> {
-  const results: Array<{ driverType: DriverType; label: string; cost: TripCost }> = [];
-  
-  if (distance < 500) {
-    // Short haul options
-    results.push({
-      driverType: 'COM',
-      label: 'Company Driver - Short Haul',
-      cost: calculateTripCost('COM', distance, pickupLocation, deliveryLocation, options),
-    });
-    results.push({
-      driverType: 'RNR',
-      label: 'Rental Driver - Short Haul',
-      cost: calculateTripCost('RNR', distance, pickupLocation, deliveryLocation, options),
-    });
-    results.push({
+): Array<{ driverType: DriverType; label: string; zone?: string; cost: TripCost }> {
+  return [
+    {
       driverType: 'OO',
-      label: 'Owner Operator - Zone 1',
-      cost: calculateTripCost('OO', distance, pickupLocation, deliveryLocation, options),
-    });
-  } else if (distance <= 1500) {
-    // Medium haul options
-    results.push({
-      driverType: 'COM',
-      label: 'Company Driver - Long Haul',
-      cost: calculateTripCost('COM', distance, pickupLocation, deliveryLocation, options),
-    });
-    results.push({
-      driverType: 'RNR',
-      label: 'Rental Driver - Long Haul',
-      cost: calculateTripCost('RNR', distance, pickupLocation, deliveryLocation, options),
-    });
-    results.push({
+      label: 'Owner Operator - Zone 1 (<500mi)',
+      zone: 'zone1',
+      cost: calculateTripCostWithZone('zone1', distance, pickupLocation, deliveryLocation, options),
+    },
+    {
       driverType: 'OO',
-      label: 'Owner Operator - Zone 2',
-      cost: calculateTripCost('OO', distance, pickupLocation, deliveryLocation, options),
-    });
-  } else {
-    // Long haul options
-    results.push({
-      driverType: 'COM',
-      label: 'Company Driver - Long Haul',
-      cost: calculateTripCost('COM', distance, pickupLocation, deliveryLocation, options),
-    });
-    results.push({
-      driverType: 'RNR',
-      label: 'Rental Driver - Long Haul',
-      cost: calculateTripCost('RNR', distance, pickupLocation, deliveryLocation, options),
-    });
-    results.push({
+      label: 'Owner Operator - Zone 2 (501-1500mi)',
+      zone: 'zone2',
+      cost: calculateTripCostWithZone('zone2', distance, pickupLocation, deliveryLocation, options),
+    },
+    {
       driverType: 'OO',
-      label: 'Owner Operator - Zone 3',
-      cost: calculateTripCost('OO', distance, pickupLocation, deliveryLocation, options),
-    });
-  }
-  
-  return results;
+      label: 'Owner Operator - Zone 3 (1500+mi)',
+      zone: 'zone3',
+      cost: calculateTripCostWithZone('zone3', distance, pickupLocation, deliveryLocation, options),
+    },
+    {
+      driverType: 'COM',
+      label: 'Company Driver',
+      cost: calculateTripCost('COM', distance, pickupLocation, deliveryLocation, options),
+    },
+    {
+      driverType: 'RNR',
+      label: 'Rental Driver',
+      cost: calculateTripCost('RNR', distance, pickupLocation, deliveryLocation, options),
+    },
+  ];
 }

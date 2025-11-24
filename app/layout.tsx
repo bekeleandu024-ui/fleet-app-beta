@@ -17,7 +17,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} min-h-screen bg-black text-slate-300 antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} min-h-screen bg-black text-zinc-300 antialiased`}
         style={{ colorScheme: 'dark' }}
       >
         <QueryProvider>

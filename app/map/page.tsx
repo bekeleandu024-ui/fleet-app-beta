@@ -20,7 +20,7 @@ export default function MapPlannerPage() {
   if (isError || !data) {
     return (
       <SectionBanner title="Route Planning" subtitle="Build and evaluate multi-stop routes." aria-live="polite">
-        <p className="text-sm text-neutral-400">Map planner unavailable.</p>
+        <p className="text-sm text-zinc-400">Map planner unavailable.</p>
       </SectionBanner>
     );
   }
@@ -44,7 +44,7 @@ export default function MapPlannerPage() {
       <div className="grid gap-6 lg:grid-cols-[300px_minmax(0,1fr)]">
         <div className="space-y-4">
           <label className="grid gap-2 text-sm">
-            <span className="text-xs uppercase tracking-wide text-neutral-500">Vehicle profile</span>
+            <span className="text-xs uppercase tracking-wide text-zinc-500">Vehicle profile</span>
             <Select defaultValue={data.options.vehicleProfiles[0] ?? ""}>
               {data.options.vehicleProfiles.map((profile) => (
                 <option key={profile}>{profile}</option>
@@ -52,7 +52,7 @@ export default function MapPlannerPage() {
             </Select>
           </label>
           <div className="space-y-2">
-            <span className="text-xs uppercase tracking-wide text-neutral-500">Avoidances</span>
+            <span className="text-xs uppercase tracking-wide text-zinc-500">Avoidances</span>
             <div className="flex flex-wrap gap-2">
               {data.options.avoidances.map((item) => (
                 <Chip key={item} className="text-xs">
@@ -61,17 +61,17 @@ export default function MapPlannerPage() {
               ))}
             </div>
           </div>
-          <div className="rounded-lg border border-neutral-800 bg-neutral-900/60 p-4 text-xs text-neutral-500">
-            <div className="flex items-center gap-2 text-sm text-neutral-200">
-              <Compass className="size-4 text-emerald-400" /> Guidance
+          <div className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-4 text-xs text-zinc-500">
+            <div className="flex items-center gap-2 text-sm text-zinc-200">
+              <Compass className="size-4 text-blue-400" /> Guidance
             </div>
             <p className="mt-2">
               Optimized for compliance; adjust avoidances to enforce hazmat or low bridge restrictions.
             </p>
           </div>
         </div>
-        <div className="rounded-lg border border-neutral-800 bg-neutral-900/60 p-4">
-          <div className="flex h-[420px] items-center justify-center rounded-lg border border-dashed border-neutral-800 bg-neutral-900/50 text-sm text-neutral-400">
+        <div className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-4">
+          <div className="flex h-[420px] items-center justify-center rounded-lg border border-dashed border-zinc-800 bg-zinc-900/50 text-sm text-zinc-400">
             Map viewport placeholder
           </div>
         </div>
@@ -83,7 +83,7 @@ export default function MapPlannerPage() {
 function MapPlannerSkeleton() {
   return (
     <SectionBanner title="Route Planning" subtitle="Build and evaluate multi-stop routes." aria-live="polite">
-      <div className="h-[420px] animate-pulse rounded-lg bg-neutral-900/50" />
+      <div className="h-[420px] animate-pulse rounded-lg bg-zinc-900/50" />
     </SectionBanner>
   );
 }

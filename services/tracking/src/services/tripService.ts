@@ -45,6 +45,7 @@ export interface CreateTripInput {
   miles?: number;
   totalRevenue?: number;
   totalCost?: number;
+  totalCpm?: number;
   marginPct?: number;
 }
 
@@ -74,6 +75,7 @@ export async function createTrip(input: CreateTripInput): Promise<Trip> {
     miles,
     totalRevenue,
     totalCost,
+    totalCpm,
     marginPct,
   } = input;
 

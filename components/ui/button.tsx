@@ -5,7 +5,7 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 const baseClasses =
-  "inline-flex items-center justify-center gap-2 rounded-full border text-white transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-600/50 disabled:cursor-not-allowed disabled:opacity-50 font-medium";
+  "inline-flex items-center justify-center gap-2 rounded-full border text-white transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-900/50 disabled:cursor-not-allowed disabled:opacity-50 font-medium";
 
 const sizeClasses: Record<"sm" | "md" | "lg", string> = {
   sm: "h-9 px-4 text-xs",
@@ -14,11 +14,11 @@ const sizeClasses: Record<"sm" | "md" | "lg", string> = {
 };
 
 const variantClasses: Record<"subtle" | "primary" | "plain", string> = {
-  subtle: "border-slate-700 bg-slate-900/60 hover:bg-slate-800/70 hover:border-slate-600 shadow-md shadow-black/30",
+  subtle: "border-zinc-800 bg-zinc-900/60 hover:bg-zinc-800 hover:border-zinc-700 shadow-md shadow-black/30 text-zinc-300",
   primary:
-    "border-emerald-500/50 bg-emerald-500/30 hover:bg-emerald-500/40 hover:border-emerald-400/70 shadow-lg shadow-emerald-500/20",
+    "border-blue-800/50 bg-blue-950/50 hover:bg-blue-900/50 text-blue-200 hover:border-blue-700/50 shadow-lg shadow-blue-900/20",
   plain:
-    "border-transparent bg-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-900/50",
+    "border-transparent bg-transparent text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/50",
 };
 
 export type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {

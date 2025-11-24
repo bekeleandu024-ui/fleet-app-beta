@@ -31,23 +31,23 @@ export function SectionBanner({
     <section
       id={id}
       className={cn(
-        "flex flex-col gap-4 rounded-xl border border-neutral-800 bg-black text-slate-300 shadow-lg shadow-black/60 hover:border-neutral-700 transition-all duration-200",
+        "flex flex-col gap-4 rounded-xl border border-neutral-800 bg-black text-zinc-300 shadow-lg shadow-black/60 hover:border-neutral-700 transition-all duration-200",
         dense ? "p-5" : "p-6",
         className
       )}
     >
       <header className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
         <div className="space-y-1">
-          <h2 className="text-base font-bold text-slate-100">{title}</h2>
-          {subtitle ? <p className="text-xs text-slate-400">{subtitle}</p> : null}
+          <h2 className="text-base font-bold text-zinc-100">{title}</h2>
+          {subtitle ? <p className="text-xs text-zinc-400">{subtitle}</p> : null}
         </div>
         {actions ? <div className="flex items-center gap-2 md:shrink-0">{actions}</div> : null}
       </header>
-      <div aria-live={ariaLive ?? undefined} className="space-y-4 text-sm leading-relaxed text-slate-300">
+      <div aria-live={ariaLive ?? undefined} className="space-y-4 text-sm leading-relaxed text-zinc-300">
         {children}
       </div>
       {footer ? (
-        <footer className="border-t border-slate-700/50 pt-4 text-xs text-slate-500">
+        <footer className="border-t border-zinc-700/50 pt-4 text-xs text-zinc-500">
           {footer}
         </footer>
       ) : null}

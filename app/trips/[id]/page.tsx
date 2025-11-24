@@ -134,7 +134,15 @@ export default function TripDetailPage() {
                 <div className="border-t border-neutral-800 pt-2 mt-2">
                   <DetailRow
                     label="Total Cost"
-                    value={data.metrics?.totalCost ? formatCurrency(data.metrics.totalCost) : "—"}
+                    value={
+                      data.metrics?.totalCost 
+                        ? `${formatCurrency(data.metrics.totalCost)}${
+                            data.metrics?.totalCpm && distanceMiles 
+                              ? ` (${formatCurrency(data.metrics.totalCpm)} × ${Math.round(distanceMiles)} mi)` 
+                              : ""
+                          }`
+                        : "—"
+                    }
                     emphasize
                   />
                 </div>

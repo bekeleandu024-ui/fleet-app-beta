@@ -21,10 +21,10 @@ const typeLabels: Record<GlobalSearchResult["type"], string> = {
 };
 
 const typeBadgeClasses: Record<GlobalSearchResult["type"], string> = {
-  order: "border-emerald-500/50 bg-emerald-500/10 text-emerald-300",
-  trip: "border-sky-500/50 bg-sky-500/10 text-sky-300",
+  order: "border-blue-500/50 bg-blue-500/10 text-blue-300",
+  trip: "border-cyan-500/50 bg-cyan-500/10 text-cyan-300",
   driver: "border-amber-500/50 bg-amber-500/10 text-amber-300",
-  unit: "border-cyan-500/50 bg-cyan-500/10 text-cyan-300",
+  unit: "border-teal-500/50 bg-teal-500/10 text-teal-300",
   customer: "border-purple-500/50 bg-purple-500/10 text-purple-300",
 };
 
@@ -53,27 +53,27 @@ export default function SearchPage() {
       aria-live="polite"
     >
       {!hasQuery ? (
-        <p className="text-sm text-neutral-400">
+        <p className="text-sm text-zinc-400">
           Use the search bar above to look up orders, trips, drivers, units, or customers. Try searching for an ID like
-          <span className="text-neutral-200"> TRP-9001</span> or a customer name.
+          <span className="text-zinc-200"> TRP-9001</span> or a customer name.
         </p>
       ) : isError ? (
         <p className="text-sm text-rose-400">Unable to load search results. Please try again.</p>
       ) : (
         <div className="space-y-4">
-          <div className="flex items-center gap-2 text-sm text-neutral-400">
+          <div className="flex items-center gap-2 text-sm text-zinc-400">
             {isFetching ? (
-              <Loader2 className="size-4 animate-spin text-neutral-300" aria-hidden="true" />
+              <Loader2 className="size-4 animate-spin text-zinc-300" aria-hidden="true" />
             ) : (
-              <SearchIcon className="size-4 text-neutral-500" aria-hidden="true" />
+              <SearchIcon className="size-4 text-zinc-500" aria-hidden="true" />
             )}
             {results.length === 0 ? (
               <span>
-                No results for <span className="text-neutral-100">“{query}”</span>.
+                No results for <span className="text-zinc-100">“{query}”</span>.
               </span>
             ) : (
               <span>
-                Showing {results.length} result{results.length === 1 ? "" : "s"} for <span className="text-neutral-100">“{query}”</span>.
+                Showing {results.length} result{results.length === 1 ? "" : "s"} for <span className="text-zinc-100">“{query}”</span>.
               </span>
             )}
           </div>
@@ -84,7 +84,7 @@ export default function SearchPage() {
                 <li key={`${result.type}-${result.id}`}>
                   <Link
                     href={result.href}
-                    className="block rounded-xl border border-neutral-800 bg-neutral-950/60 px-4 py-4 transition hover:border-emerald-500/60 hover:bg-neutral-900/70"
+                    className="block rounded-xl border border-zinc-800 bg-zinc-900/40 px-4 py-4 transition hover:border-blue-500/60 hover:bg-zinc-900/60"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="space-y-2">
@@ -92,21 +92,21 @@ export default function SearchPage() {
                           {typeLabels[result.type]}
                         </Badge>
                         <div className="space-y-1">
-                          <p className="text-base font-semibold text-neutral-100">{result.title}</p>
-                          <p className="text-sm text-neutral-400">{result.description}</p>
+                          <p className="text-base font-semibold text-zinc-100">{result.title}</p>
+                          <p className="text-sm text-zinc-400">{result.description}</p>
                         </div>
                       </div>
-                      <ArrowUpRight className="size-4 shrink-0 text-neutral-500" aria-hidden="true" />
+                      <ArrowUpRight className="size-4 shrink-0 text-zinc-500" aria-hidden="true" />
                     </div>
                     {result.meta.length > 0 ? (
-                      <div className="mt-4 grid gap-3 text-xs text-neutral-400 sm:grid-cols-2">
+                      <div className="mt-4 grid gap-3 text-xs text-zinc-400 sm:grid-cols-2">
                         {result.meta.map((item) => (
                           <div
                             key={`${result.id}-${item.label}`}
-                            className="flex items-center justify-between rounded-lg border border-neutral-800 bg-neutral-900/60 px-3 py-2"
+                            className="flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-900/60 px-3 py-2"
                           >
-                            <span className="text-[11px] uppercase tracking-wide text-neutral-500">{item.label}</span>
-                            <span className="text-sm text-neutral-200">{item.value}</span>
+                            <span className="text-[11px] uppercase tracking-wide text-zinc-500">{item.label}</span>
+                            <span className="text-sm text-zinc-200">{item.value}</span>
                           </div>
                         ))}
                       </div>

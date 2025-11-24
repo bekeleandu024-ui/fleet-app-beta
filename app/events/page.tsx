@@ -39,11 +39,11 @@ const EVENT_TYPE_LABELS: Record<string, string> = {
 };
 
 const EVENT_TYPE_COLORS: Record<string, string> = {
-  TRIP_START: "border-emerald-500/50 bg-emerald-500/20 text-emerald-200",
-  TRIP_FINISHED: "border-sky-500/50 bg-sky-500/20 text-sky-200",
+  TRIP_START: "border-blue-500/50 bg-blue-500/20 text-blue-200",
+  TRIP_FINISHED: "border-zinc-500/50 bg-zinc-500/20 text-zinc-200",
   CROSSED_BORDER: "border-amber-500/50 bg-amber-500/20 text-amber-200",
   DROP_HOOK: "border-purple-500/50 bg-purple-500/20 text-purple-200",
-  default: "border-white/20 bg-white/10 text-neutral-200",
+  default: "border-zinc-800 bg-zinc-900/60 text-zinc-200",
 };
 
 export default function TripEventsPage() {
@@ -211,39 +211,39 @@ export default function TripEventsPage() {
 
   return (
     <div className="space-y-8 p-6">
-      <h1 className="text-3xl font-semibold text-white">Trip Event Monitor</h1>
+      <h1 className="text-3xl font-semibold text-zinc-100">Trip Event Monitor</h1>
 
       {/* Summary Statistics */}
       <div className="grid gap-4 md:grid-cols-3">
-        <Card className="rounded-xl border border-white/10 bg-white/5 p-4 shadow-lg shadow-black/40">
-          <p className="text-[11px] uppercase tracking-wide text-white/60">Unique Trips Touched</p>
-          <p className="mt-2 text-2xl font-semibold text-white">{stats.uniqueTrips}</p>
+        <Card className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4 shadow-sm">
+          <p className="text-[11px] uppercase tracking-wide text-zinc-500">Unique Trips Touched</p>
+          <p className="mt-2 text-2xl font-semibold text-zinc-100">{stats.uniqueTrips}</p>
         </Card>
 
-        <Card className="rounded-xl border border-white/10 bg-white/5 p-4 shadow-lg shadow-black/40">
-          <p className="text-[11px] uppercase tracking-wide text-white/60">Border Crossings</p>
-          <p className="mt-2 text-2xl font-semibold text-white">{stats.borderCrossings}</p>
-          <p className="mt-1 text-[11px] text-white/40">Triggers add-on costing + guardrails</p>
+        <Card className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4 shadow-sm">
+          <p className="text-[11px] uppercase tracking-wide text-zinc-500">Border Crossings</p>
+          <p className="mt-2 text-2xl font-semibold text-zinc-100">{stats.borderCrossings}</p>
+          <p className="mt-1 text-[11px] text-zinc-500">Triggers add-on costing + guardrails</p>
         </Card>
 
-        <Card className="rounded-xl border border-white/10 bg-white/5 p-4 shadow-lg shadow-black/40">
-          <p className="text-[11px] uppercase tracking-wide text-white/60">Trips Completed</p>
-          <p className="mt-2 text-2xl font-semibold text-white">{stats.tripsCompleted}</p>
-          <p className="mt-1 text-[11px] text-white/40">Marked finished in this window</p>
+        <Card className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4 shadow-sm">
+          <p className="text-[11px] uppercase tracking-wide text-zinc-500">Trips Completed</p>
+          <p className="mt-2 text-2xl font-semibold text-zinc-100">{stats.tripsCompleted}</p>
+          <p className="mt-1 text-[11px] text-zinc-500">Marked finished in this window</p>
         </Card>
       </div>
 
       {/* Log Trip Milestone */}
-      <Card className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-6 shadow-lg shadow-black/40">
-        <h2 className="mb-4 text-sm font-semibold text-neutral-200">Log Trip Milestone</h2>
+      <Card className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-6 shadow-sm">
+        <h2 className="mb-4 text-sm font-semibold text-zinc-200">Log Trip Milestone</h2>
 
         <div className="grid gap-6 lg:grid-cols-[320px,1fr]">
           {/* Left Column */}
           <div className="space-y-4">
             <div>
-              <label className="text-[11px] uppercase tracking-wide text-neutral-500">Trip</label>
+              <label className="text-[11px] uppercase tracking-wide text-zinc-500">Trip</label>
               <select
-                className="mt-1 w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:border-white/30 focus:outline-none"
+                className="mt-1 w-full rounded-md border border-zinc-800 bg-zinc-900/60 px-3 py-2 text-sm text-zinc-200 focus:border-zinc-700 focus:outline-none"
                 value={tripId}
                 onChange={(e) => setTripId(e.target.value)}
               >
@@ -257,32 +257,32 @@ export default function TripEventsPage() {
             </div>
 
             {selectedTrip ? (
-              <div className="rounded-lg border border-dashed border-neutral-800 bg-neutral-950/40 p-4">
-                <p className="text-xs font-medium text-neutral-300">Trip Context</p>
-                <div className="mt-2 space-y-1 text-xs text-neutral-400">
-                  <p><span className="text-white">Driver:</span> {selectedTrip.driver}</p>
-                  <p><span className="text-white">Unit:</span> {selectedTrip.unit}</p>
-                  <p><span className="text-white">Status:</span> {selectedTrip.status}</p>
-                  <p><span className="text-white">Route:</span> {selectedTrip.origin} → {selectedTrip.destination}</p>
+              <div className="rounded-lg border border-dashed border-zinc-800 bg-zinc-950/40 p-4">
+                <p className="text-xs font-medium text-zinc-300">Trip Context</p>
+                <div className="mt-2 space-y-1 text-xs text-zinc-400">
+                  <p><span className="text-zinc-200">Driver:</span> {selectedTrip.driver}</p>
+                  <p><span className="text-zinc-200">Unit:</span> {selectedTrip.unit}</p>
+                  <p><span className="text-zinc-200">Status:</span> {selectedTrip.status}</p>
+                  <p><span className="text-zinc-200">Route:</span> {selectedTrip.origin} → {selectedTrip.destination}</p>
                 </div>
                 <a
                   href={`/trips/${selectedTrip.id}`}
-                  className="mt-3 inline-block text-xs text-sky-300 hover:text-sky-200"
+                  className="mt-3 inline-block text-xs text-blue-400 hover:text-blue-300"
                 >
                   View trip details →
                 </a>
               </div>
             ) : (
-              <div className="rounded-lg border border-dashed border-neutral-800 bg-neutral-950/40 p-4 text-center text-xs text-neutral-400">
+              <div className="rounded-lg border border-dashed border-zinc-800 bg-zinc-950/40 p-4 text-center text-xs text-zinc-400">
                 Pick a trip to activate quick actions
               </div>
             )}
 
             <div>
-              <label className="text-[11px] uppercase tracking-wide text-neutral-500">Location Description</label>
+              <label className="text-[11px] uppercase tracking-wide text-zinc-500">Location Description</label>
               <input
                 type="text"
-                className="mt-1 w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:border-white/30 focus:outline-none"
+                className="mt-1 w-full rounded-md border border-zinc-800 bg-zinc-900/60 px-3 py-2 text-sm text-zinc-200 focus:border-zinc-700 focus:outline-none"
                 value={stopLabel}
                 onChange={(e) => setStopLabel(e.target.value)}
                 placeholder="e.g., Windsor Border Crossing"
@@ -291,22 +291,22 @@ export default function TripEventsPage() {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-[11px] uppercase tracking-wide text-neutral-500">Latitude</label>
+                <label className="text-[11px] uppercase tracking-wide text-zinc-500">Latitude</label>
                 <input
                   type="number"
                   step="0.000001"
-                  className="mt-1 w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:border-white/30 focus:outline-none"
+                  className="mt-1 w-full rounded-md border border-zinc-800 bg-zinc-900/60 px-3 py-2 text-sm text-zinc-200 focus:border-zinc-700 focus:outline-none"
                   value={lat}
                   onChange={(e) => setLat(e.target.value)}
                 />
               </div>
 
               <div>
-                <label className="text-[11px] uppercase tracking-wide text-neutral-500">Longitude</label>
+                <label className="text-[11px] uppercase tracking-wide text-zinc-500">Longitude</label>
                 <input
                   type="number"
                   step="0.000001"
-                  className="mt-1 w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:border-white/30 focus:outline-none"
+                  className="mt-1 w-full rounded-md border border-zinc-800 bg-zinc-900/60 px-3 py-2 text-sm text-zinc-200 focus:border-zinc-700 focus:outline-none"
                   value={lon}
                   onChange={(e) => setLon(e.target.value)}
                 />
@@ -314,10 +314,10 @@ export default function TripEventsPage() {
             </div>
 
             <div>
-              <label className="text-[11px] uppercase tracking-wide text-neutral-500">Notes</label>
+              <label className="text-[11px] uppercase tracking-wide text-zinc-500">Notes</label>
               <textarea
                 rows={3}
-                className="mt-1 w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:border-white/30 focus:outline-none resize-none"
+                className="mt-1 w-full rounded-md border border-zinc-800 bg-zinc-900/60 px-3 py-2 text-sm text-zinc-200 focus:border-zinc-700 focus:outline-none resize-none"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Additional context..."
@@ -348,8 +348,8 @@ export default function TripEventsPage() {
                   onClick={() => handleQuickAction(action.type)}
                   className={`h-20 rounded-lg border text-sm font-semibold transition-all ${
                     tripId
-                      ? "border-emerald-500/30 bg-emerald-500 text-emerald-950 hover:bg-emerald-400"
-                      : "border-neutral-800 bg-neutral-900/60 text-neutral-500"
+                      ? "border-blue-600 bg-blue-600 text-white hover:bg-blue-500"
+                      : "border-zinc-800 bg-zinc-900/60 text-zinc-500"
                   } ${submitting ? "animate-pulse" : ""}`}
                 >
                   {action.label}
@@ -357,8 +357,8 @@ export default function TripEventsPage() {
               ))}
             </div>
 
-            <div className="rounded-lg border border-white/10 bg-black/20 p-4">
-              <p className="text-xs text-neutral-400">
+            <div className="rounded-lg border border-zinc-800 bg-zinc-900/20 p-4">
+              <p className="text-xs text-zinc-400">
                 Events are immutable once logged. Double-check trip selection and event type before confirming.
                 Coordinates are optional but help with route verification.
               </p>
@@ -367,7 +367,7 @@ export default function TripEventsPage() {
             {message && (
               <div className={`rounded-lg border p-3 text-sm ${
                 message.type === "success" 
-                  ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+                  ? "border-blue-500/30 bg-blue-500/10 text-blue-400"
                   : "border-rose-500/30 bg-rose-500/10 text-rose-400"
               }`}>
                 {message.text}
@@ -378,15 +378,15 @@ export default function TripEventsPage() {
       </Card>
 
       {/* Recent Trip Events Feed */}
-      <Card className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-6 shadow-lg shadow-black/40">
-        <h2 className="mb-4 text-sm font-semibold text-neutral-200">Recent Trip Events</h2>
+      <Card className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-6 shadow-sm">
+        <h2 className="mb-4 text-sm font-semibold text-zinc-200">Recent Trip Events</h2>
 
         {/* Filter Row */}
         <div className="mb-4 grid gap-3 md:grid-cols-5">
           <div className="md:col-span-2">
-            <label className="text-[11px] uppercase tracking-wide text-neutral-500">Filter by Trip</label>
+            <label className="text-[11px] uppercase tracking-wide text-zinc-500">Filter by Trip</label>
             <select
-              className="mt-1 w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:border-white/30 focus:outline-none"
+              className="mt-1 w-full rounded-md border border-zinc-800 bg-zinc-900/60 px-3 py-2 text-sm text-zinc-200 focus:border-zinc-700 focus:outline-none"
               value={filterTripId}
               onChange={(e) => setFilterTripId(e.target.value)}
             >
@@ -398,10 +398,10 @@ export default function TripEventsPage() {
           </div>
 
           <div>
-            <label className="text-[11px] uppercase tracking-wide text-neutral-500">Driver</label>
+            <label className="text-[11px] uppercase tracking-wide text-zinc-500">Driver</label>
             <input
               type="text"
-              className="mt-1 w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:border-white/30 focus:outline-none"
+              className="mt-1 w-full rounded-md border border-zinc-800 bg-zinc-900/60 px-3 py-2 text-sm text-zinc-200 focus:border-zinc-700 focus:outline-none"
               placeholder="Search..."
               value={filterDriver}
               onChange={(e) => setFilterDriver(e.target.value)}
@@ -409,10 +409,10 @@ export default function TripEventsPage() {
           </div>
 
           <div>
-            <label className="text-[11px] uppercase tracking-wide text-neutral-500">Unit</label>
+            <label className="text-[11px] uppercase tracking-wide text-zinc-500">Unit</label>
             <input
               type="text"
-              className="mt-1 w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:border-white/30 focus:outline-none"
+              className="mt-1 w-full rounded-md border border-zinc-800 bg-zinc-900/60 px-3 py-2 text-sm text-zinc-200 focus:border-zinc-700 focus:outline-none"
               placeholder="Search..."
               value={filterUnit}
               onChange={(e) => setFilterUnit(e.target.value)}
@@ -420,9 +420,9 @@ export default function TripEventsPage() {
           </div>
 
           <div>
-            <label className="text-[11px] uppercase tracking-wide text-neutral-500">Event Type</label>
+            <label className="text-[11px] uppercase tracking-wide text-zinc-500">Event Type</label>
             <select
-              className="mt-1 w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:border-white/30 focus:outline-none"
+              className="mt-1 w-full rounded-md border border-zinc-800 bg-zinc-900/60 px-3 py-2 text-sm text-zinc-200 focus:border-zinc-700 focus:outline-none"
               value={filterEventType}
               onChange={(e) => setFilterEventType(e.target.value)}
             >
@@ -436,7 +436,7 @@ export default function TripEventsPage() {
 
         {/* Status Row */}
         <div className="mb-4 flex items-center justify-between">
-          <p className="text-xs text-neutral-400">
+          <p className="text-xs text-zinc-400">
             Showing {events.length} events · {refreshing ? "Refreshing..." : "Live"}
           </p>
           <Button
@@ -453,19 +453,19 @@ export default function TripEventsPage() {
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-neutral-800 text-left">
-                <th className="pb-2 text-[11px] uppercase tracking-wide text-neutral-500">When</th>
-                <th className="pb-2 text-[11px] uppercase tracking-wide text-neutral-500">Event</th>
-                <th className="pb-2 text-[11px] uppercase tracking-wide text-neutral-500">Trip</th>
-                <th className="pb-2 text-[11px] uppercase tracking-wide text-neutral-500">Driver · Unit</th>
-                <th className="pb-2 text-[11px] uppercase tracking-wide text-neutral-500">Location/Notes</th>
+              <tr className="border-b border-zinc-800 text-left">
+                <th className="pb-2 text-[11px] uppercase tracking-wide text-zinc-500">When</th>
+                <th className="pb-2 text-[11px] uppercase tracking-wide text-zinc-500">Event</th>
+                <th className="pb-2 text-[11px] uppercase tracking-wide text-zinc-500">Trip</th>
+                <th className="pb-2 text-[11px] uppercase tracking-wide text-zinc-500">Driver · Unit</th>
+                <th className="pb-2 text-[11px] uppercase tracking-wide text-zinc-500">Location/Notes</th>
               </tr>
             </thead>
             <tbody>
               {events.length > 0 ? (
                 events.map(event => (
-                  <tr key={event.id} className="border-b border-neutral-800/50 hover:bg-white/5">
-                    <td className="py-3 text-xs text-neutral-300">
+                  <tr key={event.id} className="border-b border-zinc-800/50 hover:bg-zinc-900/40">
+                    <td className="py-3 text-xs text-zinc-300">
                       {new Date(event.at).toLocaleString()}
                     </td>
                     <td className="py-3">
@@ -478,21 +478,21 @@ export default function TripEventsPage() {
                     <td className="py-3">
                       <a
                         href={`/trips/${event.tripId}`}
-                        className="text-sm text-sky-300 hover:text-sky-200"
+                        className="text-sm text-blue-400 hover:text-blue-300"
                       >
                         {event.tripId.substring(0, 8)}
                       </a>
-                      <p className="text-xs text-neutral-500">{event.trip?.status}</p>
+                      <p className="text-xs text-zinc-500">{event.trip?.status}</p>
                     </td>
-                    <td className="py-3 text-xs text-neutral-300">
+                    <td className="py-3 text-xs text-zinc-300">
                       <p>{event.trip?.driver}</p>
-                      <p className="text-neutral-500">{event.trip?.unit}</p>
+                      <p className="text-zinc-500">{event.trip?.unit}</p>
                     </td>
-                    <td className="py-3 text-xs text-neutral-300">
+                    <td className="py-3 text-xs text-zinc-300">
                       <p>{event.stopLabel}</p>
-                      {event.notes && <p className="italic text-neutral-500">{event.notes}</p>}
+                      {event.notes && <p className="italic text-zinc-500">{event.notes}</p>}
                       {event.lat && event.lon && (
-                        <p className="text-neutral-500">{event.lat}, {event.lon}</p>
+                        <p className="text-zinc-500">{event.lat}, {event.lon}</p>
                       )}
                     </td>
                   </tr>
@@ -500,7 +500,7 @@ export default function TripEventsPage() {
               ) : (
                 <tr>
                   <td colSpan={5} className="py-8 text-center">
-                    <div className="rounded-lg border border-dashed border-neutral-800 bg-neutral-950/40 p-5 text-sm text-neutral-400">
+                    <div className="rounded-lg border border-dashed border-zinc-800 bg-zinc-950/40 p-5 text-sm text-zinc-400">
                       No trip events recorded for this filter set
                     </div>
                   </td>

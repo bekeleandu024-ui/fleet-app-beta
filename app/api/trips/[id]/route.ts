@@ -160,6 +160,7 @@ function buildTripDetail(
       linehaul: trip.linehaul_cost ?? trip.linehaul,
       fuel: trip.fuel_cost ?? trip.fuel,
       totalCost: trip.total_cost ?? trip.totalCost,
+      totalCpm: trip.total_cpm ?? (trip.total_cost && trip.distance_miles ? trip.total_cost / trip.distance_miles : undefined),
       recommendedRevenue: trip.recommended_revenue ?? trip.revenue,
       marginPct: trip.margin_pct ?? trip.margin,
     },

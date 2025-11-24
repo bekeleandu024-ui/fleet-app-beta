@@ -175,16 +175,16 @@ export default function TripEventPage() {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-linear-to-br from-gray-900 via-slate-900 to-gray-900">
+    <div className="h-screen flex flex-col bg-black">
       {/* Header */}
-      <div className="flex-none border-b border-gray-800 bg-linear-to-r from-gray-900 to-slate-900 px-6 py-4">
+      <div className="flex-none border-b border-zinc-800 bg-zinc-900/40 px-6 py-4">
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-lg bg-blue-500/10 border border-blue-500/20">
             <Radio className="w-5 h-5 text-blue-400" />
           </div>
           <div>
-            <h1 className="text-xl font-semibold text-white">Trip Event Console</h1>
-            <p className="text-sm text-gray-400">Real-time trip event logging & tracking</p>
+            <h1 className="text-xl font-semibold text-zinc-100">Trip Event Console</h1>
+            <p className="text-sm text-zinc-400">Real-time trip event logging & tracking</p>
           </div>
         </div>
       </div>
@@ -210,25 +210,25 @@ export default function TripEventPage() {
             <GPSCapture onLocationCapture={handleLocationCapture} />
 
             {/* Notes Input */}
-            <Card className="p-4 bg-gray-900/50 backdrop-blur border-gray-800">
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+            <Card className="p-4 bg-zinc-900/40 backdrop-blur border-zinc-800">
+              <label className="block text-sm font-medium text-zinc-300 mb-2">
                 Event Notes
               </label>
               <textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                className="w-full px-3 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 min-h-[100px] resize-none"
+                className="w-full px-3 py-2 bg-zinc-900/60 border border-zinc-800 rounded-lg text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-blue-500 min-h-[100px] resize-none"
                 placeholder="Add context about this event..."
                 disabled={isSubmitting}
               />
             </Card>
 
             {/* Submit Custom Event */}
-            <Card className="p-4 bg-gray-900/50 backdrop-blur border-gray-800">
+            <Card className="p-4 bg-zinc-900/40 backdrop-blur border-zinc-800">
               <Button
                 onClick={handleCustomEvent}
                 disabled={!selectedTrip || !location || isSubmitting}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed"
+                className="w-full bg-blue-600 hover:bg-blue-500 text-white disabled:bg-zinc-800 disabled:text-zinc-500 disabled:cursor-not-allowed"
               >
                 {isSubmitting ? (
                   <>
@@ -248,24 +248,24 @@ export default function TripEventPage() {
             {submitStatus !== "idle" && (
               <Card className={`p-4 ${
                 submitStatus === "success"
-                  ? "bg-emerald-900/20 border-emerald-500/30"
-                  : "bg-rose-900/20 border-rose-500/30"
+                  ? "bg-blue-900/20 border-blue-500/30"
+                  : "bg-red-900/20 border-red-500/30"
               }`}>
                 <div className="flex items-center gap-2">
                   {submitStatus === "success" ? (
                     <>
-                      <CheckCircle className="w-5 h-5 text-emerald-400" />
-                      <span className="text-emerald-300 font-medium">
+                      <CheckCircle className="w-5 h-5 text-blue-400" />
+                      <span className="text-blue-300 font-medium">
                         Event logged successfully
                       </span>
                     </>
                   ) : (
                     <>
-                      <XCircle className="w-5 h-5 text-rose-400" />
+                      <XCircle className="w-5 h-5 text-red-400" />
                       <div className="flex-1">
-                        <span className="text-rose-300 font-medium block">Failed to log event</span>
+                        <span className="text-red-300 font-medium block">Failed to log event</span>
                         {errorMessage && (
-                          <span className="text-rose-400 text-sm">{errorMessage}</span>
+                          <span className="text-red-400 text-sm">{errorMessage}</span>
                         )}
                       </div>
                     </>

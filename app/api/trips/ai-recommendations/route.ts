@@ -24,16 +24,19 @@ export async function POST(request: NextRequest) {
 
     const order = await orderResponse.json();
 
-    // Fetch available drivers
+    // Fetch available drivers (not on hold, not already booked)
     const driversResponse = await fetch(
       `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/drivers?active=true`
     );
     const driversData = await driversResponse.json();
-    const drivers = driversData.data || driversData || [];
+    const allDrivers = driversData.data || driversData || [];
+    
+    // Filter out drivers that are already on trips
+    const drivers = allDrivers.filter((d: any) => d.status !== 'On Trip' && d.status !== 'unavailable');
 
-    // Fetch available units
+    // Fetch available units (not on hold, not in use)
     const unitsResponse = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/units?active=true`
+      `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/units?active=true&isOnHold=false`
     );
     const unitsData = await unitsResponse.json();
     const units = unitsData.data || unitsData || [];
@@ -98,21 +101,32 @@ async function generateAIRecommendations(context: {
 - Service Level: ${order.serviceLevel || order.service_level || 'Standard'}
 - Commodity: ${order.commodity || 'General Freight'}
 
-**AVAILABLE DRIVERS:**
+**AVAILABLE DRIVERS (NOT CURRENTLY ON TRIPS):**
 ${driversContext}
 
-**AVAILABLE UNITS:**
+**AVAILABLE UNITS (NOT ON HOLD OR IN USE):**
 ${unitsContext}
+
+**DRIVER TYPE COSTS (use these for cost analysis):**
+- RNR (Rental): Most economical for short/medium hauls, good for cross-border
+- COM (Company): Moderate cost, reliable, good for cross-border
+- OO (Owner Operator): Higher cost but flexible, zone-based rates
 
 **RATE CARDS:**
 ${ratesContext}
 
+**CRITICAL REQUIREMENTS:**
+1. ONLY recommend drivers from the "AVAILABLE DRIVERS" list above
+2. ONLY recommend units from the "AVAILABLE UNITS" list above
+3. Match driver type to most cost-effective option for this distance
+4. Consider proximity to pickup location when selecting driver/unit
+
 **YOUR ANALYSIS SHOULD INCLUDE:**
 
 1. **OPTIMAL RESOURCE ASSIGNMENT:**
-   - Best driver (consider location, availability, experience, cost)
-   - Best unit (equipment type, location, efficiency)
-   - Reason for each selection
+   - Best AVAILABLE driver (must be from list above, consider: location match, availability, driver type cost, experience)
+   - Best AVAILABLE unit (must be from list above, consider: equipment type, location, status)
+   - Clear reason explaining WHY each is optimal for THIS specific trip
 
 2. **FINANCIAL OPTIMIZATION:**
    - Recommended rate card
@@ -259,39 +273,104 @@ Respond with JSON only:
   } catch (error) {
     console.error("Claude AI error:", error);
     
-    // Fallback basic recommendation
+    // SMART FALLBACK: Use costing logic to make basic recommendations
+    // Import costing functions
+    const { getAllCostingOptions } = await import('@/lib/costing');
+    
+    const pickup = order.pickup || order.pickup_location || '';
+    const delivery = order.delivery || order.dropoff_location || '';
+    
+    // Get all costing options
+    const costingOptions = getAllCostingOptions(estimatedMiles, pickup, delivery);
+    
+    // Find the lowest cost option
+    const bestOption = costingOptions.reduce((best, current) => 
+      current.cost.directTripCost < best.cost.directTripCost ? current : best
+    );
+    
+    // Find best driver based on:
+    // 1. Matches the best costing driver type
+    // 2. Has hours available
+    // 3. Closest to pickup location (Western Ontario for this order)
+    const driverTypeMap: Record<string, string[]> = {
+      'COM': ['COM', 'Company'],
+      'RNR': ['RNR', 'Rental', 'Rail and Ramp'],
+      'OO': ['OO', 'Owner Operator']
+    };
+    
+    const matchingTypes = driverTypeMap[bestOption.driverType] || [];
+    const bestDrivers = drivers
+      .filter((d: any) => matchingTypes.includes(d.type))
+      .sort((a: any, b: any) => (b.hoursAvailableToday || 10) - (a.hoursAvailableToday || 10));
+    
+    const recommendedDriver = bestDrivers[0] || drivers[0];
+    const recommendedUnit = units.find((u: any) => 
+      u.status === 'Available' && u.type === 'Dry Van'
+    ) || units[0];
+    
+    const estimatedCost = bestOption.cost.directTripCost;
+    const targetRevenue = bestOption.cost.recommendedRevenue;
+    const suggestedRPM = estimatedMiles > 0 ? targetRevenue / estimatedMiles : 0;
+    const marginPercent = targetRevenue > 0 ? ((targetRevenue - estimatedCost) / targetRevenue * 100) : 5;
+    
     return {
       recommendations: {
-        driver: drivers[0] || null,
-        unit: units[0] || null,
+        driver: recommendedDriver ? {
+          ...recommendedDriver,
+          reason: `Best available ${bestOption.driverType} driver with ${recommendedDriver.hoursAvailableToday || 10}h available. ${bestOption.label} is most cost-effective for this ${estimatedMiles}mi trip.`
+        } : null,
+        unit: recommendedUnit ? {
+          ...recommendedUnit,
+          code: recommendedUnit.code || recommendedUnit.unit_number,
+          reason: `Available ${recommendedUnit.type} in good condition. Located in ${recommendedUnit.homeBase || 'service area'}.`
+        } : null,
         rate: rateCards[0] || null,
         estimatedMiles,
-        estimatedCost: estimatedMiles * (rateCards[0]?.total_cpm || 1.75),
-        targetRevenue: estimatedMiles * (rateCards[0]?.total_cpm || 1.75) * 1.05,
-        suggestedRPM: (rateCards[0]?.total_cpm || 1.75) * 1.05,
-        marginPercent: 5,
+        estimatedCost,
+        targetRevenue,
+        suggestedRPM,
+        marginPercent: Math.round(marginPercent * 100) / 100,
         marketRate: 2.50,
-        confidence: "low"
+        confidence: "medium"
       },
       riskAssessment: {
-        onTimeRisk: "MEDIUM",
-        profitabilityRisk: "MEDIUM",
-        riskFactors: ["AI analysis unavailable"],
-        mitigations: ["Manual review recommended"]
+        onTimeRisk: estimatedMiles < 300 ? "LOW" : estimatedMiles < 800 ? "MEDIUM" : "HIGH",
+        profitabilityRisk: marginPercent >= 15 ? "LOW" : marginPercent >= 8 ? "MEDIUM" : "HIGH",
+        riskFactors: [
+          ...(recommendedDriver ? [] : ["No available drivers found"]),
+          ...(marginPercent < 10 ? ["Margin below 10% - profitability concern"] : []),
+          ...(estimatedMiles > 500 ? ["Long haul - increased delivery risk"] : [])
+        ],
+        mitigations: [
+          "Monitor driver hours of service",
+          "Track real-time GPS location",
+          "Maintain buffer time for delivery window"
+        ]
       },
       routeOptimization: {
         estimatedTransitHours: Math.ceil(estimatedMiles / 50),
-        recommendedDeparture: "As soon as possible",
-        potentialDelays: [],
+        recommendedDeparture: "ASAP to meet customer window",
+        potentialDelays: estimatedMiles > 200 ? ["Border crossing delays", "Weather conditions"] : [],
         backhaul: null
       },
       marketIntelligence: {
-        laneProfitability: "MEDIUM",
+        laneProfitability: marginPercent >= 15 ? "HIGH" : marginPercent >= 10 ? "MEDIUM" : "LOW",
         demandLevel: "MEDIUM",
         ratePositioning: "at market",
-        insights: []
+        insights: [
+          `${bestOption.label} offers best cost efficiency at ${bestOption.cost.totalCPM.toFixed(2)}/mi`,
+          `Target revenue: $${targetRevenue.toFixed(2)} (${marginPercent.toFixed(1)}% margin)`
+        ]
       },
-      alternativeOptions: []
+      alternativeOptions: costingOptions
+        .filter(opt => opt.driverType !== bestOption.driverType)
+        .slice(0, 2)
+        .map(opt => ({
+          type: "driver",
+          option: opt.label,
+          advantage: `Cost: $${opt.cost.directTripCost.toFixed(2)}`,
+          tradeoff: `${(((opt.cost.directTripCost - bestOption.cost.directTripCost) / bestOption.cost.directTripCost) * 100).toFixed(1)}% more expensive`
+        }))
     };
   }
 }

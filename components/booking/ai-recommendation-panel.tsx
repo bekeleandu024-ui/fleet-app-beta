@@ -290,142 +290,81 @@ export function AIRecommendationPanel({
     return (
       <div className={`space-y-3 ${className}`}>
         {/* Main Recommendations Card */}
-        <Card className="rounded-xl border border-emerald-800/50 bg-neutral-900/60 p-4 shadow-lg">
-          <div className="mb-3 flex items-center justify-between">
+        <Card className="rounded-xl border border-emerald-800/50 bg-neutral-900/60 p-3 shadow-lg">
+          <div className="mb-2 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-emerald-400" />
-              <h2 className="text-sm font-semibold text-neutral-200">AI Recommendations</h2>
+              <h2 className="text-xs font-semibold text-neutral-200">AI Recommendations</h2>
             </div>
-            <span className={`text-xs font-medium uppercase tracking-wide ${confidenceColor}`}>
+            <span className={`text-[10px] font-medium uppercase tracking-wide ${confidenceColor}`}>
               {recommendations.confidence}
             </span>
           </div>
 
-          {/* Driver */}
-          {recommendations.driver && (
-            <div className="mb-2 rounded-lg border border-emerald-800/50 bg-emerald-950/30 p-2.5">
-              <p className="text-[10px] font-medium uppercase text-emerald-400 mb-1">Best Driver</p>
-              <p className="text-xs font-semibold text-white">{recommendations.driver.name}</p>
-              <p className="text-[9px] text-neutral-400 mt-0.5">{recommendations.driver.reason}</p>
+          {/* Driver & Unit Combined */}
+          {(recommendations.driver || recommendations.unit) && (
+            <div className="mb-2 rounded-lg border border-emerald-800/50 bg-emerald-950/30 p-2">
+              {recommendations.driver && (
+                <>
+                  <p className="text-[10px] font-medium uppercase text-emerald-400">Best Driver</p>
+                  <p className="text-xs font-semibold text-white">{recommendations.driver.name}</p>
+                  <p className="text-[9px] text-neutral-400">{recommendations.driver.reason}</p>
+                </>
+              )}
+              {recommendations.unit && (
+                <>
+                  <p className="text-[10px] font-medium uppercase text-emerald-400 mt-2">Best Unit</p>
+                  <p className="text-xs font-semibold text-white">{recommendations.unit.code}</p>
+                  <p className="text-[9px] text-neutral-400">{recommendations.unit.reason}</p>
+                </>
+              )}
             </div>
           )}
 
-          {/* Unit */}
-          {recommendations.unit && (
-            <div className="mb-2 rounded-lg border border-amber-800/50 bg-amber-950/30 p-2.5">
-              <p className="text-[10px] font-medium uppercase text-amber-400 mb-1">Best Unit</p>
-              <p className="text-xs font-semibold text-white">{recommendations.unit.code}</p>
-              <p className="text-[9px] text-neutral-400 mt-0.5">{recommendations.unit.reason}</p>
-            </div>
-          )}
-
-          {/* Financials */}
+          {/* Financials & Risks Combined */}
           <div className="grid grid-cols-2 gap-2 mb-2">
             <div className="rounded-lg bg-neutral-950/40 p-2">
               <p className="text-[9px] uppercase text-neutral-500">Revenue</p>
               <p className="text-sm font-bold text-emerald-400">${revenueWith5Percent.toFixed(0)}</p>
-              <p className="text-[8px] text-neutral-500 mt-0.5">Cost + 5%</p>
             </div>
             <div className="rounded-lg bg-neutral-950/40 p-2">
-              <p className="text-[9px] uppercase text-neutral-500">Margin</p>
-              <p className="text-sm font-bold text-emerald-400">5.0%</p>
+              <p className="text-[9px] uppercase text-neutral-500">Risk</p>
+              <p className={`text-sm font-bold ${riskColor[riskAssessment.onTimeRisk]}`}>
+                {riskAssessment.onTimeRisk}
+              </p>
             </div>
           </div>
+
+          {/* Key Insights */}
+          {riskAssessment.riskFactors.length > 0 && (
+            <div className="mb-2 space-y-1">
+              {riskAssessment.riskFactors.slice(0, 2).map((risk, i) => (
+                <p key={i} className="text-[9px] text-rose-400">⚠ {risk}</p>
+              ))}
+            </div>
+          )}
 
           {onApplyRecommendation && (
             <Button
               onClick={() => onApplyRecommendation(recommendations)}
-              className="w-full rounded-lg bg-emerald-500 text-xs font-semibold text-emerald-950 hover:bg-emerald-400 py-2"
+              className="w-full rounded-lg bg-emerald-500 text-xs font-semibold text-emerald-950 hover:bg-emerald-400 py-1.5"
             >
               Apply Recommendations
             </Button>
           )}
         </Card>
 
-        {/* Risk Assessment */}
-        <Card className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-3">
-          <h3 className="text-xs font-semibold text-white mb-2 flex items-center gap-2">
-            <AlertTriangle className="h-3.5 w-3.5" />
-            Risk Assessment
-          </h3>
-          <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <span className="text-[10px] text-neutral-400">On-Time Risk</span>
-              <span className={`text-[10px] font-bold ${riskColor[riskAssessment.onTimeRisk]}`}>
-                {riskAssessment.onTimeRisk}
-              </span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-[10px] text-neutral-400">Profit Risk</span>
-              <span className={`text-[10px] font-bold ${riskColor[riskAssessment.profitabilityRisk]}`}>
-                {riskAssessment.profitabilityRisk}
-              </span>
-            </div>
-            {riskAssessment.riskFactors.length > 0 && (
-              <div className="mt-2 space-y-1">
-                {riskAssessment.riskFactors.map((risk, i) => (
-                  <p key={i} className="text-[9px] text-rose-400">• {risk}</p>
-                ))}
-              </div>
-            )}
+        {/* Market Intelligence - Compact */}
+        <Card className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-2.5">
+          <div className="flex items-center justify-between mb-1.5">
+            <h3 className="text-[10px] font-semibold text-white uppercase tracking-wide">Market Intel</h3>
+            <span className="text-[10px] font-bold text-emerald-400">{marketIntelligence.laneProfitability}</span>
           </div>
+          <p className="text-[9px] text-neutral-400">{marketIntelligence.ratePositioning}</p>
+          {routeOptimization.backhaul && (
+            <p className="text-[9px] text-emerald-400 mt-1">💡 {routeOptimization.backhaul}</p>
+          )}
         </Card>
-
-        {/* Route Optimization */}
-        <Card className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-3">
-          <h3 className="text-xs font-semibold text-white mb-2 flex items-center gap-2">
-            <TrendingUp className="h-3.5 w-3.5" />
-            Route Optimization
-          </h3>
-          <div className="space-y-1.5">
-            <div className="flex justify-between">
-              <span className="text-[10px] text-neutral-400">Transit Time</span>
-              <span className="text-[10px] font-semibold text-white">{routeOptimization.estimatedTransitHours}h</span>
-            </div>
-            <p className="text-[9px] text-neutral-400">{routeOptimization.recommendedDeparture}</p>
-            {routeOptimization.backhaul && (
-              <p className="text-[9px] text-emerald-400 mt-2">💡 {routeOptimization.backhaul}</p>
-            )}
-          </div>
-        </Card>
-
-        {/* Market Intelligence */}
-        <Card className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-3">
-          <h3 className="text-xs font-semibold text-white mb-2 flex items-center gap-2">
-            <CheckCircle2 className="h-3.5 w-3.5" />
-            Market Intel
-          </h3>
-          <div className="space-y-1.5">
-            <div className="flex justify-between">
-              <span className="text-[10px] text-neutral-400">Lane Profit</span>
-              <span className="text-[10px] font-bold text-emerald-400">{marketIntelligence.laneProfitability}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-[10px] text-neutral-400">Demand</span>
-              <span className="text-[10px] font-bold text-amber-400">{marketIntelligence.demandLevel}</span>
-            </div>
-            <p className="text-[9px] text-blue-400 mt-1">Rate is {marketIntelligence.ratePositioning}</p>
-            {marketIntelligence.insights.map((insight, i) => (
-              <p key={i} className="text-[9px] text-neutral-400 mt-1">• {insight}</p>
-            ))}
-          </div>
-        </Card>
-
-        {/* Alternatives */}
-        {alternativeOptions.length > 0 && (
-          <Card className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-3">
-            <h3 className="text-xs font-semibold text-white mb-2">Alternatives</h3>
-            <div className="space-y-2">
-              {alternativeOptions.slice(0, 2).map((alt, i) => (
-                <div key={i} className="rounded bg-neutral-950/40 p-2">
-                  <p className="text-[10px] font-semibold text-white">{alt.option}</p>
-                  <p className="text-[9px] text-emerald-400">+ {alt.advantage}</p>
-                  <p className="text-[9px] text-rose-400">- {alt.tradeoff}</p>
-                </div>
-              ))}
-            </div>
-          </Card>
-        )}
       </div>
     );
   }
