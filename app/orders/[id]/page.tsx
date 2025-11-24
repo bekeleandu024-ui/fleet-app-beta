@@ -19,9 +19,11 @@ import {
 import { useState, useEffect } from "react";
 
 import { RecommendationCallout } from "@/components/recommendation-callout";
+import { AIOrderInsightPanel } from "@/components/AIOrderInsightPanel";
 import { StatChip } from "@/components/stat-chip";
 import { Button } from "@/components/ui/button";
 import { fetchOrderDetail } from "@/lib/api";
+import { generateOrderInsightsPrompt } from "@/lib/orderInsightsPrompt";
 import { formatDateTime, formatDurationHours } from "@/lib/format";
 import { queryKeys } from "@/lib/query";
 import type { OrderDetail } from "@/lib/types";
@@ -44,6 +46,8 @@ export default function OrderDetailPage() {
   const [selectedStatus, setSelectedStatus] = useState("");
   const [notes, setNotes] = useState("");
   const [isBooking, setIsBooking] = useState(false);
+  const [aiInsights, setAiInsights] = useState<any>(null);
+  const [loadingInsights, setLoadingInsights] = useState(false);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: queryKeys.order(orderId),
@@ -58,6 +62,50 @@ export default function OrderDetailPage() {
       setSelectedUnit(data.booking.recommendedUnitId || "");
       setSelectedStatus(data.status || "");
     }
+  }, [data]);
+
+  // Fetch AI insights when data loads
+  useEffect(() => {
+    async function fetchInsights() {
+      if (!data) return;
+      
+      setLoadingInsights(true);
+      try {
+        const prompt = generateOrderInsightsPrompt(data);
+        
+        const response = await fetch("/api/ai/order-insights", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt }),
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch insights");
+        }
+
+        const insights = await response.json();
+        setAiInsights(insights);
+      } catch (error) {
+        console.error("Error fetching AI insights:", error);
+        setAiInsights({
+          summary: "Unable to generate insights at this time",
+          canDispatch: false,
+          recommendedDriver: { id: null, name: "N/A", reason: "Analysis unavailable" },
+          recommendedUnit: { id: null, number: "N/A", reason: "Analysis unavailable" },
+          insights: [{
+            category: "Risk",
+            severity: "warning",
+            title: "Insight Generation Failed",
+            description: "Unable to analyze order data. Please review manually.",
+            recommendation: "Check order details and try again"
+          }]
+        });
+      } finally {
+        setLoadingInsights(false);
+      }
+    }
+
+    fetchInsights();
   }, [data]);
 
 
@@ -202,8 +250,13 @@ export default function OrderDetailPage() {
       {/* 3-Column Layout */}
       <section className="grid grid-cols-12 gap-4">
         
+        {/* LEFT COLUMN - AI Insights */}
+        <div className="col-span-12 lg:col-span-4 space-y-4">
+          <AIOrderInsightPanel insights={loadingInsights ? null : aiInsights} />
+        </div>
+
         {/* CENTER COLUMN - Order Summary & Pricing */}
-        <div className="col-span-12 lg:col-span-8 space-y-4 max-h-screen overflow-y-auto pr-2">
+        <div className="col-span-12 lg:col-span-4 space-y-4 max-h-screen overflow-y-auto pr-2">
           {/* Order Summary */}
           <article className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-4">
             <h2 className="text-sm font-medium text-neutral-400 uppercase tracking-wide mb-3">Order Summary</h2>
