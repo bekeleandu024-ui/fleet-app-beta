@@ -1,195 +1,40 @@
 import { NextResponse } from "next/server";
-import { serviceFetch } from "@/lib/service-client";
+import pool from "@/lib/db";
 import type { TripListItem } from "@/lib/types";
 
-interface BackendTrip {
-  id: string;
-  dispatch_id: string;
-  order_id: string;
-  driver_id: string;
-  unit_id?: string;
-  status: string;
-  pickup_location: string;
-  dropoff_location: string;
-  planned_start?: string;
-  actual_start?: string;
-  pickup_departure?: string;
-  completed_at?: string;
-  on_time_pickup?: boolean;
-  on_time_delivery?: boolean;
-  notes?: string;
-  created_at: string;
-  updated_at: string;
-  // Extended fields
-  customer?: string;
-  commodity?: string;
-  miles?: number;
-  total_cost?: number;
-  total_cpm?: number;
-  service_level?: string;
-  pickup_window_start?: string;
-  pickup_window_end?: string;
-  delivery_window_start?: string;
-  delivery_window_end?: string;
-  duration_hours?: number;
-}
+// ...existing code...
 
-interface BackendTripsResponse {
-  value: BackendTrip[];
-  Count: number;
-}
-
-interface TripStop {
-  id?: string;
-  stopType: string;
-  location?: string;
-  name?: string;
-  address?: string;
-  street?: string;
-  city?: string;
-  state?: string;
-  zip?: string;
-  postal?: string;
-  country?: string;
-  appointmentStart?: string;
-  appointmentEnd?: string;
-  scheduledAt?: string;
-  notes?: string;
-  sequence?: number;
-}
-
-interface CreateTripPayload {
-  orderId: string;
-  driverId: string;
-  unitId?: string;
-  rateId?: string;
-  miles?: number;
-  rpm?: number;
-  totalRevenue?: number;
-  totalCpm?: number;
-  totalCost?: number;
-  stops?: TripStop[];
-  pickup?: {
-    location: string;
-    windowStart?: string;
-    windowEnd?: string;
-  };
-  delivery?: {
-    location: string;
-    windowStart?: string;
-    windowEnd?: string;
-  };
-  notes?: string;
-}
-
-export async function POST(request: Request) {
+export async function GET() {
   try {
-    const body = await request.json() as CreateTripPayload;
-    
-    // Handle both stops array (from booking page) and pickup/delivery objects (legacy)
-    let pickupData, deliveryData;
-    
-    if (body.stops && body.stops.length >= 2) {
-      // Find first pickup and last delivery from stops array
-      const pickupStop = body.stops.find(s => s.stopType === "Pickup") || body.stops[0];
-      const deliveryStop = [...body.stops].reverse().find(s => s.stopType === "Delivery") || body.stops[body.stops.length - 1];
+    const client = await pool.connect();
+    try {
+      const query = `
+        SELECT 
+          t.*,
+          d.driver_name,
+          u.unit_number
+        FROM trips t
+        LEFT JOIN driver_profiles d ON t.driver_id = d.driver_id
+        LEFT JOIN unit_profiles u ON t.unit_id = u.unit_id
+        ORDER BY t.created_at DESC
+      `;
+      const result = await client.query(query);
       
-      // Build location string from stop data (name or city, state)
-      const buildLocation = (stop: TripStop) => {
-        if (stop.location) return stop.location;
-        if (stop.name) return stop.name;
-        if (stop.city && stop.state) return `${stop.city}, ${stop.state}`;
-        return stop.address || stop.street || stop.city || "Unknown";
-      };
-      
-      pickupData = {
-        location: buildLocation(pickupStop),
-        windowStart: pickupStop.appointmentStart || pickupStop.scheduledAt,
-        windowEnd: pickupStop.appointmentEnd,
-      };
-      
-      deliveryData = {
-        location: buildLocation(deliveryStop),
-        windowStart: deliveryStop.appointmentStart || deliveryStop.scheduledAt,
-        windowEnd: deliveryStop.appointmentEnd,
-      };
-    } else {
-      // Legacy format with pickup/delivery objects
-      pickupData = {
-        location: body.pickup?.location || "",
-        windowStart: body.pickup?.windowStart,
-        windowEnd: body.pickup?.windowEnd,
-      };
-      
-      deliveryData = {
-        location: body.delivery?.location || "",
-        windowStart: body.delivery?.windowStart,
-        windowEnd: body.delivery?.windowEnd,
-      };
+      const trips = result.rows.map(transformTripRow);
+      return NextResponse.json(buildTripsResponse(trips));
+    } finally {
+      client.release();
     }
-    
-    const tripPayload = {
-      orderId: body.orderId,
-      driverId: body.driverId,
-      unitId: body.unitId,
-      pickup: pickupData,
-      delivery: deliveryData,
-      notes: body.notes,
-      // Include costing data from booking page
-      miles: body.miles,
-      totalRevenue: body.totalRevenue,
-      totalCost: body.totalCost,
-      totalCpm: body.totalCpm,
-      marginPct: body.totalRevenue && body.totalCost 
-        ? Math.round(((body.totalRevenue - body.totalCost) / body.totalRevenue) * 100 * 100) / 100
-        : undefined,
-    };
-    
-    console.log('📦 API forwarding trip payload:', { totalCost: body.totalCost, totalCpm: body.totalCpm, miles: body.miles });
-
-    const trip = await serviceFetch("tracking", "/api/trips", {
-      method: "POST",
-      body: JSON.stringify(tripPayload),
-    });
-
-    return NextResponse.json(trip, { status: 201 });
-  } catch (error: any) {
-    console.error("Error creating trip:", error);
+  } catch (error) {
+    console.error("Error fetching trips from DB:", error);
     return NextResponse.json(
-      { error: error.message || "Failed to create trip" },
+      { error: "Failed to fetch trips" },
       { status: 500 }
     );
   }
 }
 
-export async function GET() {
-  try {
-    const response = await serviceFetch<BackendTripsResponse | BackendTrip[]>("tracking", "/api/trips");
-    
-    // Handle both array and object responses
-    const tripsArray = Array.isArray(response) ? response : (response.value || []);
-    
-    // Fetch driver and unit data for mapping
-    const [driversResult, unitsResult] = await Promise.allSettled([
-      serviceFetch<{ drivers?: Array<Record<string, any>> }>("masterData", "/api/metadata/drivers"),
-      serviceFetch<{ units?: Array<Record<string, any>> }>("masterData", "/api/metadata/units"),
-    ]);
-
-    const drivers = driversResult.status === "fulfilled" && driversResult.value?.drivers ? driversResult.value.drivers : [];
-    const units = unitsResult.status === "fulfilled" && unitsResult.value?.units ? unitsResult.value.units : [];
-
-    const trips = tripsArray.map(trip => transformTrip(trip, drivers, units));
-    return NextResponse.json(buildTripsResponse(trips));
-  } catch (error) {
-    console.error("Error fetching trips from tracking service:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch trips" },
-      { status: 503 }
-    );
-  }
-}
-
-function transformTrip(trip: BackendTrip, drivers: Array<Record<string, any>>, units: Array<Record<string, any>>): TripListItem {
+function transformTripRow(row: any): TripListItem {
   const statusMap: Record<string, string> = {
     planned: "Assigned",
     assigned: "Assigned",
@@ -203,60 +48,34 @@ function transformTrip(trip: BackendTrip, drivers: Array<Record<string, any>>, u
     cancelled: "Cancelled",
   };
 
-  // Find driver and unit names
-  const driver = drivers.find(d => d.driver_id === trip.driver_id || d.id === trip.driver_id);
-  const unit = units.find(u => u.unit_id === trip.unit_id || u.id === trip.unit_id);
-
-  const driverName = driver?.driver_name || driver?.name || `Driver ${trip.driver_id.slice(0, 6).toUpperCase()}`;
-  const unitName = unit?.unit_number || unit?.unit_id?.slice(0, 8).toUpperCase() || trip.unit_id?.slice(0, 8).toUpperCase() || "N/A";
-
-  const eta = trip.completed_at || trip.planned_start || new Date().toISOString();
-
-  // Calculate duration if not provided (approx 50mph)
-  const duration = trip.duration_hours || (trip.miles ? Math.round((trip.miles / 50) * 10) / 10 : undefined);
-
-  // Calculate Latest Trip Start
-  // Logic: Min(Pickup Window End, Delivery Window End - Duration)
-  let latestStartTime: string | undefined;
-  
-  if (trip.pickup_window_end) {
-    latestStartTime = trip.pickup_window_end;
-  }
-  
-  if (trip.delivery_window_end && duration) {
-    const deliveryEnd = new Date(trip.delivery_window_end).getTime();
-    const durationMs = duration * 60 * 60 * 1000;
-    const latestStartForDelivery = new Date(deliveryEnd - durationMs).toISOString();
-    
-    if (!latestStartTime || latestStartForDelivery < latestStartTime) {
-      latestStartTime = latestStartForDelivery;
-    }
-  }
+  const driverName = row.driver_name || "Unknown Driver";
+  const unitName = row.unit_number || "N/A";
+  const eta = row.completed_at || row.planned_start || new Date().toISOString();
+  const duration = row.planned_miles ? Math.round((row.planned_miles / 50) * 10) / 10 : undefined;
 
   return {
-    id: trip.id,
-    tripNumber: trip.id.slice(0, 8).toUpperCase(),
+    id: row.id,
+    tripNumber: row.id.slice(0, 8).toUpperCase(),
     driver: driverName,
     unit: unitName,
-    pickup: trip.pickup_location,
-    delivery: trip.dropoff_location,
+    pickup: row.pickup_location,
+    delivery: row.dropoff_location,
     eta,
-    status: statusMap[trip.status.toLowerCase()] || trip.status,
+    status: statusMap[row.status?.toLowerCase()] || row.status || "Unknown",
     exceptions: 0,
-    lastPing: trip.updated_at,
-    orderId: trip.order_id,
-    driverId: trip.driver_id,
-    // Extended fields
-    customer: trip.customer || "CORVEX", // Default for demo
-    pickupWindow: trip.pickup_window_start ? new Date(trip.pickup_window_start).toLocaleString() : undefined,
-    distance: trip.miles,
+    lastPing: row.updated_at,
+    orderId: row.order_id,
+    driverId: row.driver_id,
+    customer: "CORVEX", 
+    pickupWindow: row.pickup_window_start ? new Date(row.pickup_window_start).toLocaleString() : undefined,
+    distance: row.planned_miles,
     duration: duration,
-    latestStartTime: latestStartTime ? new Date(latestStartTime).toLocaleString() : undefined,
-    commodity: trip.commodity || "General", // Default for demo
-    driverType: "RNR", // Default/Placeholder
-    totalCost: trip.total_cost,
-    totalCpm: trip.total_cpm,
-    serviceLevel: trip.service_level || "STANDARD", // Default for demo
+    latestStartTime: undefined, // Simplified
+    commodity: "General",
+    driverType: "RNR",
+    totalCost: 0, // Simplified
+    totalCpm: 0, // Simplified
+    serviceLevel: "STANDARD",
   };
 }
 
@@ -279,4 +98,5 @@ function buildTripsResponse(trips: TripListItem[]) {
     data: trips,
   };
 }
+
 

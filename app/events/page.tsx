@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { MapPin, Navigation, X } from "lucide-react";
+import { MapPin, Navigation, Truck, CheckCircle, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
@@ -11,8 +10,8 @@ interface Trip {
   driver: string;
   unit: string;
   status: string;
-  origin: string;
-  destination: string;
+  pickup: string;
+  delivery: string;
 }
 
 interface TripEvent {
@@ -27,491 +26,242 @@ interface TripEvent {
   trip: Trip;
 }
 
-const EVENT_TYPE_LABELS: Record<string, string> = {
-  TRIP_START: "Trip Start",
-  ARRIVED_PICKUP: "Pickup - Arrived",
-  LEFT_PICKUP: "Pickup - Departed",
-  ARRIVED_DELIVERY: "Delivery - Arrived",
-  LEFT_DELIVERY: "Delivery - Departed",
-  CROSSED_BORDER: "Border Crossing",
-  DROP_HOOK: "Drop / Hook",
-  TRIP_FINISHED: "Trip Finished",
-};
-
-const EVENT_TYPE_COLORS: Record<string, string> = {
-  TRIP_START: "border-blue-500/50 bg-blue-500/20 text-blue-200",
-  TRIP_FINISHED: "border-zinc-500/50 bg-zinc-500/20 text-zinc-200",
-  CROSSED_BORDER: "border-amber-500/50 bg-amber-500/20 text-amber-200",
-  DROP_HOOK: "border-purple-500/50 bg-purple-500/20 text-purple-200",
-  default: "border-zinc-800 bg-zinc-900/60 text-zinc-200",
-};
+const EVENT_TYPES = [
+  { id: "TRIP_START", label: "Trip Start", color: "bg-blue-600 hover:bg-blue-500" },
+  { id: "ARRIVED_PICKUP", label: "Arrived Pickup", color: "bg-emerald-600 hover:bg-emerald-500" },
+  { id: "LEFT_PICKUP", label: "Left Pickup", color: "bg-emerald-700 hover:bg-emerald-600" },
+  { id: "CROSSED_BORDER", label: "Crossed Border", color: "bg-amber-600 hover:bg-amber-500" },
+  { id: "DROP_HOOK", label: "Drop / Hook", color: "bg-purple-600 hover:bg-purple-500" },
+  { id: "ARRIVED_DELIVERY", label: "Arrived Delivery", color: "bg-orange-600 hover:bg-orange-500" },
+  { id: "LEFT_DELIVERY", label: "Left Delivery", color: "bg-orange-700 hover:bg-orange-600" },
+  { id: "TRIP_FINISHED", label: "Finished Trip", color: "bg-zinc-600 hover:bg-zinc-500" },
+];
 
 export default function TripEventsPage() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const selectedTripId = searchParams.get("tripId");
-
-  // State
   const [trips, setTrips] = useState<Trip[]>([]);
+  const [selectedTripId, setSelectedTripId] = useState<string>("");
   const [events, setEvents] = useState<TripEvent[]>([]);
-  const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
   const [loading, setLoading] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
-
-  // Form state
-  const [tripId, setTripId] = useState("");
-  const [eventType, setEventType] = useState("");
-  const [stopLabel, setStopLabel] = useState("");
-  const [lat, setLat] = useState("");
-  const [lon, setLon] = useState("");
-  const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  
+  // Location state
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
 
-  // Filter state
-  const [filterTripId, setFilterTripId] = useState("");
-  const [filterDriver, setFilterDriver] = useState("");
-  const [filterUnit, setFilterUnit] = useState("");
-  const [filterEventType, setFilterEventType] = useState("");
-
-  // Statistics
-  const [stats, setStats] = useState({
-    uniqueTrips: 0,
-    borderCrossings: 0,
-    tripsCompleted: 0,
-  });
-
-  // Fetch trips
   useEffect(() => {
-    fetch("/api/trips")
-      .then(r => r.json())
-      .then(data => {
-        const tripsList = data.data || data;
-        setTrips(tripsList);
-      })
-      .catch(err => console.error("Error fetching trips:", err));
+    fetchTrips();
+    fetchEvents();
+    const interval = setInterval(fetchEvents, 10000);
+    return () => clearInterval(interval);
   }, []);
 
-  // Fetch events
-  const fetchEvents = async () => {
-    setRefreshing(true);
+  const fetchTrips = async () => {
     try {
-      const params = new URLSearchParams();
-      if (filterTripId) params.set("tripId", filterTripId);
-      if (filterDriver) params.set("driver", filterDriver);
-      if (filterUnit) params.set("unit", filterUnit);
-      if (filterEventType) params.set("eventType", filterEventType);
-
-      const response = await fetch(`/api/trip-events?${params}`);
-      const data = await response.json();
-      
-      setEvents(data.events || []);
-      
-      // Calculate statistics
-      const uniqueTrips = new Set(data.events?.map((e: TripEvent) => e.tripId) || []).size;
-      const borderCrossings = data.events?.filter((e: TripEvent) => e.eventType === "CROSSED_BORDER").length || 0;
-      const tripsCompleted = data.events?.filter((e: TripEvent) => e.eventType === "TRIP_FINISHED").length || 0;
-      
-      setStats({ uniqueTrips, borderCrossings, tripsCompleted });
+      const res = await fetch("/api/trips");
+      const data = await res.json();
+      setTrips(data.data || []);
     } catch (err) {
-      console.error("Error fetching events:", err);
-    } finally {
-      setRefreshing(false);
+      console.error("Error fetching trips:", err);
     }
   };
 
-  useEffect(() => {
-    fetchEvents();
-    const interval = setInterval(fetchEvents, 15000); // Auto-refresh every 15s
-    return () => clearInterval(interval);
-  }, [filterTripId, filterDriver, filterUnit, filterEventType]);
-
-  // Load selected trip
-  useEffect(() => {
-    if (tripId && trips.length > 0) {
-      const trip = trips.find(t => t.id === tripId);
-      setSelectedTrip(trip || null);
-    } else {
-      setSelectedTrip(null);
+  const fetchEvents = async () => {
+    try {
+      const res = await fetch("/api/trip-events");
+      const data = await res.json();
+      setEvents(data.events || []);
+    } catch (err) {
+      console.error("Error fetching events:", err);
     }
-  }, [tripId, trips]);
+  };
 
-  // Use geolocation
-  const useCurrentLocation = () => {
+  const getCurrentLocation = () => {
     if (navigator.geolocation) {
       setLoading(true);
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          setLat(position.coords.latitude.toFixed(6));
-          setLon(position.coords.longitude.toFixed(6));
+          setCoords({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          });
           setLoading(false);
+          setMessage({ type: "success", text: "Location acquired" });
+          setTimeout(() => setMessage(null), 3000);
         },
         (error) => {
           console.error("Geolocation error:", error);
-          setMessage({ type: "error", text: "Unable to get current location" });
+          setMessage({ type: "error", text: "Could not get location" });
           setLoading(false);
         }
       );
-    } else {
-      setMessage({ type: "error", text: "Geolocation not supported" });
     }
   };
 
-  // Quick action buttons
-  const quickActions = [
-    { type: "TRIP_START", label: "Trip Start" },
-    { type: "ARRIVED_PICKUP", label: "Arrived Pickup" },
-    { type: "LEFT_PICKUP", label: "Left Pickup" },
-    { type: "CROSSED_BORDER", label: "Crossed Border" },
-    { type: "DROP_HOOK", label: "Drop / Hook" },
-    { type: "ARRIVED_DELIVERY", label: "Arrived Delivery" },
-    { type: "LEFT_DELIVERY", label: "Left Delivery" },
-    { type: "TRIP_FINISHED", label: "Trip Finished" },
-  ];
-
-  const handleQuickAction = async (type: string) => {
-    if (!tripId) {
+  const handleEventLog = async (eventType: string, label: string) => {
+    if (!selectedTripId) {
       setMessage({ type: "error", text: "Please select a trip first" });
       return;
     }
 
     setSubmitting(true);
-    setMessage(null);
-
     try {
-      const response = await fetch(`/api/trips/${tripId}/events`, {
+      const payload = {
+        eventType,
+        stopLabel: label,
+        lat: coords?.lat,
+        lon: coords?.lng,
+        notes: `Logged via Driver App at ${new Date().toLocaleTimeString()}`
+      };
+
+      const res = await fetch(`/api/trips/${selectedTripId}/events`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          eventType: type,
-          stopLabel: stopLabel || EVENT_TYPE_LABELS[type],
-          notes: notes || "",
-          lat: lat ? parseFloat(lat) : undefined,
-          lon: lon ? parseFloat(lon) : undefined,
-        }),
+        body: JSON.stringify(payload),
       });
 
-      if (!response.ok) throw new Error("Failed to log event");
-      
-      setMessage({ type: "success", text: "Event logged successfully" });
-      setStopLabel("");
-      setNotes("");
-      fetchEvents(); // Refresh the feed
-    } catch (error) {
-      setMessage({ type: "error", text: error instanceof Error ? error.message : "Failed to log event" });
+      if (!res.ok) throw new Error("Failed to log event");
+
+      setMessage({ type: "success", text: `${label} logged successfully` });
+      fetchEvents();
+      fetchTrips(); // Update trip status
+    } catch (err) {
+      setMessage({ type: "error", text: "Failed to log event" });
     } finally {
       setSubmitting(false);
+      setTimeout(() => setMessage(null), 3000);
     }
   };
 
-  const resetFilters = () => {
-    setFilterTripId("");
-    setFilterDriver("");
-    setFilterUnit("");
-    setFilterEventType("");
-  };
+  const selectedTrip = trips.find(t => t.id === selectedTripId);
 
   return (
-    <div className="space-y-8 p-6">
-      <h1 className="text-3xl font-semibold text-zinc-100">Trip Event Monitor</h1>
+    <div className="min-h-screen bg-black p-6 text-zinc-200">
+      <div className="mx-auto max-w-5xl space-y-8">
+        
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold text-white">Driver Event Log</h1>
+          <div className="flex items-center gap-2">
+            <div className={`h-3 w-3 rounded-full ${coords ? "bg-emerald-500" : "bg-red-500"}`} />
+            <span className="text-xs text-zinc-500">{coords ? "GPS Active" : "GPS Inactive"}</span>
+          </div>
+        </div>
 
-      {/* Summary Statistics */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4 shadow-sm">
-          <p className="text-[11px] uppercase tracking-wide text-zinc-500">Unique Trips Touched</p>
-          <p className="mt-2 text-2xl font-semibold text-zinc-100">{stats.uniqueTrips}</p>
-        </Card>
-
-        <Card className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4 shadow-sm">
-          <p className="text-[11px] uppercase tracking-wide text-zinc-500">Border Crossings</p>
-          <p className="mt-2 text-2xl font-semibold text-zinc-100">{stats.borderCrossings}</p>
-          <p className="mt-1 text-[11px] text-zinc-500">Triggers add-on costing + guardrails</p>
-        </Card>
-
-        <Card className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4 shadow-sm">
-          <p className="text-[11px] uppercase tracking-wide text-zinc-500">Trips Completed</p>
-          <p className="mt-2 text-2xl font-semibold text-zinc-100">{stats.tripsCompleted}</p>
-          <p className="mt-1 text-[11px] text-zinc-500">Marked finished in this window</p>
-        </Card>
-      </div>
-
-      {/* Log Trip Milestone */}
-      <Card className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-6 shadow-sm">
-        <h2 className="mb-4 text-sm font-semibold text-zinc-200">Log Trip Milestone</h2>
-
-        <div className="grid gap-6 lg:grid-cols-[320px,1fr]">
-          {/* Left Column */}
-          <div className="space-y-4">
-            <div>
-              <label className="text-[11px] uppercase tracking-wide text-zinc-500">Trip</label>
+        <div className="grid gap-8 lg:grid-cols-[400px,1fr]">
+          
+          {/* Control Panel */}
+          <div className="space-y-6">
+            <Card className="border-zinc-800 bg-zinc-900/50 p-6">
+              <label className="mb-2 block text-xs font-medium uppercase tracking-wider text-zinc-500">
+                Select Active Trip
+              </label>
               <select
-                className="mt-1 w-full rounded-md border border-zinc-800 bg-zinc-900/60 px-3 py-2 text-sm text-zinc-200 focus:border-zinc-700 focus:outline-none"
-                value={tripId}
-                onChange={(e) => setTripId(e.target.value)}
+                className="w-full rounded-md border border-zinc-700 bg-zinc-800 px-4 py-3 text-sm text-white focus:border-blue-500 focus:outline-none"
+                value={selectedTripId}
+                onChange={(e) => setSelectedTripId(e.target.value)}
               >
-                <option value="">Choose a trip…</option>
+                <option value="">-- Select Trip --</option>
                 {trips.map(t => (
                   <option key={t.id} value={t.id}>
-                    {t.id.substring(0, 8)} • {t.driver} ({t.unit})
+                    {t.id.substring(0, 8)} • {t.driver}
                   </option>
                 ))}
               </select>
-            </div>
 
-            {selectedTrip ? (
-              <div className="rounded-lg border border-dashed border-zinc-800 bg-zinc-950/40 p-4">
-                <p className="text-xs font-medium text-zinc-300">Trip Context</p>
-                <div className="mt-2 space-y-1 text-xs text-zinc-400">
-                  <p><span className="text-zinc-200">Driver:</span> {selectedTrip.driver}</p>
-                  <p><span className="text-zinc-200">Unit:</span> {selectedTrip.unit}</p>
-                  <p><span className="text-zinc-200">Status:</span> {selectedTrip.status}</p>
-                  <p><span className="text-zinc-200">Route:</span> {selectedTrip.origin} → {selectedTrip.destination}</p>
+              {selectedTrip && (
+                <div className="mt-4 rounded-lg border border-zinc-800 bg-zinc-950/50 p-4 text-sm">
+                  <div className="mb-2 flex items-center justify-between">
+                    <span className="text-zinc-400">Status:</span>
+                    <span className="font-medium text-emerald-400">{selectedTrip.status}</span>
+                  </div>
+                  <div className="space-y-1 text-zinc-300">
+                    <p><span className="text-zinc-500">Unit:</span> {selectedTrip.unit}</p>
+                    <p><span className="text-zinc-500">From:</span> {selectedTrip.pickup}</p>
+                    <p><span className="text-zinc-500">To:</span> {selectedTrip.delivery}</p>
+                  </div>
                 </div>
-                <a
-                  href={`/trips/${selectedTrip.id}`}
-                  className="mt-3 inline-block text-xs text-blue-400 hover:text-blue-300"
+              )}
+
+              <div className="mt-6">
+                <Button 
+                  variant="outline" 
+                  className="w-full border-zinc-700 bg-zinc-800 hover:bg-zinc-700"
+                  onClick={getCurrentLocation}
+                  disabled={loading}
                 >
-                  View trip details →
-                </a>
-              </div>
-            ) : (
-              <div className="rounded-lg border border-dashed border-zinc-800 bg-zinc-950/40 p-4 text-center text-xs text-zinc-400">
-                Pick a trip to activate quick actions
-              </div>
-            )}
-
-            <div>
-              <label className="text-[11px] uppercase tracking-wide text-zinc-500">Location Description</label>
-              <input
-                type="text"
-                className="mt-1 w-full rounded-md border border-zinc-800 bg-zinc-900/60 px-3 py-2 text-sm text-zinc-200 focus:border-zinc-700 focus:outline-none"
-                value={stopLabel}
-                onChange={(e) => setStopLabel(e.target.value)}
-                placeholder="e.g., Windsor Border Crossing"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-[11px] uppercase tracking-wide text-zinc-500">Latitude</label>
-                <input
-                  type="number"
-                  step="0.000001"
-                  className="mt-1 w-full rounded-md border border-zinc-800 bg-zinc-900/60 px-3 py-2 text-sm text-zinc-200 focus:border-zinc-700 focus:outline-none"
-                  value={lat}
-                  onChange={(e) => setLat(e.target.value)}
-                />
-              </div>
-
-              <div>
-                <label className="text-[11px] uppercase tracking-wide text-zinc-500">Longitude</label>
-                <input
-                  type="number"
-                  step="0.000001"
-                  className="mt-1 w-full rounded-md border border-zinc-800 bg-zinc-900/60 px-3 py-2 text-sm text-zinc-200 focus:border-zinc-700 focus:outline-none"
-                  value={lon}
-                  onChange={(e) => setLon(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="text-[11px] uppercase tracking-wide text-zinc-500">Notes</label>
-              <textarea
-                rows={3}
-                className="mt-1 w-full rounded-md border border-zinc-800 bg-zinc-900/60 px-3 py-2 text-sm text-zinc-200 focus:border-zinc-700 focus:outline-none resize-none"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Additional context..."
-              />
-            </div>
-
-            <Button
-              type="button"
-              variant="subtle"
-              size="sm"
-              className="w-full"
-              onClick={useCurrentLocation}
-              disabled={loading}
-            >
-              <Navigation className="mr-2 h-4 w-4" />
-              {loading ? "Getting location..." : "Use current GPS snapshot"}
-            </Button>
-          </div>
-
-          {/* Right Column - Quick Actions */}
-          <div className="space-y-4">
-            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-              {quickActions.map(action => (
-                <Button
-                  key={action.type}
-                  type="button"
-                  disabled={!tripId || submitting}
-                  onClick={() => handleQuickAction(action.type)}
-                  className={`h-20 rounded-lg border text-sm font-semibold transition-all ${
-                    tripId
-                      ? "border-blue-600 bg-blue-600 text-white hover:bg-blue-500"
-                      : "border-zinc-800 bg-zinc-900/60 text-zinc-500"
-                  } ${submitting ? "animate-pulse" : ""}`}
-                >
-                  {action.label}
+                  <Navigation className="mr-2 h-4 w-4" />
+                  {loading ? "Acquiring GPS..." : "Update GPS Location"}
                 </Button>
-              ))}
-            </div>
-
-            <div className="rounded-lg border border-zinc-800 bg-zinc-900/20 p-4">
-              <p className="text-xs text-zinc-400">
-                Events are immutable once logged. Double-check trip selection and event type before confirming.
-                Coordinates are optional but help with route verification.
-              </p>
-            </div>
+                {coords && (
+                  <p className="mt-2 text-center text-xs text-zinc-500">
+                    {coords.lat.toFixed(6)}, {coords.lng.toFixed(6)}
+                  </p>
+                )}
+              </div>
+            </Card>
 
             {message && (
-              <div className={`rounded-lg border p-3 text-sm ${
+              <div className={`rounded-lg border p-4 text-center text-sm font-medium ${
                 message.type === "success" 
-                  ? "border-blue-500/30 bg-blue-500/10 text-blue-400"
-                  : "border-rose-500/30 bg-rose-500/10 text-rose-400"
+                  ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-400" 
+                  : "border-red-500/20 bg-red-500/10 text-red-400"
               }`}>
                 {message.text}
               </div>
             )}
           </div>
-        </div>
-      </Card>
 
-      {/* Recent Trip Events Feed */}
-      <Card className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-6 shadow-sm">
-        <h2 className="mb-4 text-sm font-semibold text-zinc-200">Recent Trip Events</h2>
-
-        {/* Filter Row */}
-        <div className="mb-4 grid gap-3 md:grid-cols-5">
-          <div className="md:col-span-2">
-            <label className="text-[11px] uppercase tracking-wide text-zinc-500">Filter by Trip</label>
-            <select
-              className="mt-1 w-full rounded-md border border-zinc-800 bg-zinc-900/60 px-3 py-2 text-sm text-zinc-200 focus:border-zinc-700 focus:outline-none"
-              value={filterTripId}
-              onChange={(e) => setFilterTripId(e.target.value)}
-            >
-              <option value="">All trips</option>
-              {trips.map(t => (
-                <option key={t.id} value={t.id}>{t.id.substring(0, 8)} • {t.driver}</option>
+          {/* Action Grid */}
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-2">
+              {EVENT_TYPES.map((type) => (
+                <button
+                  key={type.id}
+                  onClick={() => handleEventLog(type.id, type.label)}
+                  disabled={!selectedTripId || submitting}
+                  className={`flex h-24 flex-col items-center justify-center rounded-xl border border-transparent p-4 text-white transition-all ${
+                    !selectedTripId 
+                      ? "cursor-not-allowed bg-zinc-800 text-zinc-500 opacity-50" 
+                      : `${type.color} shadow-lg hover:scale-[1.02] active:scale-95`
+                  }`}
+                >
+                  <span className="text-lg font-bold">{type.label}</span>
+                </button>
               ))}
-            </select>
-          </div>
+            </div>
 
-          <div>
-            <label className="text-[11px] uppercase tracking-wide text-zinc-500">Driver</label>
-            <input
-              type="text"
-              className="mt-1 w-full rounded-md border border-zinc-800 bg-zinc-900/60 px-3 py-2 text-sm text-zinc-200 focus:border-zinc-700 focus:outline-none"
-              placeholder="Search..."
-              value={filterDriver}
-              onChange={(e) => setFilterDriver(e.target.value)}
-            />
-          </div>
-
-          <div>
-            <label className="text-[11px] uppercase tracking-wide text-zinc-500">Unit</label>
-            <input
-              type="text"
-              className="mt-1 w-full rounded-md border border-zinc-800 bg-zinc-900/60 px-3 py-2 text-sm text-zinc-200 focus:border-zinc-700 focus:outline-none"
-              placeholder="Search..."
-              value={filterUnit}
-              onChange={(e) => setFilterUnit(e.target.value)}
-            />
-          </div>
-
-          <div>
-            <label className="text-[11px] uppercase tracking-wide text-zinc-500">Event Type</label>
-            <select
-              className="mt-1 w-full rounded-md border border-zinc-800 bg-zinc-900/60 px-3 py-2 text-sm text-zinc-200 focus:border-zinc-700 focus:outline-none"
-              value={filterEventType}
-              onChange={(e) => setFilterEventType(e.target.value)}
-            >
-              <option value="">All types</option>
-              {Object.entries(EVENT_TYPE_LABELS).map(([value, label]) => (
-                <option key={value} value={value}>{label}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {/* Status Row */}
-        <div className="mb-4 flex items-center justify-between">
-          <p className="text-xs text-zinc-400">
-            Showing {events.length} events · {refreshing ? "Refreshing..." : "Live"}
-          </p>
-          <Button
-            type="button"
-            variant="subtle"
-            size="sm"
-            onClick={resetFilters}
-          >
-            Reset filters
-          </Button>
-        </div>
-
-        {/* Events Table */}
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-zinc-800 text-left">
-                <th className="pb-2 text-[11px] uppercase tracking-wide text-zinc-500">When</th>
-                <th className="pb-2 text-[11px] uppercase tracking-wide text-zinc-500">Event</th>
-                <th className="pb-2 text-[11px] uppercase tracking-wide text-zinc-500">Trip</th>
-                <th className="pb-2 text-[11px] uppercase tracking-wide text-zinc-500">Driver · Unit</th>
-                <th className="pb-2 text-[11px] uppercase tracking-wide text-zinc-500">Location/Notes</th>
-              </tr>
-            </thead>
-            <tbody>
-              {events.length > 0 ? (
-                events.map(event => (
-                  <tr key={event.id} className="border-b border-zinc-800/50 hover:bg-zinc-900/40">
-                    <td className="py-3 text-xs text-zinc-300">
-                      {new Date(event.timestamp).toLocaleString()}
-                    </td>
-                    <td className="py-3">
-                      <span className={`inline-block rounded-full border px-2 py-1 text-[10px] font-medium ${
-                        EVENT_TYPE_COLORS[event.eventType] || EVENT_TYPE_COLORS.default
-                      }`}>
-                        {EVENT_TYPE_LABELS[event.eventType] || event.eventType}
-                      </span>
-                    </td>
-                    <td className="py-3">
-                      <a
-                        href={`/trips/${event.tripId}`}
-                        className="text-sm text-blue-400 hover:text-blue-300"
-                      >
-                        {event.tripId.length > 12 ? event.tripId.substring(0, 8) : event.tripId}
-                      </a>
-                      <p className="text-xs text-zinc-500">{event.trip?.status}</p>
-                    </td>
-                    <td className="py-3 text-xs text-zinc-300">
-                      <p>{event.trip?.driver}</p>
-                      <p className="text-zinc-500">{event.trip?.unit}</p>
-                    </td>
-                    <td className="py-3 text-xs text-zinc-300">
-                      <p>{event.stopLabel}</p>
-                      {event.notes && <p className="italic text-zinc-500">{event.notes}</p>}
-                      {event.lat && event.lon && (
-                        <p className="text-zinc-500">{event.lat}, {event.lon}</p>
-                      )}
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={5} className="py-8 text-center">
-                    <div className="rounded-lg border border-dashed border-zinc-800 bg-zinc-950/40 p-5 text-sm text-zinc-400">
-                      No trip events recorded for this filter set
+            {/* Recent History */}
+            <Card className="border-zinc-800 bg-zinc-900/50 p-6">
+              <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold text-zinc-300">
+                <Clock className="h-4 w-4" />
+                Recent Activity Log
+              </h3>
+              <div className="space-y-4">
+                {events.slice(0, 5).map((event) => (
+                  <div key={event.id} className="flex items-start gap-4 border-b border-zinc-800 pb-4 last:border-0 last:pb-0">
+                    <div className="mt-1 rounded-full bg-zinc-800 p-2">
+                      <CheckCircle className="h-4 w-4 text-blue-400" />
                     </div>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                    <div>
+                      <p className="font-medium text-white">{event.stopLabel}</p>
+                      <p className="text-xs text-zinc-400">
+                        {new Date(event.timestamp).toLocaleString()} • {event.trip?.driver}
+                      </p>
+                      {event.lat && (
+                        <p className="text-[10px] text-zinc-600">
+                          Loc: {event.lat}, {event.lon}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                {events.length === 0 && (
+                  <p className="text-center text-sm text-zinc-500">No events recorded yet.</p>
+                )}
+              </div>
+            </Card>
+          </div>
         </div>
-      </Card>
+      </div>
     </div>
   );
 }
