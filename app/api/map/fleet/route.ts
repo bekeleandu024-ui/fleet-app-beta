@@ -15,6 +15,9 @@ export async function GET() {
           t.last_known_lng,
           t.updated_at,
           t.pickup_location,
+          t.dropoff_location,
+          t.dropoff_lat,
+          t.dropoff_lng,
           d.driver_name,
           u.unit_number
         FROM trips t
@@ -32,6 +35,9 @@ export async function GET() {
         location: row.pickup_location, 
         lat: row.last_known_lat,
         lng: row.last_known_lng,
+        deliveryLocation: row.dropoff_location,
+        deliveryLat: row.dropoff_lat,
+        deliveryLng: row.dropoff_lng,
         lastUpdate: row.updated_at,
         driverName: row.driver_name || "Unknown Driver",
         unitNumber: row.unit_number || "N/A",

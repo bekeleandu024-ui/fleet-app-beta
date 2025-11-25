@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { APIProvider, Map, AdvancedMarker, useMap } from "@vis.gl/react-google-maps";
+import { APIProvider, Map, AdvancedMarker, useMap, useMapsLibrary } from "@vis.gl/react-google-maps";
 import { Card } from "@/components/ui/card";
 import { Chip } from "@/components/ui/chip";
 import { Truck, MapPin, Warehouse, Search, Filter, ChevronRight, Clock, AlertTriangle } from "lucide-react";
@@ -17,6 +17,65 @@ const REGION_COORDINATES: Record<string, { lat: number; lng: number }> = {
   "Quebec": { lat: 45.5017, lng: -73.5673 },
   "Montreal": { lat: 45.5017, lng: -73.5673 },
 };
+
+// Component to render directions
+function Directions({ 
+  origin, 
+  destination,
+  onRouteFound 
+}: { 
+  origin: { lat: number; lng: number }, 
+  destination: { lat: number; lng: number } | string,
+  onRouteFound?: (result: google.maps.DirectionsResult) => void
+}) {
+  const map = useMap();
+  const routesLibrary = useMapsLibrary("routes");
+  const [directionsService, setDirectionsService] = useState<google.maps.DirectionsService>();
+  const [directionsRenderer, setDirectionsRenderer] = useState<google.maps.DirectionsRenderer>();
+
+  useEffect(() => {
+    if (!routesLibrary || !map) return;
+    const ds = new routesLibrary.DirectionsService();
+    const dr = new routesLibrary.DirectionsRenderer({ 
+      map,
+      suppressMarkers: true, // We have our own markers
+      preserveViewport: false,
+      polylineOptions: {
+        strokeColor: "#10b981", // Emerald-500
+        strokeWeight: 5,
+        strokeOpacity: 0.8
+      }
+    });
+    setDirectionsService(ds);
+    setDirectionsRenderer(dr);
+
+    return () => {
+      dr.setMap(null);
+    };
+  }, [routesLibrary, map]);
+
+  useEffect(() => {
+    if (!directionsService || !directionsRenderer) return;
+
+    directionsService.route({
+      origin,
+      destination,
+      travelMode: google.maps.TravelMode.DRIVING,
+    }).then(response => {
+      directionsRenderer.setDirections(response);
+      if (onRouteFound) onRouteFound(response);
+    }).catch(e => console.error("Directions request failed", e));
+  }, [
+    directionsService, 
+    directionsRenderer, 
+    origin.lat, 
+    origin.lng, 
+    typeof destination === 'string' ? destination : destination.lat,
+    typeof destination === 'string' ? '' : destination.lng
+  ]);
+
+  return null;
+}
 
 // Component to handle map camera updates
 function MapUpdater({ center }: { center: { lat: number; lng: number } | null }) {
@@ -41,6 +100,8 @@ export default function MapPage() {
   const [viewMode, setViewMode] = useState<"all" | "trips" | "staged">("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number } | null>(null);
+  const [showRoute, setShowRoute] = useState(false);
+  const [routeInfo, setRouteInfo] = useState<{ distance: string, duration: string, eta: string } | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -119,8 +180,25 @@ export default function MapPage() {
 
   const handleItemSelect = (item: any) => {
     setSelectedItem(item);
+    setShowRoute(false);
+    setRouteInfo(null);
     if (item.lat && item.lng) {
       setMapCenter({ lat: item.lat, lng: item.lng });
+    }
+  };
+
+  const handleRouteFound = (result: google.maps.DirectionsResult) => {
+    if (result.routes[0] && result.routes[0].legs[0]) {
+      const leg = result.routes[0].legs[0];
+      const distance = leg.distance?.text || "";
+      const duration = leg.duration?.text || "";
+      
+      // Calculate ETA
+      const durationSeconds = leg.duration?.value || 0;
+      const etaDate = new Date(Date.now() + durationSeconds * 1000);
+      const eta = etaDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      setRouteInfo({ distance, duration, eta });
     }
   };
 
@@ -365,6 +443,20 @@ export default function MapPage() {
           >
             <MapUpdater center={mapCenter} />
             
+            {selectedItem && showRoute && selectedItem.type === "trip" && selectedItem.status === "in_transit" && 
+             (selectedItem.deliveryLocation || (selectedItem.deliveryLat && selectedItem.deliveryLng)) && 
+             selectedItem.lat && selectedItem.lng && (
+               <Directions 
+                 origin={{ lat: selectedItem.lat, lng: selectedItem.lng }}
+                 destination={
+                   (selectedItem.deliveryLat && selectedItem.deliveryLng) 
+                     ? { lat: selectedItem.deliveryLat, lng: selectedItem.deliveryLng }
+                     : selectedItem.deliveryLocation
+                 }
+                 onRouteFound={handleRouteFound}
+               />
+            )}
+            
             {(viewMode === "all" || viewMode === "trips") && fleetLocations.map((truck) => (
               truck.lat && truck.lng ? (
                 <AdvancedMarker
@@ -420,7 +512,7 @@ export default function MapPage() {
                     <p className="text-xs text-zinc-400">{selectedItem.type === "staged" ? "Staged Unit" : "Active Trip"}</p>
                   </div>
                 </div>
-                <Button variant="ghost" size="icon" onClick={() => setSelectedItem(null)} className="h-8 w-8 text-zinc-500 hover:text-white">
+                <Button variant="plain" size="sm" onClick={() => setSelectedItem(null)} className="h-8 w-8 p-0 text-zinc-500 hover:text-white">
                   <span className="sr-only">Close</span>
                   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
                 </Button>
@@ -473,9 +565,41 @@ export default function MapPage() {
                 </div>
 
                 {selectedItem.type === "trip" && (
-                  <Button className="w-full bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700" size="sm" asChild>
-                    <a href={`/trips/${selectedItem.id}`}>View Trip Details <ChevronRight className="w-3 h-3 ml-1" /></a>
-                  </Button>
+                  <div className="space-y-2">
+                    {selectedItem.status === "in_transit" && (selectedItem.deliveryLocation || (selectedItem.deliveryLat && selectedItem.deliveryLng)) && (
+                      <>
+                        <Button 
+                          className="w-full bg-emerald-900/30 hover:bg-emerald-900/50 text-emerald-400 border border-emerald-800/50" 
+                          size="sm" 
+                          onClick={() => setShowRoute(!showRoute)}
+                        >
+                          {showRoute ? "Hide Route" : "Show Optimal Route"}
+                        </Button>
+                        
+                        {showRoute && routeInfo && (
+                          <div className="mt-2 p-3 bg-emerald-900/20 border border-emerald-900/50 rounded-lg animate-in fade-in slide-in-from-top-2">
+                             <div className="grid grid-cols-3 gap-2 text-center divide-x divide-emerald-900/50">
+                                <div>
+                                   <div className="text-[10px] text-zinc-500 uppercase tracking-wider">Distance</div>
+                                   <div className="text-sm font-bold text-emerald-400">{routeInfo.distance}</div>
+                                </div>
+                                <div>
+                                   <div className="text-[10px] text-zinc-500 uppercase tracking-wider">Duration</div>
+                                   <div className="text-sm font-bold text-emerald-400">{routeInfo.duration}</div>
+                                </div>
+                                <div>
+                                   <div className="text-[10px] text-zinc-500 uppercase tracking-wider">ETA</div>
+                                   <div className="text-sm font-bold text-emerald-400">{routeInfo.eta}</div>
+                                </div>
+                             </div>
+                          </div>
+                        )}
+                      </>
+                    )}
+                    <Button className="w-full bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700" size="sm" asChild>
+                      <a href={`/trips/${selectedItem.id}`}>View Trip Details <ChevronRight className="w-3 h-3 ml-1" /></a>
+                    </Button>
+                  </div>
                 )}
               </div>
             </Card>
