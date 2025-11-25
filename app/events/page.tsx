@@ -19,7 +19,7 @@ interface TripEvent {
   id: string;
   tripId: string;
   eventType: string;
-  at: string;
+  timestamp: string;
   stopLabel: string;
   notes: string;
   lat?: number;
@@ -468,7 +468,7 @@ export default function TripEventsPage() {
                 events.map(event => (
                   <tr key={event.id} className="border-b border-zinc-800/50 hover:bg-zinc-900/40">
                     <td className="py-3 text-xs text-zinc-300">
-                      {new Date(event.at).toLocaleString()}
+                      {new Date(event.timestamp).toLocaleString()}
                     </td>
                     <td className="py-3">
                       <span className={`inline-block rounded-full border px-2 py-1 text-[10px] font-medium ${
@@ -482,7 +482,7 @@ export default function TripEventsPage() {
                         href={`/trips/${event.tripId}`}
                         className="text-sm text-blue-400 hover:text-blue-300"
                       >
-                        {event.tripId.substring(0, 8)}
+                        {event.tripId.length > 12 ? event.tripId.substring(0, 8) : event.tripId}
                       </a>
                       <p className="text-xs text-zinc-500">{event.trip?.status}</p>
                     </td>

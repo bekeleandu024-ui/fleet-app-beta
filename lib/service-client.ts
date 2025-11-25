@@ -63,7 +63,7 @@ export async function serviceFetch<T>(service: ServiceName, path: string, option
     return (await response.json()) as T;
   } catch (error) {
     // Try to use demo data as fallback
-    const fallback = resolveDemoResponse(service, path);
+    const fallback = resolveDemoResponse(service, path, options.method, options.body);
     if (fallback !== undefined) {
       console.warn(`⚠️ Using demo data for ${service}${path} - Backend service unavailable`);
       return fallback as T;

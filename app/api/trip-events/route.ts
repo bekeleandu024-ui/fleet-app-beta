@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import { serviceFetch } from "@/lib/service-client";
 
 // Event type to status transition mapping
 const STATUS_TRANSITIONS: Record<string, string> = {
-  TRIP_START: "In Progress",
-  LEFT_DELIVERY: "Completed",
-  TRIP_FINISHED: "Completed",
+  TRIP_START: "in_transit",
+  LEFT_DELIVERY: "completed",
+  TRIP_FINISHED: "completed",
 };
 
 // GET /api/trip-events?tripId=xxx - Fetch events for a trip
@@ -13,27 +14,41 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const tripId = searchParams.get("tripId");
 
-    if (!tripId) {
-      return NextResponse.json({ error: "tripId is required" }, { status: 400 });
-    }
-
     // Fetch events from tracking service
-    const response = await fetch(
-      `${process.env.TRACKING_SERVICE_URL || "http://localhost:4004"}/trip-events?tripId=${tripId}`,
-      {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }
-    );
+    const query = tripId ? `?tripId=${tripId}` : "";
+    const eventsResponse = await serviceFetch<{ events: any[] }>("tracking", `/trip-events${query}`);
+    
+    // Fetch all trips to enrich event data
+    // In a real production app, we might want to optimize this or do a join in the backend
+    const tripsResponse = await serviceFetch<any>("tracking", "/api/trips");
+    const allTrips = Array.isArray(tripsResponse) ? tripsResponse : (tripsResponse?.value || []);
 
-    if (!response.ok) {
-      throw new Error("Failed to fetch trip events");
-    }
+    // Normalize and enrich events
+    const enrichedEvents = (eventsResponse.events || []).map((event: any) => {
+      // Handle snake_case from backend
+      const normalizedEvent = {
+        ...event,
+        tripId: event.tripId || event.trip_id,
+        eventType: event.eventType || event.event_type,
+        timestamp: event.timestamp || event.occurred_at || event.created_at,
+        stopLabel: event.stopLabel || event.event_label || event.event_type, // Fallback
+        notes: event.notes || (event.payload ? event.payload.note : undefined),
+      };
 
-    const events = await response.json();
+      // Attach trip details
+      const trip = allTrips.find((t: any) => t.id === normalizedEvent.tripId);
+      
+      return {
+        ...normalizedEvent,
+        trip: trip ? {
+          ...trip,
+          driver: trip.driver_name || "Unknown Driver", // Map backend fields if needed
+          unit: trip.unit_number || "Unknown Unit",
+        } : undefined
+      };
+    });
 
-    return NextResponse.json({ events });
+    return NextResponse.json({ events: enrichedEvents });
   } catch (error) {
     console.error("Error fetching trip events:", error);
     return NextResponse.json(
@@ -70,42 +85,26 @@ export async function POST(request: NextRequest) {
     };
 
     // Send to tracking service
-    const trackingResponse = await fetch(
-      `${process.env.TRACKING_SERVICE_URL || "http://localhost:4004"}/trip-events`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(eventPayload),
-      }
-    );
-
-    if (!trackingResponse.ok) {
-      throw new Error("Failed to create trip event");
-    }
-
-    const createdEvent = await trackingResponse.json();
+    const createdEvent = await serviceFetch<any>("tracking", "/trip-events", {
+      method: "POST",
+      body: eventPayload,
+    });
 
     // Check if this event triggers a status transition
     const newStatus = STATUS_TRANSITIONS[eventType];
     if (newStatus) {
       // Update trip status
       try {
-        await fetch(
-          `${process.env.ORDERS_SERVICE_URL || "http://localhost:4002"}/trips/${tripId}`,
-          {
+        // Update trip status in tracking service (where trips are managed in demo data)
+        await serviceFetch("tracking", `/api/trips/${tripId}`, {
             method: "PATCH",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
+            body: {
               status: newStatus,
               lastEvent: eventType,
               lastEventTime: eventPayload.timestamp,
-            }),
-          }
-        );
+            }
+        });
+
       } catch (statusError) {
         console.error("Failed to update trip status:", statusError);
         // Continue even if status update fails

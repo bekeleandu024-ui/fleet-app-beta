@@ -206,8 +206,11 @@ export function TripTicketCard({ trip, className, onClick }: TripTicketCardProps
       {/* Trip Progress Section */}
       <div className="mt-4 pt-4 border-t border-zinc-800">
         <div className="flex items-center justify-between mb-2">
-          <p className="text-xs font-medium text-zinc-400">Trip Progress</p>
-          <span className="text-xs text-zinc-500">{trip.status}</span>
+          <div className="flex items-center gap-2">
+            <p className="text-xs font-medium text-zinc-400">Trip Progress</p>
+            <span className="text-xs font-bold text-blue-400 uppercase">{trip.status}</span>
+          </div>
+          <span className="text-xs text-zinc-600">Delivered</span>
         </div>
         <div className="h-2 w-full bg-zinc-800 rounded-full overflow-hidden">
           <div 
@@ -221,13 +224,17 @@ export function TripTicketCard({ trip, className, onClick }: TripTicketCardProps
 }
 
 function getProgressWidth(status: string): string {
-  switch (status.toLowerCase()) {
+  const s = status.toLowerCase().replace(/_/g, ' ');
+  switch (s) {
+    case 'planning': return '5%';
     case 'assigned': return '10%';
+    case 'en route to pickup': return '15%';
     case 'at pickup': return '25%';
+    case 'departed pickup': return '35%';
     case 'in transit': return '50%';
     case 'at delivery': return '75%';
     case 'delivered': return '90%';
     case 'completed': return '100%';
-    default: return '0%';
+    default: return '5%';
   }
 }

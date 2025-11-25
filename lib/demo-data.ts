@@ -294,7 +294,7 @@ const demoEvents = [
   { id: "event-2", name: "Trailer Washout", description: "Washout before pickup", category: "Maintenance" },
 ];
 
-const demoTrips = [
+export const demoTrips = [
   {
     id: "trip-5001",
     dispatch_id: "disp-1",
@@ -342,16 +342,37 @@ const demoTrips = [
     updated_at: "2024-05-04T09:10:00Z",
     on_time_delivery: true,
   },
+  // Add the user's trip for context
+  {
+    id: "2695c81e-68be-4ec6-9ade-5bfbdecd1f73",
+    dispatch_id: "disp-4",
+    order_id: "ord-1006",
+    driver_id: "b204655b-a7eb-43bf-bee4-1caa84a8d6cb", // Yatin Midha
+    unit_id: "257454",
+    status: "assigned",
+    pickup_location: "Kitchener, ON",
+    dropoff_location: "Columbus, OH",
+    planned_start: "2025-11-24T19:31:00Z",
+    updated_at: "2025-11-24T19:31:00Z",
+    on_time_delivery: true,
+    driver: "Yatin Midha",
+    unit: "257454",
+    pickup: "Kitchener, ON",
+    delivery: "Columbus, OH",
+    pickupWindow: "Nov 24, 2025 07:31 PM",
+    customer: "CORVEX",
+  }
 ];
 
-const demoTripEvents: Record<string, Array<Record<string, any>>> = {
+export const demoTripEvents: Record<string, Array<Record<string, any>>> = {
   "trip-5001": [
-    { id: "ev-1", timestamp: "2024-05-05T12:10:00Z", summary: "Departed pickup", location: "Dallas, TX", status: "Recorded" },
-    { id: "ev-2", timestamp: "2024-05-06T09:25:00Z", summary: "Fuel stop", location: "Birmingham, AL", status: "Recorded" },
+    { id: "ev-1", timestamp: "2024-05-05T12:10:00Z", summary: "Departed pickup", location: "Dallas, TX", status: "Recorded", eventType: "LEFT_PICKUP" },
+    { id: "ev-2", timestamp: "2024-05-06T09:25:00Z", summary: "Fuel stop", location: "Birmingham, AL", status: "Recorded", eventType: "FUEL_STOP" },
   ],
   "trip-5002": [
-    { id: "ev-3", timestamp: "2024-05-06T09:05:00Z", summary: "Departed pickup", location: "Chicago, IL", status: "Recorded" },
+    { id: "ev-3", timestamp: "2024-05-06T09:05:00Z", summary: "Departed pickup", location: "Chicago, IL", status: "Recorded", eventType: "LEFT_PICKUP" },
   ],
+  "2695c81e-68be-4ec6-9ade-5bfbdecd1f73": [],
 };
 
 const demoTripExceptions: Record<string, Array<Record<string, any>>> = {
@@ -372,7 +393,35 @@ const demoDispatchOrders = demoOrders.map((order) => ({
   priority: order.status === "delayed" ? "Critical" : "Standard",
 }));
 
-export function resolveDemoResponse(service: ServiceName, path: string): unknown | undefined {
+// Helper to update demo data
+export function updateDemoTripStatus(tripId: string, status: string) {
+  const trip = demoTrips.find(t => t.id === tripId);
+  if (trip) {
+    trip.status = status;
+    trip.updated_at = new Date().toISOString();
+  }
+}
+
+export function addDemoTripEvent(tripId: string, event: any) {
+  if (!demoTripEvents[tripId]) {
+    demoTripEvents[tripId] = [];
+  }
+  demoTripEvents[tripId].unshift({
+    id: `ev-${Date.now()}`,
+    timestamp: new Date().toISOString(),
+    status: "Recorded",
+    ...event
+  });
+  
+  // Auto-update status based on event
+  if (event.eventType === "TRIP_START") updateDemoTripStatus(tripId, "in_transit");
+  if (event.eventType === "ARRIVED_PICKUP") updateDemoTripStatus(tripId, "at_pickup");
+  if (event.eventType === "LEFT_PICKUP") updateDemoTripStatus(tripId, "in_transit");
+  if (event.eventType === "ARRIVED_DELIVERY") updateDemoTripStatus(tripId, "at_delivery");
+  if (event.eventType === "TRIP_FINISHED") updateDemoTripStatus(tripId, "completed");
+}
+
+export function resolveDemoResponse(service: ServiceName, path: string, method: string = "GET", body?: any): unknown | undefined {
   const url = new URL(path, "http://demo.local");
   const { pathname, searchParams } = url;
 
@@ -406,7 +455,14 @@ export function resolveDemoResponse(service: ServiceName, path: string): unknown
     }
     if (pathname.startsWith("/api/trips/") && pathname.endsWith("/events")) {
       const id = pathname.split("/")[3];
-      return demoTripEvents[id] ?? [];
+      if (method === "POST") {
+        const event = body;
+        // Ensure event has tripId
+        const eventWithId = { ...event, tripId: id };
+        addDemoTripEvent(id, eventWithId);
+        return eventWithId;
+      }
+      return { events: demoTripEvents[id] ?? [] };
     }
     if (pathname.startsWith("/api/trips/") && pathname.endsWith("/exceptions")) {
       const id = pathname.split("/")[3];
@@ -414,7 +470,45 @@ export function resolveDemoResponse(service: ServiceName, path: string): unknown
     }
     if (pathname.startsWith("/api/trips/")) {
       const id = pathname.split("/")[3];
+      if (method === "PATCH") {
+        const updates = body;
+        const trip = demoTrips.find((t) => t.id === id);
+        if (trip) {
+          Object.assign(trip, updates);
+          trip.updated_at = new Date().toISOString();
+          return trip;
+        }
+        return undefined;
+      }
       return demoTrips.find((trip) => trip.id === id);
+    }
+    if (pathname === "/trip-events") {
+      if (method === "POST") {
+        const event = body;
+        const tripId = event.tripId;
+        if (tripId) {
+          addDemoTripEvent(tripId, event);
+          return event;
+        }
+        return undefined;
+      }
+      
+      const tripId = searchParams.get("tripId");
+      if (tripId) {
+        const events = demoTripEvents[tripId] ?? [];
+        const trip = demoTrips.find(t => t.id === tripId);
+        return { events: events.map(e => ({ ...e, tripId, trip })) };
+      }
+      // Return all events if no tripId
+      const allEvents = Object.entries(demoTripEvents).flatMap(([tId, events]) => 
+        events.map(e => {
+          const trip = demoTrips.find(t => t.id === tId);
+          return { ...e, tripId: tId, trip };
+        })
+      ).sort((a, b) => 
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      );
+      return { events: allEvents };
     }
   }
 

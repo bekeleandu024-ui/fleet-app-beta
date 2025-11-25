@@ -7,7 +7,7 @@ export async function GET() {
     const tripsResponse = await serviceFetch<any>("tracking", "/api/trips");
     const allTrips = Array.isArray(tripsResponse) ? tripsResponse : (tripsResponse.value || []);
     
-    const activeStatuses = ["in_transit", "en_route_to_pickup", "at_pickup", "departed_pickup", "at_delivery"];
+    const activeStatuses = ["planning", "assigned", "in_transit", "en_route_to_pickup", "at_pickup", "departed_pickup", "at_delivery"];
     const activeTrips = allTrips.filter((t: any) => activeStatuses.includes(t.status.toLowerCase()));
 
     // 2. Fetch drivers and units for names

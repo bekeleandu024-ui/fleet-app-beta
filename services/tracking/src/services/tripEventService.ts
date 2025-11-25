@@ -90,3 +90,11 @@ export async function getTripEvents(tripId: string): Promise<TripEvent[]> {
   );
   return result.rows.map(mapEventRow);
 }
+
+export async function getAllEvents(limit: number = 100): Promise<TripEvent[]> {
+  const result = await pool.query(
+    `SELECT * FROM trip_events ORDER BY occurred_at DESC LIMIT $1`,
+    [limit]
+  );
+  return result.rows.map(mapEventRow);
+}

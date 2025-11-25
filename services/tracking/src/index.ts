@@ -6,6 +6,7 @@ import tripsRouter from "./routes/trips";
 import telemetryRouter from "./routes/telemetry";
 import viewsRouter from "./routes/views";
 import customsRouter from "./routes/customs";
+import eventsRouter from "./routes/events";
 import { startConsumer } from "./services/kafkaConsumer";
 import { handleKafkaMessage } from "./services/eventProcessor";
 
@@ -20,6 +21,7 @@ app.use("/api/trips", tripsRouter);
 app.use("/api/telemetry", telemetryRouter);
 app.use("/api/views", viewsRouter);
 app.use("/api/customs", customsRouter);
+app.use("/trip-events", eventsRouter);
 
 async function bootstrap() {
   try {
