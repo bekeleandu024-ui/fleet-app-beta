@@ -111,9 +111,25 @@ export default function CreateOrderPage() {
 
   // AI-powered OCR parsing
   const handleOcrPaste = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    // Check for image items in clipboard
+    const items = e.clipboardData.items;
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf("image") !== -1) {
+        const blob = items[i].getAsFile();
+        if (blob) {
+          e.preventDefault(); // Prevent default paste behavior
+          await handleImageOcr(blob);
+          return; // Stop processing if image found
+        }
+      }
+    }
+
+    // Fallback to text
     const text = e.clipboardData.getData("text");
-    setOcrText(text);
-    await parseOcrWithAI(text);
+    if (text) {
+      setOcrText(text);
+      await parseOcrWithAI(text);
+    }
   };
 
   const handleDragOver = useCallback((e: React.DragEvent) => {

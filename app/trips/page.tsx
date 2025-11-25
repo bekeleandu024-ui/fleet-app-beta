@@ -4,62 +4,17 @@ import { useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 
-import { DataTable, type DataTableColumn } from "@/components/data-table";
+import { TripTicketCard } from "@/components/trip-ticket-card";
 import { SectionBanner } from "@/components/section-banner";
-import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
 import { Select } from "@/components/ui/select";
 import { fetchTrips } from "@/lib/api";
-import { formatDateTime } from "@/lib/format";
 import { queryKeys } from "@/lib/query";
-import type { TripListItem } from "@/lib/types";
 
 
 export default function TripsPage() {
   const router = useRouter();
   const { data, isLoading, isError } = useQuery({ queryKey: queryKeys.trips(), queryFn: fetchTrips });
-
-  const columns: DataTableColumn<TripListItem>[] = useMemo(
-    () => [
-      {
-        key: "trip",
-        header: "Trip",
-        cell: (row) => (
-          <div className="flex flex-col">
-            <span className="font-bold text-neutral-100">{row.tripNumber}</span>
-            <span className="text-xs text-neutral-500">{row.status}</span>
-          </div>
-        ),
-        widthClass: "min-w-[160px]",
-      },
-      { key: "driver", header: "Driver", accessor: (row) => row.driver },
-      { key: "unit", header: "Unit", accessor: (row) => row.unit },
-      {
-        key: "lane",
-        header: "PU→DEL",
-        cell: (row) => (
-          <div className="flex flex-col">
-            <span className="text-neutral-200">{row.pickup}</span>
-            <span className="text-xs text-neutral-500">{row.delivery}</span>
-          </div>
-        ),
-        widthClass: "min-w-[200px]",
-      },
-      { key: "eta", header: "ETA", accessor: (row) => formatDateTime(row.eta), widthClass: "min-w-[200px]" },
-      {
-        key: "exceptions",
-        header: "Exceptions",
-        cell: (row) => (
-          <Chip tone={row.exceptions > 0 ? "warn" : "default"} className="text-xs">
-            {row.exceptions}
-          </Chip>
-        ),
-        align: "center",
-      },
-      { key: "lastPing", header: "Last Ping", accessor: (row) => formatDateTime(row.lastPing), widthClass: "min-w-[200px]" },
-    ],
-    []
-  );
 
   if (isLoading && !data) {
     return <TripsSkeleton />;
@@ -119,27 +74,20 @@ export default function TripsPage() {
           </Select>
         </Filter>
       </div>
-      <div className="mt-4 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900/40 shadow-lg shadow-black/60">
-        <DataTable
-          columns={columns}
-          data={data.data}
-          busy={isLoading}
-          getRowId={(row) => row.id}
-          onRowClick={(row) => router.push(`/trips/${row.id}`)}
-          rowActions={(row) => (
-            <Button
-              size="sm"
-              variant="plain"
-              className="text-xs text-zinc-400 hover:text-zinc-200 bg-zinc-800 hover:bg-zinc-700 border-zinc-700"
-              onClick={(event) => {
-                event.stopPropagation();
-                router.push(`/trips/${row.id}`);
-              }}
-            >
-              View
-            </Button>
-          )}
-        />
+      
+      <div className="mt-6 space-y-4">
+        {data.data.map((trip) => (
+          <TripTicketCard 
+            key={trip.id} 
+            trip={trip} 
+            onClick={() => router.push(`/trips/${trip.id}`)}
+          />
+        ))}
+        {data.data.length === 0 && (
+          <div className="rounded-lg border border-dashed border-zinc-800 bg-zinc-900/20 p-8 text-center">
+            <p className="text-sm text-zinc-400">No trips found matching your filters.</p>
+          </div>
+        )}
       </div>
     </SectionBanner>
     </>

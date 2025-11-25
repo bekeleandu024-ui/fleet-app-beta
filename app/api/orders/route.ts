@@ -4,7 +4,14 @@ import { serviceFetch } from "@/lib/service-client";
 import { buildLane, mapOrderStatus } from "@/lib/transformers";
 import type { OrderListItem } from "@/lib/types";
 
-type OrderResponse = OrderListItem & { revenue: number; created?: string };
+type OrderResponse = OrderListItem & { 
+  revenue: number; 
+  created?: string;
+  pickupWindowStart?: string;
+  pickupWindowEnd?: string;
+  deliveryWindowStart?: string;
+  deliveryWindowEnd?: string;
+};
 
 export async function GET() {
   try {
@@ -50,6 +57,10 @@ function transformOrderFromService(order: Record<string, any>): OrderResponse {
     laneMiles: Number(order.lane_miles ?? order.laneMiles ?? 0) || 0,
     revenue: Number(order.revenue ?? 0),
     created: createdAt,
+    pickupWindowStart: order.pickup_window_start ?? order.pickupWindowStart,
+    pickupWindowEnd: order.pickup_window_end ?? order.pickupWindowEnd,
+    deliveryWindowStart: order.delivery_window_start ?? order.deliveryWindowStart,
+    deliveryWindowEnd: order.delivery_window_end ?? order.deliveryWindowEnd,
   };
 }
 

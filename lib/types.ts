@@ -74,6 +74,7 @@ export const orderListItemSchema = z.object({
   serviceLevel: z.string().optional(),
   commodity: z.string().optional(),
   laneMiles: z.number().optional(),
+  latestStartTime: z.string().optional(),
 });
 export type OrderListItem = z.infer<typeof orderListItemSchema>;
 
@@ -200,6 +201,16 @@ export const tripListItemSchema = z.object({
   orderId: z.string().optional(),
   driverId: z.string().optional(),
   unitId: z.string().optional(),
+  // Extended fields for Trip Ticket
+  customer: z.string().optional(),
+  pickupWindow: z.string().optional(),
+  distance: z.number().optional(),
+  duration: z.number().optional(),
+  commodity: z.string().optional(),
+  driverType: z.string().optional(),
+  totalCost: z.number().optional(),
+  totalCpm: z.number().optional(),
+  serviceLevel: z.string().optional(),
 });
 export type TripListItem = z.infer<typeof tripListItemSchema>;
 

@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
 
     switch (action) {
       case "parse-ocr":
-        const parsed = await parseOrderOCR(data.text);
+        const parsed = await parseOrderOCR(data.text, data.image);
         return NextResponse.json({ success: true, data: parsed });
 
       case "suggest-fields":

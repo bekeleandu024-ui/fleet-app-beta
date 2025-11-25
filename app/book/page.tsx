@@ -27,6 +27,10 @@ interface Order {
   laneMiles?: number;
   lane?: string;
   cost?: number;
+  pickupWindowStart?: string;
+  pickupWindowEnd?: string;
+  deliveryWindowStart?: string;
+  deliveryWindowEnd?: string;
 }
 
 interface Driver {
@@ -38,6 +42,7 @@ interface Driver {
   type: string;
   zone?: string;
   recommended?: boolean;
+  status?: string;
 }
 
 interface Unit {
@@ -289,8 +294,13 @@ export default function BookTripPage() {
 
   // Calculate totals
   const selectedRate = rates.find(r => r.id === rateId);
-  const totalCpm = selectedRate?.total_cpm || 0;
   const actualMiles = routeDistance || miles || 0;
+  
+  // Use selected costing option if available, otherwise fallback to rate card
+  const totalCpm = selectedCostingOption 
+    ? selectedCostingOption.cost.totalCPM 
+    : (selectedRate?.total_cpm || 0);
+    
   const totalCost = actualMiles * totalCpm;
 
   // Memoize costing options to prevent duplicates
@@ -335,11 +345,41 @@ export default function BookTripPage() {
     [actualMiles, selectedOrder?.pickup, selectedOrder?.delivery, driverType]
   );
 
+  // Calculate Latest Trip Start
+  const latestTripStart = useMemo(() => {
+    if (!selectedOrder || !routeDuration) return null;
+    
+    // User logic: Difference between next deadline (pickup window) and duration
+    let deadline = selectedOrder.pickupWindowEnd || selectedOrder.pickupWindowStart;
+    
+    // Fallback: Try to parse 'window' string if structured dates are missing
+    // Format example: "Thu, Dec 4, 2025, 9:00 AM"
+    if (!deadline && selectedOrder.window && selectedOrder.window !== "Not Scheduled") {
+      const parsedDate = new Date(selectedOrder.window);
+      if (!isNaN(parsedDate.getTime())) {
+        deadline = parsedDate.toISOString();
+      }
+    }
+    
+    if (!deadline) return null;
+    
+    const deadlineDate = new Date(deadline);
+    const durationMs = routeDuration * 60 * 60 * 1000;
+    
+    return new Date(deadlineDate.getTime() - durationMs).toISOString();
+  }, [selectedOrder, routeDuration]);
+
   // Generate AI Insights
   const generateInsights = useCallback(async () => {
     if (!selectedOrder || actualMiles === 0) return;
 
     // Prepare context for Claude
+    // Available drivers by type (filter out busy drivers)
+    const availableDriversList = drivers.filter(d => d.status !== 'Busy' && d.hoursAvailableToday > 0);
+    
+    // Available units (filter out busy units)
+    const availableUnitsList = units.filter(u => u.status !== 'Busy' && u.status !== 'Inactive');
+
     const tripContext = {
       customer: selectedOrder.customer,
       lane: `${selectedOrder.pickup} → ${selectedOrder.delivery}`,
@@ -356,10 +396,13 @@ export default function BookTripPage() {
       
       // Available drivers by type
       availableDrivers: {
-        com: drivers.filter(d => d.type === 'Company' || d.type === 'COM').map(d => ({ id: d.id, name: d.name })),
-        rnr: drivers.filter(d => d.type === 'Rental' || d.type === 'RNR').map(d => ({ id: d.id, name: d.name })),
-        oo: drivers.filter(d => d.type === 'Owner Operator' || d.type === 'OO').map(d => ({ id: d.id, name: d.name }))
+        com: availableDriversList.filter(d => d.type === 'Company' || d.type === 'COM').map(d => ({ id: d.id, name: d.name })),
+        rnr: availableDriversList.filter(d => d.type === 'Rental' || d.type === 'RNR').map(d => ({ id: d.id, name: d.name })),
+        oo: availableDriversList.filter(d => d.type === 'Owner Operator' || d.type === 'OO').map(d => ({ id: d.id, name: d.name }))
       },
+      
+      // Available units
+      availableUnits: availableUnitsList.map(u => ({ id: u.id, code: u.code, type: u.type })),
       
       // Route characteristics
       isCrossBorder: selectedOrder.pickup.includes('Canada') || selectedOrder.delivery.includes('Canada') || 
@@ -377,6 +420,9 @@ export default function BookTripPage() {
 
   // Trigger insights generation when relevant data changes (debounced)
   useEffect(() => {
+    // Don't regenerate if a driver is already selected (user manually assigned)
+    if (driverId) return;
+
     const timer = setTimeout(() => {
       if (selectedOrder && actualMiles > 0) {
         generateInsights();
@@ -384,7 +430,7 @@ export default function BookTripPage() {
     }, 1000);
     
     return () => clearTimeout(timer);
-  }, [selectedOrder, actualMiles, generateInsights]);
+  }, [selectedOrder, actualMiles, generateInsights, driverId]);
 
   const handleApplyRecommendation = (recommendation: any) => {
     if (recommendation.driver) {
@@ -397,6 +443,23 @@ export default function BookTripPage() {
       setUnitCode(recommendation.unit.code);
       setRecommendedUnitId(recommendation.unit.id);
     }
+    // Handle specific recommendations from AI insights
+    if (recommendation.specificDriverRecommendation) {
+      setDriverId(recommendation.specificDriverRecommendation.driverId);
+      const driver = drivers.find(d => d.id === recommendation.specificDriverRecommendation.driverId);
+      if (driver) {
+        setDriverName(driver.name);
+        setDriverType(driver.type);
+      }
+    }
+    if (recommendation.specificUnitRecommendation) {
+      setUnitId(recommendation.specificUnitRecommendation.unitId);
+      const unit = units.find(u => u.id === recommendation.specificUnitRecommendation.unitId);
+      if (unit) {
+        setUnitCode(unit.code);
+      }
+    }
+    
     if (recommendation.rate) {
       setRateId(recommendation.rate.id);
       setRecommendedRateId(recommendation.rate.id);
@@ -564,7 +627,7 @@ export default function BookTripPage() {
                   </div>
                 </>
               )}
-              {rateId && actualMiles > 0 && (
+              {(rateId || selectedCostingOption) && actualMiles > 0 && (
                 <>
                   <div className="h-8 w-px bg-zinc-800" />
                   <div>
@@ -602,12 +665,21 @@ export default function BookTripPage() {
             loading={isGeneratingInsights}
             error={insightsError}
             onRetry={generateInsights}
+            totalCost={totalCost}
+            latestTripStart={latestTripStart}
             onSelectDriver={(driverId) => {
               setDriverId(driverId);
               const driver = drivers.find(d => d.id === driverId);
               if (driver) {
                 setDriverName(driver.name);
                 setDriverType(driver.type);
+              }
+            }}
+            onSelectUnit={(unitId) => {
+              setUnitId(unitId);
+              const unit = units.find(u => u.id === unitId);
+              if (unit) {
+                setUnitCode(unit.code);
               }
             }}
           />
@@ -774,10 +846,17 @@ export default function BookTripPage() {
                   className={`rounded p-1.5 cursor-pointer transition-all border ${
                     driverId === driver.id
                       ? "bg-blue-900/20 border-blue-800/50"
-                      : "bg-zinc-900/30 hover:bg-zinc-800/50 border-zinc-800/50"
+                      : driver.status === 'Busy'
+                        ? "bg-zinc-900/10 border-zinc-800/30 opacity-60"
+                        : "bg-zinc-900/30 hover:bg-zinc-800/50 border-zinc-800/50"
                   }`}
                 >
-                  <p className="text-[11px] font-semibold text-white leading-tight">{driver.name}</p>
+                  <div className="flex justify-between items-start">
+                    <p className="text-[11px] font-semibold text-white leading-tight">{driver.name}</p>
+                    {driver.status === 'Busy' && (
+                      <span className="text-[8px] bg-amber-900/30 text-amber-500 px-1 rounded">BUSY</span>
+                    )}
+                  </div>
                   <p className="text-[9px] text-zinc-400 mt-0.5">{driver.homeBase} • {driver.hoursAvailableToday}h</p>
                 </div>
               ))}
@@ -801,10 +880,17 @@ export default function BookTripPage() {
                   className={`rounded p-1.5 cursor-pointer transition-all border ${
                     unitId === unit.id
                       ? "bg-blue-900/20 border-blue-800/50"
-                      : "bg-zinc-900/30 hover:bg-zinc-800/50 border-zinc-800/50"
+                      : unit.status === 'Busy'
+                        ? "bg-zinc-900/10 border-zinc-800/30 opacity-60"
+                        : "bg-zinc-900/30 hover:bg-zinc-800/50 border-zinc-800/50"
                   }`}
                 >
-                  <p className="text-[11px] font-semibold text-white leading-tight">{unit.code}</p>
+                  <div className="flex justify-between items-start">
+                    <p className="text-[11px] font-semibold text-white leading-tight">{unit.code}</p>
+                    {unit.status === 'Busy' && (
+                      <span className="text-[8px] bg-amber-900/30 text-amber-500 px-1 rounded">BUSY</span>
+                    )}
+                  </div>
                   <p className="text-[9px] text-zinc-400 mt-0.5">{unit.type} • {unit.status}</p>
                 </div>
               ))}

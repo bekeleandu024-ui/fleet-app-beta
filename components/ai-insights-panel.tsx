@@ -11,6 +11,9 @@ interface AIInsightsPanelProps {
   error: string | null;
   onRetry: () => void;
   onSelectDriver: (driverId: string) => void;
+  onSelectUnit?: (unitId: string) => void;
+  totalCost?: number;
+  latestTripStart?: string | null;
 }
 
 export function AIInsightsPanel({
@@ -18,7 +21,10 @@ export function AIInsightsPanel({
   loading,
   error,
   onRetry,
-  onSelectDriver
+  onSelectDriver,
+  onSelectUnit,
+  totalCost,
+  latestTripStart
 }: AIInsightsPanelProps) {
   
   if (loading) {
@@ -80,6 +86,81 @@ export function AIInsightsPanel({
           </p>
         </div>
       </Card>
+
+      {/* Specific Resource Recommendation */}
+      {(insights.specificDriverRecommendation || insights.specificUnitRecommendation) && (
+        <Card className="p-4 bg-zinc-900/40 border-zinc-800">
+          <div className="flex items-start gap-3">
+            <div className="p-2 bg-blue-900/20 rounded-lg shrink-0">
+              <User className="w-5 h-5 text-blue-400" />
+            </div>
+            <div className="flex-1">
+              <h4 className="text-sm font-semibold text-white mb-1">Suggested Resources</h4>
+              
+              {insights.specificDriverRecommendation && (
+                <div className="mb-2">
+                  <p className="text-xs text-zinc-500 uppercase tracking-wider">Driver</p>
+                  <p className="text-sm font-medium text-blue-300">{insights.specificDriverRecommendation.driverName}</p>
+                  <p className="text-xs text-zinc-400">{insights.specificDriverRecommendation.reason}</p>
+                </div>
+              )}
+
+              {insights.specificUnitRecommendation && (
+                <div className="mb-3">
+                  <p className="text-xs text-zinc-500 uppercase tracking-wider">Unit</p>
+                  <p className="text-sm font-medium text-blue-300">{insights.specificUnitRecommendation.unitCode}</p>
+                  <p className="text-xs text-zinc-400">{insights.specificUnitRecommendation.reason}</p>
+                </div>
+              )}
+
+              <Button 
+                size="sm" 
+                variant="secondary" 
+                className="w-full h-8 text-xs bg-blue-900/30 hover:bg-blue-900/50 text-blue-200 border border-blue-800/50"
+                onClick={() => {
+                  if (insights.specificDriverRecommendation) {
+                    onSelectDriver(insights.specificDriverRecommendation.driverId);
+                  }
+                  if (insights.specificUnitRecommendation && onSelectUnit) {
+                    onSelectUnit(insights.specificUnitRecommendation.unitId);
+                  }
+                }}
+              >
+                Assign Resources
+              </Button>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* Trip Execution Parameters (Revenue & Timing) */}
+      <div className="p-3 rounded-lg bg-zinc-900/30 border border-zinc-800/50">
+        <h4 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-3">Revenue & Start Date Recommendation</h4>
+        
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-xs text-zinc-500">Target Margin</span>
+          <span className="text-xs font-mono text-emerald-400">5%</span>
+        </div>
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-xs text-zinc-500">Rec. Revenue</span>
+          <span className="text-xs font-mono text-white">
+            ${totalCost ? (totalCost * 1.05).toFixed(2) : "0.00"}
+          </span>
+        </div>
+        {latestTripStart && (
+          <div className="flex items-center justify-between mb-2 pt-2 border-t border-zinc-800/50">
+            <span className="text-xs text-zinc-500">Latest Start</span>
+            <span className="text-xs font-mono text-amber-400">
+              {new Date(latestTripStart).toLocaleString(undefined, { 
+                month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' 
+              })}
+            </span>
+          </div>
+        )}
+        <p className="text-[10px] text-zinc-500 border-t border-zinc-800 pt-2 mt-2">
+          Revenue calculated at cost + 5% margin. Latest start time calculated to ensure on-time delivery.
+        </p>
+      </div>
       
       {/* Cost Optimization */}
       {insights.costOptimization && insights.costOptimization.potentialSavings !== "0" && (
@@ -120,45 +201,6 @@ export function AIInsightsPanel({
           ))}
         </div>
       )}
-      
-      {/* Specific Driver Recommendation */}
-      {insights.specificDriverRecommendation && (
-        <Card className="p-4 bg-zinc-900/40 border-zinc-800">
-          <div className="flex items-start gap-3">
-            <div className="p-2 bg-blue-900/20 rounded-lg shrink-0">
-              <User className="w-5 h-5 text-blue-400" />
-            </div>
-            <div className="flex-1">
-              <h4 className="text-sm font-semibold text-white mb-1">Suggested Driver</h4>
-              <p className="text-sm font-medium text-blue-300 mb-1">{insights.specificDriverRecommendation.driverName}</p>
-              <p className="text-xs text-zinc-400 mb-3">{insights.specificDriverRecommendation.reason}</p>
-              <Button 
-                size="sm" 
-                variant="secondary" 
-                className="w-full h-8 text-xs bg-blue-900/30 hover:bg-blue-900/50 text-blue-200 border border-blue-800/50"
-                onClick={() => insights.specificDriverRecommendation && onSelectDriver(insights.specificDriverRecommendation.driverId)}
-              >
-                Assign This Driver
-              </Button>
-            </div>
-          </div>
-        </Card>
-      )}
-      
-      {/* Margin Analysis */}
-      <div className="p-3 rounded-lg bg-zinc-900/30 border border-zinc-800/50">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-xs text-zinc-500">Target Margin</span>
-          <span className="text-xs font-mono text-emerald-400">{insights.marginAnalysis.targetMargin}</span>
-        </div>
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-xs text-zinc-500">Rec. Revenue</span>
-          <span className="text-xs font-mono text-white">${insights.marginAnalysis.recommendedRevenue}</span>
-        </div>
-        <p className="text-[10px] text-zinc-500 border-t border-zinc-800 pt-2 mt-2">
-          {insights.marginAnalysis.reasoning}
-        </p>
-      </div>
     </div>
   );
 }

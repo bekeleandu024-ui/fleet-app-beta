@@ -238,7 +238,7 @@ interface ParsedOrderData {
   warnings: string[];
 }
 
-export async function parseOrderOCR(text: string): Promise<ParsedOrderData> {
+export async function parseOrderOCR(text?: string, imageBase64?: string): Promise<ParsedOrderData> {
   // Check if API key is available
   if (!process.env.ANTHROPIC_API_KEY) {
     console.error("ANTHROPIC_API_KEY is not set!");
@@ -248,10 +248,7 @@ export async function parseOrderOCR(text: string): Promise<ParsedOrderData> {
     };
   }
 
-  const prompt = `You are an expert at parsing transportation order emails and documents. Extract order details from the following text.
-
-**TEXT TO PARSE:**
-${text}
+  const prompt = `You are an expert at parsing transportation order emails and documents. Extract order details from the provided text or image.
 
 **INSTRUCTIONS:**
 1. Extract customer name (shipper or company name)
@@ -295,16 +292,55 @@ Return ONLY a JSON object with this structure:
 
   try {
     console.log("Calling Claude API for OCR parsing...");
+    
+    const content: any[] = [];
+    
+    if (imageBase64) {
+      let mediaType = "image/jpeg";
+      let imageData = imageBase64;
+
+      if (imageBase64.includes(';base64,')) {
+        const parts = imageBase64.split(';base64,');
+        mediaType = parts[0].replace('data:', '');
+        imageData = parts[1];
+      }
+      
+      // Ensure media type is supported (jpeg, png, gif, webp)
+      if (!['image/jpeg', 'image/png', 'image/gif', 'image/webp'].includes(mediaType)) {
+        mediaType = 'image/jpeg'; // Fallback
+      }
+
+      content.push({
+        type: "image",
+        source: {
+          type: "base64",
+          media_type: mediaType,
+          data: imageData,
+        },
+      });
+      content.push({
+        type: "text",
+        text: "Extract order details from this image. " + prompt
+      });
+    } else if (text) {
+      content.push({
+        type: "text",
+        text: prompt + "\n\n**TEXT TO PARSE:**\n" + text
+      });
+    } else {
+      throw new Error("No text or image provided for OCR");
+    }
+
     const message = await anthropic.messages.create({
-      model: "claude-sonnet-4-20250514",
+      model: "claude-sonnet-4-20250514", // Use consistent model
       max_tokens: 1500,
-      messages: [{ role: "user", content: prompt }],
+      messages: [{ role: "user", content }],
     });
 
     console.log("Claude API response received");
-    const content = message.content[0];
-    if (content.type === "text") {
-      const jsonMatch = content.text.match(/\{[\s\S]*\}/);
+    const responseContent = message.content[0];
+    if (responseContent.type === "text") {
+      const jsonMatch = responseContent.text.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         const parsed = JSON.parse(jsonMatch[0]);
         console.log("Successfully parsed OCR data:", parsed);
@@ -553,6 +589,11 @@ Provide insights in the following JSON structure:
     "driverName": "name",
     "reason": "why this specific driver"
   },
+  "specificUnitRecommendation": {
+    "unitId": "id of specific unit",
+    "unitCode": "unit number/code",
+    "reason": "why this unit"
+  },
   
   "marginAnalysis": {
     "targetMargin": "percentage",
@@ -599,6 +640,38 @@ Important:
     
   } catch (error) {
     console.error("Failed to generate insights:", error);
+    return null;
+  }
+}
+
+export async function calculateRouteMetrics(origin: string, destination: string): Promise<{ distance: number; duration: number } | null> {
+  const prompt = `Calculate the driving distance and duration for a commercial truck route between ${origin} and ${destination}.
+  
+  Return ONLY a JSON object with this structure:
+  {
+    "distance": number (in miles),
+    "duration": number (in hours)
+  }
+  
+  Assume standard commercial truck routing (avoiding restricted roads if applicable).`;
+
+  try {
+    const response = await anthropic.messages.create({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 100,
+      messages: [{ role: "user", content: prompt }],
+    });
+
+    const content = response.content[0];
+    if (content.type === "text") {
+      const jsonMatch = content.text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        return JSON.parse(jsonMatch[0]);
+      }
+    }
+    return null;
+  } catch (error) {
+    console.error("Route metrics calculation error:", error);
     return null;
   }
 }

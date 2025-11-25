@@ -20,6 +20,18 @@ interface BackendTrip {
   notes?: string;
   created_at: string;
   updated_at: string;
+  // Extended fields
+  customer?: string;
+  commodity?: string;
+  miles?: number;
+  total_cost?: number;
+  total_cpm?: number;
+  service_level?: string;
+  pickup_window_start?: string;
+  pickup_window_end?: string;
+  delivery_window_start?: string;
+  delivery_window_end?: string;
+  duration_hours?: number;
 }
 
 interface BackendTripsResponse {
@@ -200,6 +212,27 @@ function transformTrip(trip: BackendTrip, drivers: Array<Record<string, any>>, u
 
   const eta = trip.completed_at || trip.planned_start || new Date().toISOString();
 
+  // Calculate duration if not provided (approx 50mph)
+  const duration = trip.duration_hours || (trip.miles ? Math.round((trip.miles / 50) * 10) / 10 : undefined);
+
+  // Calculate Latest Trip Start
+  // Logic: Min(Pickup Window End, Delivery Window End - Duration)
+  let latestStartTime: string | undefined;
+  
+  if (trip.pickup_window_end) {
+    latestStartTime = trip.pickup_window_end;
+  }
+  
+  if (trip.delivery_window_end && duration) {
+    const deliveryEnd = new Date(trip.delivery_window_end).getTime();
+    const durationMs = duration * 60 * 60 * 1000;
+    const latestStartForDelivery = new Date(deliveryEnd - durationMs).toISOString();
+    
+    if (!latestStartTime || latestStartForDelivery < latestStartTime) {
+      latestStartTime = latestStartForDelivery;
+    }
+  }
+
   return {
     id: trip.id,
     tripNumber: trip.id.slice(0, 8).toUpperCase(),
@@ -213,6 +246,17 @@ function transformTrip(trip: BackendTrip, drivers: Array<Record<string, any>>, u
     lastPing: trip.updated_at,
     orderId: trip.order_id,
     driverId: trip.driver_id,
+    // Extended fields
+    customer: trip.customer || "CORVEX", // Default for demo
+    pickupWindow: trip.pickup_window_start ? new Date(trip.pickup_window_start).toLocaleString() : undefined,
+    distance: trip.miles,
+    duration: duration,
+    latestStartTime: latestStartTime ? new Date(latestStartTime).toLocaleString() : undefined,
+    commodity: trip.commodity || "General", // Default for demo
+    driverType: "RNR", // Default/Placeholder
+    totalCost: trip.total_cost,
+    totalCpm: trip.total_cpm,
+    serviceLevel: trip.service_level || "STANDARD", // Default for demo
   };
 }
 
