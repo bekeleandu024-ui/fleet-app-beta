@@ -11,6 +11,7 @@ import { Chip } from "@/components/ui/chip";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { AIAssistant } from "@/components/ai-assistant";
+import { LocationInput } from "@/components/location-input";
 import { createAdminOrder, fetchAdminCustomers } from "@/lib/api";
 import { queryKeys } from "@/lib/query";
 import type { OrderAdminCreate } from "@/lib/types";
@@ -60,6 +61,7 @@ export default function CreateOrderPage() {
   });
 
   const [estimatedCost, setEstimatedCost] = useState<number | null>(null);
+  const [calculatedDistance, setCalculatedDistance] = useState<number | null>(null);
   const [ocrText, setOcrText] = useState<string>("");
   const [isDragging, setIsDragging] = useState(false);
   const [aiSuggestions, setAiSuggestions] = useState<any[]>([]);
@@ -97,7 +99,26 @@ export default function CreateOrderPage() {
   const calculateEstimate = async () => {
     if (!formData.origin || !formData.destination) return;
     
-    const miles = calculateMiles(formData.origin, formData.destination);
+    let miles = 0;
+    
+    try {
+      const response = await fetch(`/api/maps/distance?origin=${encodeURIComponent(formData.origin)}&destination=${encodeURIComponent(formData.destination)}`);
+      const data = await response.json();
+      
+      if (data.distance) {
+        miles = data.distance;
+        setCalculatedDistance(miles);
+      } else {
+        // Fallback to hash-based calculation if API fails
+        miles = calculateMiles(formData.origin, formData.destination);
+        setCalculatedDistance(miles);
+      }
+    } catch (error) {
+      console.error("Failed to calculate distance:", error);
+      miles = calculateMiles(formData.origin, formData.destination);
+      setCalculatedDistance(miles);
+    }
+
     const baseCPM = 2.5;
     const truckMultiplier = formData.requiredTruck === "Reefer" ? 1.3 : 
                             formData.requiredTruck === "Flatbed" ? 1.2 : 1.0;
@@ -445,7 +466,7 @@ export default function CreateOrderPage() {
                     ${estimatedCost.toLocaleString()}
                   </div>
                   <div className="text-xs text-zinc-500 mt-1">
-                    {calculateMiles(formData.origin, formData.destination)} miles
+                    {calculatedDistance !== null ? calculatedDistance : calculateMiles(formData.origin, formData.destination)} miles
                   </div>
                 </div>
               )}
@@ -532,27 +553,21 @@ export default function CreateOrderPage() {
               {/* Origin & Destination */}
               <div className="grid grid-cols-2 gap-3">
                 <FormField label="Origin" required>
-                  <div className="relative">
-                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
-                    <Input
-                      className="pl-9 bg-black/20 border-zinc-800 text-zinc-300 focus:border-blue-900/50 placeholder:text-zinc-600"
-                      placeholder="Full address: Street, City, State, ZIP"
-                      value={formData.origin}
-                      onChange={(e) => handleInputChange("origin", e.target.value)}
-                    />
-                  </div>
+                  <LocationInput
+                    className="bg-black/20 border-zinc-800 text-zinc-300 focus:border-blue-900/50 placeholder:text-zinc-600"
+                    placeholder="Full address: Street, City, State, ZIP"
+                    value={formData.origin}
+                    onChange={(value) => handleInputChange("origin", value)}
+                  />
                 </FormField>
 
                 <FormField label="Destination" required>
-                  <div className="relative">
-                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
-                    <Input
-                      className="pl-9 bg-black/20 border-zinc-800 text-zinc-300 focus:border-blue-900/50 placeholder:text-zinc-600"
-                      placeholder="Full address: Street, City, State, ZIP"
-                      value={formData.destination}
-                      onChange={(e) => handleInputChange("destination", e.target.value)}
-                    />
-                  </div>
+                  <LocationInput
+                    className="bg-black/20 border-zinc-800 text-zinc-300 focus:border-blue-900/50 placeholder:text-zinc-600"
+                    placeholder="Full address: Street, City, State, ZIP"
+                    value={formData.destination}
+                    onChange={(value) => handleInputChange("destination", value)}
+                  />
                 </FormField>
               </div>
 
