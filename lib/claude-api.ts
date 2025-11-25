@@ -252,8 +252,8 @@ export async function parseOrderOCR(text?: string, imageBase64?: string): Promis
 
 **INSTRUCTIONS:**
 1. Extract customer name (shipper or company name)
-2. Extract origin/pickup location (city, state format preferred)
-3. Extract destination/delivery location (city, state format)
+2. Extract origin/pickup location (full address preferred, otherwise city, state)
+3. Extract destination/delivery location (full address preferred, otherwise city, state)
 4. Extract pickup date/time windows (start and end)
 5. Extract delivery date/time windows (start and end)
 6. Identify truck/equipment type needed (Dry Van, Flatbed, Reefer, etc.)
@@ -272,8 +272,8 @@ export async function parseOrderOCR(text?: string, imageBase64?: string): Promis
 Return ONLY a JSON object with this structure:
 {
   "customer": "Company Name or null",
-  "origin": "City, State or null",
-  "destination": "City, State or null",
+  "origin": "Full Address or City, State or null",
+  "destination": "Full Address or City, State or null",
   "puWindowStart": "ISO datetime or null",
   "puWindowEnd": "ISO datetime or null",
   "delWindowStart": "ISO datetime or null",
