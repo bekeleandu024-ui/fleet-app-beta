@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { APIProvider, Map, Marker, useMap, useMapsLibrary } from "@vis.gl/react-google-maps";
+import { APIProvider, Map, Marker, useMap, useMapsLibrary, InfoWindow } from "@vis.gl/react-google-maps";
 import { Card } from "@/components/ui/card";
 import { Chip } from "@/components/ui/chip";
 import { Truck, MapPin, Warehouse, Search, Filter, ChevronRight, Clock, AlertTriangle } from "lucide-react";
@@ -22,16 +22,20 @@ const REGION_COORDINATES: Record<string, { lat: number; lng: number }> = {
 function Directions({ 
   origin, 
   destination,
+  customsInfo,
   onRouteFound 
 }: { 
   origin: { lat: number; lng: number }, 
   destination: { lat: number; lng: number } | string,
+  customsInfo?: any,
   onRouteFound?: (result: google.maps.DirectionsResult) => void
 }) {
   const map = useMap();
   const routesLibrary = useMapsLibrary("routes");
   const [directionsService, setDirectionsService] = useState<google.maps.DirectionsService>();
   const [directionsRenderer, setDirectionsRenderer] = useState<google.maps.DirectionsRenderer>();
+  const [borderLocation, setBorderLocation] = useState<{lat: number, lng: number} | null>(null);
+  const [showBorderInfo, setShowBorderInfo] = useState(false);
 
   useEffect(() => {
     if (!routesLibrary || !map) return;
@@ -64,6 +68,30 @@ function Directions({
     }).then(response => {
       directionsRenderer.setDirections(response);
       if (onRouteFound) onRouteFound(response);
+
+      // Find border crossing
+      if (response.routes[0] && response.routes[0].legs[0]) {
+        const steps = response.routes[0].legs[0].steps;
+        const borderStep = steps.find(step => {
+          const instructions = step.instructions.toLowerCase();
+          return instructions.includes("entering united states") || 
+                 instructions.includes("entering canada") ||
+                 instructions.includes("entering michigan") || // Common crossing
+                 instructions.includes("entering new york") || // Common crossing
+                 instructions.includes("entering ontario");    // Common crossing
+        });
+
+        if (borderStep) {
+          setBorderLocation({
+            lat: borderStep.start_location.lat(),
+            lng: borderStep.start_location.lng()
+          });
+          setShowBorderInfo(true);
+        } else {
+           setBorderLocation(null);
+        }
+      }
+
     }).catch(e => console.error("Directions request failed", e));
   }, [
     directionsService, 
@@ -74,7 +102,68 @@ function Directions({
     typeof destination === 'string' ? '' : destination.lng
   ]);
 
-  return null;
+  if (!borderLocation) return null;
+
+  // Default customs info if missing
+  const info = customsInfo || {
+    crossingPoint: "Detected Crossing",
+    status: "Unknown",
+    isApproved: false,
+    submittedDocs: [],
+    requiredDocs: []
+  };
+
+  return (
+    <>
+      <Marker 
+        position={borderLocation}
+        onClick={() => setShowBorderInfo(true)}
+        icon={getMarkerIcon("#8b5cf6")} // Violet for border
+      />
+      {showBorderInfo && (
+        <InfoWindow 
+          position={borderLocation} 
+          onCloseClick={() => setShowBorderInfo(false)}
+          headerContent={<div className="font-bold text-sm">Border Crossing</div>}
+        >
+          <div className="p-2 min-w-[200px]">
+            <div className="mb-3">
+              <div className="text-xs text-gray-500 uppercase font-semibold">Crossing Point</div>
+              <div className="text-sm font-medium">{info.crossingPoint || "Detected Crossing"}</div>
+            </div>
+            
+            <div className="mb-3">
+              <div className="text-xs text-gray-500 uppercase font-semibold">Current Wait Time</div>
+              <div className="text-lg font-bold text-amber-600">15 mins</div>
+            </div>
+
+            <div>
+              <div className="text-xs text-gray-500 uppercase font-semibold mb-1">Customs Status</div>
+              <div className="flex items-center gap-2 mb-2">
+                <span className={`inline-block w-2 h-2 rounded-full ${info.isApproved ? 'bg-green-500' : 'bg-yellow-500'}`}></span>
+                <span className="text-sm font-medium">{info.status}</span>
+              </div>
+              
+              <div className="space-y-1">
+                <div className="flex justify-between text-xs">
+                  <span className="text-gray-500">Documents:</span>
+                  <span className="font-medium">
+                    {info.submittedDocs.length}/{info.requiredDocs.length || 3} Submitted
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-1.5">
+                  <div 
+                    className="bg-blue-600 h-1.5 rounded-full" 
+                    style={{ width: `${Math.min(100, (info.submittedDocs.length / (info.requiredDocs.length || 3)) * 100)}%` }}
+                  ></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </InfoWindow>
+      )}
+    </>
+  );
 }
 
 // Component to handle map camera updates
@@ -485,6 +574,7 @@ export default function MapPage() {
                      ? { lat: selectedItem.deliveryLat, lng: selectedItem.deliveryLng }
                      : selectedItem.deliveryLocation
                  }
+                 customsInfo={selectedItem.customs}
                  onRouteFound={handleRouteFound}
                />
             )}

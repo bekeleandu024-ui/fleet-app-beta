@@ -19,10 +19,16 @@ export async function GET() {
           t.dropoff_lat,
           t.dropoff_lng,
           d.driver_name,
-          u.unit_number
+          u.unit_number,
+          cc.status as customs_status,
+          cc.border_crossing_point,
+          cc.required_documents,
+          cc.submitted_documents,
+          cc.approved_at
         FROM trips t
         LEFT JOIN driver_profiles d ON t.driver_id = d.driver_id
         LEFT JOIN unit_profiles u ON t.unit_id = u.unit_id
+        LEFT JOIN customs_clearances cc ON t.id = cc.trip_id
         WHERE t.status IN ('planned', 'planning', 'assigned', 'in_transit', 'en_route_to_pickup', 'at_pickup', 'departed_pickup', 'at_delivery')
       `;
       const result = await client.query(query);
@@ -42,6 +48,13 @@ export async function GET() {
         driverName: row.driver_name || "Unknown Driver",
         unitNumber: row.unit_number || "N/A",
         speed: 0,
+        customs: {
+          status: row.customs_status || 'Pending',
+          crossingPoint: row.border_crossing_point,
+          requiredDocs: row.required_documents || [],
+          submittedDocs: row.submitted_documents || [],
+          isApproved: !!row.approved_at
+        }
       }));
 
       return NextResponse.json({ fleet: fleetData });
