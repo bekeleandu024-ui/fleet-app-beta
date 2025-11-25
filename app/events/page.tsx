@@ -160,6 +160,8 @@ export default function TripEventsPage() {
   // Quick action buttons
   const quickActions = [
     { type: "TRIP_START", label: "Trip Start" },
+    { type: "ARRIVED_PICKUP", label: "Arrived Pickup" },
+    { type: "LEFT_PICKUP", label: "Left Pickup" },
     { type: "CROSSED_BORDER", label: "Crossed Border" },
     { type: "DROP_HOOK", label: "Drop / Hook" },
     { type: "ARRIVED_DELIVERY", label: "Arrived Delivery" },

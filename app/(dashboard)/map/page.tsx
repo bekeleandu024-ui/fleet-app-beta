@@ -7,17 +7,33 @@ import { Chip } from "@/components/ui/chip";
 import { Truck, MapPin, Navigation } from "lucide-react";
 
 // Mock data for fleet - in a real app, this would come from your API
-const FLEET_LOCATIONS = [
-  { id: "TRK-001", lat: 40.7128, lng: -74.0060, status: "Moving", speed: 65, driver: "John Doe", location: "New York, NY" },
-  { id: "TRK-002", lat: 34.0522, lng: -118.2437, status: "Stopped", speed: 0, driver: "Jane Smith", location: "Los Angeles, CA" },
-  { id: "TRK-003", lat: 41.8781, lng: -87.6298, status: "Moving", speed: 58, driver: "Mike Johnson", location: "Chicago, IL" },
-  { id: "TRK-004", lat: 29.7604, lng: -95.3698, status: "Idle", speed: 0, driver: "Sarah Wilson", location: "Houston, TX" },
-  { id: "TRK-005", lat: 33.4484, lng: -112.0740, status: "Moving", speed: 70, driver: "Tom Brown", location: "Phoenix, AZ" },
-];
+
 
 export default function MapPage() {
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-  const [selectedTruck, setSelectedTruck] = useState<typeof FLEET_LOCATIONS[0] | null>(null);
+  const [fleetLocations, setFleetLocations] = useState<any[]>([]);
+  const [selectedTruck, setSelectedTruck] = useState<any | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchFleetData = async () => {
+      try {
+        const response = await fetch("/api/map/fleet");
+        const data = await response.json();
+        if (data.fleet) {
+          setFleetLocations(data.fleet);
+        }
+      } catch (error) {
+        console.error("Error fetching fleet data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFleetData();
+    const interval = setInterval(fetchFleetData, 30000); // Refresh every 30s
+    return () => clearInterval(interval);
+  }, []);
 
   if (!apiKey) {
     return (
@@ -48,10 +64,9 @@ export default function MapPage() {
             defaultZoom={4}
             mapId="fleet-map"
             className="w-full h-full"
-            options={{
-              disableDefaultUI: true,
-              zoomControl: true,
-              styles: [
+            disableDefaultUI={true}
+            zoomControl={true}
+            styles={[
                 {
                   elementType: "geometry",
                   stylers: [{ color: "#242f3e" }],
@@ -129,26 +144,27 @@ export default function MapPage() {
                   elementType: "labels.text.stroke",
                   stylers: [{ color: "#17263c" }],
                 },
-              ],
-            }}
+              ]}
           >
-            {FLEET_LOCATIONS.map((truck) => (
-              <AdvancedMarker
-                key={truck.id}
-                position={{ lat: truck.lat, lng: truck.lng }}
-                onClick={() => setSelectedTruck(truck)}
-              >
-                <div className="relative group">
-                  <div className={`p-2 rounded-full border-2 ${
-                    truck.status === "Moving" 
-                      ? "bg-emerald-500/20 border-emerald-500 text-emerald-400" 
-                      : "bg-amber-500/20 border-amber-500 text-amber-400"
-                  } transition-transform hover:scale-110`}>
-                    <Truck className="w-4 h-4" />
+            {fleetLocations.map((truck) => (
+              truck.lat && truck.lng ? (
+                <AdvancedMarker
+                  key={truck.id}
+                  position={{ lat: truck.lat, lng: truck.lng }}
+                  onClick={() => setSelectedTruck(truck)}
+                >
+                  <div className="relative group">
+                    <div className={`p-2 rounded-full border-2 ${
+                      truck.status === "in_transit" || truck.status === "en_route_to_pickup"
+                        ? "bg-emerald-500/20 border-emerald-500 text-emerald-400" 
+                        : "bg-amber-500/20 border-amber-500 text-amber-400"
+                    } transition-transform hover:scale-110`}>
+                      <Truck className="w-4 h-4" />
+                    </div>
+                    <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-current rounded-full" />
                   </div>
-                  <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-current rounded-full" />
-                </div>
-              </AdvancedMarker>
+                </AdvancedMarker>
+              ) : null
             ))}
           </Map>
         </APIProvider>
@@ -160,11 +176,11 @@ export default function MapPage() {
             <div className="flex items-center gap-4 text-xs text-zinc-400">
               <div className="flex items-center gap-1">
                 <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                <span>Moving ({FLEET_LOCATIONS.filter(t => t.status === "Moving").length})</span>
+                <span>Moving ({fleetLocations.filter(t => t.status === "in_transit" || t.status === "en_route_to_pickup").length})</span>
               </div>
               <div className="flex items-center gap-1">
                 <div className="w-2 h-2 rounded-full bg-amber-500" />
-                <span>Stopped ({FLEET_LOCATIONS.filter(t => t.status !== "Moving").length})</span>
+                <span>Stopped ({fleetLocations.filter(t => t.status !== "in_transit" && t.status !== "en_route_to_pickup").length})</span>
               </div>
             </div>
           </Card>
@@ -174,7 +190,7 @@ export default function MapPage() {
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <Truck className="w-4 h-4 text-blue-400" />
-                  <span className="font-semibold text-white">{selectedTruck.id}</span>
+                  <span className="font-semibold text-white">{selectedTruck.unitNumber}</span>
                 </div>
                 <button 
                   onClick={() => setSelectedTruck(null)}
@@ -187,19 +203,21 @@ export default function MapPage() {
               <div className="space-y-3">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-zinc-400">Status</span>
-                  <Chip tone={selectedTruck.status === "Moving" ? "success" : "warning"}>
+                  <Chip tone={selectedTruck.status === "in_transit" ? "ok" : "warn"}>
                     {selectedTruck.status}
                   </Chip>
                 </div>
                 
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-zinc-400">Driver</span>
-                  <span className="text-zinc-200">{selectedTruck.driver}</span>
+                  <span className="text-zinc-200">{selectedTruck.driverName}</span>
                 </div>
 
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-zinc-400">Speed</span>
-                  <span className="text-zinc-200">{selectedTruck.speed} mph</span>
+                  <span className="text-zinc-400">Last Update</span>
+                  <span className="text-zinc-200">
+                    {selectedTruck.lastUpdate ? new Date(selectedTruck.lastUpdate).toLocaleTimeString() : "N/A"}
+                  </span>
                 </div>
 
                 <div className="pt-3 border-t border-zinc-800">
