@@ -16,12 +16,18 @@ export async function GET(request: NextRequest) {
 
     // Fetch events from tracking service
     const query = tripId ? `?tripId=${tripId}` : "";
-    const eventsResponse = await serviceFetch<{ events: any[] }>("tracking", `/trip-events${query}`);
     
-    // Fetch all trips to enrich event data
-    // In a real production app, we might want to optimize this or do a join in the backend
-    const tripsResponse = await serviceFetch<any>("tracking", "/api/trips");
+    // Parallel fetch for events, trips, drivers, and units
+    const [eventsResponse, tripsResponse, driversResult, unitsResult] = await Promise.all([
+      serviceFetch<{ events: any[] }>("tracking", `/trip-events${query}`),
+      serviceFetch<any>("tracking", "/api/trips"),
+      serviceFetch<{ drivers?: Array<Record<string, any>> }>("masterData", "/api/metadata/drivers").catch(() => ({ drivers: [] })),
+      serviceFetch<{ units?: Array<Record<string, any>> }>("masterData", "/api/metadata/units").catch(() => ({ units: [] })),
+    ]);
+
     const allTrips = Array.isArray(tripsResponse) ? tripsResponse : (tripsResponse?.value || []);
+    const drivers = driversResult?.drivers || [];
+    const units = unitsResult?.units || [];
 
     // Normalize and enrich events
     const enrichedEvents = (eventsResponse.events || []).map((event: any) => {
@@ -38,12 +44,23 @@ export async function GET(request: NextRequest) {
       // Attach trip details
       const trip = allTrips.find((t: any) => t.id === normalizedEvent.tripId);
       
+      let driverName = "Unknown Driver";
+      let unitNumber = "Unknown Unit";
+
+      if (trip) {
+        const driver = drivers.find((d: any) => d.driver_id === trip.driver_id || d.id === trip.driver_id);
+        const unit = units.find((u: any) => u.unit_id === trip.unit_id || u.id === trip.unit_id);
+        
+        driverName = driver?.driver_name || driver?.name || trip.driver_id || "Unknown Driver";
+        unitNumber = unit?.unit_number || unit?.unit_id || trip.unit_id || "Unknown Unit";
+      }
+      
       return {
         ...normalizedEvent,
         trip: trip ? {
           ...trip,
-          driver: trip.driver_name || "Unknown Driver", // Map backend fields if needed
-          unit: trip.unit_number || "Unknown Unit",
+          driver: driverName,
+          unit: unitNumber,
         } : undefined
       };
     });
@@ -95,13 +112,13 @@ export async function POST(request: NextRequest) {
     if (newStatus) {
       // Update trip status
       try {
-        // Update trip status in tracking service (where trips are managed in demo data)
-        await serviceFetch("tracking", `/api/trips/${tripId}`, {
+        // Update trip status in tracking service
+        await serviceFetch("tracking", `/api/trips/${tripId}/status`, {
             method: "PATCH",
             body: {
               status: newStatus,
-              lastEvent: eventType,
-              lastEventTime: eventPayload.timestamp,
+              triggeredBy: actor || "system",
+              reason: `Event: ${eventLabel}`,
             }
         });
 

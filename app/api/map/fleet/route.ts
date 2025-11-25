@@ -7,7 +7,7 @@ export async function GET() {
     const tripsResponse = await serviceFetch<any>("tracking", "/api/trips");
     const allTrips = Array.isArray(tripsResponse) ? tripsResponse : (tripsResponse.value || []);
     
-    const activeStatuses = ["planning", "assigned", "in_transit", "en_route_to_pickup", "at_pickup", "departed_pickup", "at_delivery"];
+    const activeStatuses = ["planned", "planning", "assigned", "in_transit", "en_route_to_pickup", "at_pickup", "departed_pickup", "at_delivery"];
     const activeTrips = allTrips.filter((t: any) => activeStatuses.includes(t.status.toLowerCase()));
 
     // 2. Fetch drivers and units for names
@@ -32,8 +32,12 @@ export async function GET() {
         
         const lastEvent = sortedEvents[0];
         
-        let lat = lastEvent?.coordinates?.lat || lastEvent?.lat;
-        let lng = lastEvent?.coordinates?.lon || lastEvent?.lon;
+        // Extract coordinates from event_data (backend structure) or top level
+        const eventData = lastEvent?.event_data || lastEvent?.payload || {};
+        const coords = eventData.coordinates || lastEvent?.coordinates;
+        
+        let lat = coords?.lat || lastEvent?.lat;
+        let lng = coords?.lng || coords?.lon || lastEvent?.lng || lastEvent?.lon;
         
         // Find driver and unit names
         const driver = drivers.find((d: any) => d.driver_id === trip.driver_id || d.id === trip.driver_id);
@@ -47,7 +51,7 @@ export async function GET() {
           driverId: trip.driver_id,
           unitId: trip.unit_id,
           status: trip.status,
-          location: lastEvent?.location || trip.pickup_location, // Fallback to pickup
+          location: eventData.location || lastEvent?.location || trip.pickup_location, // Fallback to pickup
           lat: lat ? parseFloat(lat) : undefined,
           lng: lng ? parseFloat(lng) : undefined,
           lastUpdate: lastEvent?.timestamp || trip.updated_at,
