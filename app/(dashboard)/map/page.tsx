@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { APIProvider, Map, AdvancedMarker, useMap, useMapsLibrary } from "@vis.gl/react-google-maps";
+import { APIProvider, Map, Marker, useMap, useMapsLibrary } from "@vis.gl/react-google-maps";
 import { Card } from "@/components/ui/card";
 import { Chip } from "@/components/ui/chip";
 import { Truck, MapPin, Warehouse, Search, Filter, ChevronRight, Clock, AlertTriangle } from "lucide-react";
@@ -41,7 +41,7 @@ function Directions({
       suppressMarkers: true, // We have our own markers
       preserveViewport: false,
       polylineOptions: {
-        strokeColor: "#10b981", // Emerald-500
+        strokeColor: "#3b82f6", // Blue-500
         strokeWeight: 5,
         strokeOpacity: 0.8
       }
@@ -90,6 +90,16 @@ function MapUpdater({ center }: { center: { lat: number; lng: number } | null })
 
   return null;
 }
+
+// Helper to generate SVG marker icons
+const getMarkerIcon = (color: string) => {
+  const svg = `
+    <svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="12" cy="12" r="9" fill="${color}" stroke="white" stroke-width="2"/>
+      <circle cx="12" cy="12" r="3" fill="white" fill-opacity="0.5"/>
+    </svg>`;
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+};
 
 export default function MapPage() {
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
@@ -357,89 +367,111 @@ export default function MapPage() {
           <Map
             defaultCenter={{ lat: 39.8283, lng: -98.5795 }}
             defaultZoom={4}
-            mapId="fleet-map"
             className="w-full h-full"
             disableDefaultUI={true}
             zoomControl={true}
             styles={[
-                {
-                  elementType: "geometry",
-                  stylers: [{ color: "#242f3e" }],
-                },
-                {
-                  elementType: "labels.text.stroke",
-                  stylers: [{ color: "#242f3e" }],
-                },
-                {
-                  elementType: "labels.text.fill",
-                  stylers: [{ color: "#746855" }],
-                },
-                {
-                  featureType: "administrative.locality",
-                  elementType: "labels.text.fill",
-                  stylers: [{ color: "#d59563" }],
-                },
-                {
-                  featureType: "poi",
-                  elementType: "labels.text.fill",
-                  stylers: [{ color: "#d59563" }],
-                },
-                {
-                  featureType: "poi.park",
-                  elementType: "geometry",
-                  stylers: [{ color: "#263c3f" }],
-                },
-                {
-                  featureType: "poi.park",
-                  elementType: "labels.text.fill",
-                  stylers: [{ color: "#6b9a76" }],
-                },
-                {
-                  featureType: "road",
-                  elementType: "geometry",
-                  stylers: [{ color: "#38414e" }],
-                },
-                {
-                  featureType: "road",
-                  elementType: "geometry.stroke",
-                  stylers: [{ color: "#212a37" }],
-                },
-                {
-                  featureType: "road",
-                  elementType: "labels.text.fill",
-                  stylers: [{ color: "#9ca5b3" }],
-                },
-                {
-                  featureType: "road.highway",
-                  elementType: "geometry",
-                  stylers: [{ color: "#746855" }],
-                },
-                {
-                  featureType: "road.highway",
-                  elementType: "geometry.stroke",
-                  stylers: [{ color: "#1f2835" }],
-                },
-                {
-                  featureType: "road.highway",
-                  elementType: "labels.text.fill",
-                  stylers: [{ color: "#f3d19c" }],
-                },
-                {
-                  featureType: "water",
-                  elementType: "geometry",
-                  stylers: [{ color: "#17263c" }],
-                },
-                {
-                  featureType: "water",
-                  elementType: "labels.text.fill",
-                  stylers: [{ color: "#515c6d" }],
-                },
-                {
-                  featureType: "water",
-                  elementType: "labels.text.stroke",
-                  stylers: [{ color: "#17263c" }],
-                },
-              ]}
+              {
+                elementType: "geometry",
+                stylers: [{ color: "#212121" }],
+              },
+              {
+                elementType: "labels.icon",
+                stylers: [{ visibility: "off" }],
+              },
+              {
+                elementType: "labels.text.fill",
+                stylers: [{ color: "#757575" }],
+              },
+              {
+                elementType: "labels.text.stroke",
+                stylers: [{ color: "#212121" }],
+              },
+              {
+                featureType: "administrative",
+                elementType: "geometry",
+                stylers: [{ color: "#757575" }],
+              },
+              {
+                featureType: "administrative.country",
+                elementType: "labels.text.fill",
+                stylers: [{ color: "#9e9e9e" }],
+              },
+              {
+                featureType: "administrative.land_parcel",
+                stylers: [{ visibility: "off" }],
+              },
+              {
+                featureType: "administrative.locality",
+                elementType: "labels.text.fill",
+                stylers: [{ color: "#bdbdbd" }],
+              },
+              {
+                featureType: "poi",
+                elementType: "labels.text.fill",
+                stylers: [{ color: "#757575" }],
+              },
+              {
+                featureType: "poi.park",
+                elementType: "geometry",
+                stylers: [{ color: "#181818" }],
+              },
+              {
+                featureType: "poi.park",
+                elementType: "labels.text.fill",
+                stylers: [{ color: "#616161" }],
+              },
+              {
+                featureType: "poi.park",
+                elementType: "labels.text.stroke",
+                stylers: [{ color: "#1b1b1b" }],
+              },
+              {
+                featureType: "road",
+                elementType: "geometry.fill",
+                stylers: [{ color: "#2c2c2c" }],
+              },
+              {
+                featureType: "road",
+                elementType: "labels.text.fill",
+                stylers: [{ color: "#8a8a8a" }],
+              },
+              {
+                featureType: "road.arterial",
+                elementType: "geometry",
+                stylers: [{ color: "#373737" }],
+              },
+              {
+                featureType: "road.highway",
+                elementType: "geometry",
+                stylers: [{ color: "#3c3c3c" }],
+              },
+              {
+                featureType: "road.highway.controlled_access",
+                elementType: "geometry",
+                stylers: [{ color: "#4e4e4e" }],
+              },
+              {
+                featureType: "road.local",
+                elementType: "labels.text.fill",
+                stylers: [{ color: "#616161" }],
+              },
+              {
+                featureType: "transit",
+                elementType: "labels.text.fill",
+                stylers: [{ color: "#757575" }],
+              },
+              {
+                featureType: "water",
+                elementType: "geometry",
+                stylers: [{ color: "#000000" }],
+              },
+              {
+                featureType: "water",
+                elementType: "labels.text.fill",
+                stylers: [{ color: "#3d3d3d" }],
+              },
+            ]}
           >
             <MapUpdater center={mapCenter} />
             
@@ -459,38 +491,26 @@ export default function MapPage() {
             
             {(viewMode === "all" || viewMode === "trips") && fleetLocations.map((truck) => (
               truck.lat && truck.lng ? (
-                <AdvancedMarker
+                <Marker
                   key={truck.id}
                   position={{ lat: truck.lat, lng: truck.lng }}
                   onClick={() => handleItemSelect(truck)}
-                >
-                  <div className="relative group">
-                    <div className={`p-2 rounded-full border-2 ${
-                      truck.status === "in_transit" || truck.status === "en_route_to_pickup"
-                        ? "bg-emerald-500/20 border-emerald-500 text-emerald-400" 
-                        : "bg-amber-500/20 border-amber-500 text-amber-400"
-                    } transition-transform hover:scale-110 ${selectedItem?.id === truck.id ? "scale-125 ring-2 ring-white" : ""}`}>
-                      <Truck className="w-4 h-4" />
-                    </div>
-                    <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-current rounded-full" />
-                  </div>
-                </AdvancedMarker>
+                  icon={getMarkerIcon(
+                    truck.status === "in_transit" || truck.status === "en_route_to_pickup"
+                      ? "#10b981" // emerald-500
+                      : "#f59e0b" // amber-500
+                  )}
+                />
               ) : null
             ))}
 
             {(viewMode === "all" || viewMode === "staged") && stagedUnits.map((unit) => (
-              <AdvancedMarker
+              <Marker
                 key={unit.id}
                 position={{ lat: unit.lat, lng: unit.lng }}
                 onClick={() => handleItemSelect(unit)}
-              >
-                <div className="relative group">
-                  <div className={`p-2 rounded-full border-2 bg-blue-500/20 border-blue-500 text-blue-400 transition-transform hover:scale-110 ${selectedItem?.id === unit.id ? "scale-125 ring-2 ring-white" : ""}`}>
-                    <Warehouse className="w-4 h-4" />
-                  </div>
-                  <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-current rounded-full" />
-                </div>
-              </AdvancedMarker>
+                icon={getMarkerIcon("#3b82f6")} // blue-500
+              />
             ))}
           </Map>
         </APIProvider>
