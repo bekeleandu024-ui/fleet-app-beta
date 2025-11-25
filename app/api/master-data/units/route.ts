@@ -10,6 +10,8 @@ type UnitRecord = {
   updated: string;
   type: string;
   location: string;
+  lat?: number;
+  lng?: number;
 };
 
 export async function GET() {
@@ -39,6 +41,8 @@ function transformUnits(records: Array<Record<string, any>>): UnitRecord[] {
       updated: unit.updated ?? new Date().toISOString(),
       type: unit.unit_type ?? unit.type ?? "Unknown",
       location: unit.current_location ?? unit.location ?? "Fleet Yard",
+      lat: unit.lat ? parseFloat(unit.lat) : undefined,
+      lng: unit.lng ? parseFloat(unit.lng) : (unit.lon ? parseFloat(unit.lon) : undefined),
     };
   });
 }
