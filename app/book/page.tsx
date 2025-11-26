@@ -125,11 +125,20 @@ export default function BookTripPage() {
       fetch("/api/units?active=true&isOnHold=false").then(r => r.json()),
       fetch("/api/rates").then(r => r.json()),
     ]).then(([ordersResponse, driversData, unitsData, ratesData]) => {
-      const ordersList = ordersResponse.data || ordersResponse;
+      const ordersList = Array.isArray(ordersResponse?.data) ? ordersResponse.data : 
+                         Array.isArray(ordersResponse) ? ordersResponse : [];
       setOrders(ordersList);
-      setDrivers(driversData.data || driversData);
-      setUnits(unitsData.data || unitsData);
-      setRates(ratesData);
+      
+      const driversList = Array.isArray(driversData?.data) ? driversData.data : 
+                          Array.isArray(driversData) ? driversData : [];
+      setDrivers(driversList);
+      
+      const unitsList = Array.isArray(unitsData?.data) ? unitsData.data : 
+                        Array.isArray(unitsData) ? unitsData : [];
+      setUnits(unitsList);
+      
+      const ratesList = Array.isArray(ratesData) ? ratesData : [];
+      setRates(ratesList);
     }).catch(err => {
       console.error("Error fetching data:", err);
     });

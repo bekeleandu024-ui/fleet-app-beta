@@ -171,35 +171,20 @@ export function EventFeed({
                 <div className="w-2 h-2 rounded-full bg-emerald-500 mt-1.5 shadow-[0_0_8px_rgba(16,185,129,0.4)]" />
                 <div className="flex-1">
                   <div className="text-zinc-200">{trip.pickup || "Origin"}</div>
-                  {/* Pickup Events */}
-                  <div className="mt-2 space-y-1">
-                    {events
-                      .filter(e => ['TRIP_START', 'ARRIVED_PICKUP', 'LEFT_PICKUP'].includes(e.eventType))
-                      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
-                      .map(event => (
-                      <div key={event.id} className="flex items-center gap-2 text-xs text-zinc-400 pl-2 border-l-2 border-zinc-800 ml-1">
-                        <span className="text-emerald-400 font-medium">{event.eventLabel}</span>
-                        <span className="text-zinc-600">•</span>
-                        <span>{new Date(event.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                        {event.location ? (
-                          <span className="text-zinc-600 hidden sm:inline">• {event.location}</span>
-                        ) : (event.lat && event.lon) ? (
-                          <span className="text-zinc-600 hidden sm:inline">• {event.lat.toFixed(4)}, {event.lon.toFixed(4)}</span>
-                        ) : null}
-                      </div>
-                    ))}
-                  </div>
                 </div>
               </div>
               
               <div className="ml-[3px] border-l-2 border-dashed border-zinc-800 pb-2">
                 <div className="pl-6 pt-2 space-y-1">
                   {events
-                    .filter(e => ['ARRIVED_DELIVERY', 'LEFT_DELIVERY', 'TRIP_FINISHED'].includes(e.eventType))
                     .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
                     .map(event => (
                     <div key={event.id} className="flex items-center gap-2 text-xs text-zinc-400">
-                      <span className="text-rose-400 font-medium">{event.eventLabel}</span>
+                      <span className={`${
+                        ['TRIP_START', 'ARRIVED_PICKUP', 'LEFT_PICKUP'].includes(event.eventType) ? "text-emerald-400" :
+                        ['ARRIVED_DELIVERY', 'LEFT_DELIVERY', 'TRIP_FINISHED'].includes(event.eventType) ? "text-rose-400" :
+                        "text-blue-400"
+                      } font-medium`}>{event.eventLabel}</span>
                       <span className="text-zinc-600">•</span>
                       <span>{new Date(event.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                       {event.location ? (
