@@ -39,7 +39,30 @@ export async function POST(
       else if (eventType === 'LEFT_DELIVERY') newStatus = 'completed'; 
 
       if (newStatus) {
-        await client.query(`UPDATE trips SET status = $1, updated_at = NOW() WHERE id = $2`, [newStatus, id]);
+        const tripUpdateRes = await client.query(
+          `UPDATE trips SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING order_id`, 
+          [newStatus, id]
+        );
+
+        // Sync status to Order
+        if (tripUpdateRes.rows.length > 0) {
+          const orderId = tripUpdateRes.rows[0].order_id;
+          if (orderId) {
+            let orderStatus = null;
+            // Map trip status to order status
+            if (newStatus === 'in_transit') orderStatus = 'In Transit';
+            else if (newStatus === 'completed') orderStatus = 'Delivered';
+            else if (newStatus === 'at_pickup') orderStatus = 'In Transit'; // Once at pickup, it's started
+            else if (newStatus === 'at_delivery') orderStatus = 'In Transit';
+
+            if (orderStatus) {
+              await client.query(
+                `UPDATE orders SET status = $1, updated_at = NOW() WHERE id = $2`, 
+                [orderStatus, orderId]
+              );
+            }
+          }
+        }
       }
       
       // Update specific timestamps and location

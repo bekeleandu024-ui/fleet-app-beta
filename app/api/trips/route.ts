@@ -90,12 +90,14 @@ function transformTripRow(row: any): TripListItem {
     pickupWindow: row.pickup_window_start ? new Date(row.pickup_window_start).toLocaleString() : undefined,
     distance: Number(row.planned_miles) || 0,
     duration: duration,
-    latestStartTime: undefined, // Simplified
     commodity: "General",
     driverType: "RNR",
     totalCost: 0, // Simplified
     totalCpm: 0, // Simplified
     serviceLevel: "STANDARD",
+    completedAt: (row.completed_at || row.delivery_departure || row.closed_at) 
+      ? new Date(row.completed_at || row.delivery_departure || row.closed_at).toISOString() 
+      : undefined,
   };
 }
 
@@ -117,6 +119,126 @@ function buildTripsResponse(trips: TripListItem[]) {
     },
     data: trips,
   };
+}
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    const { 
+      orderId, 
+      driverId, 
+      unitId, 
+      miles, 
+      stops 
+    } = body;
+
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      // Extract locations from stops
+      const pickupStop = stops?.find((s: any) => s.stopType === 'Pickup');
+      const deliveryStop = stops?.find((s: any) => s.stopType === 'Delivery');
+      
+      const pickupLocation = pickupStop?.name || "Unknown";
+      const dropoffLocation = deliveryStop?.name || "Unknown";
+      const plannedStart = pickupStop?.scheduledAt || new Date().toISOString();
+
+      // Create Trip
+      const tripRes = await client.query(`
+        INSERT INTO trips (
+          id,
+          order_id,
+          driver_id,
+          unit_id,
+          status,
+          pickup_location,
+          dropoff_location,
+          planned_start,
+          planned_miles,
+          created_at,
+          updated_at
+        ) VALUES (
+          gen_random_uuid(),
+          $1,
+          $2,
+          $3,
+          'assigned',
+          $4,
+          $5,
+          $6,
+          $7,
+          NOW(),
+          NOW()
+        ) RETURNING id
+      `, [
+        orderId,
+        driverId,
+        unitId,
+        pickupLocation,
+        dropoffLocation,
+        plannedStart,
+        miles
+      ]);
+
+      const tripId = tripRes.rows[0].id;
+
+      // Insert Stops
+      if (stops && stops.length > 0) {
+        for (const stop of stops) {
+           await client.query(`
+            INSERT INTO trip_stops (
+              id,
+              trip_id,
+              sequence,
+              type,
+              location,
+              window_start,
+              created_at,
+              updated_at
+            ) VALUES (
+              gen_random_uuid(),
+              $1,
+              $2,
+              $3,
+              $4,
+              $5,
+              NOW(),
+              NOW()
+            )
+           `, [
+             tripId,
+             stop.sequence,
+             stop.stopType,
+             stop.name,
+             stop.scheduledAt
+           ]);
+        }
+      }
+
+      // Update Order Status
+      await client.query(`
+        UPDATE orders 
+        SET status = 'Planning', updated_at = NOW() 
+        WHERE id = $1
+      `, [orderId]);
+
+      await client.query('COMMIT');
+
+      return NextResponse.json({ success: true, id: tripId });
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    console.error("Error creating trip:", error);
+    return NextResponse.json(
+      { error: "Failed to create trip" },
+      { status: 500 }
+    );
+  }
 }
 
 

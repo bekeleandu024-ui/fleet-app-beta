@@ -6,7 +6,7 @@ import { TripListItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { enrichTripAction } from "@/app/actions/enrich-trip";
 import { closeTrip } from "@/app/actions/close-trip";
-import { XCircle } from "lucide-react";
+import { XCircle, CheckCircle } from "lucide-react";
 
 interface TripTicketCardProps {
   trip: TripListItem;
@@ -121,19 +121,6 @@ export function TripTicketCard({ trip, className, onClick }: TripTicketCardProps
           </div>
           
           <div className="h-8 w-px bg-zinc-800 shrink-0" />
-
-          <div className="min-w-max">
-            <p className="text-[10px] uppercase tracking-wide text-zinc-500 mb-1">Latest Start</p>
-            <p className="text-sm text-amber-400 font-medium">
-              {isLoadingEnrichment ? (
-                <span className="animate-pulse">Calculating...</span>
-              ) : (
-                displayLatestStart || "--"
-              )}
-            </p>
-          </div>
-          
-          <div className="h-8 w-px bg-zinc-800 shrink-0" />
           
           <div className="min-w-max">
             <p className="text-[10px] uppercase tracking-wide text-zinc-500 mb-1">Distance</p>
@@ -224,21 +211,35 @@ export function TripTicketCard({ trip, className, onClick }: TripTicketCardProps
       </div>
 
       {/* Trip Progress Section */}
-      <div className="mt-4 pt-4 border-t border-zinc-800">
-        <div className="flex items-center justify-between mb-2">
+      {(trip.status === "Closed" || trip.status === "Completed") ? (
+        <div className="mt-4 pt-4 border-t border-zinc-800 flex items-center gap-4">
           <div className="flex items-center gap-2">
-            <p className="text-xs font-medium text-zinc-400">Trip Progress</p>
-            <span className="text-xs font-bold text-blue-400 uppercase">{trip.status}</span>
+            <CheckCircle className="h-4 w-4 text-emerald-500" />
+            <span className="text-xs font-bold text-emerald-500 uppercase">Closed and Complete</span>
           </div>
-          <span className="text-xs text-zinc-600">Delivered</span>
+          {trip.completedAt && (
+            <span className="text-xs text-zinc-500">
+              — Delivered: {new Date(trip.completedAt).toLocaleString()}
+            </span>
+          )}
         </div>
-        <div className="h-2 w-full bg-zinc-800 rounded-full overflow-hidden">
-          <div 
-            className="h-full bg-blue-600 rounded-full transition-all duration-500"
-            style={{ width: getProgressWidth(trip.status) }}
-          />
+      ) : (
+        <div className="mt-4 pt-4 border-t border-zinc-800">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <p className="text-xs font-medium text-zinc-400">Trip Progress</p>
+              <span className="text-xs font-bold text-blue-400 uppercase">{trip.status}</span>
+            </div>
+            <span className="text-xs text-zinc-600">Delivered</span>
+          </div>
+          <div className="h-2 w-full bg-zinc-800 rounded-full overflow-hidden">
+            <div 
+              className="h-full bg-blue-600 rounded-full transition-all duration-500"
+              style={{ width: getProgressWidth(trip.status) }}
+            />
+          </div>
         </div>
-      </div>
+      )}
     </Card>
   );
 }

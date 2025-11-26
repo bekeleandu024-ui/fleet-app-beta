@@ -1,18 +1,22 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { MapPin, Navigation, Truck, CheckCircle, Clock, Mic, MicOff, Loader2 } from "lucide-react";
+import { MapPin, Navigation, Mic, MicOff, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { processVoiceCommand } from "@/app/actions/voice-actions";
+import { EventFeed } from "@/components/trip-events/event-feed"; // Import EventFeed
 
 interface Trip {
   id: string;
+  tripNumber?: string;
   driver: string;
   unit: string;
   status: string;
   pickup: string;
   delivery: string;
+  eta?: string;
+  lastPing?: string;
 }
 
 interface TripEvent {
@@ -341,35 +345,12 @@ export default function TripEventsPage() {
             </div>
 
             {/* Recent History */}
-            <Card className="border-zinc-800 bg-zinc-900/50 p-6">
-              <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold text-zinc-300">
-                <Clock className="h-4 w-4" />
-                Recent Activity Log
-              </h3>
-              <div className="space-y-4">
-                {events.slice(0, 5).map((event) => (
-                  <div key={event.id} className="flex items-start gap-4 border-b border-zinc-800 pb-4 last:border-0 last:pb-0">
-                    <div className="mt-1 rounded-full bg-zinc-800 p-2">
-                      <CheckCircle className="h-4 w-4 text-blue-400" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-white">{event.stopLabel}</p>
-                      <p className="text-xs text-zinc-400">
-                        {new Date(event.timestamp).toLocaleString()} • {event.trip?.driver}
-                      </p>
-                      {event.lat && (
-                        <p className="text-[10px] text-zinc-600">
-                          Loc: {event.lat}, {event.lon}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                ))}
-                {events.length === 0 && (
-                  <p className="text-center text-sm text-zinc-500">No events recorded yet.</p>
-                )}
-              </div>
-            </Card>
+            <EventFeed 
+              tripId={selectedTripId || null} 
+              trip={selectedTrip}
+              refreshTrigger={events.length} // Trigger refresh when local events update
+              className="border-zinc-800 bg-zinc-900/50"
+            />
           </div>
         </div>
       </div>

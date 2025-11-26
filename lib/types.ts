@@ -212,6 +212,7 @@ export const tripListItemSchema = z.object({
   totalCost: z.number().optional(),
   totalCpm: z.number().optional(),
   serviceLevel: z.string().optional(),
+  completedAt: z.string().optional(),
 });
 export type TripListItem = z.infer<typeof tripListItemSchema>;
 

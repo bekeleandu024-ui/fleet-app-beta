@@ -389,12 +389,24 @@ export default function OrdersPage() {
                   >
                     View details
                   </button>
-                  <button
-                    onClick={() => router.push(`/book?orderId=${order.id}`)}
-                    className="px-3 py-1 text-xs font-medium text-blue-200 bg-blue-950/50 hover:bg-blue-900/50 border border-blue-800/50 rounded shadow-md shadow-blue-900/20 hover:shadow-blue-900/30 transition-all duration-200"
-                  >
-                    Book Trip
-                  </button>
+                  {order.status === "Delivered" ? (
+                    <div className="flex items-center gap-2 px-3 py-1 rounded bg-emerald-500/10 border border-emerald-500/20">
+                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                      <span className="text-xs font-medium text-emerald-400">Completed</span>
+                    </div>
+                  ) : order.status === "In Transit" ? (
+                    <div className="flex items-center gap-2 px-3 py-1 rounded bg-blue-500/10 border border-blue-500/20">
+                      <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                      <span className="text-xs font-medium text-blue-400">In Transit</span>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => router.push(`/book?orderId=${order.id}`)}
+                      className="px-3 py-1 text-xs font-medium text-blue-200 bg-blue-950/50 hover:bg-blue-900/50 border border-blue-800/50 rounded shadow-md shadow-blue-900/20 hover:shadow-blue-900/30 transition-all duration-200"
+                    >
+                      Book Trip
+                    </button>
+                  )}
                 </div>
               </div>
             );

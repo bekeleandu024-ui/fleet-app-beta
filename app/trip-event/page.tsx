@@ -277,7 +277,11 @@ export default function TripEventPage() {
 
           {/* Right Column - Event Feed */}
           <div className="col-span-4 overflow-y-auto">
-            <EventFeed tripId={selectedTrip?.id || null} key={lastEventType} />
+            <EventFeed 
+              tripId={selectedTrip?.id || null} 
+              trip={selectedTrip}
+              key={lastEventType} 
+            />
           </div>
         </div>
       </div>
