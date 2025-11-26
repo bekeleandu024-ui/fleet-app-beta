@@ -20,6 +20,7 @@ const navItems = [
   },
   { label: "Book Trip", href: "/book", match: (pathname: string) => pathname.startsWith("/book") },
   { label: "Trips", href: "/trips", match: (pathname: string) => pathname === "/trips" },
+  { label: "Closed Trips", href: "/trips/closed", match: (pathname: string) => pathname === "/trips/closed" },
   { label: "Customs", href: "/customs", match: (pathname: string) => pathname.startsWith("/customs") },
   { label: "Costing Dashboard", href: "/costing", match: (pathname: string) => pathname.startsWith("/costing") },
   { label: "Map", href: "/map", match: (pathname: string) => pathname.startsWith("/map") },

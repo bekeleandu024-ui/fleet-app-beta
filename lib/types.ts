@@ -57,6 +57,7 @@ export const orderStatusSchema = z.enum([
   "At Risk",
   "Delivered",
   "Exception",
+  "Closed",
 ]);
 export type OrderStatus = z.infer<typeof orderStatusSchema>;
 

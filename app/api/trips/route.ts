@@ -29,8 +29,12 @@ export async function GET(request: Request) {
       
       query += ` ORDER BY t.created_at DESC`;
 
+      console.log(`Fetching trips with statusFilter: ${statusFilter}`);
+
       const result = await client.query(query);
       
+      console.log(`Found ${result.rows.length} trips`);
+
       const trips = result.rows.map(transformTripRow);
       return NextResponse.json(buildTripsResponse(trips));
     } finally {
@@ -62,7 +66,11 @@ function transformTripRow(row: any): TripListItem {
 
   const driverName = row.driver_name || "Unknown Driver";
   const unitName = row.unit_number || "N/A";
-  const eta = row.completed_at || row.planned_start || new Date().toISOString();
+  
+  // Helper to safely convert date to ISO string
+  const toISO = (date: any) => date ? new Date(date).toISOString() : new Date().toISOString();
+  
+  const eta = toISO(row.completed_at || row.planned_start);
   const duration = row.planned_miles ? Math.round((row.planned_miles / 50) * 10) / 10 : undefined;
 
   return {
@@ -70,17 +78,17 @@ function transformTripRow(row: any): TripListItem {
     tripNumber: row.id.slice(0, 8).toUpperCase(),
     driver: driverName,
     unit: unitName,
-    pickup: row.pickup_location,
-    delivery: row.dropoff_location,
+    pickup: row.pickup_location || "Unknown",
+    delivery: row.dropoff_location || "Unknown",
     eta,
     status: statusMap[row.status?.toLowerCase()] || row.status || "Unknown",
     exceptions: 0,
-    lastPing: row.updated_at,
+    lastPing: toISO(row.updated_at || row.created_at),
     orderId: row.order_id,
     driverId: row.driver_id,
     customer: "CORVEX", 
     pickupWindow: row.pickup_window_start ? new Date(row.pickup_window_start).toLocaleString() : undefined,
-    distance: row.planned_miles,
+    distance: Number(row.planned_miles) || 0,
     duration: duration,
     latestStartTime: undefined, // Simplified
     commodity: "General",

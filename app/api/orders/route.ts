@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-
-import { serviceFetch } from "@/lib/service-client";
+import pool from "@/lib/db";
 import { buildLane, mapOrderStatus } from "@/lib/transformers";
 import type { OrderListItem } from "@/lib/types";
 
@@ -15,52 +14,60 @@ type OrderResponse = OrderListItem & {
 
 export async function GET() {
   try {
-    const response = await serviceFetch<{ data?: Array<Record<string, any>>; stats?: any; filters?: any }>("orders", "/api/orders");
-    
-    // Handle both structured response (from real service) and array response (from demo data)
-    const dbOrders = Array.isArray(response) ? response : (response.data || []);
-    const orders = dbOrders.map(transformOrderFromService);
-    return NextResponse.json(buildOrdersResponse(orders));
+    const client = await pool.connect();
+    try {
+      // Fetch orders that are NOT closed
+      const query = `
+        SELECT * FROM orders 
+        WHERE status != 'Closed' 
+        ORDER BY created_at DESC
+      `;
+      
+      const result = await client.query(query);
+      const orders = result.rows.map(transformOrderFromDb);
+      
+      return NextResponse.json(buildOrdersResponse(orders));
+    } finally {
+      client.release();
+    }
   } catch (error) {
-    console.error("Error fetching orders from service", error);
+    console.error("Error fetching orders from DB:", error);
     return NextResponse.json({ error: "Failed to load orders" }, { status: 500 });
   }
 }
 
-function transformOrderFromService(order: Record<string, any>): OrderResponse {
-  const id = String(order.id ?? order.order_id ?? "");
-  // Handle both formats: the microservice returns 'pickup'/'delivery' and the database has 'pickup_location'/'dropoff_location'
-  const pickup = order.pickup ?? order.pickup_location ?? order.pickupLocation ?? "";
-  const delivery = order.delivery ?? order.delivery_location ?? order.dropoff_location ?? order.dropoffLocation ?? "";
-  const reference = order.reference ?? (id ? `ORD-${id.slice(0, 8).toUpperCase()}` : "ORDER");
-  const createdAt = order.created_at ?? order.createdAt ?? new Date().toISOString();
-  const ageHours = order.ageHours ?? calculateAgeHours(createdAt);
-  // Always format the pickup window with full date
-  const pickupDateTime = order.pickup_window_start ?? order.pickup_time ?? order.pickupWindowStart ?? order.pickupTime ?? order.window;
+function transformOrderFromDb(order: Record<string, any>): OrderResponse {
+  const id = String(order.id ?? "");
+  const pickup = order.pickup_location ?? "";
+  const delivery = order.dropoff_location ?? "";
+  const reference = id ? `ORD-${id.slice(0, 8).toUpperCase()}` : "ORDER";
+  const createdAt = order.created_at ? new Date(order.created_at).toISOString() : new Date().toISOString();
+  const ageHours = calculateAgeHours(createdAt);
+  
+  const pickupDateTime = order.pickup_time;
   const window = resolveWindow(pickupDateTime) ?? "Not Scheduled";
-  // Use lane from microservice if available, otherwise build it
-  const lane = order.lane ?? buildLane(pickup, delivery);
+  const lane = buildLane(pickup, delivery);
 
   return {
     id,
     reference,
-    customer: order.customer_name ?? order.customer ?? order.customer_id ?? "Customer",
+    customer: order.customer_id ?? "Customer",
     pickup,
     delivery,
     window,
     status: mapOrderStatus(order.status),
     ageHours,
-    cost: Number(order.cost ?? order.estimated_cost ?? 0) || 0,
+    cost: Number(order.estimated_cost ?? 0) || 0,
     lane,
-    serviceLevel: order.service_level ?? order.serviceLevel ?? "Standard",
-    commodity: order.commodity ?? "General",
-    laneMiles: Number(order.lane_miles ?? order.laneMiles ?? 0) || 0,
-    revenue: Number(order.revenue ?? 0),
+    serviceLevel: order.order_type ?? "Standard",
+    commodity: "General", // Default as not in DB schema
+    laneMiles: 0, // Default as not in DB schema
+    revenue: 0, // Default as not in DB schema
     created: createdAt,
-    pickupWindowStart: order.pickup_window_start ?? order.pickupWindowStart,
-    pickupWindowEnd: order.pickup_window_end ?? order.pickupWindowEnd,
-    deliveryWindowStart: order.delivery_window_start ?? order.deliveryWindowStart,
-    deliveryWindowEnd: order.delivery_window_end ?? order.deliveryWindowEnd,
+    pickupWindowStart: order.pickup_time ? new Date(order.pickup_time).toISOString() : undefined,
+    pickupWindowEnd: undefined,
+    deliveryWindowStart: order.dropoff_time ? new Date(order.dropoff_time).toISOString() : undefined,
+    deliveryWindowEnd: undefined,
   };
 }
 
