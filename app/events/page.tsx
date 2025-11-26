@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { MapPin, Navigation, Truck, CheckCircle, Clock } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { MapPin, Navigation, Truck, CheckCircle, Clock, Mic, MicOff, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { processVoiceCommand } from "@/app/actions/voice-actions";
 
 interface Trip {
   id: string;
@@ -47,6 +48,49 @@ export default function TripEventsPage() {
   
   // Location state
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+
+  // Voice state
+  const [isListening, setIsListening] = useState(false);
+  const [voiceProcessing, setVoiceProcessing] = useState(false);
+  const recognitionRef = useRef<any>(null);
+  
+  // Ref to hold the latest version of the handler to avoid stale closures
+  const handleVoiceCommandRef = useRef<(transcript: string) => Promise<void>>(async () => {});
+
+  useEffect(() => {
+    handleVoiceCommandRef.current = handleVoiceCommand;
+  });
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      // @ts-ignore
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        recognitionRef.current = new SpeechRecognition();
+        recognitionRef.current.continuous = false;
+        recognitionRef.current.interimResults = false;
+        recognitionRef.current.lang = "en-US";
+
+        recognitionRef.current.onresult = async (event: any) => {
+          const transcript = event.results[0][0].transcript;
+          console.log("Voice transcript:", transcript);
+          setIsListening(false);
+          // Call the latest handler via ref
+          handleVoiceCommandRef.current(transcript);
+        };
+
+        recognitionRef.current.onerror = (event: any) => {
+          console.error("Speech recognition error", event.error);
+          setIsListening(false);
+          setMessage({ type: "error", text: "Voice recognition failed. Try again." });
+        };
+
+        recognitionRef.current.onend = () => {
+          setIsListening(false);
+        };
+      }
+    }
+  }, []);
 
   useEffect(() => {
     fetchTrips();
@@ -134,6 +178,45 @@ export default function TripEventsPage() {
 
   const selectedTrip = trips.find(t => t.id === selectedTripId);
 
+  const toggleListening = () => {
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+    } else {
+      setMessage({ type: "success", text: "Listening... Speak now" });
+      recognitionRef.current?.start();
+      setIsListening(true);
+    }
+  };
+
+  const handleVoiceCommand = async (transcript: string) => {
+    if (!selectedTripId) {
+      setMessage({ type: "error", text: "Please select a trip first" });
+      return;
+    }
+
+    setVoiceProcessing(true);
+    setMessage({ type: "success", text: `Processing: "${transcript}"...` });
+
+    try {
+      const result = await processVoiceCommand(transcript);
+      
+      if (result.eventType && result.confidence > 70) {
+        const eventLabel = EVENT_TYPES.find(e => e.id === result.eventType)?.label || result.eventType;
+        setMessage({ type: "success", text: `Recognized: ${eventLabel}` });
+        
+        await handleEventLog(result.eventType, eventLabel);
+      } else {
+        setMessage({ type: "error", text: "Could not understand command. Try again." });
+      }
+    } catch (error) {
+      console.error("Error processing voice command:", error);
+      setMessage({ type: "error", text: "Error processing voice command" });
+    } finally {
+      setVoiceProcessing(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-black p-6 text-zinc-200">
       <div className="mx-auto max-w-5xl space-y-8">
@@ -181,9 +264,37 @@ export default function TripEventsPage() {
                 </div>
               )}
 
-              <div className="mt-6">
+              <div className="mt-6 space-y-3">
+                <Button
+                  variant="primary"
+                  className={`w-full py-6 text-lg font-bold transition-all ${
+                    isListening 
+                      ? "animate-pulse bg-red-600 hover:bg-red-700" 
+                      : "bg-blue-600 hover:bg-blue-500"
+                  }`}
+                  onClick={toggleListening}
+                  disabled={!selectedTripId || voiceProcessing}
+                >
+                  {voiceProcessing ? (
+                    <>
+                      <Loader2 className="mr-2 h-6 w-6 animate-spin" />
+                      Processing...
+                    </>
+                  ) : isListening ? (
+                    <>
+                      <MicOff className="mr-2 h-6 w-6" />
+                      Listening...
+                    </>
+                  ) : (
+                    <>
+                      <Mic className="mr-2 h-6 w-6" />
+                      Voice Command
+                    </>
+                  )}
+                </Button>
+
                 <Button 
-                  variant="outline" 
+                  variant="subtle" 
                   className="w-full border-zinc-700 bg-zinc-800 hover:bg-zinc-700"
                   onClick={getCurrentLocation}
                   disabled={loading}

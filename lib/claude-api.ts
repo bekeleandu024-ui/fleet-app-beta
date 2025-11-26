@@ -676,3 +676,46 @@ export async function calculateRouteMetrics(origin: string, destination: string)
   }
 }
 
+export async function interpretVoiceCommand(transcript: string): Promise<{ eventType: string | null; confidence: number }> {
+  const prompt = `You are an AI assistant for a truck driver app. Your job is to interpret voice commands and map them to specific trip events.
+
+The available event types are:
+- TRIP_START (e.g., "starting trip", "heading out", "leaving yard", "rolling")
+- ARRIVED_PICKUP (e.g., "at shipper", "arrived at pickup", "docked at pickup")
+- LEFT_PICKUP (e.g., "loaded", "leaving shipper", "left pickup")
+- CROSSED_BORDER (e.g., "crossed border", "entering canada", "entering us")
+- DROP_HOOK (e.g., "dropping trailer", "hooking up", "drop and hook")
+- ARRIVED_DELIVERY (e.g., "at receiver", "arrived at delivery", "docked at delivery")
+- LEFT_DELIVERY (e.g., "empty", "leaving receiver", "finished delivery")
+- TRIP_FINISHED (e.g., "trip done", "finished trip", "completed")
+
+Analyze the following voice transcript: "${transcript}"
+
+Return ONLY a JSON object with this structure:
+{
+  "eventType": "EVENT_ID" or null if no match,
+  "confidence": 0-100
+}`;
+
+  try {
+    const message = await anthropic.messages.create({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 100,
+      messages: [{ role: "user", content: prompt }],
+    });
+
+    const content = message.content[0];
+    if (content.type === "text") {
+      const jsonMatch = content.text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        return JSON.parse(jsonMatch[0]);
+      }
+    }
+
+    return { eventType: null, confidence: 0 };
+  } catch (error) {
+    console.error("Voice command interpretation error:", error);
+    return { eventType: null, confidence: 0 };
+  }
+}
+
