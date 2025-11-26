@@ -36,6 +36,7 @@ function Directions({
   const [directionsRenderer, setDirectionsRenderer] = useState<google.maps.DirectionsRenderer>();
   const [borderLocation, setBorderLocation] = useState<{lat: number, lng: number} | null>(null);
   const [showBorderInfo, setShowBorderInfo] = useState(false);
+  const [destinationLocation, setDestinationLocation] = useState<{lat: number, lng: number} | null>(null);
 
   useEffect(() => {
     if (!routesLibrary || !map) return;
@@ -71,7 +72,15 @@ function Directions({
 
       // Find border crossing
       if (response.routes[0] && response.routes[0].legs[0]) {
-        const steps = response.routes[0].legs[0].steps;
+        const leg = response.routes[0].legs[0];
+        
+        // Set destination location from the actual route end location
+        setDestinationLocation({
+          lat: leg.end_location.lat(),
+          lng: leg.end_location.lng()
+        });
+
+        const steps = leg.steps;
         const borderStep = steps.find(step => {
           const instructions = step.instructions.toLowerCase();
           return instructions.includes("entering united states") || 
@@ -102,8 +111,6 @@ function Directions({
     typeof destination === 'string' ? '' : destination.lng
   ]);
 
-  if (!borderLocation) return null;
-
   // Default customs info if missing
   const info = customsInfo || {
     crossingPoint: "Detected Crossing",
@@ -115,52 +122,63 @@ function Directions({
 
   return (
     <>
-      <Marker 
-        position={borderLocation}
-        onClick={() => setShowBorderInfo(true)}
-        icon={getMarkerIcon("#8b5cf6")} // Violet for border
-      />
-      {showBorderInfo && (
-        <InfoWindow 
-          position={borderLocation} 
-          onCloseClick={() => setShowBorderInfo(false)}
-          headerContent={<div className="font-bold text-sm">Border Crossing</div>}
-        >
-          <div className="p-2 min-w-[200px]">
-            <div className="mb-3">
-              <div className="text-xs text-gray-500 uppercase font-semibold">Crossing Point</div>
-              <div className="text-sm font-medium">{info.crossingPoint || "Detected Crossing"}</div>
-            </div>
-            
-            <div className="mb-3">
-              <div className="text-xs text-gray-500 uppercase font-semibold">Current Wait Time</div>
-              <div className="text-lg font-bold text-amber-600">15 mins</div>
-            </div>
+      {destinationLocation && (
+        <Marker 
+          position={destinationLocation}
+          icon={getMarkerIcon("#ef4444")} // Red for destination
+        />
+      )}
 
-            <div>
-              <div className="text-xs text-gray-500 uppercase font-semibold mb-1">Customs Status</div>
-              <div className="flex items-center gap-2 mb-2">
-                <span className={`inline-block w-2 h-2 rounded-full ${info.isApproved ? 'bg-green-500' : 'bg-yellow-500'}`}></span>
-                <span className="text-sm font-medium">{info.status}</span>
-              </div>
-              
-              <div className="space-y-1">
-                <div className="flex justify-between text-xs">
-                  <span className="text-gray-500">Documents:</span>
-                  <span className="font-medium">
-                    {info.submittedDocs.length}/{info.requiredDocs.length || 3} Submitted
-                  </span>
+      {borderLocation && (
+        <>
+          <Marker 
+            position={borderLocation}
+            onClick={() => setShowBorderInfo(true)}
+            icon={getMarkerIcon("#8b5cf6")} // Violet for border
+          />
+          {showBorderInfo && (
+            <InfoWindow 
+              position={borderLocation} 
+              onCloseClick={() => setShowBorderInfo(false)}
+              headerContent={<div className="font-bold text-sm">Border Crossing</div>}
+            >
+              <div className="p-2 min-w-[200px]">
+                <div className="mb-3">
+                  <div className="text-xs text-gray-500 uppercase font-semibold">Crossing Point</div>
+                  <div className="text-sm font-medium">{info.crossingPoint || "Detected Crossing"}</div>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-1.5">
-                  <div 
-                    className="bg-blue-600 h-1.5 rounded-full" 
-                    style={{ width: `${Math.min(100, (info.submittedDocs.length / (info.requiredDocs.length || 3)) * 100)}%` }}
-                  ></div>
+                
+                <div className="mb-3">
+                  <div className="text-xs text-gray-500 uppercase font-semibold">Current Wait Time</div>
+                  <div className="text-lg font-bold text-amber-600">15 mins</div>
+                </div>
+
+                <div>
+                  <div className="text-xs text-gray-500 uppercase font-semibold mb-1">Customs Status</div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className={`inline-block w-2 h-2 rounded-full ${info.isApproved ? 'bg-green-500' : 'bg-yellow-500'}`}></span>
+                    <span className="text-sm font-medium">{info.status}</span>
+                  </div>
+                  
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-gray-500">Documents:</span>
+                      <span className="font-medium">
+                        {info.submittedDocs.length}/{info.requiredDocs.length || 3} Submitted
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-1.5">
+                      <div 
+                        className="bg-blue-600 h-1.5 rounded-full" 
+                        style={{ width: `${Math.min(100, (info.submittedDocs.length / (info.requiredDocs.length || 3)) * 100)}%` }}
+                      ></div>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
-        </InfoWindow>
+            </InfoWindow>
+          )}
+        </>
       )}
     </>
   );
