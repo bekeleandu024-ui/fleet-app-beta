@@ -107,6 +107,7 @@ export default function AnalyticsPage() {
             title="Margin analytics"
             subtitle="Monitor margin health, revenue efficiency, and risk before month-end."
             aria-live="polite"
+            collapsible
           >
           <div className="flex flex-wrap items-center gap-3 text-sm text-zinc-400">
             <Chip tone="brand">{summary.periodLabel}</Chip>
@@ -144,6 +145,7 @@ export default function AnalyticsPage() {
         <SectionBanner
           title="Revenue vs cost trend"
           subtitle="Weekly totals with margin overlay"
+          collapsible
           footer={
             <span className="flex items-center gap-2">
               <TrendingUp className="size-4 text-blue-400" aria-hidden="true" />
@@ -228,6 +230,8 @@ export default function AnalyticsPage() {
         <SectionBanner
           title="Margin composition"
           subtitle="Segments generating the strongest contribution"
+          collapsible
+          defaultOpen={false}
         >
           <div className="grid gap-6 lg:grid-cols-2">
             <div className="h-64">
@@ -282,6 +286,8 @@ export default function AnalyticsPage() {
           title="Driver margin leaders"
           subtitle="Top drivers ranked by contribution margin"
           dense
+          collapsible
+          defaultOpen={false}
         >
           <ul className="space-y-3">
             {driverPerformance.map((driver) => (
@@ -307,7 +313,7 @@ export default function AnalyticsPage() {
           </ul>
         </SectionBanner>
 
-        <SectionBanner title="Lane profitability" subtitle="Focus lanes needing price or cost attention" dense>
+        <SectionBanner title="Lane profitability" subtitle="Focus lanes needing price or cost attention" dense collapsible defaultOpen={false}>
           <ul className="space-y-3">
             {lanePerformance.map((lane) => (
               <li key={lane.lane} className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-3">
@@ -329,7 +335,7 @@ export default function AnalyticsPage() {
           </ul>
         </SectionBanner>
 
-        <SectionBanner title="Alerts" subtitle="AI surfaced risk and opportunities" dense>
+        <SectionBanner title="Alerts" subtitle="AI surfaced risk and opportunities" dense collapsible defaultOpen={false}>
           <ul className="space-y-3">
             {alerts.length === 0 ? (
               <li className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-4 text-sm text-zinc-400">
@@ -398,6 +404,8 @@ function AIInsightsSection({
         title="AI-Powered Insights"
         subtitle="Claude AI analysis of your fleet performance"
         aria-live="polite"
+        collapsible
+        defaultOpen={false}
       >
         <div className="flex items-center gap-2 mb-4">
           <Brain className="size-5 text-blue-400" aria-hidden="true" />
@@ -465,7 +473,7 @@ function AIInsightsSection({
       {/* Anomaly Detection */}
       {insights.anomalyDetection && insights.anomalyDetection.length > 0 && (
         <div className="grid gap-4 md:grid-cols-2">
-          <SectionBanner title="Anomaly Detection" subtitle="AI-detected issues requiring attention" dense>
+          <SectionBanner title="Anomaly Detection" subtitle="AI-detected issues requiring attention" dense collapsible defaultOpen={false}>
             <ul className="space-y-3">
               {insights.anomalyDetection.map((anomaly: any, idx: number) => (
                 <li key={idx} className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-4">
@@ -488,7 +496,7 @@ function AIInsightsSection({
           </SectionBanner>
 
           {/* Predictions */}
-          <SectionBanner title="Predictions" subtitle="AI forecasts based on current trends" dense>
+          <SectionBanner title="Predictions" subtitle="AI forecasts based on current trends" dense collapsible defaultOpen={false}>
             <ul className="space-y-3">
               {insights.predictions?.map((prediction: any, idx: number) => (
                 <li key={idx} className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-4">
@@ -513,6 +521,8 @@ function AIInsightsSection({
           title="Strategic Recommendations"
           subtitle="AI-generated action items ranked by priority"
           dense
+          collapsible
+          defaultOpen={false}
         >
           <ul className="space-y-3">
             {insights.strategicRecommendations.map((rec: any, idx: number) => (
@@ -547,38 +557,40 @@ function AIInsightsSection({
       )}
 
       {/* Detailed Insights Grid */}
-      <div className="grid gap-4 md:grid-cols-3">
-        {insights.categoryInsights && (
-          <DetailedInsightCard
-            title="Category Analysis"
-            insights={[
-              { label: "Strongest", value: insights.categoryInsights.strongest, icon: "✓" },
-              { label: "Weakest", value: insights.categoryInsights.weakest, icon: "⚠" },
-              { label: "Opportunity", value: insights.categoryInsights.opportunity, icon: "💡" },
-            ]}
-          />
-        )}
-        {insights.driverInsights && (
-          <DetailedInsightCard
-            title="Driver Insights"
-            insights={[
-              { label: "Top Performers", value: insights.driverInsights.topPerformers, icon: "🏆" },
-              { label: "Improvement", value: insights.driverInsights.improvement, icon: "📈" },
-              { label: "Retention", value: insights.driverInsights.retention, icon: "🔒" },
-            ]}
-          />
-        )}
-        {insights.laneInsights && (
-          <DetailedInsightCard
-            title="Lane Insights"
-            insights={[
-              { label: "Optimize", value: insights.laneInsights.optimize, icon: "🔧" },
-              { label: "Expand", value: insights.laneInsights.expand, icon: "📊" },
-              { label: "Review", value: insights.laneInsights.review, icon: "🔍" },
-            ]}
-          />
-        )}
-      </div>
+      <SectionBanner title="Detailed Analysis" subtitle="Breakdown by category, driver, and lane" collapsible defaultOpen={false}>
+        <div className="grid gap-4 md:grid-cols-3">
+          {insights.categoryInsights && (
+            <DetailedInsightCard
+              title="Category Analysis"
+              insights={[
+                { label: "Strongest", value: insights.categoryInsights.strongest, icon: "✓" },
+                { label: "Weakest", value: insights.categoryInsights.weakest, icon: "⚠" },
+                { label: "Opportunity", value: insights.categoryInsights.opportunity, icon: "💡" },
+              ]}
+            />
+          )}
+          {insights.driverInsights && (
+            <DetailedInsightCard
+              title="Driver Insights"
+              insights={[
+                { label: "Top Performers", value: insights.driverInsights.topPerformers, icon: "🏆" },
+                { label: "Improvement", value: insights.driverInsights.improvement, icon: "📈" },
+                { label: "Retention", value: insights.driverInsights.retention, icon: "🔒" },
+              ]}
+            />
+          )}
+          {insights.laneInsights && (
+            <DetailedInsightCard
+              title="Lane Insights"
+              insights={[
+                { label: "Optimize", value: insights.laneInsights.optimize, icon: "🔧" },
+                { label: "Expand", value: insights.laneInsights.expand, icon: "📊" },
+                { label: "Review", value: insights.laneInsights.review, icon: "🔍" },
+              ]}
+            />
+          )}
+        </div>
+      </SectionBanner>
     </div>
   );
 }

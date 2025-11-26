@@ -6,7 +6,7 @@ import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const baseClasses =
-  "h-11 w-full appearance-none rounded-xl border border-zinc-800 bg-black/20 px-4 pr-10 text-sm text-zinc-300 transition-all duration-200 focus:border-blue-900/50 focus:outline-none focus:ring-2 focus:ring-blue-900/20 focus:bg-black/40 disabled:cursor-not-allowed disabled:opacity-70 shadow-sm shadow-black/20";
+  "h-11 w-full appearance-none rounded-md border border-zinc-800 bg-black/20 px-4 pr-10 text-sm text-zinc-300 transition-all duration-200 focus:border-blue-900/50 focus:outline-none focus:ring-2 focus:ring-blue-900/20 focus:bg-black/40 disabled:cursor-not-allowed disabled:opacity-70 shadow-sm shadow-black/20";
 
 export type SelectProps = React.SelectHTMLAttributes<HTMLSelectElement> & {
   placeholder?: string;

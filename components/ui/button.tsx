@@ -5,7 +5,7 @@ import { Slot } from "@radix-ui/react-slot";
 import { cn } from "@/lib/utils";
 
 const baseClasses =
-  "inline-flex items-center justify-center gap-2 rounded-full border text-white transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-900/50 disabled:cursor-not-allowed disabled:opacity-50 font-medium";
+  "inline-flex items-center justify-center gap-2 rounded-md border text-white transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-900/50 disabled:cursor-not-allowed disabled:opacity-50 font-medium";
 
 const sizeClasses: Record<"sm" | "md" | "lg", string> = {
   sm: "h-9 px-4 text-xs",

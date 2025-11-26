@@ -122,10 +122,10 @@ function buildAnalyticsPrompt(data: AnalyticsContext): string {
     : 0;
 
   // Find best and worst performers
-  const bestDriver = driverPerformance[0];
-  const worstDriver = driverPerformance[driverPerformance.length - 1];
-  const bestLane = lanePerformance[0];
-  const worstLane = lanePerformance[lanePerformance.length - 1];
+  const bestDriver = driverPerformance.length > 0 ? driverPerformance[0] : null;
+  const worstDriver = driverPerformance.length > 0 ? driverPerformance[driverPerformance.length - 1] : null;
+  const bestLane = lanePerformance.length > 0 ? lanePerformance[0] : null;
+  const worstLane = lanePerformance.length > 0 ? lanePerformance[lanePerformance.length - 1] : null;
 
   return `You are a fleet management analytics AI. Analyze this TMS operational and financial data and provide actionable insights.
 
@@ -157,13 +157,13 @@ ${marginByCategory.map(c =>
 ).join('\n')}
 
 **DRIVER PERFORMANCE:**
-- Best: ${bestDriver.driverName} (${bestDriver.marginPercent}% margin, ${bestDriver.trips} trips, $${bestDriver.revenue.toLocaleString()})
-- Worst: ${worstDriver.driverName} (${worstDriver.marginPercent}% margin, ${worstDriver.trips} trips, $${worstDriver.revenue.toLocaleString()})
-- Spread: ${(bestDriver.marginPercent - worstDriver.marginPercent).toFixed(1)} points
+${bestDriver ? `- Best: ${bestDriver.driverName} (${bestDriver.marginPercent}% margin, ${bestDriver.trips} trips, $${bestDriver.revenue.toLocaleString()})` : '- No driver data available'}
+${worstDriver ? `- Worst: ${worstDriver.driverName} (${worstDriver.marginPercent}% margin, ${worstDriver.trips} trips, $${worstDriver.revenue.toLocaleString()})` : ''}
+${bestDriver && worstDriver ? `- Spread: ${(bestDriver.marginPercent - worstDriver.marginPercent).toFixed(1)} points` : ''}
 
 **LANE PERFORMANCE:**
-- Best: ${bestLane.lane} (${bestLane.marginPercent}% margin, $${bestLane.revenue.toLocaleString()}, ${bestLane.miles.toLocaleString()} mi)
-- Worst: ${worstLane.lane} (${worstLane.marginPercent}% margin, $${worstLane.revenue.toLocaleString()}, ${worstLane.miles.toLocaleString()} mi)
+${bestLane ? `- Best: ${bestLane.lane} (${bestLane.marginPercent}% margin, $${bestLane.revenue.toLocaleString()}, ${bestLane.miles.toLocaleString()} mi)` : '- No lane data available'}
+${worstLane ? `- Worst: ${worstLane.lane} (${worstLane.marginPercent}% margin, $${worstLane.revenue.toLocaleString()}, ${worstLane.miles.toLocaleString()} mi)` : ''}
 
 **MARGIN DISTRIBUTION:**
 ${marginDistribution.map(m => `- ${m.band}: ${m.trips} trips`).join('\n')}
@@ -287,12 +287,18 @@ function generateFallbackInsights(data: AnalyticsContext): any {
       }] : []),
     ],
     categoryInsights: {
-      strongest: `${marginByCategory[0].category} leading at ${marginByCategory[0].marginPercent}% margin with strong operational efficiency`,
-      weakest: `${marginByCategory[marginByCategory.length - 1].category} at ${marginByCategory[marginByCategory.length - 1].marginPercent}% needs pricing review or cost optimization`,
+      strongest: marginByCategory.length > 0 
+        ? `${marginByCategory[0].category} leading at ${marginByCategory[0].marginPercent}% margin with strong operational efficiency`
+        : "Insufficient category data",
+      weakest: marginByCategory.length > 0
+        ? `${marginByCategory[marginByCategory.length - 1].category} at ${marginByCategory[marginByCategory.length - 1].marginPercent}% needs pricing review or cost optimization`
+        : "Insufficient category data",
       opportunity: "Focus on replicating best practices from top-performing categories across all operations",
     },
     driverInsights: {
-      topPerformers: `${driverPerformance[0].driverName} and top drivers averaging ${driverPerformance.slice(0, 3).reduce((acc, d) => acc + d.marginPercent, 0) / 3}% margin through efficient routing and on-time performance`,
+      topPerformers: driverPerformance.length > 0
+        ? `${driverPerformance[0].driverName} and top drivers averaging ${driverPerformance.slice(0, 3).reduce((acc, d) => acc + d.marginPercent, 0) / Math.min(3, driverPerformance.length)}% margin through efficient routing and on-time performance`
+        : "Insufficient driver data",
       improvement: "Provide mentoring and training from top performers to bring lower-margin drivers up to standard",
       retention: "Recognize and retain top performers with performance bonuses to prevent talent loss",
     },
