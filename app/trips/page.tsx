@@ -8,13 +8,17 @@ import { TripTicketCard } from "@/components/trip-ticket-card";
 import { SectionBanner } from "@/components/section-banner";
 import { Chip } from "@/components/ui/chip";
 import { Select } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 import { fetchTrips } from "@/lib/api";
 import { queryKeys } from "@/lib/query";
 
 
 export default function TripsPage() {
   const router = useRouter();
-  const { data, isLoading, isError } = useQuery({ queryKey: queryKeys.trips(), queryFn: fetchTrips });
+  const { data, isLoading, isError } = useQuery({ 
+    queryKey: queryKeys.trips(), 
+    queryFn: () => fetchTrips() 
+  });
 
   if (isLoading && !data) {
     return <TripsSkeleton />;
@@ -48,6 +52,14 @@ export default function TripsPage() {
               <span className="uppercase tracking-wide">{stat.label}</span>
             </Chip>
           ))}
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => router.push("/trips/closed")}
+            className="ml-2 border-zinc-700 bg-zinc-800 hover:bg-zinc-700 text-zinc-300"
+          >
+            View Closed Trips
+          </Button>
         </div>
       }
     >

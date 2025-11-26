@@ -4,11 +4,14 @@ import type { TripListItem } from "@/lib/types";
 
 // ...existing code...
 
-export async function GET() {
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const statusFilter = searchParams.get("status");
+
   try {
     const client = await pool.connect();
     try {
-      const query = `
+      let query = `
         SELECT 
           t.*,
           d.driver_name,
@@ -16,8 +19,16 @@ export async function GET() {
         FROM trips t
         LEFT JOIN driver_profiles d ON t.driver_id = d.driver_id
         LEFT JOIN unit_profiles u ON t.unit_id = u.unit_id
-        ORDER BY t.created_at DESC
       `;
+      
+      if (statusFilter === "closed") {
+        query += ` WHERE t.status = 'closed'`;
+      } else {
+        query += ` WHERE t.status != 'closed' OR t.status IS NULL`;
+      }
+      
+      query += ` ORDER BY t.created_at DESC`;
+
       const result = await client.query(query);
       
       const trips = result.rows.map(transformTripRow);
@@ -46,6 +57,7 @@ function transformTripRow(row: any): TripListItem {
     delivered: "Delivered",
     completed: "Completed",
     cancelled: "Cancelled",
+    closed: "Closed",
   };
 
   const driverName = row.driver_name || "Unknown Driver";

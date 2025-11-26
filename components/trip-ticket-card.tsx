@@ -5,6 +5,8 @@ import { Card } from "@/components/ui/card";
 import { TripListItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { enrichTripAction } from "@/app/actions/enrich-trip";
+import { closeTrip } from "@/app/actions/close-trip";
+import { XCircle } from "lucide-react";
 
 interface TripTicketCardProps {
   trip: TripListItem;
@@ -79,6 +81,14 @@ export function TripTicketCard({ trip, className, onClick }: TripTicketCardProps
   // Format CPM
   const formatCpm = (value?: number) => 
     value ? `$${value.toFixed(2)}` : "--";
+
+  const handleClose = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    // Simple confirmation
+    if (window.confirm("Are you sure you want to close this trip? It will be moved to the Closed Trips archive.")) {
+      await closeTrip(trip.id);
+    }
+  };
 
   return (
     <Card 
@@ -200,6 +210,16 @@ export function TripTicketCard({ trip, className, onClick }: TripTicketCardProps
           <span className="px-3 py-1.5 text-xs font-semibold text-white bg-zinc-800 rounded shrink-0 ml-4">
             {trip.serviceLevel.toUpperCase()}
           </span>
+        )}
+
+        {trip.status !== "Closed" && (
+          <button 
+            onClick={handleClose}
+            className="ml-4 text-zinc-500 hover:text-red-400 transition-colors p-1 hover:bg-zinc-800 rounded-full"
+            title="Close Trip"
+          >
+            <XCircle className="h-5 w-5" />
+          </button>
         )}
       </div>
 

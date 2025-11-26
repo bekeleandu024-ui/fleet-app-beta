@@ -102,8 +102,8 @@ export function fetchDispatch(): Promise<DispatchResponse> {
   return parseResponse(api.get("/dispatch"), dispatchResponseSchema);
 }
 
-export function fetchTrips(): Promise<TripsResponse> {
-  return parseResponse(api.get("/trips"), tripsResponseSchema);
+export function fetchTrips(status?: string): Promise<TripsResponse> {
+  return parseResponse(api.get("/trips", { params: { status } }), tripsResponseSchema);
 }
 
 export function fetchTripDetail(id: string): Promise<TripDetail> {

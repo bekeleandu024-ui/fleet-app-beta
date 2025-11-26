@@ -4,7 +4,7 @@ export const queryKeys = {
   orders: () => ["orders"] as const,
   order: (id: string) => ["orders", id] as const,
   dispatch: ["dispatch"] as const,
-  trips: () => ["trips"] as const,
+  trips: (filters?: { status?: string }) => ["trips", filters] as const,
   trip: (id: string) => ["trips", id] as const,
   costing: ["costing"] as const,
   search: (query: string) => ["search", query] as const,
