@@ -263,6 +263,7 @@ export const tripDetailSchema = z.object({
   unit: z.string(),
   unitNumber: z.string().optional(),
   driverType: z.string().optional(),
+  truckWk: z.number().optional(),
   unitType: z.string().optional(),
   eta: z.string(),
   timeline: z.array(timelineEventSchema),

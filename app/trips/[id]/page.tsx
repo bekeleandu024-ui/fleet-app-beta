@@ -77,7 +77,7 @@ export default function TripDetailPage() {
   const driverTypeMap: Record<string, DriverType> = { COM: 'COM', RNR: 'RNR', OO: 'OO' };
   const driverType = driverTypeMap[data.driverType as string] || 'COM';
   const tripCost = distanceMiles 
-    ? calculateTripCost(driverType, distanceMiles, data.pickup, data.delivery)
+    ? calculateTripCost(driverType, distanceMiles, data.pickup, data.delivery, { truckWk: data.truckWk })
     : null;
 
   return (

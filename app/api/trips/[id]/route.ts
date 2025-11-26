@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 
 import { serviceFetch, ServiceError } from "@/lib/service-client";
 import { mapTripListItem } from "@/lib/transformers";
+import pool from "@/lib/db";
 
 // Helper function to calculate distance if missing
 async function calculateTripDistance(tripId: string, pickupLat?: number, pickupLng?: number, dropoffLat?: number, dropoffLng?: number) {
@@ -58,19 +59,26 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
       }
     }
 
+    const driversQuery = `
+      SELECT d.driver_id as id, d.driver_name as name, d.driver_type, d.unit_number, u.truck_weekly_cost as "truckWk", d.region
+      FROM driver_profiles d
+      LEFT JOIN unit_profiles u ON d.unit_number = u.unit_number
+    `;
+    const unitsQuery = `SELECT unit_id as id, unit_number, truck_weekly_cost, region FROM unit_profiles`;
+
     const [orderResult, driversResult, unitsResult, eventsResult, exceptionsResult] = await Promise.allSettled([
       trip.order_id
         ? serviceFetch<Record<string, any>>("orders", `/api/orders/${trip.order_id}`)
         : Promise.resolve(undefined),
-      serviceFetch<{ drivers?: Array<Record<string, any>> }>("masterData", "/api/metadata/drivers"),
-      serviceFetch<{ units?: Array<Record<string, any>> }>("masterData", "/api/metadata/units"),
+      pool.query(driversQuery),
+      pool.query(unitsQuery),
       serviceFetch<Array<Record<string, any>>>("tracking", `/api/trips/${id}/events`),
       serviceFetch<Array<Record<string, any>>>("tracking", `/api/trips/${id}/exceptions`),
     ]);
 
     const order = orderResult.status === "fulfilled" ? orderResult.value : undefined;
-    const drivers = driversResult.status === "fulfilled" ? driversResult.value.drivers ?? [] : [];
-    const units = unitsResult.status === "fulfilled" ? unitsResult.value.units ?? [] : [];
+    const drivers = driversResult.status === "fulfilled" ? driversResult.value.rows : [];
+    const units = unitsResult.status === "fulfilled" ? unitsResult.value.rows : [];
     const events = eventsResult.status === "fulfilled" ? eventsResult.value ?? [] : [];
     const exceptions = exceptionsResult.status === "fulfilled" ? exceptionsResult.value ?? [] : [];
 
@@ -138,6 +146,8 @@ function buildTripDetail(
     status: listItem.status,
     driver: listItem.driver,
     driverType: trip.driver_type ?? driver?.driver_type,
+    driverRegion: driver?.region,
+    truckWk: driver?.truck_wk ?? driver?.truckWk,
     unit: unitNumber,
     unitNumber: unitNumber,
     unitType: trip.unit_type ?? trip.equipment_type ?? unit?.equipment_type,

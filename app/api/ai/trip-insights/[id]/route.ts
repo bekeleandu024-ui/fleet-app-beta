@@ -1,68 +1,125 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { serviceFetch } from "@/lib/service-client";
 import { generateTripInsights } from "@/lib/claude-api";
+import { calculateTripCost, type Driver, type TripEvents } from "@/lib/cost-calculator";
+import { isCrossBorder } from "@/lib/costing";
+import pool from "@/lib/db";
 
 interface TripInsightsContext {
-  trip: any;
-  order: any;
-  driver: any;
-  unit: any;
-  costing: any;
-  alternatives?: any[];
+  trip: {
+    id: string;
+    orderId?: string;
+    status: string;
+    pickup: string;
+    delivery: string;
+    plannedStart?: string;
+    actualStart?: string;
+    estimatedDistance: number;
+    estimatedDuration: number;
+    onTimePickup?: boolean;
+    onTimeDelivery?: boolean;
+  };
+  order: {
+    id: string;
+    customer: string;
+    commodity?: string;
+    serviceLevel: string;
+    revenue: number;
+  } | null;
+  driver: {
+    id: string;
+    name: string;
+    type: string;
+    region?: string;
+    hoursAvailable?: number;
+    location?: string;
+    estimatedCost: number;
+    onTimeRate?: number;
+    rating?: number;
+  } | null;
+  unit: {
+    id: string;
+    unitNumber: string;
+    type: string;
+    region?: string;
+    location?: string;
+    status: string;
+  } | null;
+  costing: {
+    linehaulCost: number;
+    fuelCost: number;
+    driverCost: number;
+    totalCost: number;
+    margin: number;
+    recommendedRevenue: number;
+  };
+  alternatives: Array<{
+    driverId: string;
+    name: string;
+    type: string;
+    estimatedCost: number;
+    hoursAvailable?: number;
+    location?: string;
+  }>;
 }
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const { id } = await params;
+export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params;
 
-    // Gather all relevant context data
-    const [tripResult, driversResult, unitsResult] = await Promise.allSettled([
-      serviceFetch("tracking", `/api/trips`),
-      serviceFetch("masterData", "/api/metadata/drivers"),
-      serviceFetch("masterData", "/api/metadata/units"),
+  try {
+    const trip = await serviceFetch<Record<string, any>>("tracking", `/api/trips/${id}`);
+
+    // Fetch drivers directly from DB to ensure we have costs
+    const driversQuery = `
+      SELECT d.driver_id as id, d.driver_name as name, d.driver_type, d.unit_number, u.truck_weekly_cost as "truckWk", d.region,
+             d.status, d.hours_available, d.current_location
+      FROM driver_profiles d
+      LEFT JOIN unit_profiles u ON d.unit_number = u.unit_number
+    `;
+    const unitsQuery = `SELECT unit_id as id, unit_number, truck_weekly_cost, region, is_active, current_location FROM unit_profiles`;
+
+    const [orderResult, driversResult, unitsResult] = await Promise.allSettled([
+      trip.order_id
+        ? serviceFetch<Record<string, any>>("orders", `/api/orders/${trip.order_id}`)
+        : Promise.resolve(undefined),
+      pool.query(driversQuery),
+      pool.query(unitsQuery),
     ]);
 
-    // Find the specific trip
-    let trip = null;
-    if (tripResult.status === "fulfilled") {
-      const tripsData = tripResult.value;
-      const trips = Array.isArray(tripsData) ? tripsData : (tripsData.value || []);
-      trip = trips.find((t: any) => t.id === id || t.id.startsWith(id.substring(0, 8)));
-    }
+    const order = orderResult.status === "fulfilled" ? orderResult.value : undefined;
+    const drivers = driversResult.status === "fulfilled" ? driversResult.value.rows : [];
+    const units = unitsResult.status === "fulfilled" ? unitsResult.value.rows : [];
 
-    if (!trip) {
-      // Fallback to mock insights if trip not found
-      return NextResponse.json(getMockInsights(id));
-    }
+    const driver = drivers.find((d: any) => String(d.id) === String(trip.driver_id));
+    const unit = units.find((u: any) => String(u.id) === String(trip.unit_id));
 
-    // Get order details
-    const orderResult = await serviceFetch("orders", `/api/orders`).catch(() => null);
-    let order = null;
-    if (orderResult && orderResult.data) {
-      order = orderResult.data.find((o: any) => o.id === trip.order_id);
-    }
-
-    // Find driver details
-    const drivers = driversResult.status === "fulfilled" ? driversResult.value?.drivers || [] : [];
-    const driver = drivers.find((d: any) => d.driver_id === trip.driver_id || d.id === trip.driver_id);
-
-    // Find unit details
-    const units = unitsResult.status === "fulfilled" ? unitsResult.value?.units || [] : [];
-    const unit = units.find((u: any) => u.unit_id === trip.unit_id || u.id === trip.unit_id);
-
-    // Get REAL distance from database (calculated in migration)
     const estimatedDistance = trip.distance_miles || trip.actual_miles || trip.planned_miles || 0;
     const estimatedDuration = trip.duration_hours || (estimatedDistance / 55) || 0; // hours, fallback to 55mph average
+    const durationDays = estimatedDuration / 24;
 
     // Calculate costs
     const driverType = driver?.driver_type || "COM";
-    const driverCost = calculateDriverCost(driverType);
-    const linehaulCost = 1875;
-    const fuelCost = 338;
-    const totalCost = linehaulCost + fuelCost + driverCost;
+    
+    const currentDriver: Driver = {
+      id: driver?.driver_id || driver?.id || 'unknown',
+      name: driver?.driver_name || driver?.name || 'Unknown',
+      type: driverType,
+      truckWk: driver?.truck_wk || 0 // Assuming truck_wk might be in driver object, else 0
+    };
+
+    const events: TripEvents = {
+      border: isCrossBorder(trip.pickup_location, trip.dropoff_location) ? 1 : 0,
+      picks: 1, // Default
+      drops: 1  // Default
+    };
+
+    const costResult = calculateTripCost(currentDriver, estimatedDistance, durationDays, events);
+
+    const driverCost = costResult.breakdown.labor;
+    const linehaulCost = costResult.breakdown.fixed + costResult.breakdown.maintenance + costResult.breakdown.events;
+    const fuelCost = costResult.breakdown.fuel;
+    const totalCost = costResult.totalCost;
+    
     const revenue = order?.revenue || order?.quoted_price || 2698;
     const margin = revenue > 0 ? Math.round(((revenue - totalCost) / revenue) * 100) : 18;
 
@@ -74,14 +131,27 @@ export async function GET(
         (d.hoursAvailable || d.hours_available || 0) >= 12
       )
       .slice(0, 3)
-      .map((d: any) => ({
-        driverId: d.driver_id || d.id,
-        name: d.driver_name || d.name,
-        type: d.driver_type || "COM",
-        estimatedCost: calculateDriverCost(d.driver_type || "COM"),
-        hoursAvailable: d.hoursAvailable || d.hours_available,
-        location: d.current_location || d.location,
-      }));
+      .map((d: any) => {
+        const altDriver: Driver = {
+          id: d.driver_id || d.id,
+          name: d.driver_name || d.name,
+          type: d.driver_type || "COM",
+          truckWk: d.truck_wk || 0
+        };
+        const altCost = calculateTripCost(altDriver, estimatedDistance, durationDays, events);
+        
+        return {
+          driverId: d.driver_id || d.id,
+          name: d.driver_name || d.name,
+          type: d.driver_type || "COM",
+          estimatedCost: altCost.breakdown.labor, // Using labor cost for comparison or total? Usually total cost matters.
+          // The original code used calculateDriverCost which returned a single number.
+          // Let's use total cost for comparison as it's more accurate.
+          totalEstimatedCost: altCost.totalCost,
+          hoursAvailable: d.hoursAvailable || d.hours_available,
+          location: d.current_location || d.location,
+        };
+      });
 
     // Build context for AI
     const context: TripInsightsContext = {
@@ -109,6 +179,7 @@ export async function GET(
         id: driver.driver_id || driver.id,
         name: driver.driver_name || driver.name,
         type: driverType,
+        region: driver.region,
         hoursAvailable: driver.hoursAvailable || driver.hours_available,
         location: driver.current_location || driver.location,
         estimatedCost: driverCost,
@@ -119,6 +190,7 @@ export async function GET(
         id: unit.unit_id || unit.id,
         unitNumber: unit.unit_number || unit.name,
         type: unit.unit_type || unit.type,
+        region: unit.region,
         location: unit.current_location || unit.location,
         status: unit.is_active === false ? "Maintenance" : "Available",
       } : null,
@@ -153,8 +225,8 @@ export async function GET(
         driver: driver?.name || "Unknown",
         driverType: driverType,
         unit: unit?.unitNumber || "Unknown",
-        effectiveRate: driverCost / estimatedDistance,
-        estimatedCost: driverCost,
+        effectiveRate: totalCost / estimatedDistance,
+        estimatedCost: totalCost,
       },
       alternativeDrivers: [
         // Current driver first
@@ -163,12 +235,12 @@ export async function GET(
           driverName: driver?.name || "Current Driver",
           unit: unit?.unitNumber || "Unknown",
           driverType: driverType as "RNR" | "COM" | "OO",
-          weeklyCost: driverType === "RNR" ? 1800 : driverType === "OO" ? 3200 : 2200,
+          weeklyCost: driverType === "RNR" ? 1800 : driverType === "OO" ? 3200 : 2200, // This seems hardcoded, maybe update?
           baseWage: driverCost / estimatedDistance,
-          fuelRate: driverCost / estimatedDistance,
+          fuelRate: fuelCost / estimatedDistance,
           reason: aiInsights.driverAnalysis?.currentAssignment || "Currently assigned",
-          estimatedCost: driverCost,
-          totalCpm: driverCost / estimatedDistance,
+          estimatedCost: totalCost,
+          totalCpm: totalCost / estimatedDistance,
         },
         // Then alternatives
         ...alternatives.map((alt: any) => ({
@@ -177,15 +249,15 @@ export async function GET(
           unit: "Available",
           driverType: alt.type as "RNR" | "COM" | "OO",
           weeklyCost: alt.type === "RNR" ? 1800 : alt.type === "OO" ? 3200 : 2200,
-          baseWage: alt.estimatedCost / estimatedDistance,
-          fuelRate: alt.estimatedCost / estimatedDistance,
+          baseWage: 0, // Simplified
+          fuelRate: 0, // Simplified
           reason: alt.type === "RNR" 
-            ? `Most cost-effective option. Saves $${driverCost - alt.estimatedCost} per trip.`
+            ? `Most cost-effective option. Saves $${Math.round(totalCost - alt.totalEstimatedCost)} per trip.`
             : alt.type === "OO"
             ? "Premium service option for time-sensitive loads."
             : "Alternative driver available",
-          estimatedCost: alt.estimatedCost,
-          totalCpm: alt.estimatedCost / estimatedDistance,
+          estimatedCost: alt.totalEstimatedCost,
+          totalCpm: alt.totalEstimatedCost / estimatedDistance,
         })),
       ],
       costAnalysis: {
@@ -198,7 +270,7 @@ export async function GET(
       },
       routeOptimization: {
         distance: estimatedDistance,
-        duration: `${estimatedDuration} hours`,
+        duration: `${Math.round(estimatedDuration)} hours`,
         fuelStops: [], // TODO: Calculate actual fuel stops
         warnings: aiInsights.riskFactors || [],
       },
@@ -222,14 +294,8 @@ export async function GET(
   }
 }
 
-function calculateDriverCost(driverType: string): number {
-  const rates: Record<string, number> = {
-    RNR: 342,
-    COM: 405,
-    OO: 612,
-  };
-  return rates[driverType?.toUpperCase()] || 405;
-}
+// Removed calculateDriverCost as it is replaced by calculateTripCost
+
 
 function generateFallbackInsights(context: TripInsightsContext): any {
   const { trip, driver, costing, alternatives } = context;

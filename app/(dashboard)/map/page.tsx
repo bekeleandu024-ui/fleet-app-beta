@@ -11,9 +11,11 @@ import { Button } from "@/components/ui/button";
 const REGION_COORDINATES: Record<string, { lat: number; lng: number }> = {
   "Southern Ontario": { lat: 43.6532, lng: -79.3832 },
   "Greater Toronto Area": { lat: 43.7000, lng: -79.4000 },
+  "GTA": { lat: 43.7000, lng: -79.4000 },
   "Eastern Ontario": { lat: 45.4215, lng: -75.6972 },
   "Northern Ontario": { lat: 46.4917, lng: -80.9930 },
   "Western Ontario": { lat: 42.9849, lng: -81.2453 },
+  "South West": { lat: 42.9849, lng: -81.2453 },
   "Quebec": { lat: 45.5017, lng: -73.5673 },
   "Montreal": { lat: 45.5017, lng: -73.5673 },
 };
@@ -219,6 +221,7 @@ export default function MapPage() {
   const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number } | null>(null);
   const [showRoute, setShowRoute] = useState(false);
   const [routeInfo, setRouteInfo] = useState<{ distance: string, duration: string, eta: string } | null>(null);
+  const [hoveredGroup, setHoveredGroup] = useState<any | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -270,6 +273,30 @@ export default function MapPage() {
       };
     });
   }, [units, fleetLocations]);
+
+  // Group staged units by location
+  const groupedStagedUnits = useMemo(() => {
+    const groups: Record<string, typeof stagedUnits> = {};
+    
+    stagedUnits.forEach(unit => {
+      const key = `${unit.lat},${unit.lng}`;
+      if (!groups[key]) {
+        groups[key] = [];
+      }
+      groups[key].push(unit);
+    });
+
+    return Object.entries(groups).map(([key, units]) => {
+      const [lat, lng] = key.split(',').map(Number);
+      return {
+        lat,
+        lng,
+        units,
+        count: units.length,
+        region: units[0].region // They should all have the same region if they share coordinates derived from region
+      };
+    });
+  }, [stagedUnits]);
 
   // Combine and filter list items
   const listItems = useMemo(() => {
@@ -612,13 +639,62 @@ export default function MapPage() {
               ) : null
             ))}
 
-            {(viewMode === "all" || viewMode === "staged") && stagedUnits.map((unit) => (
-              <Marker
-                key={unit.id}
-                position={{ lat: unit.lat, lng: unit.lng }}
-                onClick={() => handleItemSelect(unit)}
-                icon={getMarkerIcon("#3b82f6")} // blue-500
-              />
+            {(viewMode === "all" || viewMode === "staged") && groupedStagedUnits.map((group) => (
+              <div key={`${group.lat}-${group.lng}`}>
+                <Marker
+                  position={{ lat: group.lat, lng: group.lng }}
+                  onClick={() => {
+                    if (group.count === 1) {
+                      handleItemSelect(group.units[0]);
+                    } else {
+                      setHoveredGroup(group);
+                    }
+                  }}
+                  onMouseOver={() => setHoveredGroup(group)}
+                  // onMouseOut={() => setHoveredGroup(null)} // Disabled to allow moving to InfoWindow
+                  icon={getMarkerIcon("#3b82f6")} // blue-500
+                  label={group.count > 1 ? {
+                    text: String(group.count),
+                    color: "white",
+                    fontWeight: "bold",
+                    fontSize: "12px"
+                  } : undefined}
+                />
+                {hoveredGroup && hoveredGroup.lat === group.lat && hoveredGroup.lng === group.lng && (
+                  <InfoWindow
+                    position={{ lat: group.lat, lng: group.lng }}
+                    onCloseClick={() => setHoveredGroup(null)}
+                    pixelOffset={[0, -30]}
+                  >
+                    <div className="p-2 min-w-[200px] max-h-[300px] overflow-y-auto">
+                      <div className="text-xs font-bold text-gray-500 uppercase mb-2 border-b pb-1">
+                        {group.region || "Staged Units"} ({group.count})
+                      </div>
+                      <div className="space-y-2">
+                        {group.units.map((unit: any) => (
+                          <div 
+                            key={unit.id} 
+                            className="flex items-center justify-between p-2 hover:bg-gray-100 rounded cursor-pointer"
+                            onClick={() => {
+                              handleItemSelect(unit);
+                              setHoveredGroup(null);
+                            }}
+                          >
+                            <div className="flex items-center gap-2">
+                              <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                              <div>
+                                <div className="font-medium text-sm">{unit.unitNumber || unit.name}</div>
+                                <div className="text-xs text-gray-500">{unit.driverName || "No Driver"}</div>
+                              </div>
+                            </div>
+                            <ChevronRight className="w-4 h-4 text-gray-400" />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </InfoWindow>
+                )}
+              </div>
             ))}
           </Map>
         </APIProvider>

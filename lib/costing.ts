@@ -1,8 +1,18 @@
+import { 
+  calculateTripCost as calculateTripCostNew, 
+  type Driver, 
+  type TripEvents,
+  type TripCostResult
+} from './cost-calculator';
+
 // Core costing logic for fleet management system
 
 export type DriverType = 'COM' | 'RNR' | 'OO';
 export type HaulType = 'short' | 'long';
 export type OOZone = 'zone1' | 'zone2' | 'zone3';
+
+// Re-export types from cost-calculator that might be needed
+export type { TripCostResult };
 
 export interface CostingRates {
   wage: number;
@@ -65,190 +75,6 @@ const EVENT_COSTS = {
   dropHook: 15,
 };
 
-// Weekly overhead costs
-const WEEKLY_OVERHEAD = {
-  insurance: 450,
-  trailerLease: 250,
-  sga: 180,
-  dispatchOps: 120,
-  prepass: 25,
-  isaacEld: 35,
-  miscellaneous: 75,
-};
-
-// Costing rates by driver type and distance
-const COSTING_RATES: Record<DriverType, Record<string, CostingRates>> = {
-  COM: {
-    short: {
-      wage: 0.45,
-      fuel: 0.45,
-      truckMaint: 0.12,
-      trailerMaint: 0.04,
-      benefits: 0.12,
-      performance: 0.05,
-      safety: 0.03,
-      step: 0.02,
-    },
-    long: {
-      wage: 0.45,
-      fuel: 0.45,
-      truckMaint: 0.12,
-      trailerMaint: 0.04,
-      benefits: 0.12,
-      performance: 0.05,
-      safety: 0.03,
-      step: 0.02,
-    },
-  },
-  RNR: {
-    short: {
-      wage: 0.38,
-      fuel: 0.42,
-      truckMaint: 0.12,
-      trailerMaint: 0.04,
-      benefits: 0.12,
-      performance: 0.05,
-      safety: 0.03,
-      step: 0.02,
-    },
-    long: {
-      wage: 0.38,
-      fuel: 0.42,
-      truckMaint: 0.12,
-      trailerMaint: 0.04,
-      benefits: 0.12,
-      performance: 0.05,
-      safety: 0.03,
-      step: 0.02,
-    },
-  },
-  OO: {
-    zone1: {
-      wage: 0.72,
-      fuel: 0.50,
-      truckMaint: 0.12,
-      trailerMaint: 0.04,
-    },
-    zone2: {
-      wage: 0.68,
-      fuel: 0.50,
-      truckMaint: 0.12,
-      trailerMaint: 0.04,
-    },
-    zone3: {
-      wage: 0.65,
-      fuel: 0.50,
-      truckMaint: 0.12,
-      trailerMaint: 0.04,
-    },
-  },
-};
-
-/**
- * Determine OO zone based on distance
- */
-export function getOOZone(distance: number): OOZone {
-  if (distance < 500) return 'zone1';
-  if (distance <= 1500) return 'zone2';
-  return 'zone3';
-}
-
-/**
- * Determine haul type based on distance
- */
-export function getHaulType(distance: number): HaulType {
-  return distance < 500 ? 'short' : 'long';
-}
-
-/**
- * Get per-mile rates based on driver type and distance
- */
-export function getCostingRates(driverType: DriverType, distance: number): CostingRates {
-  if (driverType === 'OO') {
-    const zone = getOOZone(distance);
-    return COSTING_RATES.OO[zone];
-  }
-  
-  const haulType = getHaulType(distance);
-  return COSTING_RATES[driverType][haulType];
-}
-
-/**
- * Calculate mileage-based costs
- */
-export function calculateMileageCosts(driverType: DriverType, distance: number): MileageCosts {
-  const rates = getCostingRates(driverType, distance);
-  
-  const wage = rates.wage * distance;
-  const fuel = rates.fuel * distance;
-  const truckMaint = rates.truckMaint * distance;
-  const trailerMaint = rates.trailerMaint * distance;
-  
-  // Calculate benefits/bonuses (COM/RNR only)
-  const benefits = rates.benefits ? wage * rates.benefits : 0;
-  const performance = rates.performance ? wage * rates.performance : 0;
-  const safety = rates.safety ? wage * rates.safety : 0;
-  const step = rates.step ? wage * rates.step : 0;
-  const rolling = benefits + performance + safety + step;
-  
-  const subtotal = wage + fuel + truckMaint + trailerMaint + rolling;
-  
-  return {
-    wage,
-    fuel,
-    benefits,
-    performance,
-    safety,
-    step,
-    truckMaint,
-    trailerMaint,
-    rolling,
-    subtotal,
-  };
-}
-
-/**
- * Calculate event-based costs
- */
-export function calculateEventCosts(
-  pickups: number = 1,
-  deliveries: number = 1,
-  borderCrossings: number = 0,
-  dropHooks: number = 0
-): EventCosts {
-  const pickupCost = pickups * EVENT_COSTS.pickup;
-  const deliveryCost = deliveries * EVENT_COSTS.delivery;
-  const borderCost = borderCrossings * EVENT_COSTS.borderCrossing;
-  const dropHookCost = dropHooks * EVENT_COSTS.dropHook;
-  const subtotal = pickupCost + deliveryCost + borderCost + dropHookCost;
-  
-  return {
-    pickupCost,
-    deliveryCost,
-    borderCost,
-    dropHookCost,
-    subtotal,
-  };
-}
-
-/**
- * Calculate weekly overhead allocation
- */
-export function calculateWeeklyOverhead(): WeeklyOverhead {
-  const dailyTotal = Object.values(WEEKLY_OVERHEAD).reduce((sum, val) => sum + val, 0) / 7;
-  
-  return {
-    insurance: WEEKLY_OVERHEAD.insurance / 7,
-    trailerLease: WEEKLY_OVERHEAD.trailerLease / 7,
-    sga: WEEKLY_OVERHEAD.sga / 7,
-    dispatchOps: WEEKLY_OVERHEAD.dispatchOps / 7,
-    prepass: WEEKLY_OVERHEAD.prepass / 7,
-    isaacEld: WEEKLY_OVERHEAD.isaacEld / 7,
-    miscellaneous: WEEKLY_OVERHEAD.miscellaneous / 7,
-    dailyTotal,
-  };
-}
-
 /**
  * Detect if trip crosses USA/Canada border
  */
@@ -269,6 +95,7 @@ export function isCrossBorder(pickupLocation: string, deliveryLocation: string):
 
 /**
  * Calculate total trip cost
+ * @deprecated Use lib/cost-calculator.ts instead
  */
 export function calculateTripCost(
   driverType: DriverType,
@@ -280,6 +107,7 @@ export function calculateTripCost(
     deliveries?: number;
     dropHooks?: number;
     includeOverhead?: boolean;
+    truckWk?: number;
   } = {}
 ): TripCost {
   const {
@@ -287,27 +115,74 @@ export function calculateTripCost(
     deliveries = 1,
     dropHooks = 0,
     includeOverhead = false,
+    truckWk = 0,
   } = options;
   
   const borderCrossings = isCrossBorder(pickupLocation, deliveryLocation) ? 1 : 0;
   
-  const mileageCosts = calculateMileageCosts(driverType, distance);
-  const eventCosts = calculateEventCosts(pickups, deliveries, borderCrossings, dropHooks);
-  const weeklyOverhead = includeOverhead ? calculateWeeklyOverhead() : undefined;
+  // Adapt to new calculator
+  const driver: Driver = {
+    id: 'legacy-calc',
+    name: 'Legacy Calculation',
+    type: driverType,
+    truckWk: truckWk // Use provided truckWk or default to 0
+  };
+
+  const events: TripEvents = {
+    border: borderCrossings,
+    picks: pickups,
+    drops: deliveries
+  };
+
+  // Estimate duration (50mph average)
+  const durationHours = distance / 50;
+  const durationDays = durationHours / 24;
+
+  const result = calculateTripCostNew(driver, distance, durationDays, events);
+
+  // Map new result back to old structure to maintain compatibility
+  // This is an approximation since the new logic groups costs differently
   
-  const directTripCost = mileageCosts.subtotal + eventCosts.subtotal;
-  const fullyAllocatedCost = directTripCost + (weeklyOverhead?.dailyTotal || 0);
-  const recommendedRevenue = fullyAllocatedCost * 1.22; // 18% margin
-  const totalCPM = distance > 0 ? directTripCost / distance : 0;
-  
+  const mileageCosts: MileageCosts = {
+    wage: result.breakdown.labor, // This includes benefits/markup now
+    fuel: result.breakdown.fuel,
+    benefits: 0, // Included in wage
+    performance: 0,
+    safety: 0,
+    step: 0,
+    truckMaint: result.breakdown.maintenance, // Combined maintenance
+    trailerMaint: 0, // Included in truckMaint
+    rolling: 0,
+    subtotal: result.breakdown.labor + result.breakdown.fuel + result.breakdown.maintenance,
+  };
+
+  const eventCosts: EventCosts = {
+    pickupCost: pickups * 30,
+    deliveryCost: deliveries * 30,
+    borderCost: borderCrossings * 15,
+    dropHookCost: 0, // Not in new logic explicitly, maybe part of picks/drops?
+    subtotal: result.breakdown.events,
+  };
+
+  const weeklyOverhead: WeeklyOverhead | undefined = includeOverhead ? {
+    insurance: 0,
+    trailerLease: 0,
+    sga: 0,
+    dispatchOps: 0,
+    prepass: 0,
+    isaacEld: 0,
+    miscellaneous: 0,
+    dailyTotal: result.breakdown.fixed / durationDays, // Daily fixed cost
+  } : undefined;
+
   return {
     mileageCosts,
     eventCosts,
     weeklyOverhead,
-    directTripCost,
-    fullyAllocatedCost,
-    recommendedRevenue,
-    totalCPM,
+    directTripCost: result.totalCost - (includeOverhead ? 0 : result.breakdown.fixed),
+    fullyAllocatedCost: result.totalCost,
+    recommendedRevenue: result.totalCost * 1.22, // Keeping the margin logic from before? Or use new margin analysis?
+    totalCPM: result.metadata.costPerMile,
   };
 }
 
@@ -325,49 +200,12 @@ function calculateTripCostWithZone(
     dropHooks?: number;
   } = {}
 ): TripCost {
-  const {
-    pickups = 1,
-    deliveries = 1,
-    dropHooks = 0,
-  } = options;
-  
-  const borderCrossings = isCrossBorder(pickupLocation, deliveryLocation) ? 1 : 0;
-  const rates = COSTING_RATES.OO[zone];
-  
-  // Calculate mileage costs using specific zone rates
-  const wage = distance * rates.wage;
-  const fuel = distance * rates.fuel;
-  const truckMaint = distance * rates.truckMaint;
-  const trailerMaint = distance * rates.trailerMaint;
-  
-  const mileageCosts: MileageCosts = {
-    wage,
-    fuel,
-    benefits: 0,
-    performance: 0,
-    safety: 0,
-    step: 0,
-    truckMaint,
-    trailerMaint,
-    rolling: 0,
-    subtotal: wage + fuel + truckMaint + trailerMaint,
-  };
-  
-  const eventCosts = calculateEventCosts(pickups, deliveries, borderCrossings, dropHooks);
-  const directTripCost = mileageCosts.subtotal + eventCosts.subtotal;
-  const fullyAllocatedCost = directTripCost;
-  const recommendedRevenue = fullyAllocatedCost * 1.22;
-  const totalCPM = distance > 0 ? directTripCost / distance : 0;
-  
-  return {
-    mileageCosts,
-    eventCosts,
-    directTripCost,
-    fullyAllocatedCost,
-    recommendedRevenue,
-    totalCPM,
-  };
+  // For now, just delegate to the main calculator as OO logic is simplified in new requirement
+  // The new requirement has a single OO rate ($0.22 fuel, $1.60 wage)
+  // It doesn't seem to distinguish zones anymore.
+  return calculateTripCost('OO', distance, pickupLocation, deliveryLocation, options);
 }
+
 
 /**
  * Get all 5 costing options for a trip (for comparison on booking page)

@@ -3,6 +3,9 @@ import { NextResponse } from "next/server";
 
 import { serviceFetch, ServiceError } from "@/lib/service-client";
 import { buildLane, mapOrderStatus } from "@/lib/transformers";
+import { calculateTripCost, type Driver, type TripEvents } from "@/lib/cost-calculator";
+import { isCrossBorder } from "@/lib/costing";
+import pool from "@/lib/db";
 
 type OrderStop = {
   id: string;
@@ -20,16 +23,23 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
   try {
     const order = await serviceFetch<Record<string, any>>("orders", `/api/orders/${id}`);
 
+    const driversQuery = `
+      SELECT d.driver_id as id, d.driver_name as name, d.driver_type, d.unit_number, u.truck_weekly_cost as "truckWk", d.region
+      FROM driver_profiles d
+      LEFT JOIN unit_profiles u ON d.unit_number = u.unit_number
+    `;
+    const unitsQuery = `SELECT unit_id as id, unit_number, truck_weekly_cost, region FROM unit_profiles`;
+
     const [driversResult, unitsResult, costResult, customerViewResult, tripsResult] = await Promise.allSettled([
-      serviceFetch<{ drivers?: Array<Record<string, any>> }>("masterData", "/api/metadata/drivers"),
-      serviceFetch<{ units?: Array<Record<string, any>> }>("masterData", "/api/metadata/units"),
+      pool.query(driversQuery),
+      pool.query(unitsQuery),
       serviceFetch<Record<string, any>>("orders", `/api/orders/${id}/cost-breakdown`),
       serviceFetch<Record<string, any>>("tracking", `/api/views/customer/${id}`),
       serviceFetch<Array<Record<string, any>>>("tracking", `/api/trips?orderId=${id}`),
     ]);
 
-    const drivers = extractRecords(driversResult, "drivers");
-    const units = extractRecords(unitsResult, "units");
+    const drivers = driversResult.status === "fulfilled" ? driversResult.value.rows : [];
+    const units = unitsResult.status === "fulfilled" ? unitsResult.value.rows : [];
     const cost = costResult.status === "fulfilled" ? costResult.value : undefined;
     const customerView = customerViewResult.status === "fulfilled" ? customerViewResult.value : undefined;
     const trips = tripsResult.status === "fulfilled" ? tripsResult.value : [];
@@ -211,20 +221,31 @@ function buildPricing(cost: Record<string, any> | undefined, order: Record<strin
   
   // If no pricing data exists, calculate based on lane miles and industry rates
   if (!totalCost && laneMiles > 0) {
-    // Standard dry van rates: ~$2.50/mile for linehaul
-    linehaul = linehaul || Math.round(laneMiles * 2.50);
+    // Use new cost calculator with default 'COM' driver
+    const defaultDriver: Driver = {
+      id: 'estimation',
+      name: 'Estimation',
+      type: 'COM',
+      truckWk: 0 // Default
+    };
+
+    const durationDays = laneMiles / 50 / 24; // Estimate 50mph avg
     
-    // Fuel surcharge: ~$0.45/mile (current rate)
-    fuel = fuel || Math.round(laneMiles * 0.45);
+    const events: TripEvents = {
+      border: isCrossBorder(order.pickup_location, order.dropoff_location) ? 1 : 0,
+      picks: 1,
+      drops: 1
+    };
+
+    const calculated = calculateTripCost(defaultDriver, laneMiles, durationDays, events);
     
-    // Accessorials: typically $0 unless specified
-    accessorials = accessorials || 0;
+    linehaul = calculated.breakdown.fixed + calculated.breakdown.labor + calculated.breakdown.maintenance + calculated.breakdown.events;
+    fuel = calculated.breakdown.fuel;
+    accessorials = 0;
+    totalCost = calculated.totalCost;
     
-    // Total cost
-    totalCost = linehaul + fuel + accessorials;
-    
-    // Revenue with 5% margin (company target)
-    revenue = revenue || Math.round(totalCost / 0.95); // totalCost = revenue * 0.95, so revenue = totalCost / 0.95
+    // Revenue with margin
+    revenue = revenue || Math.round(totalCost * 1.2); // 20% margin default
   }
   
   // Ensure we have values even if no miles (use minimum estimates)
@@ -265,6 +286,7 @@ function buildBooking(
     id: driver.driver_id ?? driver.id ?? randomUUID(),
     name: driver.driver_name ?? driver.name ?? "Driver",
     status: driver.is_active === false ? "Off Duty" : driver.status ?? "Ready",
+    region: driver.region,
     hoursAvailable: Number.isFinite(driver.hours_available) ? Number(driver.hours_available) : 8,
   }));
 
@@ -272,6 +294,7 @@ function buildBooking(
     id: unit.unit_id ?? unit.id ?? randomUUID(),
     type: unit.unit_number ?? unit.unit_type ?? unit.type ?? "Unit",
     status: unit.is_active === false ? "Maintenance" : unit.status ?? "Available",
+    region: unit.region,
     location: unit.location ?? unit.current_location ?? "Fleet Yard",
   }));
 

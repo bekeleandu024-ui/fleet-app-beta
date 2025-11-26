@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { serviceFetch } from "@/lib/service-client";
+import pool from "@/lib/db";
 
 const MASTER_DATA_SERVICE = process.env.MASTER_DATA_SERVICE_URL || "http://localhost:4001";
 
@@ -17,15 +18,13 @@ export async function GET(request: Request) {
   const activeOnly = searchParams.get("active") === "true";
 
   try {
-    // Fetch real drivers from master-data service
-    const response = await fetch(`${MASTER_DATA_SERVICE}/api/metadata/drivers`);
-    
-    if (!response.ok) {
-      throw new Error("Failed to fetch drivers from master-data service");
-    }
-
-    const data = await response.json();
-    let drivers = data.drivers || [];
+    // Fetch real drivers from DB
+    const driversQuery = `
+      SELECT driver_id, driver_name, driver_type, unit_number, region, oo_zone, is_active
+      FROM driver_profiles
+    `;
+    const result = await pool.query(driversQuery);
+    let drivers = result.rows;
 
     // Fetch active trips to determine availability
     let busyDriverIds = new Set<string>();
