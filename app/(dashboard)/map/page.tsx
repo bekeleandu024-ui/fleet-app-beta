@@ -430,15 +430,29 @@ export default function MapPage() {
 
         <APIProvider apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ""}>
           <Map
-            zoom={7}
-            center={mapCenter}
-            mapId="fleet-map-dark"
+            defaultZoom={7}
+            defaultCenter={mapCenter}
             disableDefaultUI={true}
             className="w-full h-full"
             styles={[
               { elementType: "geometry", stylers: [{ color: "#18181b" }] }, // zinc-950
               { elementType: "labels.text.stroke", stylers: [{ color: "#18181b" }] },
               { elementType: "labels.text.fill", stylers: [{ color: "#a1a1aa" }] }, // zinc-400
+              {
+                featureType: "administrative",
+                elementType: "geometry",
+                stylers: [{ visibility: "off" }],
+              },
+              {
+                featureType: "administrative.province",
+                elementType: "geometry.stroke",
+                stylers: [{ visibility: "on" }, { color: "#3f3f46" }], // zinc-700
+              },
+              {
+                featureType: "administrative.country",
+                elementType: "geometry.stroke",
+                stylers: [{ visibility: "on" }, { color: "#52525b" }], // zinc-600
+              },
               {
                 featureType: "administrative.locality",
                 elementType: "labels.text.fill",

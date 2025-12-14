@@ -113,16 +113,16 @@ export function OptimizationLayer({
   return (
     <>
       {/* --- Controls UI --- */}
-      <div className="absolute top-4 right-4 z-10 bg-white p-4 rounded-lg shadow-lg border border-gray-200 w-80">
-        <h3 className="font-semibold text-gray-900 mb-2">Route Optimization</h3>
+      <div className="absolute top-4 right-4 z-10 bg-zinc-900 p-4 rounded-lg shadow-lg border border-zinc-800 w-80">
+        <h3 className="font-semibold text-zinc-100 mb-2">Route Optimization</h3>
         
-        <div className="flex justify-between text-sm text-gray-600 mb-4">
+        <div className="flex justify-between text-sm text-zinc-400 mb-4">
           <span>Orders: {orders.length}</span>
           <span>Vehicles: {vehicles.length}</span>
         </div>
 
         {error && (
-          <div className="mb-3 p-2 bg-red-50 text-red-600 text-xs rounded border border-red-100">
+          <div className="mb-3 p-2 bg-red-900/20 text-red-400 text-xs rounded border border-red-900/50">
             {error}
           </div>
         )}
@@ -132,7 +132,7 @@ export function OptimizationLayer({
           disabled={isOptimizing || orders.length === 0}
           className={`w-full py-2 px-4 rounded-md font-medium text-white transition-colors
             ${isOptimizing 
-              ? 'bg-gray-400 cursor-not-allowed' 
+              ? 'bg-zinc-700 cursor-not-allowed' 
               : 'bg-blue-600 hover:bg-blue-700 shadow-sm'
             }`}
         >
@@ -151,16 +151,16 @@ export function OptimizationLayer({
 
         {optimizedRoutes.length > 0 && (
           <div className="mt-4 space-y-2 max-h-60 overflow-y-auto">
-            <p className="text-xs font-medium text-gray-500 uppercase">Results</p>
+            <p className="text-xs font-medium text-zinc-500 uppercase">Results</p>
             {optimizedRoutes.map((route, idx) => (
-              <div key={route.vehicle_id} className="flex items-center gap-2 text-sm p-2 bg-gray-50 rounded border border-gray-100">
+              <div key={route.vehicle_id} className="flex items-center gap-2 text-sm p-2 bg-black rounded border border-zinc-800">
                 <div 
                   className="w-3 h-3 rounded-full flex-shrink-0" 
                   style={{ backgroundColor: ROUTE_COLORS[idx % ROUTE_COLORS.length] }}
                 />
                 <div className="flex-1">
-                  <div className="font-medium text-gray-900">Vehicle {route.vehicle_id}</div>
-                  <div className="text-xs text-gray-500">
+                  <div className="font-medium text-zinc-200">Vehicle {route.vehicle_id}</div>
+                  <div className="text-xs text-zinc-500">
                     {route.steps.length} stops • {(route.total_distance_meters / 1000).toFixed(1)} km
                   </div>
                 </div>
