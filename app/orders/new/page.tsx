@@ -437,7 +437,7 @@ export default function CreateOrderPage() {
         
         {/* LEFT: Actions & Buttons */}
         <div className="col-span-2 space-y-4">
-          <Card className="h-fit sticky top-6 bg-zinc-900/40 border-zinc-800/60">
+          <Card className="h-fit sticky top-6 bg-[#0B0E14] border-blue-950/30">
             <div className="p-4 space-y-3">
               <h3 className="text-sm font-semibold text-zinc-300 mb-3">Actions</h3>
               
@@ -485,7 +485,7 @@ export default function CreateOrderPage() {
         {/* CENTER: OCR Intake & Form */}
         <div className="col-span-6 space-y-4">
           {/* OCR Intake */}
-          <Card className="bg-zinc-900/40 border-zinc-800/60">
+          <Card className="bg-[#0B0E14] border-blue-950/30">
             <div className="p-4">
               <div className="flex items-center gap-2 mb-3">
                 <Sparkles className="w-4 h-4 text-indigo-400" />
@@ -533,7 +533,7 @@ export default function CreateOrderPage() {
           </Card>
 
           {/* Order Form */}
-          <Card className="bg-zinc-900/40 border-zinc-800/60">
+          <Card className="bg-[#0B0E14] border-blue-950/30">
             <div className="p-4 space-y-4">
               <div className="flex items-center gap-2 mb-2">
                 <FileText className="w-4 h-4 text-blue-400" />

@@ -264,7 +264,7 @@ export const tripDetailSchema = z.object({
   unit: z.string(),
   unitNumber: z.string().optional(),
   driverType: z.string().optional(),
-  truckWk: z.number().optional(),
+  truckWk: z.coerce.number().optional(),
   unitType: z.string().optional(),
   eta: z.string(),
   timeline: z.array(timelineEventSchema),
@@ -289,13 +289,13 @@ export const tripDetailSchema = z.object({
   onTimeDelivery: z.boolean().optional(),
   metrics: z
     .object({
-      distanceMiles: z.number().optional(),
-      estDurationHours: z.number().optional(),
-      linehaul: z.number().optional(),
-      fuel: z.number().optional(),
-      totalCost: z.number().optional(),
-      recommendedRevenue: z.number().optional(),
-      marginPct: z.number().optional(),
+      distanceMiles: z.coerce.number().optional(),
+      estDurationHours: z.coerce.number().optional(),
+      linehaul: z.coerce.number().optional(),
+      fuel: z.coerce.number().optional(),
+      totalCost: z.coerce.number().optional(),
+      recommendedRevenue: z.coerce.number().optional(),
+      marginPct: z.coerce.number().optional(),
     })
     .optional(),
 });

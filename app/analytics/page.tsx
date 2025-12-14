@@ -3,7 +3,7 @@
 import { useMemo, useCallback } from "react";
 
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { AlertTriangle, TrendingUp, Brain, Lightbulb, TrendingDown, Target, Zap } from "lucide-react";
+import { AlertTriangle, TrendingUp, Brain, Lightbulb, TrendingDown, Target, Zap, RefreshCw, Calendar, Download } from "lucide-react";
 import {
   Area,
   Bar,
@@ -21,6 +21,9 @@ import {
 import { SectionBanner } from "@/components/section-banner";
 import { StatChip } from "@/components/stat-chip";
 import { Chip } from "@/components/ui/chip";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { KPICard } from "@/components/kpi-card";
 import { fetchAnalytics } from "@/lib/api";
 import { formatCurrency, formatDateTime, formatNumber, formatPercent } from "@/lib/format";
 import { queryKeys } from "@/lib/query";
@@ -78,9 +81,14 @@ export default function AnalyticsPage() {
 
   if (isError || !data) {
     return (
-      <SectionBanner title="Margin analytics" subtitle="Monitor profitability, trends, and driver performance." aria-live="polite">
-        <p className="text-sm text-zinc-400">Unable to load analytics right now. Please try again shortly.</p>
-      </SectionBanner>
+      <div className="p-6">
+        <Card className="border-red-900/50 bg-red-950/10">
+          <CardHeader>
+            <CardTitle className="text-red-400">Error Loading Analytics</CardTitle>
+            <CardDescription>Unable to load analytics right now. Please try again shortly.</CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
     );
   }
 
@@ -90,280 +98,274 @@ export default function AnalyticsPage() {
   const insights = aiInsights?.insights;
 
   return (
-    <div className="grid gap-6">
-      {/* AI Insights Section - Full Width */}
-      {insights && (
-        <AIInsightsSection 
-          insights={insights} 
-          isLoading={aiLoading} 
-          onRefresh={handleGenerateInsights}
-        />
-      )}
-
-      {/* Main Analytics Grid */}
-      <div className="grid gap-6 xl:grid-cols-[2fr,1fr]">
-        <div className="grid gap-6">
-          <SectionBanner
-            title="Margin analytics"
-            subtitle="Monitor margin health, revenue efficiency, and risk before month-end."
-            aria-live="polite"
-            collapsible
+    <div className="flex flex-col gap-6 p-6 min-h-screen bg-black/20">
+      {/* Header & Toolbar */}
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-white tracking-tight">Analytics Dashboard</h1>
+          <div className="flex items-center gap-2 text-sm text-zinc-400 mt-1">
+            <span>{summary.periodLabel}</span>
+            <span>•</span>
+            <span>Last updated {formatDateTime(updatedAt)}</span>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" className="h-9 bg-zinc-900 border-zinc-800 hover:bg-zinc-800">
+            <Calendar className="mr-2 h-4 w-4 text-zinc-400" />
+            <span>This Month</span>
+          </Button>
+          <Button variant="outline" size="sm" className="h-9 bg-zinc-900 border-zinc-800 hover:bg-zinc-800">
+            <Download className="mr-2 h-4 w-4 text-zinc-400" />
+            <span>Export</span>
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="h-9 bg-zinc-900 border-zinc-800 hover:bg-zinc-800"
+            onClick={() => window.location.reload()}
           >
-          <div className="flex flex-wrap items-center gap-3 text-sm text-zinc-400">
-            <Chip tone="brand">{summary.periodLabel}</Chip>
-            <span className="text-xs text-zinc-500">Last refreshed {formatDateTime(updatedAt)}</span>
-          </div>
-          <div className="grid gap-4 md:grid-cols-3">
-            <SummaryStat label="Total revenue" value={formatCurrency(summary.totalRevenue)} helper="Booked linehaul + FSC" />
-            <SummaryStat label="Total cost" value={formatCurrency(summary.totalCost)} helper="Fuel, equipment, labor" />
-            <SummaryStat label="Total miles" value={formatNumber(summary.totalMiles)} helper="Revenue miles captured" />
-          </div>
-          <div className="flex flex-wrap items-center gap-3 pt-1">
-            <StatChip
-              label="Margin"
-              value={formatPercent(summary.marginPercent)}
-              variant={summary.marginPercent >= 20 ? "ok" : summary.marginPercent >= 15 ? "warn" : "alert"}
-              icon={<TrendingUp className="size-4" aria-hidden="true" />}
-            />
-            <StatChip label="RPM" value={`$${summary.avgRatePerMile.toFixed(2)}`} />
-            <StatChip label="CPM" value={`$${summary.avgCostPerMile.toFixed(2)}`} />
-            <StatChip
-              label="Profitable trips"
-              value={summary.profitableTrips}
-              variant="ok"
-              ariaLabel={`${summary.profitableTrips} profitable trips this period`}
-            />
-            <StatChip
-              label="At-risk trips"
-              value={summary.atRiskTrips}
-              variant={summary.atRiskTrips > 12 ? "alert" : summary.atRiskTrips > 8 ? "warn" : "default"}
-              ariaLabel={`${summary.atRiskTrips} trips with margin below target`}
-            />
-          </div>
-        </SectionBanner>
-
-        <SectionBanner
-          title="Revenue vs cost trend"
-          subtitle="Weekly totals with margin overlay"
-          collapsible
-          footer={
-            <span className="flex items-center gap-2">
-              <TrendingUp className="size-4 text-blue-400" aria-hidden="true" />
-              <span>
-                {formatCurrency(revenueTotals.revenue)} revenue vs {formatCurrency(revenueTotals.cost)} cost captured this period.
-              </span>
-            </span>
-          }
-        >
-          <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={revenueTrend} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#262626" />
-                <XAxis dataKey="label" stroke="#5a5a5a" tickLine={false} axisLine={false} />
-                <YAxis
-                  yAxisId="left"
-                  stroke="#5a5a5a"
-                  tickLine={false}
-                  axisLine={false}
-                  tickFormatter={(value) => `$${Math.round((value as number) / 1000)}k`}
-                />
-                <YAxis
-                  yAxisId="right"
-                  orientation="right"
-                  stroke="#5a5a5a"
-                  tickLine={false}
-                  axisLine={false}
-                  tickFormatter={(value) => `${value}%`}
-                />
-                <Tooltip
-                  cursor={{ fill: "#1a1a1a" }}
-                  contentStyle={{ background: "#111827", borderRadius: "0.75rem", border: "1px solid #1f2937", color: "#e5e7eb" }}
-                  formatter={(value, name) => {
-                    if (name === "revenue" || name === "cost") {
-                      return [formatCurrency(Number(value)), name === "revenue" ? "Revenue" : "Cost"];
-                    }
-                    if (name === "marginPercent") {
-                      return [formatPercent(Number(value)), "Margin %"];
-                    }
-                    if (name === "miles") {
-                      return [formatNumber(Number(value)), "Miles"];
-                    }
-                    return [value as string, name as string];
-                  }}
-                  labelFormatter={(label) => `Week: ${label}`}
-                />
-                <Legend verticalAlign="top" height={36} iconType="circle" iconSize={10} />
-                <Area
-                  yAxisId="left"
-                  type="monotone"
-                  dataKey="revenue"
-                  name="Revenue"
-                  stroke="#3b82f6"
-                  fill="#3b82f633"
-                  strokeWidth={2}
-                  dot={false}
-                />
-                <Area
-                  yAxisId="left"
-                  type="monotone"
-                  dataKey="cost"
-                  name="Cost"
-                  stroke="#a1a1aa"
-                  fill="#a1a1aa33"
-                  strokeWidth={2}
-                  dot={false}
-                />
-                <Line
-                  yAxisId="right"
-                  type="monotone"
-                  dataKey="marginPercent"
-                  name="Margin %"
-                  stroke="#facc15"
-                  strokeWidth={2}
-                  dot={false}
-                />
-              </ComposedChart>
-            </ResponsiveContainer>
-          </div>
-        </SectionBanner>
-
-        <SectionBanner
-          title="Margin composition"
-          subtitle="Segments generating the strongest contribution"
-          collapsible
-          defaultOpen={false}
-        >
-          <div className="grid gap-6 lg:grid-cols-2">
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={marginByCategory} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#262626" />
-                  <XAxis dataKey="category" stroke="#5a5a5a" tickLine={false} axisLine={false} />
-                  <YAxis stroke="#5a5a5a" tickLine={false} axisLine={false} tickFormatter={(value) => `${value}%`} />
-                  <Tooltip
-                    cursor={{ fill: "#1a1a1a" }}
-                    contentStyle={{ background: "#111827", borderRadius: "0.75rem", border: "1px solid #1f2937", color: "#e5e7eb" }}
-                    formatter={(value, name) => {
-                      if (name === "marginPercent") {
-                        return [formatPercent(Number(value)), "Margin %"];
-                      }
-                      if (name === "revenue") {
-                        return [formatCurrency(Number(value)), "Revenue"];
-                      }
-                      return [value as string, name as string];
-                    }}
-                  />
-                  <Legend iconType="circle" iconSize={10} />
-                  <Bar dataKey="marginPercent" name="Margin %" fill="#3b82f6" radius={[6, 6, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={marginDistribution}
-                  layout="vertical"
-                  margin={{ top: 10, right: 20, left: 0, bottom: 0 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#262626" />
-                  <XAxis type="number" stroke="#5a5a5a" tickLine={false} axisLine={false} />
-                  <YAxis type="category" dataKey="band" stroke="#5a5a5a" tickLine={false} axisLine={false} width={70} />
-                  <Tooltip
-                    cursor={{ fill: "#1a1a1a" }}
-                    contentStyle={{ background: "#111827", borderRadius: "0.75rem", border: "1px solid #1f2937", color: "#e5e7eb" }}
-                    formatter={(value) => [formatNumber(Number(value)), "Trips"]}
-                  />
-                  <Bar dataKey="trips" name="Trips" fill="#a1a1aa" radius={[0, 6, 6, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </SectionBanner>
+            <RefreshCw className="mr-2 h-4 w-4 text-zinc-400" />
+            <span>Refresh</span>
+          </Button>
+        </div>
       </div>
 
-      <div className="grid gap-6">
-        <SectionBanner
-          title="Driver margin leaders"
-          subtitle="Top drivers ranked by contribution margin"
-          dense
-          collapsible
-          defaultOpen={false}
-        >
-          <ul className="space-y-3">
-            {driverPerformance.map((driver) => (
-              <li
-                key={driver.driverId}
-                className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-3"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-semibold text-zinc-100">{driver.driverName}</p>
-                    <p className="text-xs text-zinc-500">
-                      {driver.trips} trips · {formatCurrency(driver.revenue)}
-                    </p>
-                  </div>
-                  <StatChip
-                    label="Margin"
-                    value={formatPercent(driver.marginPercent)}
-                    variant={driver.marginPercent >= summary.marginPercent ? "ok" : "warn"}
-                  />
-                </div>
-              </li>
-            ))}
-          </ul>
-        </SectionBanner>
+      {/* KPI Cards */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <KPICard
+          label="Total Revenue"
+          value={formatCurrency(summary.totalRevenue)}
+          subtitle="Booked linehaul + FSC"
+          trend="up"
+          variant="default"
+        />
+        <KPICard
+          label="Total Cost"
+          value={formatCurrency(summary.totalCost)}
+          subtitle="Fuel, equipment, labor"
+          variant="default"
+        />
+        <KPICard
+          label="Net Margin"
+          value={formatPercent(summary.marginPercent)}
+          subtitle={`${formatCurrency(summary.totalRevenue - summary.totalCost)} profit`}
+          variant={summary.marginPercent >= 20 ? "success" : summary.marginPercent >= 15 ? "warning" : "danger"}
+          trend={summary.marginPercent >= 15 ? "up" : "down"}
+        />
+        <KPICard
+          label="RPM / CPM"
+          value={`$${summary.avgRatePerMile.toFixed(2)}`}
+          subtitle={`Cost: $${summary.avgCostPerMile.toFixed(2)} / mi`}
+          variant="info"
+        />
+      </div>
 
-        <SectionBanner title="Lane profitability" subtitle="Focus lanes needing price or cost attention" dense collapsible defaultOpen={false}>
-          <ul className="space-y-3">
-            {lanePerformance.map((lane) => (
-              <li key={lane.lane} className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-3">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-semibold text-zinc-100">{lane.lane}</p>
-                    <p className="text-xs text-zinc-500">
-                      {formatCurrency(lane.revenue)} · {formatNumber(lane.miles)} mi
-                    </p>
-                  </div>
-                  <StatChip
-                    label="Margin"
-                    value={formatPercent(lane.marginPercent)}
-                    variant={lane.marginPercent >= summary.marginPercent ? "ok" : lane.marginPercent >= 18 ? "warn" : "alert"}
-                  />
-                </div>
-              </li>
-            ))}
-          </ul>
-        </SectionBanner>
-
-        <SectionBanner title="Alerts" subtitle="AI surfaced risk and opportunities" dense collapsible defaultOpen={false}>
-          <ul className="space-y-3">
-            {alerts.length === 0 ? (
-              <li className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-4 text-sm text-zinc-400">
-                No active analytics alerts.
-              </li>
-            ) : (
-              alerts.map((alert) => (
-                <li key={alert.id} className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="space-y-1">
-                      <p className="text-sm font-semibold text-zinc-100">{alert.title}</p>
-                      <p className="text-sm text-zinc-400">{alert.description}</p>
-                    </div>
-                    <StatChip
-                      label="Severity"
-                      value={alert.severity.toUpperCase()}
-                      variant={severityToVariant(alert.severity)}
-                      icon={<AlertTriangle className="size-4" aria-hidden="true" />}
-                      ariaLabel={`Alert severity ${alert.severity}`}
+      {/* Main Content Grid */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        
+        {/* Left Column: Charts & Detailed Analysis */}
+        <div className="lg:col-span-2 space-y-6">
+          
+          {/* Revenue Trend Chart */}
+          <Card className="border-zinc-800 bg-zinc-900/50">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <div>
+                <CardTitle>Revenue vs Cost Trend</CardTitle>
+                <CardDescription>Weekly financial performance with margin overlay</CardDescription>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-zinc-400 bg-zinc-900/80 px-3 py-1 rounded-full border border-zinc-800">
+                <TrendingUp className="size-4 text-blue-400" />
+                <span>{formatCurrency(revenueTotals.revenue)} revenue captured</span>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="h-[350px] w-full mt-4">
+                <ResponsiveContainer width="100%" height="100%">
+                  <ComposedChart data={revenueTrend} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#262626" vertical={false} />
+                    <XAxis 
+                      dataKey="label" 
+                      stroke="#52525b" 
+                      tickLine={false} 
+                      axisLine={false} 
+                      tick={{ fontSize: 12 }}
+                      dy={10}
                     />
+                    <YAxis
+                      yAxisId="left"
+                      stroke="#52525b"
+                      tickLine={false}
+                      axisLine={false}
+                      tickFormatter={(value) => `$${Math.round((value as number) / 1000)}k`}
+                      tick={{ fontSize: 12 }}
+                    />
+                    <YAxis
+                      yAxisId="right"
+                      orientation="right"
+                      stroke="#52525b"
+                      tickLine={false}
+                      axisLine={false}
+                      tickFormatter={(value) => `${value}%`}
+                      tick={{ fontSize: 12 }}
+                    />
+                    <Tooltip
+                      cursor={{ fill: "#27272a", opacity: 0.4 }}
+                      contentStyle={{ background: "#18181b", borderRadius: "0.5rem", border: "1px solid #27272a", color: "#e4e4e7" }}
+                      formatter={(value, name) => {
+                        if (name === "revenue" || name === "cost") return [formatCurrency(Number(value)), name === "revenue" ? "Revenue" : "Cost"];
+                        if (name === "marginPercent") return [formatPercent(Number(value)), "Margin %"];
+                        return [value, name];
+                      }}
+                    />
+                    <Legend verticalAlign="top" height={36} iconType="circle" iconSize={8} wrapperStyle={{ fontSize: '12px', color: '#a1a1aa' }} />
+                    <Area yAxisId="left" type="monotone" dataKey="revenue" name="Revenue" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.1} strokeWidth={2} />
+                    <Area yAxisId="left" type="monotone" dataKey="cost" name="Cost" stroke="#71717a" fill="#71717a" fillOpacity={0.1} strokeWidth={2} />
+                    <Line yAxisId="right" type="monotone" dataKey="marginPercent" name="Margin %" stroke="#facc15" strokeWidth={2} dot={{ r: 3, fill: "#facc15" }} activeDot={{ r: 5 }} />
+                  </ComposedChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Margin Composition Row */}
+          <div className="grid gap-6 md:grid-cols-2">
+            <Card className="border-zinc-800 bg-zinc-900/50">
+              <CardHeader>
+                <CardTitle className="text-base">Margin by Category</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={marginByCategory} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#262626" vertical={false} />
+                      <XAxis dataKey="category" stroke="#52525b" tickLine={false} axisLine={false} tick={{ fontSize: 11 }} interval={0} />
+                      <YAxis stroke="#52525b" tickLine={false} axisLine={false} tickFormatter={(value) => `${value}%`} tick={{ fontSize: 11 }} />
+                      <Tooltip cursor={{ fill: "#27272a", opacity: 0.4 }} contentStyle={{ background: "#18181b", border: "1px solid #27272a", color: "#e4e4e7" }} />
+                      <Bar dataKey="marginPercent" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={32} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-zinc-800 bg-zinc-900/50">
+              <CardHeader>
+                <CardTitle className="text-base">Margin Distribution</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={marginDistribution} layout="vertical" margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#262626" horizontal={false} />
+                      <XAxis type="number" stroke="#52525b" tickLine={false} axisLine={false} tick={{ fontSize: 11 }} />
+                      <YAxis type="category" dataKey="band" stroke="#52525b" tickLine={false} axisLine={false} width={60} tick={{ fontSize: 11 }} />
+                      <Tooltip cursor={{ fill: "#27272a", opacity: 0.4 }} contentStyle={{ background: "#18181b", border: "1px solid #27272a", color: "#e4e4e7" }} />
+                      <Bar dataKey="trips" fill="#71717a" radius={[0, 4, 4, 0]} barSize={20} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* Right Column: Insights & Lists */}
+        <div className="space-y-6">
+          
+          {/* AI Insights Panel */}
+          {insights ? (
+             <Card className="border-indigo-500/30 bg-indigo-950/10">
+               <CardHeader className="pb-3">
+                 <div className="flex items-center gap-2">
+                   <Brain className="size-5 text-indigo-400" />
+                   <CardTitle className="text-indigo-100">AI Insights</CardTitle>
+                 </div>
+               </CardHeader>
+               <CardContent className="space-y-4">
+                 <div className="flex items-center justify-between text-sm">
+                    <span className="text-zinc-400">Health Score</span>
+                    <span className="font-bold text-white">{insights.keyMetrics?.healthScore || 0}/100</span>
+                 </div>
+                 <div className="space-y-3">
+                   {insights.opportunities?.slice(0, 2).map((opp: any, i: number) => (
+                     <div key={i} className="flex gap-3 p-3 rounded bg-indigo-950/30 border border-indigo-500/20">
+                       <Lightbulb className="size-4 text-amber-400 shrink-0 mt-0.5" />
+                       <p className="text-xs text-indigo-200 leading-relaxed">{opp.description}</p>
+                     </div>
+                   ))}
+                 </div>
+                 <Button 
+                   variant="ghost" 
+                   size="sm" 
+                   className="w-full text-indigo-300 hover:text-indigo-200 hover:bg-indigo-900/50 h-8 text-xs"
+                   onClick={handleGenerateInsights}
+                 >
+                   {aiLoading ? "Analyzing..." : "Refresh Analysis"}
+                 </Button>
+               </CardContent>
+             </Card>
+          ) : (
+            <Card className="border-zinc-800 bg-zinc-900/50">
+               <CardContent className="pt-6 text-center">
+                  <Button onClick={handleGenerateInsights} disabled={aiLoading} variant="outline" size="sm">
+                    {aiLoading ? "Generating..." : "Generate AI Insights"}
+                  </Button>
+               </CardContent>
+            </Card>
+          )}
+
+          {/* Driver Performance List */}
+          <Card className="border-zinc-800 bg-zinc-900/50">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Top Drivers</CardTitle>
+              <CardDescription>Ranked by margin contribution</CardDescription>
+            </CardHeader>
+            <CardContent className="px-0">
+              <div className="space-y-1">
+                {driverPerformance.slice(0, 5).map((driver) => (
+                  <div key={driver.driverId} className="flex items-center justify-between px-5 py-2 hover:bg-zinc-800/50 transition-colors">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-zinc-200 truncate">{driver.driverName}</p>
+                      <p className="text-xs text-zinc-500">{driver.trips} trips</p>
+                    </div>
+                    <div className="text-right">
+                      <p className={`text-sm font-bold ${driver.marginPercent >= 20 ? 'text-emerald-400' : 'text-zinc-300'}`}>
+                        {formatPercent(driver.marginPercent)}
+                      </p>
+                      <p className="text-xs text-zinc-500">{formatCurrency(driver.revenue)}</p>
+                    </div>
                   </div>
-                </li>
-              ))
-            )}
-          </ul>
-        </SectionBanner>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Alerts */}
+          <Card className="border-zinc-800 bg-zinc-900/50">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Active Alerts</CardTitle>
+            </CardHeader>
+            <CardContent className="px-0">
+               {alerts.length === 0 ? (
+                 <p className="px-5 py-4 text-sm text-zinc-500">No active alerts.</p>
+               ) : (
+                 <div className="space-y-1">
+                   {alerts.slice(0, 5).map((alert) => (
+                     <div key={alert.id} className="flex gap-3 px-5 py-3 hover:bg-zinc-800/50 border-l-2 border-transparent hover:border-zinc-700">
+                       <AlertTriangle className={`size-4 shrink-0 ${alert.severity === 'alert' ? 'text-red-400' : 'text-amber-400'}`} />
+                       <div>
+                         <p className="text-sm text-zinc-300 leading-snug">{alert.title}</p>
+                         <p className="text-xs text-zinc-500 mt-1 line-clamp-1">{alert.description}</p>
+                       </div>
+                     </div>
+                   ))}
+                 </div>
+               )}
+            </CardContent>
+          </Card>
+
+        </div>
       </div>
-    </div>
     </div>
   );
 }

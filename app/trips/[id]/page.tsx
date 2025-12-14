@@ -36,7 +36,7 @@ export default function TripDetailPage() {
   const tripId = params?.id ?? "";
   const [noteText, setNoteText] = useState("");
 
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError, error } = useQuery({
     queryKey: queryKeys.trip(tripId),
     queryFn: () => fetchTripDetail(tripId),
     enabled: Boolean(tripId),
@@ -58,15 +58,31 @@ export default function TripDetailPage() {
     // queryClient.invalidateQueries({ queryKey: queryKeys.trip(tripId) });
   };
 
-  if (isLoading) {
+  if (!tripId || isLoading) {
     return <TripDetailSkeleton />;
   }
 
   if (isError || !data) {
     return (
-      <section className="col-span-12 rounded-xl border border-neutral-800 bg-neutral-900/60 p-6 text-sm text-neutral-500">
-        Unable to load trip detail.
-      </section>
+      <div className="p-6">
+        <div className="rounded-xl border border-red-900/50 bg-red-950/10 p-6">
+          <div className="flex items-center gap-3 text-red-400 mb-2">
+            <AlertTriangle className="h-5 w-5" />
+            <h3 className="font-semibold">Unable to load trip detail</h3>
+          </div>
+          <p className="text-sm text-red-300/70">
+            {error?.message || "The requested trip could not be found or an error occurred."}
+          </p>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="mt-4 border-red-900/30 hover:bg-red-950/30 text-red-300"
+            onClick={() => window.location.reload()}
+          >
+            Retry
+          </Button>
+        </div>
+      </div>
     );
   }
 
