@@ -3,28 +3,34 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { RefreshCw, ArrowUpDown, ArrowUp, ArrowDown, Filter } from "lucide-react";
+import { 
+  RefreshCw, 
+  ArrowUpDown, 
+  ArrowUp, 
+  ArrowDown, 
+  Filter, 
+  Search,
+  MoreHorizontal,
+  ChevronRight
+} from "lucide-react";
 
-import { DataTable, type DataTableColumn } from "@/components/data-table";
-import { SectionBanner } from "@/components/section-banner";
 import { Button } from "@/components/ui/button";
-import { Chip } from "@/components/ui/chip";
 import { fetchOrders } from "@/lib/api";
 import { formatCurrency } from "@/lib/format";
 import { queryKeys } from "@/lib/query";
 import type { OrderListItem } from "@/lib/types";
 
-const statusTone: Record<string, string> = {
-  New: "text-emerald-400",
-  Planning: "text-zinc-200",
-  "In Transit": "text-cyan-400",
-  "At Risk": "text-amber-400",
-  Delivered: "text-zinc-500",
-  Exception: "text-rose-400",
+const statusColors = {
+  New: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
+  Planning: "bg-zinc-500/20 text-zinc-400 border-zinc-500/30",
+  "In Transit": "bg-blue-500/20 text-blue-400 border-blue-500/30",
+  "At Risk": "bg-amber-500/20 text-amber-400 border-amber-500/30",
+  Delivered: "bg-zinc-500/20 text-zinc-500 border-zinc-500/30",
+  Exception: "bg-rose-500/20 text-rose-400 border-rose-500/30",
+  "Ready to Book": "bg-cyan-500/20 text-cyan-400 border-cyan-500/30",
+  "Qualifying": "bg-amber-500/20 text-amber-400 border-amber-500/30",
+  "Qualified": "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
 };
-
-type SortField = "reference" | "customer" | "status" | "ageHours" | "cost" | "window";
-type SortDirection = "asc" | "desc" | null;
 
 export default function OrdersPage() {
   const router = useRouter();
@@ -33,14 +39,14 @@ export default function OrdersPage() {
     queryFn: fetchOrders,
   });
 
-  const [sortField, setSortField] = useState<SortField | null>(null);
-  const [sortDirection, setSortDirection] = useState<SortDirection>(null);
-  const [filterStatus, setFilterStatus] = useState<string>("All");
-  const [filterCustomer, setFilterCustomer] = useState<string>("All");
+  const [sortField, setSortField] = useState(null);
+  const [sortDirection, setSortDirection] = useState(null);
+  const [filterStatus, setFilterStatus] = useState("All");
+  const [filterCustomer, setFilterCustomer] = useState("All");
+  const [searchQuery, setSearchQuery] = useState("");
 
-  const handleSort = (field: SortField) => {
+  const handleSort = (field) => {
     if (sortField === field) {
-      // Cycle through: asc -> desc -> null
       if (sortDirection === "asc") {
         setSortDirection("desc");
       } else if (sortDirection === "desc") {
@@ -53,130 +59,43 @@ export default function OrdersPage() {
     }
   };
 
-  const SortIcon = ({ field }: { field: SortField }) => {
-    if (sortField !== field) return <ArrowUpDown className="ml-1 h-3 w-3 opacity-50" />;
-    if (sortDirection === "asc") return <ArrowUp className="ml-1 h-3 w-3" />;
-    if (sortDirection === "desc") return <ArrowDown className="ml-1 h-3 w-3" />;
+  const SortIcon = ({ field }) => {
+    if (sortField !== field) return <ArrowUpDown className="ml-1 h-3 w-3 opacity-20" />;
+    if (sortDirection === "asc") return <ArrowUp className="ml-1 h-3 w-3 text-blue-400" />;
+    if (sortDirection === "desc") return <ArrowDown className="ml-1 h-3 w-3 text-blue-400" />;
     return null;
   };
 
-  const columns: DataTableColumn<OrderListItem>[] = useMemo(
-    () => [
-      {
-        key: "order",
-        header: (
-          <button onClick={() => handleSort("reference")} className="flex items-center hover:text-white">
-            Order
-            <SortIcon field="reference" />
-          </button>
-        ),
-        cell: (row) => (
-          <div className="flex flex-col">
-            <span className="font-bold text-zinc-100">{row.id}</span>
-            <span className="text-xs text-zinc-500">{row.reference}</span>
-          </div>
-        ),
-        widthClass: "w-40",
-      },
-      {
-        key: "customer",
-        header: (
-          <button onClick={() => handleSort("customer")} className="flex items-center hover:text-white">
-            Customer
-            <SortIcon field="customer" />
-          </button>
-        ),
-        accessor: (row) => row.customer,
-        widthClass: "w-44",
-      },
-      {
-        key: "lane",
-        header: "PU→DEL",
-        cell: (row) => (
-          <div className="flex flex-col text-sm">
-            <span className="text-zinc-200">{row.pickup}</span>
-            <span className="text-xs text-zinc-500">{row.delivery}</span>
-          </div>
-        ),
-        widthClass: "w-52",
-      },
-      {
-        key: "window",
-        header: (
-          <button onClick={() => handleSort("window")} className="flex items-center hover:text-white">
-            Window
-            <SortIcon field="window" />
-          </button>
-        ),
-        accessor: (row) => row.window,
-        widthClass: "w-40",
-      },
-      {
-        key: "status",
-        header: (
-          <button onClick={() => handleSort("status")} className="flex items-center hover:text-white">
-            Status
-            <SortIcon field="status" />
-          </button>
-        ),
-        cell: (row) => (
-          <span className={`text-sm font-bold ${statusTone[row.status] ?? "text-zinc-200"}`}>{row.status}</span>
-        ),
-        widthClass: "w-32",
-      },
-      {
-        key: "age",
-        header: (
-          <button onClick={() => handleSort("ageHours")} className="flex items-center hover:text-white">
-            Age
-            <SortIcon field="ageHours" />
-          </button>
-        ),
-        accessor: (row) => `${row.ageHours}h`,
-        align: "right",
-        widthClass: "w-20",
-      },
-      {
-        key: "cost",
-        header: (
-          <button onClick={() => handleSort("cost")} className="flex items-center hover:text-white">
-            Cost
-            <SortIcon field="cost" />
-          </button>
-        ),
-        cell: (row) => (row.cost !== undefined ? formatCurrency(row.cost) : "—"),
-        align: "right",
-        widthClass: "w-28",
-      },
-    ],
-    [sortField, sortDirection]
-  );
-
-  // Filter and sort data
   const filteredAndSortedData = useMemo(() => {
     if (!data?.data) return [];
 
     let filtered = data.data;
 
-    // Apply filters
     if (filterStatus !== "All") {
       filtered = filtered.filter((order) => order.status === filterStatus);
     }
     if (filterCustomer !== "All") {
       filtered = filtered.filter((order) => order.customer === filterCustomer);
     }
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      filtered = filtered.filter(order => 
+        order.id.toLowerCase().includes(q) ||
+        order.reference.toLowerCase().includes(q) ||
+        order.customer.toLowerCase().includes(q) ||
+        order.pickup.toLowerCase().includes(q) ||
+        order.delivery.toLowerCase().includes(q)
+      );
+    }
 
-    // Apply sorting
     if (sortField && sortDirection) {
       filtered = [...filtered].sort((a, b) => {
-        let aVal: any = a[sortField];
-        let bVal: any = b[sortField];
+        let aVal = a[sortField];
+        let bVal = b[sortField];
 
-        // Handle undefined/null values
         if (aVal === undefined || aVal === null) return 1;
         if (bVal === undefined || bVal === null) return -1;
 
-        // Convert to comparable values
         if (typeof aVal === "string") aVal = aVal.toLowerCase();
         if (typeof bVal === "string") bVal = bVal.toLowerCase();
 
@@ -187,250 +106,246 @@ export default function OrdersPage() {
     }
 
     return filtered;
-  }, [data?.data, filterStatus, filterCustomer, sortField, sortDirection]);
+  }, [data?.data, filterStatus, filterCustomer, searchQuery, sortField, sortDirection]);
 
-  if (isLoading && !data) {
-    return <OrdersSkeleton />;
+  if (isLoading) {
+    return <div className="p-8 text-zinc-500">Loading orders...</div>;
   }
 
   if (isError || !data) {
-    return (
-      <SectionBanner title="Orders Workspace" subtitle="Review, price, and action the active order stack." aria-live="polite">
-        <p className="text-sm text-slate-400">Unable to load orders. Refresh the page.</p>
-      </SectionBanner>
-    );
+    return <div className="p-8 text-rose-500">Error loading orders.</div>;
   }
 
-  const stats = [
-    { label: "Total", value: data.stats.total.toString() },
-    { label: "New", value: data.stats.new.toString() },
-    { label: "In Progress", value: data.stats.inProgress.toString() },
-    { label: "Delayed", value: data.stats.delayed.toString() },
-  ];
+  const stats = data.stats;
 
   return (
-    <div className="space-y-6 p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-semibold text-white">Orders</h1>
-          <p className="text-sm text-neutral-400">Review, price, and action the active order stack</p>
+    <div className="flex flex-col gap-0 rounded-lg border border-zinc-800 bg-zinc-950 shadow-sm overflow-hidden">
+      {/* Header & Stats Ribbon */}
+      <div className="flex h-14 items-center justify-between border-b border-zinc-800 bg-zinc-900/50 px-4">
+        <div className="flex items-center gap-6">
+          <h1 className="text-lg font-bold text-zinc-100">Orders</h1>
+          
+          {/* Stats Ribbon */}
+          <div className="hidden items-center gap-4 text-xs font-mono md:flex">
+            <div className="flex items-center gap-2 px-2 py-1 rounded bg-zinc-900 border border-zinc-800">
+              <span className="text-zinc-500">Total</span>
+              <span className="font-bold text-zinc-200">{stats.total}</span>
+            </div>
+            <div className="flex items-center gap-2 px-2 py-1 rounded bg-zinc-900 border border-zinc-800">
+              <span className="text-zinc-500">New</span>
+              <span className="font-bold text-emerald-400">{stats.new}</span>
+            </div>
+            <div className="flex items-center gap-2 px-2 py-1 rounded bg-zinc-900 border border-zinc-800">
+              <span className="text-zinc-500">Active</span>
+              <span className="font-bold text-blue-400">{stats.inProgress}</span>
+            </div>
+            <div className="flex items-center gap-2 px-2 py-1 rounded bg-zinc-900 border border-zinc-800">
+              <span className="text-zinc-500">Delayed</span>
+              <span className="font-bold text-rose-400">{stats.delayed}</span>
+            </div>
+          </div>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <Button
-            size="sm"
-            variant="subtle"
-            onClick={() => {
-              void refetch();
-            }}
+
+        <div className="flex items-center gap-2">
+          <div className="relative hidden sm:block">
+            <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-500" />
+            <input 
+              type="text" 
+              placeholder="Search..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="h-8 w-48 rounded-sm border border-zinc-800 bg-black pl-8 pr-3 text-xs text-zinc-200 placeholder:text-zinc-600 focus:border-blue-800 focus:outline-none focus:ring-1 focus:ring-blue-900"
+            />
+          </div>
+          <Button 
+            size="sm" 
+            variant="ghost" 
+            onClick={() => void refetch()}
+            className="h-8 w-8 rounded-sm p-0 text-zinc-400 hover:bg-zinc-800 hover:text-white"
           >
-            <RefreshCw className="size-4" /> Refresh
+            <RefreshCw className="h-3.5 w-3.5" />
           </Button>
-          <Button size="sm" variant="primary" onClick={() => router.push("/orders/new")}>
+          <Button 
+            size="sm" 
+            onClick={() => router.push("/orders/new")}
+            className="h-8 rounded-sm bg-blue-700 px-3 text-xs font-medium text-white hover:bg-blue-600"
+          >
             Create Order
           </Button>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        {stats.map((stat) => (
-          <div key={stat.label} className="rounded-xl border border-zinc-800/70 bg-zinc-900/40 p-5 shadow-lg shadow-black/40 hover:border-zinc-700 transition-all duration-200">
-            <p className="text-2xl font-bold text-white">{stat.value}</p>
-            <p className="text-xs uppercase tracking-wide text-zinc-500 font-semibold">{stat.label}</p>
-          </div>
-        ))}
-      </div>
+      {/* Filter Toolbar */}
+      <div className="flex items-center gap-4 border-b border-zinc-800 bg-zinc-900/30 px-4 py-2">
+        <div className="flex items-center gap-2">
+          <Filter className="h-3.5 w-3.5 text-zinc-500" />
+          <span className="text-xs font-medium text-zinc-400">Filters:</span>
+        </div>
+        
+        <select
+          value={filterStatus}
+          onChange={(e) => setFilterStatus(e.target.value)}
+          className="h-7 rounded-sm border border-zinc-800 bg-black px-2 text-xs text-zinc-300 focus:border-blue-800 focus:outline-none"
+        >
+          <option value="All">Status: All</option>
+          {data.filters.statuses.map(s => <option key={s} value={s}>{s}</option>)}
+        </select>
 
-      {/* Filters */}
-      <div className="flex items-center gap-4 rounded-xl border border-zinc-800/70 bg-zinc-900/40 p-4 shadow-md shadow-black/30">
-        <div className="flex items-center gap-2">
-          <Filter className="h-4 w-4 text-zinc-500" />
-          <span className="text-sm font-bold text-zinc-200">Filters:</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <label className="text-xs text-zinc-500 font-semibold">Status:</label>
-          <select
-            className="rounded-full border border-zinc-800 bg-black/40 px-4 py-1.5 text-sm text-zinc-300 focus:border-blue-900/50 focus:outline-none focus:ring-2 focus:ring-blue-900/20 transition-all duration-200"
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-          >
-            <option value="All">All</option>
-            {data?.filters.statuses.map((status) => (
-              <option key={status} value={status}>
-                {status}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="flex items-center gap-2">
-          <label className="text-xs text-zinc-500 font-semibold">Customer:</label>
-          <select
-            className="rounded-full border border-zinc-800 bg-black/40 px-4 py-1.5 text-sm text-zinc-300 focus:border-blue-900/50 focus:outline-none focus:ring-2 focus:ring-blue-900/20 transition-all duration-200"
-            value={filterCustomer}
-            onChange={(e) => setFilterCustomer(e.target.value)}
-          >
-            {data?.filters.customers.map((customer) => (
-              <option key={customer} value={customer}>
-                {customer}
-              </option>
-            ))}
-          </select>
-        </div>
-        {(filterStatus !== "All" || filterCustomer !== "All") && (
-          <Button
-            size="sm"
-            variant="subtle"
+        <select
+          value={filterCustomer}
+          onChange={(e) => setFilterCustomer(e.target.value)}
+          className="h-7 rounded-sm border border-zinc-800 bg-black px-2 text-xs text-zinc-300 focus:border-blue-800 focus:outline-none"
+        >
+          <option value="All">Customer: All</option>
+          {data.filters.customers.map(c => <option key={c} value={c}>{c}</option>)}
+        </select>
+
+        {(filterStatus !== "All" || filterCustomer !== "All" || searchQuery) && (
+          <button 
             onClick={() => {
               setFilterStatus("All");
               setFilterCustomer("All");
+              setSearchQuery("");
             }}
+            className="text-xs text-blue-400 hover:text-blue-300 hover:underline"
           >
-            Clear Filters
-          </Button>
+            Clear all
+          </button>
         )}
+        
+        <div className="ml-auto text-xs text-zinc-500">
+          Showing {filteredAndSortedData.length} orders
+        </div>
       </div>
 
-      <div className="space-y-3">
-        {filteredAndSortedData.length === 0 ? (
-          <div className="rounded-xl border border-zinc-800/70 bg-zinc-900/40 p-8 text-center">
-            <p className="text-zinc-400">No orders found matching your filters.</p>
-          </div>
-        ) : (
-          filteredAndSortedData.map((order) => {
-            // Calculate order age styling
-            const ageHours = order.ageHours || 0;
-            const ageColor = ageHours > 48 ? 'text-rose-400' : ageHours > 24 ? 'text-amber-400' : 'text-emerald-400';
-            const ageText = ageHours > 24 ? `${Math.floor(ageHours / 24)}d` : `${ageHours}h`;
-            
-            // Status color mapping
-            const statusConfig: Record<string, { color: string; progress: number }> = {
-              'New': { color: 'bg-zinc-500', progress: 25 },
-              'Qualifying': { color: 'bg-amber-500', progress: 50 },
-              'Qualified': { color: 'bg-emerald-500', progress: 75 },
-              'Ready to Book': { color: 'bg-cyan-500', progress: 90 },
-              'In Transit': { color: 'bg-blue-500', progress: 100 },
-              'Delivered': { color: 'bg-emerald-600', progress: 100 },
-              'Exception': { color: 'bg-rose-500', progress: 50 },
-            };
-            
-            const currentStatus = statusConfig[order.status] || { color: 'bg-zinc-500', progress: 25 };
-            
-            return (
-              <div
-                key={order.id}
-                className="rounded-lg border border-zinc-800/70 bg-zinc-900/40 p-3 shadow-md shadow-black/30 hover:border-zinc-700 transition-all duration-200"
-              >
-                {/* Top section: Customer name and timestamp */}
-                <div className="flex items-start justify-between mb-1.5">
-                  <h3 className="text-sm font-semibold text-white">
-                    {order.customer}
-                  </h3>
-                  <div className="text-right">
-                    <div className="text-[10px] text-zinc-500 uppercase tracking-wide">Created</div>
-                    <div className="text-xs text-zinc-300">
-                      {order.window}
-                    </div>
-                  </div>
-                </div>
+      {/* Data Table */}
+      <div className="overflow-x-auto">
+        <table className="w-full text-left text-xs">
+          <thead className="bg-zinc-900/80 text-zinc-500">
+            <tr className="border-b border-zinc-800">
+              <th className="whitespace-nowrap px-4 py-2 font-medium uppercase tracking-wider">
+                <button onClick={() => handleSort("reference")} className="flex items-center hover:text-zinc-300">
+                  Order ID <SortIcon field="reference" />
+                </button>
+              </th>
+              <th className="whitespace-nowrap px-4 py-2 font-medium uppercase tracking-wider">
+                <button onClick={() => handleSort("status")} className="flex items-center hover:text-zinc-300">
+                  Status <SortIcon field="status" />
+                </button>
+              </th>
+              <th className="whitespace-nowrap px-4 py-2 font-medium uppercase tracking-wider">
+                <button onClick={() => handleSort("customer")} className="flex items-center hover:text-zinc-300">
+                  Customer <SortIcon field="customer" />
+                </button>
+              </th>
+              <th className="whitespace-nowrap px-4 py-2 font-medium uppercase tracking-wider">
+                <button onClick={() => handleSort("pickup")} className="flex items-center hover:text-zinc-300">
+                  Origin <SortIcon field="pickup" />
+                </button>
+              </th>
+              <th className="whitespace-nowrap px-4 py-2 font-medium uppercase tracking-wider">
+                <button onClick={() => handleSort("delivery")} className="flex items-center hover:text-zinc-300">
+                  Destination <SortIcon field="delivery" />
+                </button>
+              </th>
+              <th className="whitespace-nowrap px-4 py-2 font-medium uppercase tracking-wider">
+                Equipment
+              </th>
+              <th className="whitespace-nowrap px-4 py-2 font-medium uppercase tracking-wider text-right">
+                Distance
+              </th>
+              <th className="whitespace-nowrap px-4 py-2 font-medium uppercase tracking-wider text-right">
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-zinc-800/50 bg-black/20">
+            {filteredAndSortedData.length === 0 ? (
+              <tr>
+                <td colSpan={8} className="px-4 py-8 text-center text-zinc-500">
+                  No orders found.
+                </td>
+              </tr>
+            ) : (
+              filteredAndSortedData.map((order, idx) => {
+                const statusStyle = statusColors[order.status] || "bg-zinc-800 text-zinc-400 border-zinc-700";
+                
+                return (
+                  <tr 
+                    key={order.id} 
+                    className={`group transition-colors hover:bg-zinc-900/60 ${idx % 2 === 0 ? 'bg-transparent' : 'bg-zinc-900/20'}`}
+                  >
+                    {/* Order ID / Date */}
+                    <td className="px-4 py-2 align-middle">
+                      <div className="flex flex-col">
+                        <span className="font-mono font-medium text-blue-400 group-hover:text-blue-300">
+                          {order.id}
+                        </span>
+                        <span className="text-[10px] text-zinc-500">
+                          {order.window}
+                        </span>
+                      </div>
+                    </td>
 
-                {/* Route: Origin → Destination */}
-                <div className="mb-2 text-xs text-zinc-300">
-                  <span>{order.pickup}</span>
-                  <span className="mx-1.5 text-zinc-600">→</span>
-                  <span>{order.delivery}</span>
-                </div>
-
-                {/* Middle section: Status, Progress, Metrics */}
-                <div className="mb-2 space-y-1.5">
-                  {/* Status Badge & Metrics Row */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold text-white ${currentStatus.color}`}>
+                    {/* Status */}
+                    <td className="px-4 py-2 align-middle">
+                      <span className={`inline-flex items-center rounded-sm border px-1.5 py-0.5 text-[10px] font-medium ${statusStyle}`}>
                         {order.status}
                       </span>
-                      <span className={`text-[10px] font-semibold ${ageColor}`}>
-                        {ageText} old
-                      </span>
-                    </div>
-                    {order.laneMiles !== undefined && (
-                      <span className="text-[10px] font-medium text-zinc-400">
-                        {order.laneMiles} mi
-                      </span>
-                    )}
-                  </div>
+                    </td>
 
-                  {/* Progress Bar */}
-                  <div className="w-full bg-zinc-800/50 rounded-full h-1 overflow-hidden">
-                    <div 
-                      className={`h-full ${currentStatus.color} transition-all duration-500 ease-out`}
-                      style={{ width: `${currentStatus.progress}%` }}
-                    />
-                  </div>
-                </div>
+                    {/* Customer */}
+                    <td className="px-4 py-2 align-middle font-medium text-zinc-300">
+                      {order.customer}
+                    </td>
 
-                {/* Equipment */}
-                {order.serviceLevel && (
-                  <div className="mb-1 text-[11px] text-zinc-400">
-                    Equipment: {order.serviceLevel}
-                  </div>
-                )}
+                    {/* Origin */}
+                    <td className="px-4 py-2 align-middle text-zinc-400">
+                      {order.pickup}
+                    </td>
 
-                {/* Notes/Commodity */}
-                {order.commodity && order.commodity !== "General Freight" && (
-                  <div className="mb-1.5 text-[11px] text-zinc-400">
-                    {order.commodity}
-                  </div>
-                )}
+                    {/* Destination */}
+                    <td className="px-4 py-2 align-middle text-zinc-400">
+                      {order.delivery}
+                    </td>
 
-                {/* Bottom section: Actions */}
-                <div className="flex items-center justify-end gap-2 mt-2">
-                  <button
-                    onClick={() => router.push(`/orders/${order.id}`)}
-                    className="text-xs text-zinc-400 hover:text-white transition-colors"
-                  >
-                    View details
-                  </button>
-                  {order.status === "Delivered" ? (
-                    <div className="flex items-center gap-2 px-3 py-1 rounded bg-emerald-500/10 border border-emerald-500/20">
-                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                      <span className="text-xs font-medium text-emerald-400">Completed</span>
-                    </div>
-                  ) : order.status === "In Transit" ? (
-                    <div className="flex items-center gap-2 px-3 py-1 rounded bg-blue-500/10 border border-blue-500/20">
-                      <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-                      <span className="text-xs font-medium text-blue-400">In Transit</span>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => router.push(`/book?orderId=${order.id}`)}
-                      className="px-3 py-1 text-xs font-medium text-blue-200 bg-blue-950/50 hover:bg-blue-900/50 border border-blue-800/50 rounded shadow-md shadow-blue-900/20 hover:shadow-blue-900/30 transition-all duration-200"
-                    >
-                      Book Trip
-                    </button>
-                  )}
-                </div>
-              </div>
-            );
-          })
-        )}
+                    {/* Equipment */}
+                    <td className="px-4 py-2 align-middle text-zinc-500">
+                      {order.serviceLevel || "—"}
+                    </td>
+
+                    {/* Distance */}
+                    <td className="px-4 py-2 align-middle text-right font-mono text-zinc-400">
+                      {order.laneMiles ? `${order.laneMiles} mi` : "—"}
+                    </td>
+
+                    {/* Actions */}
+                    <td className="px-4 py-2 align-middle text-right">
+                      <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button 
+                          onClick={() => router.push(`/orders/${order.id}`)}
+                          className="text-zinc-400 hover:text-white"
+                          title="View Details"
+                        >
+                          <MoreHorizontal className="h-4 w-4" />
+                        </button>
+                        {order.status !== "Delivered" && order.status !== "In Transit" && (
+                          <button
+                            onClick={() => router.push(`/book?orderId=${order.id}`)}
+                            className="flex items-center gap-1 rounded-sm bg-blue-900/30 px-2 py-1 text-[10px] font-medium text-blue-300 hover:bg-blue-900/50 border border-blue-800/30"
+                          >
+                            Book <ChevronRight className="h-3 w-3" />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   );
 }
-
-function OrdersSkeleton() {
-  return (
-    <div className="space-y-6 p-6">
-      <div className="h-20 animate-pulse rounded-xl bg-neutral-900/50" />
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        {Array.from({ length: 4 }).map((_, index) => (
-          <div
-            key={index}
-            className="h-20 animate-pulse rounded-xl bg-neutral-900/50"
-          />
-        ))}
-      </div>
-      <div className="h-96 w-full animate-pulse rounded-lg bg-neutral-900/50" />
-    </div>
-  );
-}
-

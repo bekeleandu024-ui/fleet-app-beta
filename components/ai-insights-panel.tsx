@@ -69,11 +69,8 @@ export function AIInsightsPanel({
         <h3 className="text-sm font-semibold text-blue-100">AI Analysis & Recommendations</h3>
       </div>
 
-      {/* Primary Recommendation */}
-      <Card className="p-4 bg-linear-to-br from-blue-950/40 to-indigo-950/40 border-blue-800/50 relative overflow-hidden">
-        <div className="absolute top-0 right-0 p-2 opacity-10">
-          <Sparkles className="w-24 h-24 text-blue-400" />
-        </div>
+      {/* Primary Recommendation - REMOVED */}
+      {/* <Card className="p-4 bg-linear-to-br from-blue-950/40 to-indigo-950/40 border-blue-800/50 relative overflow-hidden">
         <div className="relative z-10">
           <div className="flex items-center gap-2 mb-2">
             <span className="text-xs font-bold text-blue-400 uppercase tracking-wider">Recommended Strategy</span>
@@ -85,7 +82,7 @@ export function AIInsightsPanel({
             {insights.reasoning}
           </p>
         </div>
-      </Card>
+      </Card> */}
 
       {/* Specific Resource Recommendation */}
       {(insights.specificDriverRecommendation || insights.specificUnitRecommendation) && (
@@ -162,8 +159,8 @@ export function AIInsightsPanel({
         </p>
       </div>
       
-      {/* Cost Optimization */}
-      {insights.costOptimization && insights.costOptimization.potentialSavings !== "0" && (
+      {/* Cost Optimization - MOVED TO COST CARD */}
+      {/* {insights.costOptimization && insights.costOptimization.potentialSavings !== "0" && (
         <Card className="p-4 bg-emerald-950/20 border-emerald-900/50">
           <div className="flex items-start gap-3">
             <div className="p-2 bg-emerald-900/30 rounded-lg shrink-0">
@@ -176,10 +173,10 @@ export function AIInsightsPanel({
             </div>
           </div>
         </Card>
-      )}
+      )} */}
       
-      {/* Operational Insights */}
-      <div className="space-y-2">
+      {/* Operational Insights - MOVED TO CHAT */}
+      {/* <div className="space-y-2">
         <h4 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider ml-1">Key Insights</h4>
         {insights.operationalInsights.map((insight, i) => (
           <div key={i} className="flex items-start gap-3 p-3 rounded-lg bg-zinc-900/30 border border-zinc-800/50">
@@ -187,10 +184,10 @@ export function AIInsightsPanel({
             <p className="text-xs text-zinc-300">{insight}</p>
           </div>
         ))}
-      </div>
+      </div> */}
       
-      {/* Risk Factors */}
-      {insights.riskFactors.length > 0 && (
+      {/* Risk Factors - MOVED TO CHAT */}
+      {/* {insights.riskFactors.length > 0 && (
         <div className="space-y-2">
           <h4 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider ml-1">Risk Factors</h4>
           {insights.riskFactors.map((risk, i) => (
@@ -200,7 +197,7 @@ export function AIInsightsPanel({
             </div>
           ))}
         </div>
-      )}
+      )} */}
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { Package, CheckCircle, Sparkles, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { AIInsightsPanel } from "@/components/ai-insights-panel";
+import { AIChatAssistant } from "@/components/ai-chat-assistant";
 import { DriverUnitSelector } from "@/components/booking/driver-unit-selector";
 import { RateSelector } from "@/components/booking/rate-selector";
 import { StopManager, type TripStop } from "@/components/booking/stop-manager";
@@ -114,6 +115,9 @@ export default function BookTripPage() {
   // AI Insights Hook
   const { insights, isGenerating: isGeneratingInsights, error: insightsError, generateInsights: triggerInsights } = useAIInsights();
   
+  // Chat State
+  const [isChatOpen, setIsChatOpen] = useState(false);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
@@ -717,18 +721,28 @@ export default function BookTripPage() {
                     )}
                   </div>
                   <div className="grid grid-cols-1 gap-3">
-                    {costingOptions.map((option, index) => (
+                    {costingOptions.map((option, index) => {
+                      const isRecommended = option.cost.directTripCost === Math.min(
+                        ...costingOptions.map(o => o.cost.directTripCost)
+                      );
+                      
+                      // Construct reduced insight if this is the recommended option and we have savings
+                      let insightText = undefined;
+                      if (isRecommended && insights?.costOptimization?.potentialSavings && insights.costOptimization.potentialSavings !== "0") {
+                         insightText = `Save ${insights.costOptimization.potentialSavings} - Best Efficiency`;
+                      }
+
+                      return (
                       <CostingCard
                         key={`form-costing-${option.driverType}-${option.zone || index}`}
                         driverType={option.driverType}
                         label={option.label}
                         cost={option.cost}
                         distance={actualMiles}
-                        isRecommended={option.cost.directTripCost === Math.min(
-                          ...costingOptions.map(o => o.cost.directTripCost)
-                        )}
+                        isRecommended={isRecommended}
                         isSelected={selectedCostingOption?.driverType === option.driverType && 
                                     selectedCostingOption?.zone === option.zone}
+                        insight={insightText}
                         onSelect={() => {
                           // Store the full costing option
                           setSelectedCostingOption(option);
@@ -740,7 +754,8 @@ export default function BookTripPage() {
                           setRpm(actualMiles > 0 ? revenue / actualMiles : 0);
                         }}
                       />
-                    ))}
+                    );
+                    })}
                   </div>
                 </div>
               )}
@@ -910,6 +925,13 @@ export default function BookTripPage() {
           </Card>
         </div>
       </div>
+
+      {/* AI Chat Assistant */}
+      <AIChatAssistant 
+        insights={insights} 
+        isOpen={isChatOpen} 
+        onToggle={() => setIsChatOpen(!isChatOpen)} 
+      />
     </div>
   );
 }

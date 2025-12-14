@@ -12,6 +12,7 @@ interface CostingCardProps {
   cost: TripCost;
   isRecommended?: boolean;
   isSelected?: boolean;
+  insight?: string;
   onSelect?: () => void;
 }
 
@@ -22,6 +23,7 @@ export function CostingCard({
   cost,
   isRecommended = false,
   isSelected = false,
+  insight,
   onSelect,
 }: CostingCardProps) {
   const { mileageCosts, eventCosts, totalCPM, directTripCost } = cost;
@@ -91,6 +93,15 @@ export function CostingCard({
           {formatCurrency(totalCPM)}
         </span>
       </div>
+
+      {/* Insight */}
+      {insight && (
+        <div className="mt-2 pt-2 border-t border-neutral-800/50">
+          <p className="text-[10px] font-medium text-emerald-400 leading-tight">
+            {insight}
+          </p>
+        </div>
+      )}
     </Card>
   );
 }
