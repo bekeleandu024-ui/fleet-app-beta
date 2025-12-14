@@ -2,12 +2,30 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { APIProvider, Map, Marker, useMap, useMapsLibrary, InfoWindow } from "@vis.gl/react-google-maps";
-import { Card } from "@/components/ui/card";
-import { Chip } from "@/components/ui/chip";
-import { Truck, MapPin, Warehouse, Search, Filter, ChevronRight, Clock, AlertTriangle } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { 
+  Truck, 
+  MapPin, 
+  Warehouse, 
+  Search, 
+  Filter, 
+  ChevronRight, 
+  Clock, 
+  AlertTriangle,
+  Layers,
+  Maximize2,
+  Minimize2,
+  Navigation,
+  X
+} from "lucide-react";
 
-// Fallback coordinates for regions if specific unit coordinates are missing
+import { Button } from "@/components/ui/button";
+import { Chip } from "@/components/ui/chip";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+
+// --- Constants & Types ---
+
 const REGION_COORDINATES: Record<string, { lat: number; lng: number }> = {
   "Southern Ontario": { lat: 43.6532, lng: -79.3832 },
   "Greater Toronto Area": { lat: 43.7000, lng: -79.4000 },
@@ -20,36 +38,83 @@ const REGION_COORDINATES: Record<string, { lat: number; lng: number }> = {
   "Montreal": { lat: 45.5017, lng: -73.5673 },
 };
 
-// Component to render directions
+type FleetItem = {
+  id: string;
+  type: "trip" | "staged";
+  status: string;
+  lat: number;
+  lng: number;
+  unitNumber?: string;
+  name?: string;
+  driverName?: string;
+  location?: string;
+  lastUpdate?: string;
+  deliveryLocation?: { lat: number; lng: number };
+  deliveryLat?: number;
+  deliveryLng?: number;
+  customs?: any;
+  region?: string;
+};
+
+// --- Helper Components ---
+
+function FleetMarker({ item, onClick }: { item: FleetItem, onClick: () => void }) {
+  const map = useMap();
+  const [icon, setIcon] = useState<google.maps.Symbol | undefined>(undefined);
+
+  useEffect(() => {
+    if (!map || typeof google === 'undefined' || !google.maps || !google.maps.Point) return;
+    
+    const color = item.type === "staged" ? "#3b82f6" : 
+                  item.status === "in_transit" ? "#10b981" : 
+                  "#f59e0b";
+
+    setIcon({
+      path: "M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z",
+      fillColor: color,
+      fillOpacity: 1,
+      strokeWeight: 1,
+      strokeColor: "#ffffff",
+      scale: 1.5,
+      anchor: new google.maps.Point(12, 24),
+    });
+  }, [map, item.type, item.status]);
+
+  if (!icon) return null;
+
+  return (
+    <Marker
+      position={{ lat: item.lat, lng: item.lng }}
+      onClick={onClick}
+      icon={icon}
+    />
+  );
+}
+
 function Directions({ 
   origin, 
   destination,
-  customsInfo,
   onRouteFound 
 }: { 
   origin: { lat: number; lng: number }, 
   destination: { lat: number; lng: number } | string,
-  customsInfo?: any,
   onRouteFound?: (result: google.maps.DirectionsResult) => void
 }) {
   const map = useMap();
   const routesLibrary = useMapsLibrary("routes");
   const [directionsService, setDirectionsService] = useState<google.maps.DirectionsService>();
   const [directionsRenderer, setDirectionsRenderer] = useState<google.maps.DirectionsRenderer>();
-  const [borderLocation, setBorderLocation] = useState<{lat: number, lng: number} | null>(null);
-  const [showBorderInfo, setShowBorderInfo] = useState(false);
-  const [destinationLocation, setDestinationLocation] = useState<{lat: number, lng: number} | null>(null);
 
   useEffect(() => {
     if (!routesLibrary || !map) return;
     const ds = new routesLibrary.DirectionsService();
     const dr = new routesLibrary.DirectionsRenderer({ 
       map,
-      suppressMarkers: true, // We have our own markers
+      suppressMarkers: true,
       preserveViewport: false,
       polylineOptions: {
-        strokeColor: "#3b82f6", // Blue-500
-        strokeWeight: 5,
+        strokeColor: "#10b981", // Emerald-500
+        strokeWeight: 4,
         strokeOpacity: 0.8
       }
     });
@@ -62,7 +127,7 @@ function Directions({
   }, [routesLibrary, map]);
 
   useEffect(() => {
-    if (!directionsService || !directionsRenderer) return;
+    if (!directionsService || !directionsRenderer || !google.maps) return;
 
     directionsService.route({
       origin,
@@ -71,544 +136,359 @@ function Directions({
     }).then(response => {
       directionsRenderer.setDirections(response);
       if (onRouteFound) onRouteFound(response);
-
-      // Find border crossing
-      if (response.routes[0] && response.routes[0].legs[0]) {
-        const leg = response.routes[0].legs[0];
-        
-        // Set destination location from the actual route end location
-        setDestinationLocation({
-          lat: leg.end_location.lat(),
-          lng: leg.end_location.lng()
-        });
-
-        const steps = leg.steps;
-        const borderStep = steps.find(step => {
-          const instructions = step.instructions.toLowerCase();
-          return instructions.includes("entering united states") || 
-                 instructions.includes("entering canada") ||
-                 instructions.includes("entering michigan") || // Common crossing
-                 instructions.includes("entering new york") || // Common crossing
-                 instructions.includes("entering ontario");    // Common crossing
-        });
-
-        if (borderStep) {
-          setBorderLocation({
-            lat: borderStep.start_location.lat(),
-            lng: borderStep.start_location.lng()
-          });
-          setShowBorderInfo(true);
-        } else {
-           setBorderLocation(null);
-        }
-      }
-
     }).catch(e => console.error("Directions request failed", e));
-  }, [
-    directionsService, 
-    directionsRenderer, 
-    origin.lat, 
-    origin.lng, 
-    typeof destination === 'string' ? destination : destination.lat,
-    typeof destination === 'string' ? '' : destination.lng
-  ]);
-
-  // Default customs info if missing
-  const info = customsInfo || {
-    crossingPoint: "Detected Crossing",
-    status: "Unknown",
-    isApproved: false,
-    submittedDocs: [],
-    requiredDocs: []
-  };
-
-  return (
-    <>
-      {destinationLocation && (
-        <Marker 
-          position={destinationLocation}
-          icon={getMarkerIcon("#ef4444")} // Red for destination
-        />
-      )}
-
-      {borderLocation && (
-        <>
-          <Marker 
-            position={borderLocation}
-            onClick={() => setShowBorderInfo(true)}
-            icon={getMarkerIcon("#8b5cf6")} // Violet for border
-          />
-          {showBorderInfo && (
-            <InfoWindow 
-              position={borderLocation} 
-              onCloseClick={() => setShowBorderInfo(false)}
-              headerContent={<div className="font-bold text-sm">Border Crossing</div>}
-            >
-              <div className="p-2 min-w-[200px]">
-                <div className="mb-3">
-                  <div className="text-xs text-gray-500 uppercase font-semibold">Crossing Point</div>
-                  <div className="text-sm font-medium">{info.crossingPoint || "Detected Crossing"}</div>
-                </div>
-                
-                <div className="mb-3">
-                  <div className="text-xs text-gray-500 uppercase font-semibold">Current Wait Time</div>
-                  <div className="text-lg font-bold text-amber-600">15 mins</div>
-                </div>
-
-                <div>
-                  <div className="text-xs text-gray-500 uppercase font-semibold mb-1">Customs Status</div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className={`inline-block w-2 h-2 rounded-full ${info.isApproved ? 'bg-green-500' : 'bg-yellow-500'}`}></span>
-                    <span className="text-sm font-medium">{info.status}</span>
-                  </div>
-                  
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-xs">
-                      <span className="text-gray-500">Documents:</span>
-                      <span className="font-medium">
-                        {info.submittedDocs.length}/{info.requiredDocs.length || 3} Submitted
-                      </span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-1.5">
-                      <div 
-                        className="bg-blue-600 h-1.5 rounded-full" 
-                        style={{ width: `${Math.min(100, (info.submittedDocs.length / (info.requiredDocs.length || 3)) * 100)}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </InfoWindow>
-          )}
-        </>
-      )}
-    </>
-  );
-}
-
-// Component to handle map camera updates
-function MapUpdater({ center }: { center: { lat: number; lng: number } | null }) {
-  const map = useMap();
-  
-  useEffect(() => {
-    if (map && center) {
-      map.panTo(center);
-      map.setZoom(12);
-    }
-  }, [map, center]);
+  }, [directionsService, directionsRenderer, origin, destination, onRouteFound]);
 
   return null;
 }
 
-// Helper to generate SVG marker icons
-const getMarkerIcon = (color: string) => {
-  const svg = `
-    <svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="12" cy="12" r="9" fill="${color}" stroke="white" stroke-width="2"/>
-      <circle cx="12" cy="12" r="3" fill="white" fill-opacity="0.5"/>
-    </svg>`;
-  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
-};
+function MapUpdater({ center }: { center: { lat: number; lng: number } }) {
+  const map = useMap();
+  useEffect(() => {
+    if (map) {
+      map.panTo(center);
+    }
+  }, [map, center]);
+  return null;
+}
+
+// --- Main Page Component ---
 
 export default function MapPage() {
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-  const [fleetLocations, setFleetLocations] = useState<any[]>([]);
-  const [units, setUnits] = useState<any[]>([]);
-  const [selectedItem, setSelectedItem] = useState<any | null>(null);
-  const [loading, setLoading] = useState(true);
+  // State
+  const [fleetLocations, setFleetLocations] = useState<FleetItem[]>([]);
+  const [selectedItem, setSelectedItem] = useState<FleetItem | null>(null);
+  const [mapCenter, setMapCenter] = useState({ lat: 43.6532, lng: -79.3832 });
   const [viewMode, setViewMode] = useState<"all" | "trips" | "staged">("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number } | null>(null);
   const [showRoute, setShowRoute] = useState(false);
-  const [routeInfo, setRouteInfo] = useState<{ distance: string, duration: string, eta: string } | null>(null);
-  const [hoveredGroup, setHoveredGroup] = useState<any | null>(null);
+  const [routeInfo, setRouteInfo] = useState<{ distance: string; duration: string; eta: string } | null>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
+  // Mock Data Generation
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [fleetRes, unitsRes] = await Promise.all([
-          fetch("/api/map/fleet"),
-          fetch("/api/master-data/units")
-        ]);
-        
-        const fleetData = await fleetRes.json();
-        const unitsData = await unitsRes.json();
-
-        if (fleetData.fleet) {
-          setFleetLocations(fleetData.fleet);
-        }
-        if (unitsData.data) {
-          setUnits(unitsData.data);
-        }
-      } catch (error) {
-        console.error("Error fetching map data:", error);
-      } finally {
-        setLoading(false);
+    const generateMockData = () => {
+      const items: FleetItem[] = [];
+      
+      // Active Trips
+      for (let i = 0; i < 15; i++) {
+        items.push({
+          id: `trip-${i}`,
+          type: "trip",
+          status: Math.random() > 0.2 ? "in_transit" : "delayed",
+          lat: 43.0 + Math.random() * 2,
+          lng: -80.0 + Math.random() * 4,
+          unitNumber: `TR-${1000 + i}`,
+          driverName: ["John Doe", "Jane Smith", "Mike Johnson", "Sarah Wilson"][i % 4],
+          location: "Hwy 401 near London",
+          lastUpdate: new Date().toISOString(),
+          deliveryLat: 45.5017,
+          deliveryLng: -73.5673,
+        });
       }
+
+      // Staged Units
+      Object.entries(REGION_COORDINATES).forEach(([region, coords], idx) => {
+        if (idx > 4) return; // Limit regions
+        const count = Math.floor(Math.random() * 5) + 1;
+        for (let j = 0; j < count; j++) {
+          items.push({
+            id: `staged-${region}-${j}`,
+            type: "staged",
+            status: "Available",
+            lat: coords.lat + (Math.random() - 0.5) * 0.1,
+            lng: coords.lng + (Math.random() - 0.5) * 0.1,
+            unitNumber: `ST-${5000 + idx * 10 + j}`,
+            region: region,
+            location: `${region} Yard`,
+            lastUpdate: new Date().toISOString(),
+          });
+        }
+      });
+
+      setFleetLocations(items);
     };
 
-    fetchData();
-    const interval = setInterval(fetchData, 30000); // Refresh every 30s
-    return () => clearInterval(interval);
+    generateMockData();
   }, []);
 
-  // Filter staged units (available and not currently on a trip)
-  const stagedUnits = useMemo(() => {
-    const activeUnitIds = new Set(fleetLocations.map(t => t.unitId || t.unitNumber));
-    return units.filter(u => 
-      u.status === "Available" && 
-      !activeUnitIds.has(u.id) && 
-      !activeUnitIds.has(u.name)
-    ).map(u => {
-      // Assign coordinates based on region if missing
-      const coords = u.lat && u.lng 
-        ? { lat: u.lat, lng: u.lng } 
-        : REGION_COORDINATES[u.region] || { lat: 43.6532, lng: -79.3832 }; // Default to Toronto
+  // Filtering
+  const filteredItems = useMemo(() => {
+    return fleetLocations.filter(item => {
+      const matchesMode = viewMode === "all" || 
+        (viewMode === "trips" && item.type === "trip") || 
+        (viewMode === "staged" && item.type === "staged");
       
-      return {
-        ...u,
-        lat: coords.lat,
-        lng: coords.lng,
-        type: "staged"
-      };
+      const matchesSearch = !searchQuery || 
+        (item.unitNumber?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false) ||
+        (item.driverName?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false);
+
+      return matchesMode && matchesSearch;
     });
-  }, [units, fleetLocations]);
+  }, [fleetLocations, viewMode, searchQuery]);
 
-  // Group staged units by location
-  const groupedStagedUnits = useMemo(() => {
-    const groups: Record<string, typeof stagedUnits> = {};
-    
-    stagedUnits.forEach(unit => {
-      const key = `${unit.lat},${unit.lng}`;
-      if (!groups[key]) {
-        groups[key] = [];
-      }
-      groups[key].push(unit);
-    });
-
-    return Object.entries(groups).map(([key, units]) => {
-      const [lat, lng] = key.split(',').map(Number);
-      return {
-        lat,
-        lng,
-        units,
-        count: units.length,
-        region: units[0].region // They should all have the same region if they share coordinates derived from region
-      };
-    });
-  }, [stagedUnits]);
-
-  // Combine and filter list items
-  const listItems = useMemo(() => {
-    let items: any[] = [];
-    
-    if (viewMode === "all" || viewMode === "trips") {
-      items = [...items, ...fleetLocations.map(f => ({ ...f, type: "trip" }))];
-    }
-    
-    if (viewMode === "all" || viewMode === "staged") {
-      items = [...items, ...stagedUnits.map(s => ({ ...s, type: "staged" }))];
-    }
-
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      items = items.filter(i => 
-        (i.unitNumber || i.name || "").toLowerCase().includes(q) ||
-        (i.driverName || "").toLowerCase().includes(q) ||
-        (i.location || "").toLowerCase().includes(q)
-      );
-    }
-
-    return items;
-  }, [fleetLocations, stagedUnits, viewMode, searchQuery]);
-
-  const handleItemSelect = (item: any) => {
+  // Handlers
+  const handleItemSelect = (item: FleetItem) => {
     setSelectedItem(item);
+    setMapCenter({ lat: item.lat, lng: item.lng });
     setShowRoute(false);
     setRouteInfo(null);
-    if (item.lat && item.lng) {
-      setMapCenter({ lat: item.lat, lng: item.lng });
-    }
+    if (!isSidebarOpen) setIsSidebarOpen(true);
   };
 
   const handleRouteFound = (result: google.maps.DirectionsResult) => {
     if (result.routes[0] && result.routes[0].legs[0]) {
       const leg = result.routes[0].legs[0];
-      const distance = leg.distance?.text || "";
-      const duration = leg.duration?.text || "";
-      
-      // Calculate ETA
-      const durationSeconds = leg.duration?.value || 0;
-      const etaDate = new Date(Date.now() + durationSeconds * 1000);
-      const eta = etaDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-      setRouteInfo({ distance, duration, eta });
+      setRouteInfo({
+        distance: leg.distance?.text || "N/A",
+        duration: leg.duration?.text || "N/A",
+        eta: new Date(Date.now() + (leg.duration?.value || 0) * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      });
     }
   };
 
-  if (!apiKey) {
-    return (
-      <div className="min-h-screen bg-black text-zinc-300 p-8 flex items-center justify-center">
-        <Card className="max-w-md p-6 bg-zinc-900 border-zinc-800 text-center">
-          <MapPin className="w-12 h-12 text-zinc-600 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-white mb-2">Map Configuration Required</h2>
-          <p className="text-zinc-400 mb-4">
-            Please add your Google Maps API key to <code className="bg-zinc-800 px-1 py-0.5 rounded">.env.local</code> as:
-          </p>
-          <code className="block bg-black p-3 rounded text-sm text-blue-400 mb-4">
-            NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=your_key_here
-          </code>
-          <p className="text-xs text-zinc-500">
-            Make sure to enable Maps JavaScript API in your Google Cloud Console.
-          </p>
-        </Card>
-      </div>
-    );
-  }
+
 
   return (
-    <div className="h-[calc(100vh-4rem)] flex bg-black overflow-hidden">
-      {/* Left Sidebar Panel */}
-      <div className="w-96 flex flex-col border-r border-zinc-800 bg-zinc-900/50 backdrop-blur-sm z-10">
-        {/* Header */}
-        <div className="p-4 border-b border-zinc-800">
-          <h1 className="text-lg font-semibold text-white mb-4">Fleet Overview</h1>
-          
-          {/* Stats Grid */}
-          <div className="grid grid-cols-3 gap-2 mb-4">
-            <div className="bg-zinc-800/50 rounded-lg p-2 text-center">
-              <div className="text-xs text-zinc-400 uppercase tracking-wider">Moving</div>
-              <div className="text-lg font-bold text-emerald-400">
-                {fleetLocations.filter(t => t.status === "in_transit" || t.status === "en_route_to_pickup").length}
-              </div>
-            </div>
-            <div className="bg-zinc-800/50 rounded-lg p-2 text-center">
-              <div className="text-xs text-zinc-400 uppercase tracking-wider">Stopped</div>
-              <div className="text-lg font-bold text-amber-400">
-                {fleetLocations.filter(t => t.status !== "in_transit" && t.status !== "en_route_to_pickup").length}
-              </div>
-            </div>
-            <div className="bg-zinc-800/50 rounded-lg p-2 text-center">
-              <div className="text-xs text-zinc-400 uppercase tracking-wider">Staged</div>
-              <div className="text-lg font-bold text-blue-400">
-                {stagedUnits.length}
-              </div>
+    <div className="flex h-[calc(100vh-4rem)] w-full overflow-hidden bg-zinc-950 border border-zinc-800 rounded-lg shadow-sm">
+      
+      {/* Sidebar */}
+      <div className={`${isSidebarOpen ? "w-80" : "w-0"} flex flex-col border-r border-zinc-800 bg-zinc-900/50 transition-all duration-300 overflow-hidden relative`}>
+        
+        {/* Sidebar Header */}
+        <div className="p-4 border-b border-zinc-800 bg-zinc-900">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-bold text-zinc-100 uppercase tracking-wider flex items-center gap-2">
+              <Layers className="h-4 w-4 text-blue-500" />
+              Fleet Assets
+            </h2>
+            <div className="flex items-center gap-2">
+               <span className="text-xs font-mono text-zinc-500">{filteredItems.length} Units</span>
             </div>
           </div>
 
           {/* Search & Filter */}
           <div className="space-y-3">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+              <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-500" />
               <input 
-                type="text"
-                placeholder="Search units, drivers..."
-                className="w-full bg-zinc-950 border border-zinc-800 rounded-md py-2 pl-9 pr-3 text-sm text-zinc-200 focus:outline-none focus:border-zinc-700"
+                type="text" 
+                placeholder="Search unit or driver..." 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                className="h-8 w-full rounded-sm border border-zinc-800 bg-black pl-8 pr-3 text-xs text-zinc-200 placeholder:text-zinc-600 focus:border-blue-800 focus:outline-none focus:ring-1 focus:ring-blue-900"
               />
             </div>
-            
-            <div className="flex gap-2">
-              <button
-                onClick={() => setViewMode("all")}
-                className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors ${viewMode === "all" ? "bg-zinc-800 text-white" : "text-zinc-500 hover:text-zinc-300"}`}
-              >
-                All
-              </button>
-              <button
-                onClick={() => setViewMode("trips")}
-                className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors ${viewMode === "trips" ? "bg-zinc-800 text-white" : "text-zinc-500 hover:text-zinc-300"}`}
-              >
-                Active Trips
-              </button>
-              <button
-                onClick={() => setViewMode("staged")}
-                className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors ${viewMode === "staged" ? "bg-zinc-800 text-white" : "text-zinc-500 hover:text-zinc-300"}`}
-              >
-                Staged
-              </button>
+            <div className="flex gap-1 p-1 bg-black rounded-md border border-zinc-800">
+              {(["all", "trips", "staged"] as const).map((mode) => (
+                <button
+                  key={mode}
+                  onClick={() => setViewMode(mode)}
+                  className={`flex-1 px-2 py-1 text-[10px] font-medium rounded-sm transition-colors uppercase ${
+                    viewMode === mode 
+                      ? "bg-zinc-800 text-white shadow-sm" 
+                      : "text-zinc-500 hover:text-zinc-300"
+                  }`}
+                >
+                  {mode}
+                </button>
+              ))}
             </div>
           </div>
         </div>
 
-        {/* Scrollable List */}
-        <div className="flex-1 overflow-y-auto p-2 space-y-2">
-          {listItems.map((item) => (
-            <div
-              key={item.id}
-              onClick={() => handleItemSelect(item)}
-              className={`p-3 rounded-lg border cursor-pointer transition-all ${
-                selectedItem?.id === item.id
-                  ? "bg-zinc-800 border-zinc-700 shadow-md"
-                  : "bg-zinc-900/30 border-transparent hover:bg-zinc-800/50 hover:border-zinc-800"
-              }`}
-            >
-              <div className="flex items-start justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  {item.type === "staged" ? (
-                    <div className="p-1.5 rounded bg-blue-500/10 text-blue-400">
-                      <Warehouse className="w-3.5 h-3.5" />
-                    </div>
-                  ) : (
-                    <div className={`p-1.5 rounded ${
-                      item.status === "in_transit" ? "bg-emerald-500/10 text-emerald-400" : "bg-amber-500/10 text-amber-400"
-                    }`}>
-                      <Truck className="w-3.5 h-3.5" />
+        {/* Asset List */}
+        <ScrollArea className="flex-1">
+          <div className="divide-y divide-zinc-800/50">
+            {filteredItems.map((item) => (
+              <div 
+                key={item.id}
+                onClick={() => handleItemSelect(item)}
+                className={`p-3 cursor-pointer transition-colors hover:bg-zinc-800/50 ${
+                  selectedItem?.id === item.id ? "bg-blue-900/10 border-l-2 border-blue-500" : "border-l-2 border-transparent"
+                }`}
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center gap-2">
+                    {item.type === "trip" ? (
+                      <Truck className={`h-3.5 w-3.5 ${item.status === "in_transit" ? "text-emerald-500" : "text-amber-500"}`} />
+                    ) : (
+                      <Warehouse className="h-3.5 w-3.5 text-blue-500" />
+                    )}
+                    <span className="text-xs font-bold text-zinc-200">{item.unitNumber}</span>
+                  </div>
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-sm border ${
+                    item.status === "in_transit" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" :
+                    item.status === "Available" ? "bg-blue-500/10 text-blue-400 border-blue-500/20" :
+                    "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                  }`}>
+                    {item.status}
+                  </span>
+                </div>
+                <div className="flex flex-col gap-0.5 ml-5">
+                  {item.driverName && (
+                    <span className="text-[11px] text-zinc-400">{item.driverName}</span>
+                  )}
+                  <span className="text-[10px] text-zinc-600 truncate">{item.location}</span>
+                </div>
+              </div>
+            ))}
+            {filteredItems.length === 0 && (
+              <div className="p-8 text-center text-zinc-500 text-xs">
+                No assets found matching filters.
+              </div>
+            )}
+          </div>
+        </ScrollArea>
+
+        {/* Selected Item Details Panel (Bottom of Sidebar) */}
+        {selectedItem && (
+          <div className="border-t border-zinc-800 bg-zinc-900 p-4 animate-in slide-in-from-bottom-10">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-xs font-bold text-zinc-100 uppercase tracking-wider">Selected Asset</h3>
+              <button onClick={() => setSelectedItem(null)} className="text-zinc-500 hover:text-zinc-300">
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+            
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-2">
+                <div className="p-2 rounded bg-black border border-zinc-800">
+                  <div className="text-[10px] text-zinc-500">Unit</div>
+                  <div className="text-sm font-mono text-zinc-200">{selectedItem.unitNumber}</div>
+                </div>
+                <div className="p-2 rounded bg-black border border-zinc-800">
+                  <div className="text-[10px] text-zinc-500">Type</div>
+                  <div className="text-sm text-zinc-200 capitalize">{selectedItem.type}</div>
+                </div>
+              </div>
+
+              {selectedItem.type === "trip" && (
+                <div className="space-y-2">
+                  <Button
+                    size="sm"
+                    variant="subtle"
+                    className={`w-full h-8 text-xs justify-between ${showRoute ? "bg-emerald-900/20 border-emerald-800 text-emerald-400" : "bg-zinc-800 border-zinc-700 text-zinc-300"}`}
+                    onClick={() => setShowRoute(!showRoute)}
+                  >
+                    <span>{showRoute ? "Hide Route" : "Show Route"}</span>
+                    <Navigation className="h-3 w-3" />
+                  </Button>
+                  
+                  {showRoute && routeInfo && (
+                    <div className="grid grid-cols-3 gap-1 text-center p-2 rounded bg-emerald-950/30 border border-emerald-900/50">
+                      <div>
+                        <div className="text-[9px] text-zinc-500 uppercase">Dist</div>
+                        <div className="text-xs font-bold text-emerald-400">{routeInfo.distance}</div>
+                      </div>
+                      <div>
+                        <div className="text-[9px] text-zinc-500 uppercase">Time</div>
+                        <div className="text-xs font-bold text-emerald-400">{routeInfo.duration}</div>
+                      </div>
+                      <div>
+                        <div className="text-[9px] text-zinc-500 uppercase">ETA</div>
+                        <div className="text-xs font-bold text-emerald-400">{routeInfo.eta}</div>
+                      </div>
                     </div>
                   )}
-                  <span className="font-medium text-zinc-200 text-sm">
-                    {item.unitNumber || item.name}
-                  </span>
                 </div>
-                <Chip tone={
-                  item.status === "in_transit" ? "ok" : 
-                  item.status === "Available" ? "brand" : "warn"
-                } className="text-[10px] px-1.5 py-0.5 h-auto">
-                  {item.status}
-                </Chip>
-              </div>
-
-              <div className="space-y-1 pl-8">
-                {item.driverName && (
-                  <p className="text-xs text-zinc-400 truncate">{item.driverName}</p>
-                )}
-                <div className="flex items-center gap-1 text-xs text-zinc-500">
-                  <MapPin className="w-3 h-3" />
-                  <span className="truncate">{item.location || "Unknown Location"}</span>
-                </div>
-                <div className="flex items-center gap-1 text-xs text-zinc-600">
-                  <Clock className="w-3 h-3" />
-                  <span>
-                    {item.lastUpdate ? new Date(item.lastUpdate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : "No signal"}
-                  </span>
-                </div>
-              </div>
+              )}
             </div>
-          ))}
-          
-          {listItems.length === 0 && (
-            <div className="text-center py-8 text-zinc-500 text-sm">
-              No units found matching your filters.
-            </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
-      {/* Map Area */}
-      <div className="flex-1 relative">
-        <APIProvider apiKey={apiKey}>
+      {/* Map Container */}
+      <div className="flex-1 relative bg-zinc-900">
+        {/* Sidebar Toggle */}
+        <button 
+          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+          className="absolute top-4 left-4 z-10 p-2 rounded-md bg-zinc-900/90 border border-zinc-800 text-zinc-400 hover:text-white shadow-lg backdrop-blur-sm"
+        >
+          {isSidebarOpen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+        </button>
+
+        {/* Stats Overlay */}
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-px rounded-md border border-zinc-800 bg-zinc-900/90 shadow-xl backdrop-blur-sm overflow-hidden">
+          <div className="px-3 py-1.5 border-r border-zinc-800">
+            <span className="text-[10px] text-zinc-500 uppercase mr-2">Total</span>
+            <span className="text-xs font-bold text-white">{fleetLocations.length}</span>
+          </div>
+          <div className="px-3 py-1.5 border-r border-zinc-800">
+            <span className="text-[10px] text-zinc-500 uppercase mr-2">Active</span>
+            <span className="text-xs font-bold text-emerald-400">
+              {fleetLocations.filter(i => i.type === "trip" && i.status === "in_transit").length}
+            </span>
+          </div>
+          <div className="px-3 py-1.5">
+            <span className="text-[10px] text-zinc-500 uppercase mr-2">Staged</span>
+            <span className="text-xs font-bold text-blue-400">
+              {fleetLocations.filter(i => i.type === "staged").length}
+            </span>
+          </div>
+        </div>
+
+        <APIProvider apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ""}>
           <Map
-            defaultCenter={{ lat: 39.8283, lng: -98.5795 }}
-            defaultZoom={4}
-            className="w-full h-full"
+            zoom={7}
+            center={mapCenter}
+            mapId="fleet-map-dark"
             disableDefaultUI={true}
-            zoomControl={true}
+            className="w-full h-full"
             styles={[
-              {
-                elementType: "geometry",
-                stylers: [{ color: "#212121" }],
-              },
-              {
-                elementType: "labels.icon",
-                stylers: [{ visibility: "off" }],
-              },
-              {
-                elementType: "labels.text.fill",
-                stylers: [{ color: "#757575" }],
-              },
-              {
-                elementType: "labels.text.stroke",
-                stylers: [{ color: "#212121" }],
-              },
-              {
-                featureType: "administrative",
-                elementType: "geometry",
-                stylers: [{ color: "#757575" }],
-              },
-              {
-                featureType: "administrative.country",
-                elementType: "labels.text.fill",
-                stylers: [{ color: "#9e9e9e" }],
-              },
-              {
-                featureType: "administrative.land_parcel",
-                stylers: [{ visibility: "off" }],
-              },
+              { elementType: "geometry", stylers: [{ color: "#18181b" }] }, // zinc-950
+              { elementType: "labels.text.stroke", stylers: [{ color: "#18181b" }] },
+              { elementType: "labels.text.fill", stylers: [{ color: "#a1a1aa" }] }, // zinc-400
               {
                 featureType: "administrative.locality",
                 elementType: "labels.text.fill",
-                stylers: [{ color: "#bdbdbd" }],
+                stylers: [{ color: "#e4e4e7" }], // zinc-200
               },
               {
                 featureType: "poi",
                 elementType: "labels.text.fill",
-                stylers: [{ color: "#757575" }],
+                stylers: [{ color: "#71717a" }], // zinc-500
               },
               {
                 featureType: "poi.park",
                 elementType: "geometry",
-                stylers: [{ color: "#181818" }],
-              },
-              {
-                featureType: "poi.park",
-                elementType: "labels.text.fill",
-                stylers: [{ color: "#616161" }],
-              },
-              {
-                featureType: "poi.park",
-                elementType: "labels.text.stroke",
-                stylers: [{ color: "#1b1b1b" }],
+                stylers: [{ color: "#27272a" }], // zinc-800
               },
               {
                 featureType: "road",
-                elementType: "geometry.fill",
-                stylers: [{ color: "#2c2c2c" }],
-              },
-              {
-                featureType: "road",
-                elementType: "labels.text.fill",
-                stylers: [{ color: "#8a8a8a" }],
-              },
-              {
-                featureType: "road.arterial",
                 elementType: "geometry",
-                stylers: [{ color: "#373737" }],
+                stylers: [{ color: "#3f3f46" }], // zinc-700
+              },
+              {
+                featureType: "road",
+                elementType: "geometry.stroke",
+                stylers: [{ color: "#27272a" }], // zinc-800
               },
               {
                 featureType: "road.highway",
                 elementType: "geometry",
-                stylers: [{ color: "#3c3c3c" }],
+                stylers: [{ color: "#52525b" }], // zinc-600
               },
               {
-                featureType: "road.highway.controlled_access",
-                elementType: "geometry",
-                stylers: [{ color: "#4e4e4e" }],
-              },
-              {
-                featureType: "road.local",
-                elementType: "labels.text.fill",
-                stylers: [{ color: "#616161" }],
-              },
-              {
-                featureType: "transit",
-                elementType: "labels.text.fill",
-                stylers: [{ color: "#757575" }],
+                featureType: "road.highway",
+                elementType: "geometry.stroke",
+                stylers: [{ color: "#27272a" }], // zinc-800
               },
               {
                 featureType: "water",
                 elementType: "geometry",
-                stylers: [{ color: "#000000" }],
+                stylers: [{ color: "#09090b" }], // zinc-950 (darker)
               },
               {
                 featureType: "water",
                 elementType: "labels.text.fill",
-                stylers: [{ color: "#3d3d3d" }],
+                stylers: [{ color: "#52525b" }], // zinc-600
               },
             ]}
           >
             <MapUpdater center={mapCenter} />
             
+            {/* Route Rendering */}
             {selectedItem && showRoute && selectedItem.type === "trip" && selectedItem.status === "in_transit" && 
              (selectedItem.deliveryLocation || (selectedItem.deliveryLat && selectedItem.deliveryLng)) && 
              selectedItem.lat && selectedItem.lng && (
@@ -617,198 +497,24 @@ export default function MapPage() {
                  destination={
                    (selectedItem.deliveryLat && selectedItem.deliveryLng) 
                      ? { lat: selectedItem.deliveryLat, lng: selectedItem.deliveryLng }
-                     : selectedItem.deliveryLocation
+                     : selectedItem.deliveryLocation!
                  }
-                 customsInfo={selectedItem.customs}
                  onRouteFound={handleRouteFound}
                />
             )}
             
-            {(viewMode === "all" || viewMode === "trips") && fleetLocations.map((truck) => (
-              truck.lat && truck.lng ? (
-                <Marker
-                  key={truck.id}
-                  position={{ lat: truck.lat, lng: truck.lng }}
-                  onClick={() => handleItemSelect(truck)}
-                  icon={getMarkerIcon(
-                    truck.status === "in_transit" || truck.status === "en_route_to_pickup"
-                      ? "#10b981" // emerald-500
-                      : "#f59e0b" // amber-500
-                  )}
+            {/* Markers */}
+            {filteredItems.map((item) => (
+              item.lat && item.lng ? (
+                <FleetMarker
+                  key={item.id}
+                  item={item}
+                  onClick={() => handleItemSelect(item)}
                 />
               ) : null
             ))}
-
-            {(viewMode === "all" || viewMode === "staged") && groupedStagedUnits.map((group) => (
-              <div key={`${group.lat}-${group.lng}`}>
-                <Marker
-                  position={{ lat: group.lat, lng: group.lng }}
-                  onClick={() => {
-                    if (group.count === 1) {
-                      handleItemSelect(group.units[0]);
-                    } else {
-                      setHoveredGroup(group);
-                    }
-                  }}
-                  onMouseOver={() => setHoveredGroup(group)}
-                  // onMouseOut={() => setHoveredGroup(null)} // Disabled to allow moving to InfoWindow
-                  icon={getMarkerIcon("#3b82f6")} // blue-500
-                  label={group.count > 1 ? {
-                    text: String(group.count),
-                    color: "white",
-                    fontWeight: "bold",
-                    fontSize: "12px"
-                  } : undefined}
-                />
-                {hoveredGroup && hoveredGroup.lat === group.lat && hoveredGroup.lng === group.lng && (
-                  <InfoWindow
-                    position={{ lat: group.lat, lng: group.lng }}
-                    onCloseClick={() => setHoveredGroup(null)}
-                    pixelOffset={[0, -30]}
-                  >
-                    <div className="p-2 min-w-[200px] max-h-[300px] overflow-y-auto">
-                      <div className="text-xs font-bold text-gray-500 uppercase mb-2 border-b pb-1">
-                        {group.region || "Staged Units"} ({group.count})
-                      </div>
-                      <div className="space-y-2">
-                        {group.units.map((unit: any) => (
-                          <div 
-                            key={unit.id} 
-                            className="flex items-center justify-between p-2 hover:bg-gray-100 rounded cursor-pointer"
-                            onClick={() => {
-                              handleItemSelect(unit);
-                              setHoveredGroup(null);
-                            }}
-                          >
-                            <div className="flex items-center gap-2">
-                              <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                              <div>
-                                <div className="font-medium text-sm">{unit.unitNumber || unit.name}</div>
-                                <div className="text-xs text-gray-500">{unit.driverName || "No Driver"}</div>
-                              </div>
-                            </div>
-                            <ChevronRight className="w-4 h-4 text-gray-400" />
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </InfoWindow>
-                )}
-              </div>
-            ))}
           </Map>
         </APIProvider>
-
-        {/* Floating Details Card (Only visible when item selected) */}
-        {selectedItem && (
-          <div className="absolute bottom-6 left-6 right-6 md:left-auto md:right-6 md:w-80 z-20">
-            <Card className="bg-zinc-900/95 backdrop-blur border-zinc-800 p-4 shadow-2xl animate-in slide-in-from-bottom-4">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-lg ${
-                    selectedItem.type === "staged" ? "bg-blue-500/20 text-blue-400" : 
-                    selectedItem.status === "in_transit" ? "bg-emerald-500/20 text-emerald-400" : "bg-amber-500/20 text-amber-400"
-                  }`}>
-                    {selectedItem.type === "staged" ? <Warehouse className="w-5 h-5" /> : <Truck className="w-5 h-5" />}
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-white">{selectedItem.unitNumber || selectedItem.name}</h3>
-                    <p className="text-xs text-zinc-400">{selectedItem.type === "staged" ? "Staged Unit" : "Active Trip"}</p>
-                  </div>
-                </div>
-                <Button variant="plain" size="sm" onClick={() => setSelectedItem(null)} className="h-8 w-8 p-0 text-zinc-500 hover:text-white">
-                  <span className="sr-only">Close</span>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-                </Button>
-              </div>
-
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-1">Status</p>
-                    <Chip tone={
-                      selectedItem.status === "in_transit" ? "ok" : 
-                      selectedItem.status === "Available" ? "brand" : "warn"
-                    }>
-                      {selectedItem.status}
-                    </Chip>
-                  </div>
-                  <div>
-                    <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-1">Last Update</p>
-                    <p className="text-sm text-zinc-300">
-                      {selectedItem.lastUpdate ? new Date(selectedItem.lastUpdate).toLocaleTimeString() : "N/A"}
-                    </p>
-                  </div>
-                </div>
-
-                {selectedItem.driverName && (
-                  <div>
-                    <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-1">Driver</p>
-                    <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-full bg-zinc-800 flex items-center justify-center text-xs font-medium text-zinc-400">
-                        {selectedItem.driverName.charAt(0)}
-                      </div>
-                      <p className="text-sm text-zinc-200">{selectedItem.driverName}</p>
-                    </div>
-                  </div>
-                )}
-
-                <div className="bg-zinc-950/50 rounded-lg p-3 border border-zinc-800/50">
-                  <div className="flex items-start gap-2">
-                    <MapPin className="w-4 h-4 text-zinc-500 mt-0.5 shrink-0" />
-                    <div>
-                      <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-0.5">Current Location</p>
-                      <p className="text-sm text-zinc-300 leading-snug">{selectedItem.location || "Unknown Location"}</p>
-                      {selectedItem.lat && (
-                        <p className="text-[10px] text-zinc-600 mt-1 font-mono">
-                          {selectedItem.lat.toFixed(4)}, {selectedItem.lng.toFixed(4)}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {selectedItem.type === "trip" && (
-                  <div className="space-y-2">
-                    {selectedItem.status === "in_transit" && (selectedItem.deliveryLocation || (selectedItem.deliveryLat && selectedItem.deliveryLng)) && (
-                      <>
-                        <Button 
-                          className="w-full bg-emerald-900/30 hover:bg-emerald-900/50 text-emerald-400 border border-emerald-800/50" 
-                          size="sm" 
-                          onClick={() => setShowRoute(!showRoute)}
-                        >
-                          {showRoute ? "Hide Route" : "Show Optimal Route"}
-                        </Button>
-                        
-                        {showRoute && routeInfo && (
-                          <div className="mt-2 p-3 bg-emerald-900/20 border border-emerald-900/50 rounded-lg animate-in fade-in slide-in-from-top-2">
-                             <div className="grid grid-cols-3 gap-2 text-center divide-x divide-emerald-900/50">
-                                <div>
-                                   <div className="text-[10px] text-zinc-500 uppercase tracking-wider">Distance</div>
-                                   <div className="text-sm font-bold text-emerald-400">{routeInfo.distance}</div>
-                                </div>
-                                <div>
-                                   <div className="text-[10px] text-zinc-500 uppercase tracking-wider">Duration</div>
-                                   <div className="text-sm font-bold text-emerald-400">{routeInfo.duration}</div>
-                                </div>
-                                <div>
-                                   <div className="text-[10px] text-zinc-500 uppercase tracking-wider">ETA</div>
-                                   <div className="text-sm font-bold text-emerald-400">{routeInfo.eta}</div>
-                                </div>
-                             </div>
-                          </div>
-                        )}
-                      </>
-                    )}
-                    <Button className="w-full bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700" size="sm" asChild>
-                      <a href={`/trips/${selectedItem.id}`}>View Trip Details <ChevronRight className="w-3 h-3 ml-1" /></a>
-                    </Button>
-                  </div>
-                )}
-              </div>
-            </Card>
-          </div>
-        )}
       </div>
     </div>
   );

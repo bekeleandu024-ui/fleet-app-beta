@@ -162,17 +162,17 @@ export default function TripsPage() {
               className="h-8 w-48 rounded-sm border border-zinc-800 bg-black pl-8 pr-3 text-xs text-zinc-200 placeholder:text-zinc-600 focus:border-blue-800 focus:outline-none focus:ring-1 focus:ring-blue-900"
             />
           </div>
-          <Button 
-            size="sm" 
-            variant="ghost" 
+          <Button
+            size="sm"
+            variant="plain"
             onClick={() => void refetch()}
             className="h-8 w-8 rounded-sm p-0 text-zinc-400 hover:bg-zinc-800 hover:text-white"
           >
             <RefreshCw className="h-3.5 w-3.5" />
           </Button>
-          <Button 
-            size="sm" 
-            variant="outline"
+          <Button
+            size="sm"
+            variant="subtle"
             onClick={() => router.push("/trips/closed")}
             className="h-8 rounded-sm border-zinc-700 bg-zinc-800 text-xs font-medium text-zinc-300 hover:bg-zinc-700 hover:text-white"
           >

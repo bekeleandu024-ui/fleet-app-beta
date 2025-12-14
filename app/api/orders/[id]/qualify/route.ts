@@ -2,11 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { notes } = await request.json();
-    const orderId = params.id;
+    const { id: orderId } = await params;
 
     // Update order status to "Qualified" using the correct endpoint
     const ordersServiceUrl = process.env.ORDERS_SERVICE || 'http://localhost:4002';

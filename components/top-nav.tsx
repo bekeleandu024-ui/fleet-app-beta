@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { ChangeEvent, FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import { ChangeEvent, FormEvent, useCallback, useEffect, useRef, useState, Suspense } from "react";
 import { Search } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -31,6 +31,14 @@ const navItems = [
 ];
 
 export function TopNav() {
+  return (
+    <Suspense fallback={<div className="h-14 border-b border-zinc-800 bg-black" />}>
+      <TopNavContent />
+    </Suspense>
+  );
+}
+
+function TopNavContent() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const router = useRouter();

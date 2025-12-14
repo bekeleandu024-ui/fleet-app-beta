@@ -49,7 +49,7 @@ export function AIInsightsPanel({
         <div className="flex flex-col items-center text-center gap-3">
           <AlertTriangle className="w-8 h-8 text-rose-500" />
           <p className="text-sm text-rose-200">{error}</p>
-          <Button variant="outline" size="sm" onClick={onRetry} className="border-rose-800 text-rose-400 hover:bg-rose-950/50">
+          <Button variant="subtle" size="sm" onClick={onRetry} className="border-rose-800 text-rose-400 hover:bg-rose-950/50">
             Retry Analysis
           </Button>
         </div>
@@ -85,7 +85,7 @@ export function AIInsightsPanel({
       </Card> */}
 
       {/* Specific Resource Recommendation */}
-      {(insights.specificDriverRecommendation || insights.specificUnitRecommendation) && (
+      {(insights.specificDriverRecommendation) && (
         <Card className="p-4 bg-zinc-900/40 border-zinc-800">
           <div className="flex items-start gap-3">
             <div className="p-2 bg-blue-900/20 rounded-lg shrink-0">
@@ -102,24 +102,13 @@ export function AIInsightsPanel({
                 </div>
               )}
 
-              {insights.specificUnitRecommendation && (
-                <div className="mb-3">
-                  <p className="text-xs text-zinc-500 uppercase tracking-wider">Unit</p>
-                  <p className="text-sm font-medium text-blue-300">{insights.specificUnitRecommendation.unitCode}</p>
-                  <p className="text-xs text-zinc-400">{insights.specificUnitRecommendation.reason}</p>
-                </div>
-              )}
-
               <Button 
                 size="sm" 
-                variant="secondary" 
+                variant="subtle" 
                 className="w-full h-8 text-xs bg-blue-900/30 hover:bg-blue-900/50 text-blue-200 border border-blue-800/50"
                 onClick={() => {
                   if (insights.specificDriverRecommendation) {
                     onSelectDriver(insights.specificDriverRecommendation.driverId);
-                  }
-                  if (insights.specificUnitRecommendation && onSelectUnit) {
-                    onSelectUnit(insights.specificUnitRecommendation.unitId);
                   }
                 }}
               >

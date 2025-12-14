@@ -39,6 +39,7 @@ const REVERSE_STATUS_MAP: Record<OrderStatus, string> = {
   "At Risk": "delayed",
   Delivered: "completed",
   Exception: "exception",
+  Closed: "closed",
 };
 
 const TRIP_STATUS_LABELS: Record<string, string> = {

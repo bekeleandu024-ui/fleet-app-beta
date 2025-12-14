@@ -31,6 +31,8 @@ interface OrderFormData {
   qualificationNotes: string;
   source: string;
   customerId: string;
+  pickup?: string;
+  delivery?: string;
 }
 
 const truckTypes = ["Dry Van", "Flatbed", "Reefer", "Step Deck", "Box Truck", "Tanker"];
@@ -450,7 +452,7 @@ export default function CreateOrderPage() {
               </Button>
 
               <Button
-                variant="success"
+                variant="primary"
                 className="w-full bg-blue-950/50 hover:bg-blue-900/50 text-blue-200 border border-blue-800/50 shadow-lg shadow-blue-900/20"
                 onClick={handleSubmit}
                 disabled={!isValid || createMutation.isPending}
@@ -761,7 +763,7 @@ export default function CreateOrderPage() {
                 {/* Status */}
                 <div>
                   <div className="text-xs text-zinc-500 mb-1">Status</div>
-                  <Chip tone={formData.status === "Qualified" ? "success" : "default"} className={formData.status !== "Qualified" ? "bg-zinc-900 border-zinc-800 text-zinc-400" : ""}>
+                  <Chip tone={formData.status === "Qualified" ? "ok" : "default"} className={formData.status !== "Qualified" ? "bg-zinc-900 border-zinc-800 text-zinc-400" : ""}>
                     {formData.status}
                   </Chip>
                 </div>

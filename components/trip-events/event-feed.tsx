@@ -157,7 +157,7 @@ export function EventFeed({
           {/* Status */}
           <div>
             <div className="text-xs text-zinc-500 mb-1">Status</div>
-            <Chip tone={trip.status === "Completed" ? "success" : "default"} className={trip.status !== "Completed" ? "bg-zinc-900 border-zinc-800 text-zinc-400" : ""}>
+            <Chip tone={trip.status === "Completed" ? "ok" : "default"} className={trip.status !== "Completed" ? "bg-zinc-900 border-zinc-800 text-zinc-400" : ""}>
               {trip.status}
             </Chip>
           </div>

@@ -22,11 +22,10 @@ async function getDistanceService() {
  */
 export async function POST(
   request: Request,
-  { params }: { params: { tripId: string } }
+  { params }: { params: Promise<{ tripId: string }> }
 ) {
+  const { tripId } = await params;
   try {
-    const { tripId } = params;
-
     if (!tripId) {
       return NextResponse.json(
         { error: 'Trip ID is required' },
@@ -39,7 +38,7 @@ export async function POST(
 
     return NextResponse.json(result);
   } catch (error: any) {
-    console.error(`Error calculating distance for trip ${params.tripId}:`, error);
+    console.error(`Error calculating distance for trip ${tripId}:`, error);
     return NextResponse.json(
       { error: error.message || 'Failed to calculate trip distance' },
       { status: 500 }
@@ -53,11 +52,10 @@ export async function POST(
  */
 export async function PUT(
   request: Request,
-  { params }: { params: { tripId: string } }
+  { params }: { params: Promise<{ tripId: string }> }
 ) {
+  const { tripId } = await params;
   try {
-    const { tripId } = params;
-
     if (!tripId) {
       return NextResponse.json(
         { error: 'Trip ID is required' },
@@ -70,7 +68,7 @@ export async function PUT(
 
     return NextResponse.json(result);
   } catch (error: any) {
-    console.error(`Error recalculating distance for trip ${params.tripId}:`, error);
+    console.error(`Error recalculating distance for trip ${tripId}:`, error);
     return NextResponse.json(
       { error: error.message || 'Failed to recalculate trip distance' },
       { status: 500 }
@@ -84,11 +82,10 @@ export async function PUT(
  */
 export async function GET(
   request: Request,
-  { params }: { params: { tripId: string } }
+  { params }: { params: Promise<{ tripId: string }> }
 ) {
+  const { tripId } = await params;
   try {
-    const { tripId } = params;
-
     if (!tripId) {
       return NextResponse.json(
         { error: 'Trip ID is required' },
@@ -122,7 +119,7 @@ export async function GET(
 
     return NextResponse.json(result.rows[0]);
   } catch (error: any) {
-    console.error(`Error getting trip distance for ${params.tripId}:`, error);
+    console.error(`Error getting trip distance for ${tripId}:`, error);
     return NextResponse.json(
       { error: error.message || 'Failed to get trip distance' },
       { status: 500 }

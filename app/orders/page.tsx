@@ -30,6 +30,7 @@ const statusColors = {
   "Ready to Book": "bg-cyan-500/20 text-cyan-400 border-cyan-500/30",
   "Qualifying": "bg-amber-500/20 text-amber-400 border-amber-500/30",
   "Qualified": "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
+  "Closed": "bg-zinc-800 text-zinc-500 border-zinc-700",
 };
 
 export default function OrdersPage() {
@@ -39,13 +40,13 @@ export default function OrdersPage() {
     queryFn: fetchOrders,
   });
 
-  const [sortField, setSortField] = useState(null);
-  const [sortDirection, setSortDirection] = useState(null);
+  const [sortField, setSortField] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc" | null>(null);
   const [filterStatus, setFilterStatus] = useState("All");
   const [filterCustomer, setFilterCustomer] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
 
-  const handleSort = (field) => {
+  const handleSort = (field: any) => {
     if (sortField === field) {
       if (sortDirection === "asc") {
         setSortDirection("desc");
@@ -59,7 +60,7 @@ export default function OrdersPage() {
     }
   };
 
-  const SortIcon = ({ field }) => {
+  const SortIcon = ({ field }: { field: string }) => {
     if (sortField !== field) return <ArrowUpDown className="ml-1 h-3 w-3 opacity-20" />;
     if (sortDirection === "asc") return <ArrowUp className="ml-1 h-3 w-3 text-blue-400" />;
     if (sortDirection === "desc") return <ArrowDown className="ml-1 h-3 w-3 text-blue-400" />;
@@ -90,8 +91,8 @@ export default function OrdersPage() {
 
     if (sortField && sortDirection) {
       filtered = [...filtered].sort((a, b) => {
-        let aVal = a[sortField];
-        let bVal = b[sortField];
+        let aVal = (a as any)[sortField];
+        let bVal = (b as any)[sortField];
 
         if (aVal === undefined || aVal === null) return 1;
         if (bVal === undefined || bVal === null) return -1;
@@ -157,9 +158,9 @@ export default function OrdersPage() {
               className="h-8 w-48 rounded-sm border border-zinc-800 bg-black pl-8 pr-3 text-xs text-zinc-200 placeholder:text-zinc-600 focus:border-blue-800 focus:outline-none focus:ring-1 focus:ring-blue-900"
             />
           </div>
-          <Button 
-            size="sm" 
-            variant="ghost" 
+          <Button
+            size="sm"
+            variant="plain"
             onClick={() => void refetch()}
             className="h-8 w-8 rounded-sm p-0 text-zinc-400 hover:bg-zinc-800 hover:text-white"
           >
@@ -268,8 +269,8 @@ export default function OrdersPage() {
               </tr>
             ) : (
               filteredAndSortedData.map((order, idx) => {
-                const statusStyle = statusColors[order.status] || "bg-zinc-800 text-zinc-400 border-zinc-700";
-                
+                const statusStyle = (statusColors as any)[order.status] || "bg-zinc-800 text-zinc-400 border-zinc-700";
+
                 return (
                   <tr 
                     key={order.id} 

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useMemo } from "react";
+import { useMemo, Suspense } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowUpRight, Loader2, Search as SearchIcon } from "lucide-react";
 
@@ -29,6 +29,14 @@ const typeBadgeClasses: Record<GlobalSearchResult["type"], string> = {
 };
 
 export default function SearchPage() {
+  return (
+    <Suspense fallback={<div className="p-6">Loading search results...</div>}>
+      <SearchContent />
+    </Suspense>
+  );
+}
+
+function SearchContent() {
   const searchParams = useSearchParams();
   const query = (searchParams.get("q") ?? "").trim();
   const hasQuery = query.length > 0;

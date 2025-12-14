@@ -309,7 +309,7 @@ export default function OrderDetailPage() {
   const progressSteps = [
     { label: "Created", active: true },
     { label: "Ready to Book", active: !isBooking },
-    { label: "Booked", active: data.status === "Booked" || data.status === "In Transit" },
+    { label: "Booked", active: (data.status as string) === "Booked" || data.status === "In Transit" },
     { label: "In Transit", active: data.status === "In Transit" },
     { label: "Delivered", active: data.status === "Delivered" },
   ];

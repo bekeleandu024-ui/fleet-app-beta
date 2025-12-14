@@ -506,7 +506,7 @@ export function resolveDemoResponse(service: ServiceName, path: string, method: 
           return { ...e, tripId: tId, trip };
         })
       ).sort((a, b) => 
-        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+        new Date((b as any).timestamp).getTime() - new Date((a as any).timestamp).getTime()
       );
       return { events: allEvents };
     }

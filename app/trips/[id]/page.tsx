@@ -137,8 +137,8 @@ export default function TripDetailPage() {
                     value={
                       data.metrics?.totalCost 
                         ? `${formatCurrency(data.metrics.totalCost)}${
-                            data.metrics?.totalCpm && distanceMiles 
-                              ? ` (${formatCurrency(data.metrics.totalCpm)} × ${Math.round(distanceMiles)} mi)` 
+                            (data.metrics as any)?.totalCpm && distanceMiles 
+                              ? ` (${formatCurrency((data.metrics as any).totalCpm)} × ${Math.round(distanceMiles)} mi)` 
                               : ""
                           }`
                         : "—"

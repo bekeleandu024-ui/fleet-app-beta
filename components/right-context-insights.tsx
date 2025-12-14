@@ -238,7 +238,7 @@ function DispatchRight() {
 }
 
 function TripsRight() {
-  const { data, isLoading, isError } = useQuery({ queryKey: queryKeys.trips(), queryFn: fetchTrips });
+  const { data, isLoading, isError } = useQuery({ queryKey: queryKeys.trips(), queryFn: () => fetchTrips() });
 
   if (isLoading && !data) {
     return (

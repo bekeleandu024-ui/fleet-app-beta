@@ -111,7 +111,7 @@ export function LocationPicker({
         {showGPSButton && (
           <Button
             type="button"
-            variant="outline"
+            variant="subtle"
             size="sm"
             onClick={handleCaptureGPS}
             disabled={isCapturingGPS}

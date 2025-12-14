@@ -30,7 +30,7 @@ export async function GET() {
     const response = await serviceFetch<any>("tracking", "/api/trips");
     // Handle both array and object responses
     const trips = Array.isArray(response) ? response : (response.value || []);
-    return NextResponse.json({ data: trips.map((trip) => mapTripAdminRecord(trip)) });
+    return NextResponse.json({ data: trips.map((trip: any) => mapTripAdminRecord(trip)) });
   } catch (error) {
     console.error("Admin trips fetch failed", error);
     return NextResponse.json({ error: "Unable to load trips" }, { status: 500 });

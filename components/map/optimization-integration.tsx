@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { Polyline } from '@react-google-maps/api'; // Assuming this is the library in use
+import { useState, useEffect } from 'react';
+import { useMap, useMapsLibrary } from '@vis.gl/react-google-maps';
 import { optimizeFleetRoutes } from '@/app/actions/optimize-fleet';
 
 // --- Types (You might want to move these to a shared types file) ---
@@ -30,6 +30,38 @@ const ROUTE_COLORS = [
   '#DB2777', // Pink
   '#CA8A04', // Yellow
 ];
+
+function RoutePolyline({ path, color }: { path: google.maps.LatLngLiteral[], color: string }) {
+  const map = useMap();
+  const maps = useMapsLibrary('maps');
+  const [polyline, setPolyline] = useState<google.maps.Polyline | null>(null);
+
+  useEffect(() => {
+    if (!map || !maps) return;
+
+    const p = new maps.Polyline({
+      path,
+      strokeColor: color,
+      strokeOpacity: 0.8,
+      strokeWeight: 5,
+      geodesic: true,
+      icons: [{
+        icon: { path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW },
+        offset: '100%',
+        repeat: '100px'
+      }],
+      map
+    });
+
+    setPolyline(p);
+
+    return () => {
+      p.setMap(null);
+    };
+  }, [map, maps, path, color]);
+
+  return null;
+}
 
 export function OptimizationLayer({ 
   orders, 
@@ -151,20 +183,10 @@ export function OptimizationLayer({
         ];
 
         return (
-          <Polyline
+          <RoutePolyline
             key={route.vehicle_id}
             path={path}
-            options={{
-              strokeColor: color,
-              strokeOpacity: 0.8,
-              strokeWeight: 5,
-              geodesic: true,
-              icons: [{
-                icon: { path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW },
-                offset: '100%',
-                repeat: '100px' // Add arrows along the path
-              }]
-            }}
+            color={color}
           />
         );
       })}

@@ -126,7 +126,7 @@ export function TripTicket({ trip, aiInsights }: TripTicketProps) {
             <Button size="sm" variant="subtle" onClick={() => {/* TODO: wire status update */}}>
               Update Status
             </Button>
-            <Button size="sm" variant="secondary" onClick={() => {/* TODO: view order */}}>
+            <Button size="sm" variant="subtle" onClick={() => {/* TODO: view order */}}>
               View Order
             </Button>
             <Button size="sm" variant="primary" onClick={() => {/* TODO: view on map */}}>

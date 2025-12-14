@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Package, CheckCircle, Sparkles, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -71,6 +71,14 @@ interface RateCard {
 }
 
 export default function BookTripPage() {
+  return (
+    <Suspense fallback={<div className="p-6">Loading booking interface...</div>}>
+      <BookTripContent />
+    </Suspense>
+  );
+}
+
+function BookTripContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const selectedOrderId = searchParams.get("orderId");

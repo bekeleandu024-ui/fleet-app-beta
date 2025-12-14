@@ -125,8 +125,8 @@ export default function OrderDetailPage() {
   if (isLoading) return <OrderDetailSkeleton />;
   if (isError || !data) return <div className="col-span-12 p-6 text-neutral-500">Unable to load order.</div>;
 
-  const canQualify = data?.status === "PendingInfo" || data?.status === "New";
-  const isQualified = data?.status === "Qualified" || data?.status === "Booked";
+  const canQualify = (data?.status as string) === "PendingInfo" || data?.status === "New";
+  const isQualified = (data?.status as string) === "Qualified" || (data?.status as string) === "Booked";
 
   // Collect missing data
   const missingData = [];
@@ -139,7 +139,7 @@ export default function OrderDetailPage() {
     { label: "Created", active: true },
     { label: "Qualification", active: canQualify || isQualified },
     { label: "Ready", active: isQualified },
-    { label: "Booked", active: data.status === "Booked" || data.status === "In Transit" },
+    { label: "Booked", active: (data.status as string) === "Booked" || data.status === "In Transit" },
     { label: "In Transit", active: data.status === "In Transit" },
     { label: "Delivered", active: data.status === "Delivered" },
   ];
@@ -368,7 +368,7 @@ export default function OrderDetailPage() {
           <section className="rounded-lg border border-neutral-800 bg-neutral-900/60 p-3">
             <h3 className="text-xs font-medium text-neutral-500 uppercase tracking-wide mb-2">Booking Rules</h3>
             <ul className="space-y-1 text-xs text-neutral-400">
-              {data.booking.guardrails.map((rule, idx) => (
+              {data.booking.guardrails?.map((rule, idx) => (
                 <li key={idx}>• {rule}</li>
               ))}
             </ul>

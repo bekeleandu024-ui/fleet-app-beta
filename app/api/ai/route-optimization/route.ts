@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Fetch real order data if orderId provided
-    let orderData = null;
+    let orderData: any = null;
     if (orderId) {
       try {
         orderData = await serviceFetch('orders', `/api/orders/${orderId}`);

@@ -33,7 +33,7 @@ export default function AnalyticsPage() {
   });
 
   // Fetch AI insights when analytics data is available
-  const { data: aiInsights, isLoading: aiLoading, mutate: generateInsights } = useMutation({
+  const { data: aiInsights, isPending: aiLoading, mutate: generateInsights } = useMutation({
     mutationFn: async (analyticsData: any) => {
       const response = await fetch("/api/analytics/ai-insights", {
         method: "POST",
@@ -502,7 +502,7 @@ function AIInsightsSection({
                 <li key={idx} className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-4">
                   <div className="flex items-start justify-between gap-3 mb-2">
                     <p className="text-sm font-semibold text-zinc-100 capitalize">{prediction.metric} Forecast</p>
-                    <Chip tone={prediction.confidence === "high" ? "ok" : prediction.confidence === "medium" ? "warn" : "neutral"}>
+                    <Chip tone={prediction.confidence === "high" ? "ok" : prediction.confidence === "medium" ? "warn" : "default"}>
                       {prediction.confidence}
                     </Chip>
                   </div>
@@ -544,7 +544,7 @@ function AIInsightsSection({
                     </div>
                   </div>
                   <div className="flex flex-col items-end gap-1">
-                    <Chip tone={rec.priority === "high" ? "alert" : rec.priority === "medium" ? "warn" : "neutral"}>
+                    <Chip tone={rec.priority === "high" ? "alert" : rec.priority === "medium" ? "warn" : "default"}>
                       {rec.priority}
                     </Chip>
                     <span className="text-xs text-zinc-500">{rec.timeframe}</span>

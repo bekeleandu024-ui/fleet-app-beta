@@ -150,6 +150,7 @@ export const orderDetailSchema = z.object({
     driverOptions: z.array(bookingDriverSchema),
     unitOptions: z.array(bookingUnitSchema),
     statusOptions: z.array(orderStatusSchema),
+    guardrails: z.array(z.string()).optional(),
   }),
 });
 export type OrderDetail = z.infer<typeof orderDetailSchema>;

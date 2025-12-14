@@ -109,8 +109,8 @@ export default function ClosedTripsPage() {
       {/* Header */}
       <div className="flex h-14 items-center justify-between border-b border-zinc-800 bg-zinc-900/50 px-4">
         <div className="flex items-center gap-4">
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="plain"
             size="sm"
             onClick={() => router.push("/trips")}
             className="h-8 w-8 rounded-sm p-0 text-zinc-400 hover:bg-zinc-800 hover:text-white"
@@ -131,9 +131,9 @@ export default function ClosedTripsPage() {
               className="h-8 w-48 rounded-sm border border-zinc-800 bg-black pl-8 pr-3 text-xs text-zinc-200 placeholder:text-zinc-600 focus:border-blue-800 focus:outline-none focus:ring-1 focus:ring-blue-900"
             />
           </div>
-          <Button 
-            size="sm" 
-            variant="ghost" 
+          <Button
+            size="sm"
+            variant="plain"
             onClick={() => void refetch()}
             className="h-8 w-8 rounded-sm p-0 text-zinc-400 hover:bg-zinc-800 hover:text-white"
           >

@@ -9,7 +9,7 @@ import { EventFeed } from "@/components/trip-events/event-feed"; // Import Event
 
 interface Trip {
   id: string;
-  tripNumber?: string;
+  tripNumber: string;
   driver: string;
   unit: string;
   status: string;
