@@ -143,6 +143,7 @@ function buildTripDetail(
   return {
     id: trip.id,
     tripNumber: listItem.tripNumber,
+    orderReference: context.order?.id ? `ORD-${String(context.order.id).slice(0, 8).toUpperCase()}` : "N/A",
     status: listItem.status,
     driver: listItem.driver,
     driverType: trip.driver_type ?? driver?.driver_type,

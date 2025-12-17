@@ -222,7 +222,7 @@ export function EventFeed({
           {isLoading ? "Loading events..." : "No events recorded yet"}
         </div>
       ) : (
-        <div className="max-h-[500px] space-y-2 overflow-y-auto">
+        <div className="flex-1 space-y-2 overflow-y-auto min-h-0 pr-2">
           {events.map((event) => (
             <div
               key={event.id}

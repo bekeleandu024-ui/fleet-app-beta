@@ -136,7 +136,7 @@ export default function TripDetailPage() {
                 <DetailRow label="Type" value={data.driverType ?? "—"} />
                 <DetailRow label="Unit" value={data.unitNumber || data.unit} />
                 <DetailRow label="Unit Type" value={data.unitType ?? "—"} />
-                <DetailRow label="Order" value={data.tripNumber} />
+                <DetailRow label="Order" value={data.orderReference || data.tripNumber} />
                 <DetailRow 
                   label="Distance" 
                   value={

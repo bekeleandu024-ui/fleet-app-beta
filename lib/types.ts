@@ -259,6 +259,7 @@ export const telemetryPointSchema = z.object({
 export const tripDetailSchema = z.object({
   id: z.string(),
   tripNumber: z.string(),
+  orderReference: z.string().optional(),
   status: z.string(),
   driver: z.string(),
   unit: z.string(),

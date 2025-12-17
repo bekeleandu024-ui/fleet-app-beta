@@ -15,10 +15,12 @@ export async function GET(request: Request) {
         SELECT 
           t.*,
           d.driver_name,
-          u.unit_number
+          u.unit_number,
+          o.customer_id as customer_name
         FROM trips t
         LEFT JOIN driver_profiles d ON t.driver_id = d.driver_id
         LEFT JOIN unit_profiles u ON t.unit_id = u.unit_id
+        LEFT JOIN orders o ON t.order_id = o.id
       `;
       
       if (statusFilter === "closed") {
@@ -86,7 +88,7 @@ function transformTripRow(row: any): TripListItem {
     lastPing: toISO(row.updated_at || row.created_at),
     orderId: row.order_id,
     driverId: row.driver_id,
-    customer: "CORVEX", 
+    customer: row.customer_name || "Unknown Customer", 
     pickupWindow: row.pickup_window_start ? new Date(row.pickup_window_start).toLocaleString() : undefined,
     distance: Number(row.planned_miles) || 0,
     duration: duration,

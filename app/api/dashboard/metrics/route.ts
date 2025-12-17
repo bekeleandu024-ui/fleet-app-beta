@@ -6,75 +6,68 @@ export async function GET() {
     const client = await pool.connect();
     
     try {
-      // 1. Orders Waiting (New or Planning)
-      const ordersQuery = `
-        SELECT COUNT(*) as count 
-        FROM orders 
-        WHERE status IN ('New', 'Planning', 'Pending')
-      `;
-      const ordersResult = await client.query(ordersQuery);
-      const ordersWaiting = parseInt(ordersResult.rows[0].count);
-
-      // 2. At-Risk Trips (High Risk or Delayed)
-      const riskQuery = `
-        SELECT COUNT(*) as count 
-        FROM trips 
-        WHERE status IN ('In Transit', 'En Route') 
-        AND (risk_level = 'High' OR risk_level = 'Critical')
-      `;
-      const riskResult = await client.query(riskQuery);
-      const atRiskTrips = parseInt(riskResult.rows[0].count);
-
-      // 3. Active Drivers & Utilization
-      const driversQuery = `
+      // Optimized single query using CTEs
+      const query = `
+        WITH 
+        order_stats AS (
+          SELECT 
+            COUNT(*) FILTER (WHERE status IN ('New', 'Planning', 'Pending')) as waiting_count
+          FROM orders
+        ),
+        trip_stats AS (
+          SELECT 
+            COUNT(*) FILTER (WHERE status IN ('In Transit', 'En Route') AND risk_level IN ('High', 'Critical')) as risk_count,
+            COUNT(*) FILTER (WHERE status = 'Completed' AND completed_at > NOW() - INTERVAL '30 days') as completed_30d,
+            COUNT(*) FILTER (WHERE status = 'Completed' AND completed_at > NOW() - INTERVAL '30 days' AND on_time_delivery = true) as on_time_30d
+          FROM trips
+        ),
+        driver_stats AS (
+          SELECT 
+            COUNT(*) as total_drivers,
+            COUNT(*) FILTER (WHERE is_active = true) as active_drivers
+          FROM driver_profiles
+        ),
+        financial_stats AS (
+          SELECT 
+            COALESCE(SUM(revenue), 0) as total_revenue,
+            COALESCE(SUM(total_cost), 0) as total_cost
+          FROM trip_costs
+          WHERE created_at > NOW() - INTERVAL '30 days'
+        )
         SELECT 
-          COUNT(*) FILTER (WHERE is_active = true) as total_active,
-          COUNT(*) as total_drivers
-        FROM driver_profiles
+          o.waiting_count,
+          t.risk_count,
+          t.completed_30d,
+          t.on_time_30d,
+          d.total_drivers,
+          d.active_drivers,
+          f.total_revenue,
+          f.total_cost
+        FROM order_stats o, trip_stats t, driver_stats d, financial_stats f
       `;
-      const driversResult = await client.query(driversQuery);
-      const activeDrivers = parseInt(driversResult.rows[0].total_active || 0);
-      const totalDrivers = parseInt(driversResult.rows[0].total_drivers || 0);
-      const utilizationRate = totalDrivers > 0 ? (activeDrivers / totalDrivers) * 100 : 0;
 
-      // 4. Financials (Last 30 Days)
-      const financialsQuery = `
-        SELECT 
-          COALESCE(SUM(revenue), 0) as total_revenue,
-          COALESCE(SUM(total_cost), 0) as total_cost,
-          COALESCE(AVG(margin_pct), 0) as avg_margin
-        FROM trip_costs
-        WHERE created_at > NOW() - INTERVAL '30 days'
-      `;
-      const financialsResult = await client.query(financialsQuery);
-      const totalRevenue = parseFloat(financialsResult.rows[0].total_revenue);
-      const totalCost = parseFloat(financialsResult.rows[0].total_cost);
-      const avgMargin = parseFloat(financialsResult.rows[0].avg_margin);
+      const result = await client.query(query);
+      const row = result.rows[0];
 
-      // 5. On-Time Performance (Last 30 Days)
-      const onTimeQuery = `
-        SELECT 
-          COUNT(*) FILTER (WHERE on_time_delivery = true) as on_time_count,
-          COUNT(*) as total_completed
-        FROM trips
-        WHERE status = 'Completed' 
-        AND completed_at > NOW() - INTERVAL '30 days'
-      `;
-      const onTimeResult = await client.query(onTimeQuery);
-      const onTimeCount = parseInt(onTimeResult.rows[0].on_time_count || 0);
-      const totalCompleted = parseInt(onTimeResult.rows[0].total_completed || 0);
-      const onTimePercent = totalCompleted > 0 ? (onTimeCount / totalCompleted) * 100 : 0;
+      const totalRevenue = parseFloat(row.total_revenue);
+      const totalCost = parseFloat(row.total_cost);
+      const netMargin = totalRevenue - totalCost;
+      const avgMargin = totalRevenue > 0 ? (netMargin / totalRevenue) * 100 : 0;
 
       const metrics = {
-        ordersWaiting,
-        atRiskTrips,
+        ordersWaiting: parseInt(row.waiting_count),
+        atRiskTrips: parseInt(row.risk_count),
         avgMargin,
-        onTimePercent,
-        activeDrivers,
-        utilizationRate,
+        onTimePercent: parseInt(row.completed_30d) > 0 
+          ? (parseInt(row.on_time_30d) / parseInt(row.completed_30d)) * 100 
+          : 0,
+        activeDrivers: parseInt(row.active_drivers),
+        utilizationRate: parseInt(row.total_drivers) > 0 
+          ? (parseInt(row.active_drivers) / parseInt(row.total_drivers)) * 100 
+          : 0,
         totalRevenue,
         totalCost,
-        netMargin: totalRevenue - totalCost,
+        netMargin,
       };
 
       return NextResponse.json(metrics);

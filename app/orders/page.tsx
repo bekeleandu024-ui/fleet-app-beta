@@ -280,7 +280,7 @@ export default function OrdersPage() {
                     <td className="px-4 py-2 align-middle">
                       <div className="flex flex-col">
                         <span className="font-mono font-medium text-blue-400 group-hover:text-blue-300">
-                          {order.id}
+                          {order.reference}
                         </span>
                         <span className="text-[10px] text-zinc-500">
                           {order.window}
