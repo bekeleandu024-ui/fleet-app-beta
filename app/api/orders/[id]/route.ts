@@ -16,7 +16,7 @@ type OrderStop = {
   instructions?: string;
 };
 
-const STATUS_OPTIONS = ["New", "Planning", "In Transit", "At Risk", "Delivered", "Exception"];
+const STATUS_OPTIONS = ["New", "Planning", "In Transit", "At Risk", "Delivered", "Exception", "Completed"];
 
 export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params;
@@ -53,6 +53,41 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
     return NextResponse.json({ error: "Failed to load order" }, { status: 500 });
+  }
+}
+
+export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params;
+  try {
+    const body = await request.json();
+    const { status } = body;
+
+    if (!status) {
+      return NextResponse.json({ error: "Status is required" }, { status: 400 });
+    }
+
+    if (!STATUS_OPTIONS.includes(status)) {
+      return NextResponse.json({ error: "Invalid status" }, { status: 400 });
+    }
+
+    const client = await pool.connect();
+    try {
+      const result = await client.query(
+        `UPDATE orders SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING *`,
+        [status, id]
+      );
+
+      if (result.rowCount === 0) {
+        return NextResponse.json({ error: "Order not found" }, { status: 404 });
+      }
+
+      return NextResponse.json(result.rows[0]);
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    console.error("Error updating order:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
 

@@ -22,7 +22,8 @@ import { RecommendationCallout } from "@/components/recommendation-callout";
 import { AIOrderInsightPanel } from "@/components/AIOrderInsightPanel";
 import { StatChip } from "@/components/stat-chip";
 import { Button } from "@/components/ui/button";
-import { fetchOrderDetail } from "@/lib/api";
+import { Select } from "@/components/ui/select";
+import { fetchOrderDetail, updateOrderStatus } from "@/lib/api";
 import { generateOrderInsightsPrompt } from "@/lib/orderInsightsPrompt";
 import { formatDateTime, formatDurationHours } from "@/lib/format";
 import { queryKeys } from "@/lib/query";
@@ -31,6 +32,7 @@ import type { OrderDetail } from "@/lib/types";
 const statusVariant: Record<string, "default" | "ok" | "warn" | "alert"> = {
   "In Transit": "ok",
   "Delivered": "default",
+  "Completed": "default",
   "Planning": "default",
   "New": "default",
   "Exception": "alert",
@@ -274,8 +276,14 @@ export default function OrderDetailPage() {
     alert("Cost calculation feature coming soon");
   };
 
-  const handleUpdateStatus = async () => {
-    alert("Status update feature coming soon");
+  const handleStatusChange = async (newStatus: string) => {
+    try {
+      await updateOrderStatus(orderId, newStatus);
+      queryClient.invalidateQueries({ queryKey: queryKeys.order(orderId) });
+    } catch (error) {
+      console.error("Failed to update status:", error);
+      alert("Failed to update status");
+    }
   };
 
 
@@ -300,7 +308,6 @@ export default function OrderDetailPage() {
   }
 
   const headerChips = [
-    { label: data.status, variant: statusVariant[data.status] ?? "default" },
     { label: `${formatDurationHours(data.ageHours)} old` },
     { label: `${data.laneMiles} lane mi` },
   ];
@@ -324,6 +331,26 @@ export default function OrderDetailPage() {
             <p className="text-xs text-neutral-500">{data.lane}</p>
           </div>
           <div className="flex items-center gap-2">
+            <div className="relative">
+              <div className={`absolute left-2 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full pointer-events-none z-10 ${
+                statusVariant[data.status] === 'ok' ? 'bg-emerald-500' :
+                statusVariant[data.status] === 'warn' ? 'bg-amber-500' :
+                statusVariant[data.status] === 'alert' ? 'bg-rose-500' :
+                'bg-neutral-500'
+              }`} />
+              <Select 
+                value={data.status} 
+                onChange={(e) => handleStatusChange(e.target.value)}
+                className="h-7 w-[130px] text-xs bg-neutral-900 border-neutral-800 pl-6 py-0"
+              >
+                {["New", "Planning", "In Transit", "At Risk", "Delivered", "Exception", "Completed"].map((status) => (
+                  <option key={status} value={status}>
+                    {status}
+                  </option>
+                ))}
+              </Select>
+            </div>
+
             {headerChips.map((chip) => (
               <StatChip key={chip.label} label={chip.label} variant={chip.variant ?? "default"} />
             ))}

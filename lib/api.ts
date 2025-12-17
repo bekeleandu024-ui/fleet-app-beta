@@ -98,6 +98,10 @@ export function fetchOrderDetail(id: string): Promise<OrderDetail> {
   return parseResponse(api.get(`/orders/${id}`), orderDetailSchema);
 }
 
+export function updateOrderStatus(id: string, status: string): Promise<void> {
+  return parseResponse(api.patch(`/orders/${id}`, { status }), z.any());
+}
+
 export function fetchDispatch(): Promise<DispatchResponse> {
   return parseResponse(api.get("/dispatch"), dispatchResponseSchema);
 }
