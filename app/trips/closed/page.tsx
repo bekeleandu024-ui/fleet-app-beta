@@ -21,6 +21,7 @@ import { queryKeys } from "@/lib/query";
 
 const statusColors: Record<string, string> = {
   "Completed": "bg-zinc-500/20 text-zinc-500 border-zinc-500/30",
+  "Closed": "bg-zinc-600/20 text-zinc-400 border-zinc-600/30",
   "Cancelled": "bg-rose-500/20 text-rose-400 border-rose-500/30",
 };
 

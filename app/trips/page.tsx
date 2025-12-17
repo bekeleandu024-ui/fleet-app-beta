@@ -40,8 +40,8 @@ type SortDirection = "asc" | "desc" | null;
 export default function TripsPage() {
   const router = useRouter();
   const { data, isLoading, isError, refetch } = useQuery({ 
-    queryKey: queryKeys.trips(), 
-    queryFn: () => fetchTrips() 
+    queryKey: queryKeys.trips({ status: "active" }), 
+    queryFn: () => fetchTrips("active") 
   });
 
   const [sortField, setSortField] = useState<SortField | null>(null);

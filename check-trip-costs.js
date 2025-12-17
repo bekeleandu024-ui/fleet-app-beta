@@ -8,12 +8,8 @@ async function checkTripCosts() {
   try {
     const client = await pool.connect();
     try {
-      const resType = await client.query(`
-        SELECT column_name, data_type, numeric_precision, numeric_scale 
-        FROM information_schema.columns 
-        WHERE table_name = 'trip_costs'
-      `);
-      console.log('trip_costs columns:', resType.rows);
+      const res = await client.query('SELECT * FROM trip_costs');
+      console.log('Trip costs:', res.rows);
 
     } finally {
       client.release();

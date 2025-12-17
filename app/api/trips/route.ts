@@ -24,9 +24,9 @@ export async function GET(request: Request) {
       `;
       
       if (statusFilter === "closed") {
-        query += ` WHERE t.status = 'closed'`;
+        query += ` WHERE t.status IN ('closed', 'completed')`;
       } else if (statusFilter === "active") {
-        query += ` WHERE t.status != 'closed' OR t.status IS NULL`;
+        query += ` WHERE (t.status NOT IN ('closed', 'completed') OR t.status IS NULL)`;
       }
       // If no filter provided, return ALL trips (including closed)
       

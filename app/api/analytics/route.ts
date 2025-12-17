@@ -136,7 +136,7 @@ export async function GET() {
           marginPercent: parseFloat(row.marginPercent)
         })),
         marginByCategory: categoryRes.rows.map(row => ({
-          ...row,
+          category: row.category || "Unknown",
           revenue: parseFloat(row.revenue),
           marginPercent: parseFloat(row.marginPercent)
         })),
