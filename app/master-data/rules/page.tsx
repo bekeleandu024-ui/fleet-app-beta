@@ -30,6 +30,7 @@ export default function RulesMasterDataPage() {
   const columns: DataTableColumn<MasterDataResponse["data"][number]>[] = [
     { key: "id", header: "ID", accessor: (row) => row.id, widthClass: "min-w-[120px]" },
     { key: "name", header: "Name", accessor: (row) => row.name, widthClass: "min-w-[200px]" },
+    { key: "value", header: "Value", accessor: (row) => row.value ?? "-" },
     { key: "status", header: "Status", accessor: (row) => row.status },
     { key: "region", header: "Region", accessor: (row) => row.region },
     { key: "updated", header: "Updated", accessor: (row) => formatDateTime(row.updated), widthClass: "min-w-[200px]" },

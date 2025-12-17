@@ -14,24 +14,86 @@ type OrderResponse = OrderListItem & {
 
 export async function GET() {
   try {
-    const client = await pool.connect();
+    // 1. Fetch from Orders Service
+    let serviceOrders: any[] = [];
     try {
-      // Fetch orders that are NOT closed
+      const res = await fetch('http://localhost:4002/api/orders', { cache: 'no-store' });
+      if (res.ok) {
+        const json = await res.json();
+        serviceOrders = json.data || [];
+      }
+    } catch (e) {
+      console.error("Failed to fetch from Orders Service:", e);
+    }
+
+    const client = await pool.connect();
+    let financials: Record<string, number> = {};
+    let localOrders: OrderResponse[] = [];
+
+    try {
+      // 2. Fetch financials from DB
+      const finRes = await client.query('SELECT order_id, revenue FROM trip_costs');
+      finRes.rows.forEach(row => {
+        financials[row.order_id] = Number(row.revenue);
+      });
+
+      // 3. Fetch local orders (fallback/merge source)
+      // Fetch ALL orders, do not filter by status
       const query = `
         SELECT * FROM orders 
-        WHERE status != 'Closed' 
         ORDER BY created_at DESC
       `;
       
       const result = await client.query(query);
-      const orders = result.rows.map(transformOrderFromDb);
-      
-      return NextResponse.json(buildOrdersResponse(orders));
+      localOrders = result.rows.map(transformOrderFromDb);
     } finally {
       client.release();
     }
+
+    // 4. Merge Data
+    const orderMap = new Map<string, OrderResponse>();
+
+    // Add local orders first
+    localOrders.forEach(o => {
+      // Add revenue if available
+      o.revenue = financials[o.id] || o.revenue;
+      orderMap.set(o.id, o);
+    });
+
+    // Merge/Overwrite with Service orders
+    serviceOrders.forEach(o => {
+      const existing = orderMap.get(o.id);
+      
+      const mapped: OrderResponse = {
+        id: o.id,
+        reference: o.reference || existing?.reference || o.id,
+        customer: o.customer || existing?.customer || "Customer",
+        pickup: o.pickup || existing?.pickup || "",
+        delivery: o.delivery || existing?.delivery || "",
+        window: o.window || existing?.window || "Not Scheduled",
+        status: o.status || existing?.status || "New", // Service status is preferred
+        ageHours: o.ageHours ?? existing?.ageHours ?? 0,
+        cost: Number(o.cost ?? existing?.cost ?? 0),
+        lane: o.lane || existing?.lane || "",
+        serviceLevel: o.serviceLevel || existing?.serviceLevel || "Standard",
+        commodity: o.commodity || existing?.commodity || "General",
+        laneMiles: o.laneMiles ?? existing?.laneMiles ?? 0,
+        revenue: financials[o.id] || existing?.revenue || 0,
+        created: existing?.created || new Date().toISOString(),
+        pickupWindowStart: existing?.pickupWindowStart,
+        pickupWindowEnd: existing?.pickupWindowEnd,
+        deliveryWindowStart: existing?.deliveryWindowStart,
+        deliveryWindowEnd: existing?.deliveryWindowEnd,
+      };
+      orderMap.set(o.id, mapped);
+    });
+
+    const mergedOrders = Array.from(orderMap.values());
+    
+    return NextResponse.json(buildOrdersResponse(mergedOrders));
+
   } catch (error) {
-    console.error("Error fetching orders from DB:", error);
+    console.error("Error fetching orders:", error);
     return NextResponse.json({ error: "Failed to load orders" }, { status: 500 });
   }
 }
@@ -125,4 +187,5 @@ function calculateAgeHours(dateValue?: string | Date | null) {
   const diff = Date.now() - created.getTime();
   return Math.max(0, Math.floor(diff / (1000 * 60 * 60)));
 }
+
 

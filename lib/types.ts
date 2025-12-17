@@ -347,6 +347,7 @@ export const masterDataRowSchema = z.object({
   location: z.string().optional(),
   owner: z.string().optional(),
   severity: z.string().optional(),
+  value: z.union([z.string(), z.number()]).optional(),
 });
 
 export const masterDataResponseSchema = z.object({

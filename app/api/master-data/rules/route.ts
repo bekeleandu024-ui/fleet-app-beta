@@ -9,6 +9,7 @@ type RuleRecord = {
   region: string;
   owner: string;
   updated: string;
+  value?: string | number;
 };
 
 export async function GET() {
@@ -23,9 +24,18 @@ export async function GET() {
 }
 
 function transformRules(records: Array<Record<string, any>>): RuleRecord[] {
+  const idCounts: Record<string, number> = {};
+
   return records.map((record, index) => {
     const rawId = record.rule_id ?? record.id ?? record.rule_key ?? record.name;
-    const id = rawId && String(rawId).trim() !== "" ? String(rawId) : `rule-${index}`;
+    let id = rawId && String(rawId).trim() !== "" ? String(rawId) : `rule-${index}`;
+
+    if (idCounts[id]) {
+      idCounts[id]++;
+      id = `${id}_${idCounts[id]}`;
+    } else {
+      idCounts[id] = 1;
+    }
 
     return {
       id,
@@ -34,6 +44,7 @@ function transformRules(records: Array<Record<string, any>>): RuleRecord[] {
       region: record.region ?? record.rule_type ?? "Network",
       owner: record.owner ?? "Costing",
       updated: new Date(record.updated_at ?? Date.now()).toISOString(),
+      value: record.value ?? record.rule_value ?? record.amount ?? record.default_value,
     };
   });
 }

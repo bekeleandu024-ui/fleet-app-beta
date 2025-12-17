@@ -25,9 +25,10 @@ export async function GET(request: Request) {
       
       if (statusFilter === "closed") {
         query += ` WHERE t.status = 'closed'`;
-      } else {
+      } else if (statusFilter === "active") {
         query += ` WHERE t.status != 'closed' OR t.status IS NULL`;
       }
+      // If no filter provided, return ALL trips (including closed)
       
       query += ` ORDER BY t.created_at DESC`;
 
