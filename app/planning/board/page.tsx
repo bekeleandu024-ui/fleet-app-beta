@@ -7,7 +7,14 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { Truck, Package, MapPin, Calendar, ArrowRight } from 'lucide-react';
+import { Truck, Package, MapPin, Calendar, ArrowRight, Plus } from 'lucide-react';
+
+interface UnitItem {
+  id: string;
+  code: string;
+  driverName: string;
+  status: string;
+}
 
 function DraggableOrder({ order }: { order: OrderListItem }) {
   const { attributes, listeners, setNodeRef, transform } = useDraggable({
@@ -113,9 +120,55 @@ function DroppableTrip({ trip, children }: { trip: TripListItem; children?: Reac
   );
 }
 
+function DroppableUnit({ unit, children }: { unit: UnitItem; children?: React.ReactNode }) {
+  const { setNodeRef, isOver } = useDroppable({
+    id: `unit-${unit.id}`,
+    data: { unit, type: 'unit' },
+  });
+  
+  return (
+    <div 
+      ref={setNodeRef} 
+      className={`p-4 border rounded-lg transition-colors ${
+        isOver 
+          ? 'bg-blue-950/30 border-blue-500/50' 
+          : 'bg-zinc-900 border-zinc-800'
+      }`}
+    >
+      <div className="flex justify-between items-start mb-3">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <Truck className="w-4 h-4 text-zinc-400" />
+            <span className="font-mono font-bold text-zinc-200">{unit.code}</span>
+          </div>
+          <div className="text-xs text-zinc-500 flex items-center gap-2">
+            <span>{unit.driverName || 'No Driver'}</span>
+          </div>
+        </div>
+        <Badge variant="secondary" className="bg-emerald-950 text-emerald-400 border-emerald-900">
+          Available
+        </Badge>
+      </div>
+      
+      <Separator className="bg-zinc-800 my-3" />
+      
+      {children}
+
+      <div className={`
+          mt-2 p-4 border border-dashed rounded-md text-center text-xs transition-colors flex flex-col items-center justify-center gap-2
+          ${isOver ? 'border-blue-500/50 text-blue-400 bg-blue-950/20' : 'border-zinc-800 text-zinc-600'}
+        `}>
+          <Plus className="w-4 h-4" />
+          <span>Create Trip</span>
+      </div>
+    </div>
+  );
+}
+
 export default function PlanningBoardPage() {
   const [orders, setOrders] = useState<OrderListItem[]>([]);
   const [trips, setTrips] = useState<TripListItem[]>([]);
+  const [units, setUnits] = useState<UnitItem[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [activeOrder, setActiveOrder] = useState<OrderListItem | null>(null);
 
@@ -128,6 +181,11 @@ export default function PlanningBoardPage() {
     fetch('/api/trips?status=active').then(res => res.json()).then(data => {
         if (data.data) {
             setTrips(data.data);
+        }
+    });
+    fetch('/api/units?active=true').then(res => res.json()).then(data => {
+        if (data.data) {
+            setUnits(data.data.filter((u: UnitItem) => u.status === 'Available'));
         }
     });
   }, []);
@@ -144,39 +202,80 @@ export default function PlanningBoardPage() {
 
     if (over && active.id !== over.id) {
       const orderId = String(active.id).replace('order-', '');
-      const tripId = String(over.id).replace('trip-', '');
+      const targetId = String(over.id);
+      
+      // Optimistic update helper
+      const removeOrder = () => setOrders(prev => prev.filter(o => o.id !== orderId));
 
-      const targetTrip = trips.find(t => t.id === tripId);
-      if (targetTrip?.orderId) {
-          alert("This trip already has an order assigned.");
-          return;
-      }
-
-      const order = orders.find(o => o.id === orderId);
-      if (!order) return;
-
-      setOrders(orders.filter(o => o.id !== orderId));
-
-      setTrips(trips.map(t => {
-          if (t.id === tripId) {
-              return { ...t, orderId: orderId }; 
+      if (targetId.startsWith('trip-')) {
+          const tripId = targetId.replace('trip-', '');
+          const targetTrip = trips.find(t => t.id === tripId);
+          
+          if (targetTrip?.orderId) {
+              alert("This trip already has an order assigned.");
+              return;
           }
-          return t;
-      }));
 
-      try {
-        const res = await fetch(`/api/trips/${tripId}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ orderId })
-        });
-        if (!res.ok) {
-            console.error("Failed to assign order");
-            alert("Failed to assign order on server.");
-        }
-      } catch (e) {
-          console.error(e);
-          alert("Error assigning order.");
+          removeOrder();
+          setTrips(trips.map(t => t.id === tripId ? { ...t, orderId } : t));
+
+          try {
+            const res = await fetch(`/api/trips/${tripId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ orderId })
+            });
+            if (!res.ok) throw new Error("Failed to assign");
+          } catch (e) {
+              console.error(e);
+              alert("Error assigning order.");
+              // Ideally revert state here
+          }
+      } else if (targetId.startsWith('unit-')) {
+          const unitId = targetId.replace('unit-', '');
+          
+          removeOrder();
+          // Remove unit from available list as it's now becoming a trip
+          setUnits(prev => prev.filter(u => u.id !== unitId));
+          
+          // Add a temporary trip to the list for immediate feedback
+          const unit = units.find(u => u.id === unitId);
+          const tempTrip: TripListItem = {
+              id: 'temp-' + Date.now(),
+              tripNumber: 'CREATING...',
+              driver: unit?.driverName || 'Unknown',
+              unit: unit?.code || 'Unknown',
+              status: 'active',
+              orderId: orderId,
+              pickup: '...',
+              delivery: '...',
+              eta: '...',
+              lastPing: new Date().toISOString(),
+              exceptions: 0
+          };
+          setTrips(prev => [tempTrip, ...prev]);
+
+          try {
+            const res = await fetch('/api/trips', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ orderId, unitId })
+            });
+            
+            if (res.ok) {
+                // Refresh trips to get the real one
+                const data = await res.json();
+                // Could replace temp trip with real one, or just re-fetch
+                fetch('/api/trips?status=active').then(r => r.json()).then(d => {
+                    if (d.data) setTrips(d.data);
+                });
+            } else {
+                throw new Error("Failed to create trip");
+            }
+          } catch (e) {
+              console.error(e);
+              alert("Error creating trip.");
+          }
       }
     }
   };
@@ -194,6 +293,9 @@ export default function PlanningBoardPage() {
            </Badge>
            <Badge variant="outline" className="bg-zinc-900 text-zinc-400 border-zinc-800">
               {trips.length} Active Trips
+           </Badge>
+           <Badge variant="outline" className="bg-zinc-900 text-zinc-400 border-zinc-800">
+              {units.length} Available Units
            </Badge>
         </div>
       </div>
@@ -229,8 +331,14 @@ export default function PlanningBoardPage() {
             <ScrollArea className="flex-1">
               <div className="p-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {/* Active Trips */}
                   {trips.map(trip => (
                     <DroppableTrip key={trip.id} trip={trip} />
+                  ))}
+                  
+                  {/* Available Units */}
+                  {units.map(unit => (
+                    <DroppableUnit key={unit.id} unit={unit} />
                   ))}
                 </div>
               </div>

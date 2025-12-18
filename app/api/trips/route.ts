@@ -129,10 +129,10 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { 
       orderId, 
-      driverId, 
+      driverId: inputDriverId, 
       unitId, 
       miles, 
-      stops,
+      stops: inputStops,
       tripType,
       rpm,
       totalRevenue,
@@ -142,6 +142,34 @@ export async function POST(request: Request) {
 
     const client = await pool.connect();
     try {
+      let stops = inputStops;
+      let driverId = inputDriverId;
+
+      // Quick Create Logic: Populate missing data
+      if (!stops && orderId) {
+         const orderRes = await client.query('SELECT * FROM orders WHERE id = $1', [orderId]);
+         if (orderRes.rows.length > 0) {
+             const order = orderRes.rows[0];
+             stops = [
+                 { stopType: 'Pickup', name: order.pickup_location, scheduledAt: order.pickup_time },
+                 { stopType: 'Delivery', name: order.dropoff_location, scheduledAt: order.dropoff_time }
+             ];
+         }
+      }
+
+      if (!driverId && unitId) {
+          // Try to find driver assigned to this unit
+          // First get unit_number
+          const unitRes = await client.query('SELECT unit_number FROM unit_profiles WHERE unit_id = $1', [unitId]);
+          if (unitRes.rows.length > 0) {
+              const unitNumber = unitRes.rows[0].unit_number;
+              const driverRes = await client.query('SELECT driver_id FROM driver_profiles WHERE unit_number = $1', [unitNumber]);
+              if (driverRes.rows.length > 0) {
+                  driverId = driverRes.rows[0].driver_id;
+              }
+          }
+      }
+
       await client.query('BEGIN');
 
       // Extract locations from stops
