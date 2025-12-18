@@ -32,7 +32,8 @@ export default function AnalyticsPage() {
   const { data, isLoading, isError } = useQuery({
     queryKey: queryKeys.analytics,
     queryFn: fetchAnalytics,
-    refetchInterval: 60000, // Refresh every 60 seconds
+    refetchInterval: 5000, // Refresh every 5 seconds
+    refetchOnWindowFocus: true,
   });
 
   // Fetch AI insights when analytics data is available

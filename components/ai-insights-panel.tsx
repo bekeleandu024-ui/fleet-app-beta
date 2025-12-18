@@ -85,7 +85,7 @@ export function AIInsightsPanel({
       </Card> */}
 
       {/* Specific Resource Recommendation */}
-      {(insights.specificDriverRecommendation) && (
+      {(insights.specificDriverRecommendation || insights.specificUnitRecommendation) && (
         <Card className="p-4 bg-zinc-900/40 border-zinc-800">
           <div className="flex items-start gap-3">
             <div className="p-2 bg-blue-900/20 rounded-lg shrink-0">
@@ -102,6 +102,14 @@ export function AIInsightsPanel({
                 </div>
               )}
 
+              {insights.specificUnitRecommendation && (
+                <div className="mb-2">
+                  <p className="text-xs text-zinc-500 uppercase tracking-wider">Unit</p>
+                  <p className="text-sm font-medium text-blue-300">{insights.specificUnitRecommendation.unitCode}</p>
+                  <p className="text-xs text-zinc-400">{insights.specificUnitRecommendation.reason}</p>
+                </div>
+              )}
+
               <Button 
                 size="sm" 
                 variant="subtle" 
@@ -109,6 +117,9 @@ export function AIInsightsPanel({
                 onClick={() => {
                   if (insights.specificDriverRecommendation) {
                     onSelectDriver(insights.specificDriverRecommendation.driverId);
+                  }
+                  if (insights.specificUnitRecommendation && onSelectUnit) {
+                    onSelectUnit(insights.specificUnitRecommendation.unitId);
                   }
                 }}
               >

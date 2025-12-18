@@ -42,7 +42,8 @@ export default function DashboardPage() {
       if (!res.ok) throw new Error("Failed to fetch metrics");
       return res.json();
     },
-    refetchInterval: 30000, // Refresh every 30 seconds
+    refetchInterval: 5000, // Refresh every 5 seconds
+    refetchOnWindowFocus: true,
   });
 
   if (isLoading) {

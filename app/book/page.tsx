@@ -106,6 +106,7 @@ function BookTripContent() {
   // Route data
   const [routeDistance, setRouteDistance] = useState<number | null>(null);
   const [routeDuration, setRouteDuration] = useState<number | null>(null);
+  const [isRealDistance, setIsRealDistance] = useState(false);
   const [routeLoading, setRouteLoading] = useState(false);
   
   // Driver type and rate filtering
@@ -275,6 +276,7 @@ function BookTripContent() {
           const data = await response.json();
           setRouteDistance(data.distance);
           setRouteDuration(data.duration);
+          setIsRealDistance(data.isRealDistance || false);
           // Update miles for cost calculation
           setMiles(data.distance);
         }
@@ -556,7 +558,11 @@ function BookTripContent() {
       const displayId = typeof tripId === "string" ? tripId.substring(0, 8) : tripId;
       setMessage({ type: "success", text: `Trip ${displayId} booked successfully!` });
       
-      setTimeout(() => router.push("/trips"), 1500);
+      // Redirect to the trips list page
+      setTimeout(() => {
+        router.push("/trips");
+        router.refresh();
+      }, 1000);
     } catch (error) {
       setMessage({ type: "error", text: error instanceof Error ? error.message : "Failed to book trip" });
     } finally {
@@ -598,7 +604,14 @@ function BookTripContent() {
                   {routeLoading ? (
                     <span className="text-zinc-500 animate-pulse">Calculating...</span>
                   ) : routeDistance ? (
-                    `${routeDistance} mi`
+                    <span className="flex items-center gap-1">
+                      {routeDistance} mi
+                      {isRealDistance && (
+                        <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-1 rounded border border-emerald-500/30" title="Real-time calculation">
+                          REAL
+                        </span>
+                      )}
+                    </span>
                   ) : selectedOrder.laneMiles ? (
                     `${selectedOrder.laneMiles} mi`
                   ) : (

@@ -20,7 +20,7 @@ async function check() {
         o.status as order_status,
         o.customer_id
       FROM trips t
-      LEFT JOIN orders o ON t.order_id = o.id
+      LEFT JOIN orders o ON t.order_id = o.id::text
       ORDER BY t.created_at DESC
       LIMIT 5
     `);

@@ -20,7 +20,7 @@ export async function GET(request: Request) {
         FROM trips t
         LEFT JOIN driver_profiles d ON t.driver_id = d.driver_id
         LEFT JOIN unit_profiles u ON t.unit_id = u.unit_id
-        LEFT JOIN orders o ON t.order_id = o.id
+        LEFT JOIN orders o ON t.order_id = o.id::text
       `;
       
       if (statusFilter === "closed") {
@@ -132,7 +132,12 @@ export async function POST(request: Request) {
       driverId, 
       unitId, 
       miles, 
-      stops 
+      stops,
+      tripType,
+      rpm,
+      totalRevenue,
+      totalCost,
+      totalCpm
     } = body;
 
     const client = await pool.connect();
@@ -185,6 +190,65 @@ export async function POST(request: Request) {
       ]);
 
       const tripId = tripRes.rows[0].id;
+
+      // Insert Trip Costs
+      // Calculate profit and margin
+      const revenue = Number(totalRevenue) || 0;
+      const cost = Number(totalCost) || 0;
+      const profit = revenue - cost;
+      const marginPct = revenue > 0 ? (profit / revenue) * 100 : 0;
+
+      await client.query(`
+        INSERT INTO trip_costs (
+          cost_id,
+          order_id,
+          driver_id,
+          unit_id,
+          driver_type,
+          miles,
+          total_cpm,
+          total_cost,
+          revenue,
+          rpm,
+          profit,
+          margin_pct,
+          is_profitable,
+          calculation_formula,
+          created_at,
+          updated_at
+        ) VALUES (
+          gen_random_uuid(),
+          $1::uuid,
+          $2::uuid,
+          $3::uuid,
+          $4,
+          $5,
+          $6,
+          $7,
+          $8,
+          $9,
+          $10,
+          $11,
+          $12,
+          $13,
+          NOW(),
+          NOW()
+        )
+      `, [
+        orderId,
+        driverId,
+        unitId,
+        tripType || 'Unknown',
+        miles || 0,
+        totalCpm || 0,
+        cost,
+        revenue,
+        rpm || 0,
+        profit,
+        marginPct,
+        profit > 0,
+        JSON.stringify({ method: 'manual_booking' })
+      ]);
 
       // Insert Stops
       if (stops && stops.length > 0) {

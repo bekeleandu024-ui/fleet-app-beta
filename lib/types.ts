@@ -724,6 +724,11 @@ export interface BookingInsights {
     driverName: string;
     reason: string;
   };
+  specificUnitRecommendation?: {
+    unitId: string;
+    unitCode: string;
+    reason: string;
+  };
   marginAnalysis: {
     targetMargin: string;
     recommendedRevenue: string;

@@ -18,7 +18,7 @@ async function sync() {
     const res = await client.query(`
       SELECT t.id, t.status as trip_status, t.order_id, o.status as order_status
       FROM trips t
-      JOIN orders o ON t.order_id = o.id
+      JOIN orders o ON t.order_id = o.id::text
       WHERE t.status = 'completed' AND o.status != 'Delivered'
     `);
     
@@ -35,7 +35,7 @@ async function sync() {
     const res2 = await client.query(`
       SELECT t.id, t.status as trip_status, t.order_id, o.status as order_status
       FROM trips t
-      JOIN orders o ON t.order_id = o.id
+      JOIN orders o ON t.order_id = o.id::text
       WHERE t.status = 'in_transit' AND o.status != 'In Transit' AND o.status != 'Delivered'
     `);
 
