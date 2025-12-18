@@ -26,23 +26,25 @@ function DraggableOrder({ order }: { order: OrderListItem }) {
       {...attributes} 
       className="group p-3 mb-3 bg-zinc-900 border border-zinc-800 rounded-md shadow-sm cursor-move hover:border-zinc-600 hover:bg-zinc-800 transition-colors"
     >
-      <div className="flex justify-between items-start mb-2">
-        <span className="font-mono text-xs text-blue-400 font-medium">{order.orderNumber || order.reference}</span>
-        <Badge variant="outline" className="text-[10px] h-5 px-1.5 border-zinc-700 text-zinc-400">
+      <div className="flex justify-between items-start mb-2 gap-2">
+        <span className="font-mono text-xs text-blue-400 font-medium truncate flex-1 min-w-0" title={order.orderNumber || order.reference}>
+          {order.orderNumber || order.reference}
+        </span>
+        <Badge variant="outline" className="text-[10px] h-5 px-1.5 border-zinc-700 text-zinc-400 shrink-0">
           {order.status}
         </Badge>
       </div>
-      <div className="text-sm font-medium text-zinc-200 mb-2 truncate">{order.customer}</div>
+      <div className="text-sm font-medium text-zinc-200 mb-2 truncate" title={order.customer}>{order.customer}</div>
       
       <div className="space-y-1.5">
         <div className="flex items-center text-xs text-zinc-500">
-          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-2" />
-          <span className="truncate">{order.pickup}</span>
+          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-2 shrink-0" />
+          <span className="truncate flex-1 min-w-0" title={order.pickup}>{order.pickup}</span>
         </div>
         <div className="pl-[3px] border-l border-zinc-800 ml-[3px] h-2" />
         <div className="flex items-center text-xs text-zinc-500">
-          <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mr-2" />
-          <span className="truncate">{order.delivery}</span>
+          <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mr-2 shrink-0" />
+          <span className="truncate flex-1 min-w-0" title={order.delivery}>{order.delivery}</span>
         </div>
       </div>
     </div>
@@ -199,35 +201,39 @@ export default function PlanningBoardPage() {
       <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         <div className="flex flex-1 overflow-hidden">
           {/* Left Panel: Unassigned Orders */}
-          <div className="w-[350px] flex flex-col border-r border-zinc-800 bg-zinc-950/50">
-            <div className="p-4 border-b border-zinc-800 bg-zinc-950">
+          <div className="w-96 flex flex-col border-r border-zinc-800 bg-zinc-950/50 min-h-0">
+            <div className="p-4 border-b border-zinc-800 bg-zinc-950 shrink-0">
               <h2 className="text-sm font-medium text-zinc-400 uppercase tracking-wider">Unassigned Orders</h2>
             </div>
-            <ScrollArea className="flex-1 p-4">
-              {orders.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-40 text-zinc-600">
-                    <Package className="w-8 h-8 mb-2 opacity-20" />
-                    <span className="text-sm">No unassigned orders</span>
-                  </div>
-              ) : (
-                  orders.map(order => (
-                    <DraggableOrder key={order.id} order={order} />
-                  ))
-              )}
+            <ScrollArea className="flex-1">
+              <div className="p-4">
+                {orders.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-40 text-zinc-600">
+                      <Package className="w-8 h-8 mb-2 opacity-20" />
+                      <span className="text-sm">No unassigned orders</span>
+                    </div>
+                ) : (
+                    orders.map(order => (
+                      <DraggableOrder key={order.id} order={order} />
+                    ))
+                )}
+              </div>
             </ScrollArea>
           </div>
 
           {/* Right Panel: Active Trips */}
-          <div className="flex-1 flex flex-col bg-black">
-            <div className="p-4 border-b border-zinc-800 bg-zinc-950">
+          <div className="flex-1 flex flex-col bg-black min-h-0">
+            <div className="p-4 border-b border-zinc-800 bg-zinc-950 shrink-0">
               <h2 className="text-sm font-medium text-zinc-400 uppercase tracking-wider">Active Fleet & Trips</h2>
             </div>
-            <ScrollArea className="flex-1 p-6">
+            <ScrollArea className="flex-1">
+              <div className="p-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                   {trips.map(trip => (
                     <DroppableTrip key={trip.id} trip={trip} />
                   ))}
                 </div>
+              </div>
             </ScrollArea>
           </div>
         </div>
