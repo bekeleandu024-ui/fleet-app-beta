@@ -736,3 +736,35 @@ export interface BookingInsights {
   };
 }
 
+export const fleetLocationSchema = z.object({
+  id: z.string(),
+  driverId: z.string().nullable().optional(),
+  unitId: z.string().nullable().optional(),
+  status: z.string(),
+  location: z.string().nullable().optional(),
+  lat: z.number().nullable().optional(),
+  lng: z.number().nullable().optional(),
+  deliveryLocation: z.string().nullable().optional(),
+  deliveryLat: z.number().nullable().optional(),
+  deliveryLng: z.number().nullable().optional(),
+  lastUpdate: z.string().nullable().optional(),
+  driverName: z.string().nullable().optional(),
+  unitNumber: z.string().nullable().optional(),
+  speed: z.number().optional(),
+  customs: z.object({
+    status: z.string().nullable().optional(),
+    crossingPoint: z.string().nullable().optional(),
+    requiredDocs: z.array(z.string()).optional(),
+    submittedDocs: z.array(z.string()).optional(),
+    isApproved: z.boolean().optional(),
+  }).optional(),
+});
+
+export type FleetLocation = z.infer<typeof fleetLocationSchema>;
+
+export const fleetResponseSchema = z.object({
+  fleet: z.array(fleetLocationSchema),
+});
+
+export type FleetResponse = z.infer<typeof fleetResponseSchema>;
+

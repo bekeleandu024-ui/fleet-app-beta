@@ -56,6 +56,8 @@ import {
   analyticsResponseSchema,
   costingDefaultsSchema,
   dispatchResponseSchema,
+  FleetResponse,
+  fleetResponseSchema,
 } from "@/lib/types";
 
 const api = axios.create({
@@ -143,6 +145,10 @@ export function fetchEventsMasterData(): Promise<MasterDataResponse> {
 
 export function fetchMapPlan(): Promise<MapPlanResponse> {
   return parseResponse(api.get("/map"), mapPlanResponseSchema);
+}
+
+export function fetchFleetLocations(): Promise<FleetResponse> {
+  return parseResponse(api.get("/map/fleet"), fleetResponseSchema);
 }
 
 export function fetchAdminDrivers(): Promise<DriverAdminRecord[]> {

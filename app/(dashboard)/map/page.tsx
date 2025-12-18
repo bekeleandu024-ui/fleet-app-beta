@@ -23,20 +23,9 @@ import { Chip } from "@/components/ui/chip";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { fetchFleetLocations } from "@/lib/api";
 
 // --- Constants & Types ---
-
-const REGION_COORDINATES: Record<string, { lat: number; lng: number }> = {
-  "Southern Ontario": { lat: 43.6532, lng: -79.3832 },
-  "Greater Toronto Area": { lat: 43.7000, lng: -79.4000 },
-  "GTA": { lat: 43.7000, lng: -79.4000 },
-  "Eastern Ontario": { lat: 45.4215, lng: -75.6972 },
-  "Northern Ontario": { lat: 46.4917, lng: -80.9930 },
-  "Western Ontario": { lat: 42.9849, lng: -81.2453 },
-  "South West": { lat: 42.9849, lng: -81.2453 },
-  "Quebec": { lat: 45.5017, lng: -73.5673 },
-  "Montreal": { lat: 45.5017, lng: -73.5673 },
-};
 
 type FleetItem = {
   id: string;
@@ -49,7 +38,7 @@ type FleetItem = {
   driverName?: string;
   location?: string;
   lastUpdate?: string;
-  deliveryLocation?: { lat: number; lng: number };
+  deliveryLocation?: { lat: number; lng: number } | string;
   deliveryLat?: number;
   deliveryLng?: number;
   customs?: any;
@@ -137,7 +126,7 @@ function Directions({
       directionsRenderer.setDirections(response);
       if (onRouteFound) onRouteFound(response);
     }).catch(e => console.error("Directions request failed", e));
-  }, [directionsService, directionsRenderer, origin, destination, onRouteFound]);
+  }, [directionsService, directionsRenderer, JSON.stringify(origin), JSON.stringify(destination)]); // Removed onRouteFound from deps to avoid loop
 
   return null;
 }
@@ -152,6 +141,34 @@ function MapUpdater({ center }: { center: { lat: number; lng: number } }) {
   return null;
 }
 
+function DestinationMarker({ position }: { position: { lat: number; lng: number } }) {
+  const [icon, setIcon] = useState<google.maps.Symbol | undefined>(undefined);
+
+  useEffect(() => {
+    if (typeof google === 'undefined' || !google.maps || !google.maps.Point) return;
+
+    setIcon({
+      path: "M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z",
+      fillColor: "#ef4444", // Red-500
+      fillOpacity: 1,
+      strokeWeight: 1,
+      strokeColor: "#ffffff",
+      scale: 1.5,
+      anchor: new google.maps.Point(12, 24),
+    });
+  }, []);
+
+  if (!icon) return null;
+
+  return (
+    <Marker
+      position={position}
+      icon={icon}
+      zIndex={100}
+    />
+  );
+}
+
 // --- Main Page Component ---
 
 export default function MapPage() {
@@ -163,53 +180,37 @@ export default function MapPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showRoute, setShowRoute] = useState(false);
   const [routeInfo, setRouteInfo] = useState<{ distance: string; duration: string; eta: string } | null>(null);
+  const [destinationCoords, setDestinationCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
-  // Mock Data Generation
+  // Data Fetching
   useEffect(() => {
-    const generateMockData = () => {
-      const items: FleetItem[] = [];
-      
-      // Active Trips
-      for (let i = 0; i < 15; i++) {
-        items.push({
-          id: `trip-${i}`,
-          type: "trip",
-          status: Math.random() > 0.2 ? "in_transit" : "delayed",
-          lat: 43.0 + Math.random() * 2,
-          lng: -80.0 + Math.random() * 4,
-          unitNumber: `TR-${1000 + i}`,
-          driverName: ["John Doe", "Jane Smith", "Mike Johnson", "Sarah Wilson"][i % 4],
-          location: "Hwy 401 near London",
-          lastUpdate: new Date().toISOString(),
-          deliveryLat: 45.5017,
-          deliveryLng: -73.5673,
-        });
+    const loadFleetData = async () => {
+      try {
+        const response = await fetchFleetLocations();
+        const items: FleetItem[] = response.fleet.map((item) => ({
+          id: item.id,
+          type: "trip", // Assuming all from trips table are trips
+          status: item.status,
+          lat: item.lat || 0,
+          lng: item.lng || 0,
+          unitNumber: item.unitNumber || undefined,
+          driverName: item.driverName || undefined,
+          location: item.location || undefined,
+          lastUpdate: item.lastUpdate || undefined,
+          deliveryLocation: item.deliveryLocation || undefined,
+          deliveryLat: item.deliveryLat || undefined,
+          deliveryLng: item.deliveryLng || undefined,
+          customs: item.customs,
+        }));
+
+        setFleetLocations(items);
+      } catch (error) {
+        console.error("Failed to load fleet data", error);
       }
-
-      // Staged Units
-      Object.entries(REGION_COORDINATES).forEach(([region, coords], idx) => {
-        if (idx > 4) return; // Limit regions
-        const count = Math.floor(Math.random() * 5) + 1;
-        for (let j = 0; j < count; j++) {
-          items.push({
-            id: `staged-${region}-${j}`,
-            type: "staged",
-            status: "Available",
-            lat: coords.lat + (Math.random() - 0.5) * 0.1,
-            lng: coords.lng + (Math.random() - 0.5) * 0.1,
-            unitNumber: `ST-${5000 + idx * 10 + j}`,
-            region: region,
-            location: `${region} Yard`,
-            lastUpdate: new Date().toISOString(),
-          });
-        }
-      });
-
-      setFleetLocations(items);
     };
 
-    generateMockData();
+    loadFleetData();
   }, []);
 
   // Filtering
@@ -233,6 +234,7 @@ export default function MapPage() {
     setMapCenter({ lat: item.lat, lng: item.lng });
     setShowRoute(false);
     setRouteInfo(null);
+    setDestinationCoords(null);
     if (!isSidebarOpen) setIsSidebarOpen(true);
   };
 
@@ -244,6 +246,9 @@ export default function MapPage() {
         duration: leg.duration?.text || "N/A",
         eta: new Date(Date.now() + (leg.duration?.value || 0) * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       });
+      if (leg.end_location) {
+        setDestinationCoords({ lat: leg.end_location.lat(), lng: leg.end_location.lng() });
+      }
     }
   };
 
@@ -503,18 +508,21 @@ export default function MapPage() {
             <MapUpdater center={mapCenter} />
             
             {/* Route Rendering */}
-            {selectedItem && showRoute && selectedItem.type === "trip" && selectedItem.status === "in_transit" && 
+            {selectedItem && showRoute && selectedItem.type === "trip" && 
              (selectedItem.deliveryLocation || (selectedItem.deliveryLat && selectedItem.deliveryLng)) && 
              selectedItem.lat && selectedItem.lng && (
-               <Directions 
-                 origin={{ lat: selectedItem.lat, lng: selectedItem.lng }}
-                 destination={
-                   (selectedItem.deliveryLat && selectedItem.deliveryLng) 
-                     ? { lat: selectedItem.deliveryLat, lng: selectedItem.deliveryLng }
-                     : selectedItem.deliveryLocation!
-                 }
-                 onRouteFound={handleRouteFound}
-               />
+               <>
+                 <Directions 
+                   origin={{ lat: selectedItem.lat, lng: selectedItem.lng }}
+                   destination={
+                     (selectedItem.deliveryLat && selectedItem.deliveryLng) 
+                       ? { lat: selectedItem.deliveryLat, lng: selectedItem.deliveryLng }
+                       : selectedItem.deliveryLocation!
+                   }
+                   onRouteFound={handleRouteFound}
+                 />
+                 {destinationCoords && <DestinationMarker position={destinationCoords} />}
+               </>
             )}
             
             {/* Markers */}
