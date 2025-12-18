@@ -38,6 +38,36 @@ async function calculateTripDistance(tripId: string, pickupLat?: number, pickupL
   return null;
 }
 
+export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params;
+  try {
+    const body = await request.json();
+    const { orderId } = body;
+
+    if (!orderId) {
+      return NextResponse.json({ error: "orderId is required" }, { status: 400 });
+    }
+
+    const client = await pool.connect();
+    try {
+      const tripCheck = await client.query('SELECT id FROM trips WHERE id = $1', [id]);
+      if (tripCheck.rows.length === 0) {
+        return NextResponse.json({ error: "Trip not found" }, { status: 404 });
+      }
+
+      await client.query('UPDATE trips SET order_id = $1 WHERE id = $2', [orderId, id]);
+      await client.query("UPDATE orders SET status = 'Planning' WHERE id = $1", [orderId]);
+
+      return NextResponse.json({ success: true });
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    console.error("Error updating trip:", error);
+    return NextResponse.json({ error: "Failed to update trip" }, { status: 500 });
+  }
+}
+
 export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params;
 

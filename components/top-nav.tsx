@@ -18,6 +18,7 @@ const navItems = [
     href: "/orders",
     match: (pathname: string) => pathname.startsWith("/orders") && pathname !== "/orders/new",
   },
+  { label: "Planning", href: "/planning/board", match: (pathname: string) => pathname.startsWith("/planning") },
   { label: "Book Trip", href: "/book", match: (pathname: string) => pathname.startsWith("/book") },
   { label: "Trips", href: "/trips", match: (pathname: string) => pathname === "/trips" },
   { label: "Closed Trips", href: "/trips/closed", match: (pathname: string) => pathname === "/trips/closed" },
@@ -28,6 +29,7 @@ const navItems = [
   { label: "Fleet", href: "/master-data/units", match: (pathname: string) => pathname.startsWith("/master-data/units") },
   { label: "Drivers", href: "/master-data/drivers", match: (pathname: string) => pathname.startsWith("/master-data/drivers") },
   { label: "Rules", href: "/master-data/rules", match: (pathname: string) => pathname.startsWith("/master-data/rules") },
+  { label: "Admin", href: "/admin", match: (pathname: string) => pathname.startsWith("/admin") },
 ];
 
 export function TopNav() {
