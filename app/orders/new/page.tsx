@@ -81,6 +81,14 @@ export default function CreateOrderPage() {
       queryClient.invalidateQueries({ queryKey: queryKeys.orders() });
       router.push(`/orders/${data.id}`);
     },
+    onError: (error: any) => {
+      console.error("Failed to create order:", error);
+      setValidationErrors([{
+        field: "System",
+        message: error.message || "Failed to create order. Please try again.",
+        severity: "error"
+      }]);
+    }
   });
 
   const handleInputChange = (field: keyof OrderFormData, value: string) => {
@@ -348,7 +356,7 @@ export default function CreateOrderPage() {
       lane: `${formData.origin} → ${formData.destination}`,
       serviceLevel: formData.requiredTruck,
       commodity: "General Freight",
-      laneMiles: calculateMiles(formData.origin, formData.destination),
+      laneMiles: calculatedDistance || calculateMiles(formData.origin, formData.destination),
     };
 
     createMutation.mutate(payload);
@@ -360,27 +368,6 @@ export default function CreateOrderPage() {
     !!formData.destination &&
     !!formData.puWindowStart &&
     !!formData.delWindowStart;
-
-  // Auto-generate order ID when required fields are filled
-  const generatePreviewOrderId = () => {
-    if (!isValid) return "Auto-generated";
-    
-    // Extract type from truck (P=Pickup, D=Delivery, default P)
-    const type = "P";
-    
-    // Extract origin city code (first 2 letters of first word)
-    const originMatch = formData.origin.match(/([A-Za-z]+)/);
-    const originCode = originMatch ? originMatch[1].substring(0, 2).toUpperCase() : "XX";
-    
-    // Extract destination city code (first 2 letters of first word)
-    const destMatch = formData.destination.match(/([A-Za-z]+)/);
-    const destCode = destMatch ? destMatch[1].substring(0, 2).toUpperCase() : "XX";
-    
-    // Generate sequence based on timestamp
-    const sequence = String(Date.now()).slice(-4);
-    
-    return `${type}${originCode}${destCode}${sequence}`;
-  };
 
   return (
     <div className="min-h-screen flex flex-col bg-black text-zinc-300">
@@ -699,7 +686,7 @@ export default function CreateOrderPage() {
                 <div className="p-3 rounded-lg bg-black/40 border border-zinc-800/50">
                   <div className="text-xs text-zinc-500 mb-1">Order ID</div>
                   <div className="font-mono text-zinc-300">
-                    {generatePreviewOrderId()}
+                    Pending Creation
                   </div>
                 </div>
 

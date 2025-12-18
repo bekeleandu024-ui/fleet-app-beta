@@ -842,7 +842,7 @@ function BookTripContent() {
               Available Orders
             </h3>
             <div className="space-y-2 max-h-[200px] overflow-y-auto">
-              {orders.filter(o => o.status === "New" || o.status === "Planning").map(order => (
+              {orders.filter(o => !["Delivered", "In Transit", "Completed", "Closed"].includes(o.status)).map(order => (
                 <button
                   key={order.id}
                   type="button"
@@ -858,7 +858,7 @@ function BookTripContent() {
                   {order.window && <p className="text-[10px] text-zinc-500 mt-1">{order.window}</p>}
                 </button>
               ))}
-              {orders.filter(o => o.status === "New" || o.status === "Planning").length === 0 && (
+              {orders.filter(o => !["Delivered", "In Transit", "Completed", "Closed"].includes(o.status)).length === 0 && (
                 <p className="text-xs text-zinc-500 text-center py-6">No available orders</p>
               )}
             </div>

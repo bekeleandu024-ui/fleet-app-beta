@@ -21,7 +21,81 @@ const STATUS_OPTIONS = ["New", "Planning", "In Transit", "At Risk", "Delivered",
 export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params;
   try {
-    const order = await serviceFetch<Record<string, any>>("orders", `/api/orders/${id}`);
+    let orderId = id;
+    let resolvedFromFriendlyId = false;
+    
+    // Check if the ID is a UUID or a friendly ID
+    const isUUID = id.length === 36 && id.includes('-');
+    
+    if (!isUUID) {
+      console.log(`[Order Detail] Non-UUID ID detected, resolving: ${id}`);
+      
+      // Try to resolve from order_number, reference, or old_id columns
+      const idRes = await pool.query(
+        'SELECT id FROM orders WHERE order_number = $1 OR reference = $1 OR old_id = $1',
+        [id]
+      );
+      
+      if (idRes.rows.length > 0) {
+        orderId = idRes.rows[0].id;
+        resolvedFromFriendlyId = true;
+        console.log(`[Order Detail] Resolved ${id} -> ${orderId}`);
+      } else {
+        console.warn(`[Order Detail] Could not resolve friendly ID: ${id}`);
+        return NextResponse.json(
+          { error: `Order not found: ${id}` },
+          { status: 404 }
+        );
+      }
+    }
+
+    // Try to fetch from backend service first, with fallback to local DB
+    let order: Record<string, any> | null = null;
+    let orderFromService = false;
+    
+    // Try backend service first
+    try {
+      order = await serviceFetch<Record<string, any>>("orders", `/api/orders/${orderId}`);
+      orderFromService = true;
+    } catch (error) {
+      // If service returns 404, try to fetch from local database as fallback
+      if (error instanceof ServiceError && error.status === 404) {
+        console.log(`[Order Detail] Order not found in service, checking local DB: ${orderId}`);
+      
+        const localOrderResult = await pool.query(
+          'SELECT * FROM orders WHERE id = $1',
+          [orderId]
+        );
+        
+        if (localOrderResult.rows.length > 0) {
+          const dbOrder = localOrderResult.rows[0];
+          order = {
+            id: dbOrder.id,
+            order_number: dbOrder.order_number,
+            reference: dbOrder.reference,
+            customer_id: dbOrder.customer_id,
+            customer_name: dbOrder.customer_name,
+            status: dbOrder.status,
+            pickup_location: dbOrder.pickup_location,
+            dropoff_location: dbOrder.dropoff_location,
+            pickup_time: dbOrder.pickup_time,
+            delivery_time: dbOrder.delivery_time,
+            order_type: dbOrder.order_type,
+            estimated_cost: dbOrder.estimated_cost,
+            created_at: dbOrder.created_at,
+          };
+          console.log(`[Order Detail] Found order in local DB: ${orderId}`);
+        } else {
+          console.warn(`[Order Detail] Order not found in service or local DB: ${orderId}`);
+          return NextResponse.json(
+            { error: `Order not found: ${orderId}` },
+            { status: 404 }
+          );
+        }
+      } else {
+        throw error; // Other service error
+      }
+    }
 
     const driversQuery = `
       SELECT d.driver_id as id, d.driver_name as name, d.driver_type, d.unit_number, u.truck_weekly_cost as "truckWk", d.region
@@ -34,10 +108,10 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
     const [driversResult, unitsResult, costResult, customerViewResult, tripsResult, orderNumberResult] = await Promise.allSettled([
       pool.query(driversQuery),
       pool.query(unitsQuery),
-      serviceFetch<Record<string, any>>("orders", `/api/orders/${id}/cost-breakdown`),
-      serviceFetch<Record<string, any>>("tracking", `/api/views/customer/${id}`),
-      serviceFetch<Array<Record<string, any>>>("tracking", `/api/trips?orderId=${id}`),
-      pool.query(orderNumberQuery, [id]),
+      serviceFetch<Record<string, any>>("orders", `/api/orders/${orderId}/cost-breakdown`, { silent: true }).catch(() => undefined),
+      serviceFetch<Record<string, any>>("tracking", `/api/views/customer/${orderId}`, { silent: true }).catch(() => undefined),
+      serviceFetch<Array<Record<string, any>>>("tracking", `/api/trips?orderId=${orderId}`, { silent: true }).catch(() => undefined),
+      pool.query(orderNumberQuery, [orderId]),
     ]);
 
     const drivers = driversResult.status === "fulfilled" ? driversResult.value.rows : [];
@@ -51,6 +125,13 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
 
     if (orderNumber) {
       order.order_number = orderNumber;
+    }
+
+    // CRITICAL: Ensure ID is always the UUID, never a friendly ID
+    order.id = orderId;
+    
+    if (resolvedFromFriendlyId) {
+      console.log(`[Order Detail] Returning order with UUID: ${orderId}, Friendly ID: ${orderNumber || id}`);
     }
 
     const detail = buildOrderDetail(order, { drivers, units, cost, customerView, trips });

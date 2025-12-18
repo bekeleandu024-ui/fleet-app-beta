@@ -72,11 +72,22 @@ export async function GET() {
         existing = orderNumberMap.get(o.id) || orderNumberMap.get(o.reference);
       }
 
-      // Use the existing ID (UUID) if available, otherwise fallback to o.id
-      const id = existing?.id || o.id;
+      // Skip service orders that don't exist in local database
+      // This prevents 404 errors when clicking on orders that the service knows about
+      // but aren't in our local database yet
+      if (!existing) {
+        console.warn(`[Orders List] Skipping service order not in local DB: ${o.id}`);
+        return;
+      }
+
+      // UUID RESOLUTION: Use the local database ID (could be UUID or friendly ID)
+      // 1. If local DB has friendly ID, keep it
+      // 2. If local DB has UUID, keep it
+      // 3. Always prefer what's actually in the database over service IDs
+      let id = existing.id; // Use the ID from local database
       
       const mapped: OrderResponse = {
-        id,
+        id, // Always use the local database ID
         reference: o.reference || existing?.reference || o.id,
         customer: o.customer || existing?.customer || "Customer",
         pickup: o.pickup || existing?.pickup || "",
@@ -99,7 +110,20 @@ export async function GET() {
       orderMap.set(id, mapped);
     });
 
-    const mergedOrders = Array.from(orderMap.values());
+    // UUID FILTERING: After migration, all orders should have UUID primary keys
+    const allOrders = Array.from(orderMap.values());
+    const ordersWithUUIDs = allOrders.filter(o => o.id && o.id.length === 36);
+    const invalidOrders = allOrders.filter(o => !o.id || o.id.length !== 36);
+    
+    if (invalidOrders.length > 0) {
+      console.error(
+        `[Orders List] Found ${invalidOrders.length} orders without valid UUIDs:`,
+        invalidOrders.map(o => ({ id: o.id, reference: o.reference })).slice(0, 5)
+      );
+    }
+    
+    // Only include orders with valid UUIDs
+    const mergedOrders = ordersWithUUIDs;
     
     return NextResponse.json(buildOrdersResponse(mergedOrders));
 

@@ -427,11 +427,36 @@ export function resolveDemoResponse(service: ServiceName, path: string, method: 
 
   if (service === "orders") {
     if (pathname === "/api/orders") {
+      if (method === "POST") {
+        const newOrder = {
+          id: 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+          }),
+          ...body,
+          status: "New",
+          created_at: new Date().toISOString(),
+          reference: body.reference || `ORD-${Date.now()}`,
+          customer: body.customer_id || "Customer",
+          pickup: body.pickup_location,
+          delivery: body.dropoff_location,
+          window: body.pickup_time ? new Date(body.pickup_time).toLocaleString() : "Scheduled",
+          lane: `${body.pickup_location} -> ${body.dropoff_location}`,
+          laneMiles: 500, // Default
+          revenue: 1500, // Default
+          cost: 1200, // Default
+        };
+        demoOrders.unshift(newOrder);
+        return newOrder;
+      }
       return demoOrders;
     }
     if (pathname.startsWith("/api/orders/") && pathname.endsWith("/cost-breakdown")) {
       const id = pathname.split("/")[3];
-      return demoOrderCost[id];
+      return demoOrderCost[id] || {
+        items: [],
+        totals: { label: "Total Cost", value: "$0.00" }
+      };
     }
     if (pathname.startsWith("/api/orders/")) {
       const id = pathname.split("/")[3];
@@ -439,7 +464,11 @@ export function resolveDemoResponse(service: ServiceName, path: string, method: 
     }
     if (pathname.startsWith("/api/views/customer/")) {
       const id = pathname.split("/").pop() ?? "";
-      return demoCustomerView[id];
+      return demoCustomerView[id] || {
+        status: "New",
+        message: "Order created",
+        lastUpdate: new Date().toISOString()
+      };
     }
   }
 
@@ -451,7 +480,11 @@ export function resolveDemoResponse(service: ServiceName, path: string, method: 
     }
     if (pathname.startsWith("/api/views/customer/")) {
       const id = pathname.split("/").pop() ?? "";
-      return demoCustomerView[id];
+      return demoCustomerView[id] || {
+        status: "New",
+        message: "Order created",
+        lastUpdate: new Date().toISOString()
+      };
     }
     if (pathname.startsWith("/api/trips/") && pathname.endsWith("/events")) {
       const id = pathname.split("/")[3];

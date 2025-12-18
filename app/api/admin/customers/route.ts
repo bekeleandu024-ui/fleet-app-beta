@@ -17,22 +17,58 @@ const baseSchema = z.object({
 const createSchema = baseSchema.extend({ id: z.string().optional() });
 const updateSchema = baseSchema.extend({ id: z.string() });
 
+const FIXED_CUSTOMERS = [
+  "AUTOCOM",
+  "CAMCOR",
+  "CORVEX",
+  "SPINIC",
+  "COMTECH",
+  "CEMTOL",
+  "THE CENTER",
+  "CAMTAC"
+];
+
 export async function GET() {
   try {
     const response = await serviceFetch<any>("orders", "/api/orders");
     // Handle both array and structured response {data: [...]}
     const orders = Array.isArray(response) ? response : (response.data || []);
     
-    const customers = Array.from(
-      new Map(orders.map((order: Record<string, any>) => {
-        const record = mapCustomerRecord(order);
-        return [record.id, record];
-      })).values()
-    );
+    const customerMap = new Map(orders.map((order: Record<string, any>) => {
+      const record = mapCustomerRecord(order);
+      return [record.name, record];
+    }));
+
+    // Ensure fixed customers are in the list
+    FIXED_CUSTOMERS.forEach(name => {
+      if (!customerMap.has(name)) {
+        customerMap.set(name, {
+          id: `cust-${name.toLowerCase().replace(/\s+/g, '-')}`,
+          name,
+          status: "Active",
+          primaryContact: `logistics@${name.toLowerCase().replace(/\s+/g, '')}.com`,
+          primaryLane: "Various",
+          totalOrders: 0,
+          totalRevenue: 0
+        });
+      }
+    });
+
+    const customers = Array.from(customerMap.values());
     return NextResponse.json({ data: customers });
   } catch (error) {
     console.error("Admin customers fetch failed", error);
-    return NextResponse.json({ data: [] });
+    // Return fixed customers as fallback
+    const fallbackCustomers = FIXED_CUSTOMERS.map(name => ({
+      id: `cust-${name.toLowerCase().replace(/\s+/g, '-')}`,
+      name,
+      status: "Active",
+      primaryContact: `logistics@${name.toLowerCase().replace(/\s+/g, '')}.com`,
+      primaryLane: "Various",
+      totalOrders: 0,
+      totalRevenue: 0
+    }));
+    return NextResponse.json({ data: fallbackCustomers });
   }
 }
 

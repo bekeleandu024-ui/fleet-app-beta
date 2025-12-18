@@ -25,6 +25,7 @@ interface FetchOptions {
   method?: string;
   body?: unknown;
   headers?: HeadersInit;
+  silent?: boolean; // Don't log warnings if service unavailable
 }
 
 export async function serviceFetch<T>(service: ServiceName, path: string, options: FetchOptions = {}): Promise<T> {
@@ -65,11 +66,15 @@ export async function serviceFetch<T>(service: ServiceName, path: string, option
     // Try to use demo data as fallback
     const fallback = resolveDemoResponse(service, path, options.method, options.body);
     if (fallback !== undefined) {
-      console.warn(`⚠️ Using demo data for ${service}${path} - Backend service unavailable`);
+      if (!options.silent) {
+        console.warn(`⚠️  [${service}] Using demo data: ${path} (Backend service unavailable)`);
+      }
       return fallback as T;
     }
-    // If no demo data available, throw the error
-    console.error(`❌ No demo data available for ${service}${path}`, error);
+    // If no demo data available, throw the error (only log if not silent)
+    if (!options.silent) {
+      console.error(`❌ [${service}] No demo data available: ${path}`, error);
+    }
     throw error;
   }
 }

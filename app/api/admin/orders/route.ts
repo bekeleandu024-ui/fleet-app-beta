@@ -4,6 +4,7 @@ import { z } from "zod";
 import { formatError } from "@/lib/api-errors";
 import { serviceFetch } from "@/lib/service-client";
 import { mapOrderAdminRecord } from "@/lib/transformers";
+import pool from "@/lib/db";
 
 const orderStatuses = ["New", "Planning", "In Transit", "At Risk", "Delivered", "Exception"] as const;
 
@@ -37,14 +38,22 @@ export async function GET() {
   }
 }
 
+import { randomUUID } from "crypto";
+
+// ... imports
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
     const validated = createSchema.parse(body);
     
+    // Generate UUID for the order - this is the primary key
+    const orderId = randomUUID();
+    
     // Transform to backend CreateOrderRequest format
     // Backend expects: customer_id, order_type, pickup_location, dropoff_location, pickup_time?, special_instructions?
     const orderPayload = {
+      id: orderId, // Force UUID as primary key
       customer_id: validated.customer, // Frontend sends customer name as ID
       order_type: "round_trip", // Default order type
       pickup_location: validated.pickup,
@@ -53,12 +62,78 @@ export async function POST(request: Request) {
       special_instructions: `Service Level: ${validated.serviceLevel}, Commodity: ${validated.commodity}`,
     };
     
-    const order = await serviceFetch("orders", "/api/orders", {
-      method: "POST",
-      body: JSON.stringify(orderPayload),
-    });
+    // Insert order into local database first
+    try {
+      const insertResult = await pool.query(
+        `INSERT INTO orders (
+          id, 
+          customer_id, 
+          order_type, 
+          status,
+          pickup_location, 
+          dropoff_location, 
+          pickup_time,
+          special_instructions,
+          estimated_cost,
+          order_number,
+          created_at,
+          updated_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW())
+        RETURNING id, order_number, customer_id, status`,
+        [
+          orderId,
+          orderPayload.customer_id,
+          orderPayload.order_type,
+          'pending',
+          orderPayload.pickup_location,
+          orderPayload.dropoff_location,
+          orderPayload.pickup_time || null,
+          orderPayload.special_instructions || null,
+          validated.cost || null,
+          `ORD-${Date.now().toString().slice(-10)}`, // Generate order number
+        ]
+      );
+      
+      console.log(`[Order Create] Inserted into local DB:`, insertResult.rows[0]);
+    } catch (dbError) {
+      console.error(`[Order Create] Failed to insert into local DB:`, dbError);
+      throw new Error(`Failed to create order in database: ${dbError instanceof Error ? dbError.message : 'Unknown error'}`);
+    }
+
+    // Also send to backend service (best effort)
+    let order: any;
+    try {
+      order = await serviceFetch<any>("orders", "/api/orders", {
+        method: "POST",
+        body: JSON.stringify(orderPayload),
+      });
+      console.log(`[Order Create] Also sent to backend service`);
+    } catch (error) {
+      console.warn(`[Order Create] Backend service unavailable, order only in local DB`);
+      order = {
+        id: orderId,
+        ...orderPayload,
+      };
+    }
+
+    // Use the UUID we generated
+    order.id = orderId;
     
-    return NextResponse.json({ data: mapOrderAdminRecord(order) }, { status: 201 });
+    // Fetch the complete order from database
+    const res = await pool.query(
+      "SELECT id, order_number, customer_id, status FROM orders WHERE id = $1",
+      [orderId]
+    );
+    
+    if (res.rows.length > 0) {
+      console.log(`[Order Create] Confirmed in DB:`, res.rows[0]);
+      order = { ...order, ...res.rows[0] };
+    }
+    
+    const mapped = mapOrderAdminRecord(order);
+    console.log(`[Order Create] Returning order with ID: ${mapped.id}`);
+    
+    return NextResponse.json({ data: mapped }, { status: 201 });
   } catch (error) {
     console.error("Error creating order:", error);
     return NextResponse.json({ error: formatError(error) }, { status: 400 });

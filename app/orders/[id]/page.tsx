@@ -55,13 +55,15 @@ export default function OrderDetailPage() {
     queryKey: queryKeys.order(orderId),
     queryFn: () => fetchOrderDetail(orderId),
     enabled: Boolean(orderId),
-    retry: 1,
+    retry: 2,
+    retryDelay: 500,
   });
 
   // Debug logging
   useEffect(() => {
     if (isError) {
       console.error("Order fetch error:", error);
+      console.error("Order ID attempted:", orderId);
     }
     if (data) {
       console.log("Order data loaded:", data);
@@ -300,9 +302,34 @@ export default function OrderDetailPage() {
   }
 
   if (isError || !data) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return (
-      <section className="col-span-12 rounded-xl border border-neutral-800 bg-neutral-900/60 p-6 text-sm text-neutral-500">
-        Unable to load order.
+      <section className="col-span-12 rounded-xl border border-neutral-800 bg-neutral-900/60 p-6">
+        <div className="flex flex-col items-center justify-center text-center space-y-3 py-12">
+          <AlertCircle className="h-12 w-12 text-red-400/70" />
+          <div>
+            <h2 className="text-lg font-semibold text-neutral-200 mb-1">Unable to load order</h2>
+            <p className="text-sm text-neutral-500">Order ID: <code className="text-xs bg-neutral-800 px-2 py-0.5 rounded">{orderId}</code></p>
+            {isError && (
+              <p className="text-xs text-red-400/70 mt-2">Error: {errorMessage}</p>
+            )}
+          </div>
+          <div className="flex gap-2 mt-4">
+            <Button 
+              onClick={() => window.location.href = "/orders"}
+              variant="outline"
+              size="sm"
+            >
+              Back to Orders
+            </Button>
+            <Button 
+              onClick={() => queryClient.invalidateQueries({ queryKey: queryKeys.order(orderId) })}
+              size="sm"
+            >
+              Retry
+            </Button>
+          </div>
+        </div>
       </section>
     );
   }
