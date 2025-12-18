@@ -151,8 +151,8 @@ export async function POST(request: Request) {
          if (orderRes.rows.length > 0) {
              const order = orderRes.rows[0];
              stops = [
-                 { stopType: 'Pickup', name: order.pickup_location, scheduledAt: order.pickup_time },
-                 { stopType: 'Delivery', name: order.dropoff_location, scheduledAt: order.dropoff_time }
+                 { sequence: 1, stopType: 'Pickup', name: order.pickup_location, scheduledAt: order.pickup_time },
+                 { sequence: 2, stopType: 'Delivery', name: order.dropoff_location, scheduledAt: order.dropoff_time }
              ];
          }
       }
