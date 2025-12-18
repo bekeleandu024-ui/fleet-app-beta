@@ -52,20 +52,31 @@ export async function GET() {
 
     // 4. Merge Data
     const orderMap = new Map<string, OrderResponse>();
+    const orderNumberMap = new Map<string, OrderResponse>();
 
     // Add local orders first
     localOrders.forEach(o => {
       // Add revenue if available
       o.revenue = financials[o.id] || o.revenue;
       orderMap.set(o.id, o);
+      if (o.orderNumber) orderNumberMap.set(o.orderNumber, o);
+      if (o.reference) orderNumberMap.set(o.reference, o);
     });
 
     // Merge/Overwrite with Service orders
     serviceOrders.forEach(o => {
-      const existing = orderMap.get(o.id);
+      let existing = orderMap.get(o.id);
+      
+      if (!existing) {
+        // Try to find by friendly ID (orderNumber or reference)
+        existing = orderNumberMap.get(o.id) || orderNumberMap.get(o.reference);
+      }
+
+      // Use the existing ID (UUID) if available, otherwise fallback to o.id
+      const id = existing?.id || o.id;
       
       const mapped: OrderResponse = {
-        id: o.id,
+        id,
         reference: o.reference || existing?.reference || o.id,
         customer: o.customer || existing?.customer || "Customer",
         pickup: o.pickup || existing?.pickup || "",
@@ -78,14 +89,14 @@ export async function GET() {
         serviceLevel: o.serviceLevel || existing?.serviceLevel || "Standard",
         commodity: o.commodity || existing?.commodity || "General",
         laneMiles: o.laneMiles ?? existing?.laneMiles ?? 0,
-        revenue: financials[o.id] || existing?.revenue || 0,
+        revenue: financials[id] || existing?.revenue || 0,
         created: existing?.created || new Date().toISOString(),
         pickupWindowStart: existing?.pickupWindowStart,
         pickupWindowEnd: existing?.pickupWindowEnd,
         deliveryWindowStart: existing?.deliveryWindowStart,
         deliveryWindowEnd: existing?.deliveryWindowEnd,
       };
-      orderMap.set(o.id, mapped);
+      orderMap.set(id, mapped);
     });
 
     const mergedOrders = Array.from(orderMap.values());
@@ -102,7 +113,7 @@ function transformOrderFromDb(order: Record<string, any>): OrderResponse {
   const id = String(order.id ?? "");
   const pickup = order.pickup_location ?? "";
   const delivery = order.dropoff_location ?? "";
-  const reference = id ? `ORD-${id.slice(0, 8).toUpperCase()}` : "ORDER";
+  const reference = order.order_number || (id ? `ORD-${id.slice(0, 8).toUpperCase()}` : "ORDER");
   const createdAt = order.created_at ? new Date(order.created_at).toISOString() : new Date().toISOString();
   const ageHours = calculateAgeHours(createdAt);
   
@@ -112,6 +123,7 @@ function transformOrderFromDb(order: Record<string, any>): OrderResponse {
 
   return {
     id,
+    orderNumber: order.order_number,
     reference,
     customer: order.customer_id ?? "Customer",
     pickup,

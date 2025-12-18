@@ -102,7 +102,7 @@ export default function TripEventsPage() {
 
   const fetchTrips = async () => {
     try {
-      const res = await fetch("/api/trips");
+      const res = await fetch("/api/trips?status=active");
       const data = await res.json();
       setTrips(data.data || []);
     } catch (err) {
@@ -112,7 +112,7 @@ export default function TripEventsPage() {
 
   const fetchEvents = async () => {
     try {
-      const res = await fetch("/api/trip-events");
+      const res = await fetch("/api/trip-events?tripStatus=active");
       const data = await res.json();
       setEvents(data.events || []);
     } catch (err) {

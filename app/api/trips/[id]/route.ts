@@ -65,8 +65,9 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
       LEFT JOIN unit_profiles u ON d.unit_number = u.unit_number
     `;
     const unitsQuery = `SELECT unit_id as id, unit_number, truck_weekly_cost, region FROM unit_profiles`;
+    const tripNumberQuery = `SELECT trip_number FROM trips WHERE id = $1`;
 
-    const [orderResult, driversResult, unitsResult, eventsResult, exceptionsResult] = await Promise.allSettled([
+    const [orderResult, driversResult, unitsResult, eventsResult, exceptionsResult, tripNumberResult] = await Promise.allSettled([
       trip.order_id
         ? serviceFetch<Record<string, any>>("orders", `/api/orders/${trip.order_id}`)
         : Promise.resolve(undefined),
@@ -74,6 +75,7 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
       pool.query(unitsQuery),
       serviceFetch<Array<Record<string, any>>>("tracking", `/api/trips/${id}/events`),
       serviceFetch<Array<Record<string, any>>>("tracking", `/api/trips/${id}/exceptions`),
+      pool.query(tripNumberQuery, [id]),
     ]);
 
     const order = orderResult.status === "fulfilled" ? orderResult.value : undefined;
@@ -81,6 +83,13 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
     const units = unitsResult.status === "fulfilled" ? unitsResult.value.rows : [];
     const events = eventsResult.status === "fulfilled" ? eventsResult.value ?? [] : [];
     const exceptions = exceptionsResult.status === "fulfilled" ? exceptionsResult.value ?? [] : [];
+    const tripNumber = tripNumberResult.status === "fulfilled" && tripNumberResult.value.rows.length > 0
+      ? tripNumberResult.value.rows[0].trip_number
+      : undefined;
+
+    if (tripNumber) {
+      trip.trip_number = tripNumber;
+    }
 
     const detail = buildTripDetail(trip, { order, driverRecords: drivers, unitRecords: units, events, exceptions });
 
@@ -116,7 +125,7 @@ function buildTripDetail(
   const listItem = mapTripListItem(
     {
       ...trip,
-      tripNumber: String(trip.id ?? "").slice(0, 8).toUpperCase(),
+      tripNumber: trip.trip_number || String(trip.id ?? "").slice(0, 8).toUpperCase(),
       last_ping: trip.updated_at ?? trip.actual_start,
     },
     driverName,
@@ -143,7 +152,7 @@ function buildTripDetail(
   return {
     id: trip.id,
     tripNumber: listItem.tripNumber,
-    orderReference: context.order?.id ? `ORD-${String(context.order.id).slice(0, 8).toUpperCase()}` : "N/A",
+    orderReference: context.order?.order_number ?? (context.order?.id ? `ORD-${String(context.order.id).slice(0, 8).toUpperCase()}` : "N/A"),
     status: listItem.status,
     driver: listItem.driver,
     driverType: trip.driver_type ?? driver?.driver_type,

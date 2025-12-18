@@ -327,8 +327,8 @@ export default function OrderDetailPage() {
       <header className="rounded-xl border border-neutral-800 bg-neutral-900/60 px-4 py-3 mb-4">
         <div className="flex items-center justify-between gap-3 mb-3">
           <div>
-            <h1 className="text-lg font-semibold text-neutral-200">Order {data.id}</h1>
-            <p className="text-xs text-neutral-500">{data.lane}</p>
+            <h1 className="text-lg font-semibold text-neutral-200">Order {data.reference}</h1>
+            <p className="text-xs text-neutral-500">ID: {data.id} • {data.lane}</p>
           </div>
           <div className="flex items-center gap-2">
             <div className="relative">

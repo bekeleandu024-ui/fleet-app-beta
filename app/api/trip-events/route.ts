@@ -8,6 +8,7 @@ export async function GET(request: NextRequest) {
   const driver = searchParams.get("driver");
   const unit = searchParams.get("unit");
   const eventType = searchParams.get("eventType");
+  const tripStatus = searchParams.get("tripStatus");
 
   try {
     const client = await pool.connect();
@@ -40,6 +41,11 @@ export async function GET(request: NextRequest) {
       if (unit) {
         params.push(`%${unit}%`);
         query += ` AND u.unit_number ILIKE $${params.length}`;
+      }
+      if (tripStatus === "active") {
+        query += ` AND (t.status NOT IN ('closed', 'completed') OR t.status IS NULL)`;
+      } else if (tripStatus === "closed") {
+        query += ` AND t.status IN ('closed', 'completed')`;
       }
 
       query += ` ORDER BY te.occurred_at DESC LIMIT 100`;

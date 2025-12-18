@@ -29,13 +29,15 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
       LEFT JOIN unit_profiles u ON d.unit_number = u.unit_number
     `;
     const unitsQuery = `SELECT unit_id as id, unit_number, truck_weekly_cost, region FROM unit_profiles`;
+    const orderNumberQuery = `SELECT order_number FROM orders WHERE id = $1`;
 
-    const [driversResult, unitsResult, costResult, customerViewResult, tripsResult] = await Promise.allSettled([
+    const [driversResult, unitsResult, costResult, customerViewResult, tripsResult, orderNumberResult] = await Promise.allSettled([
       pool.query(driversQuery),
       pool.query(unitsQuery),
       serviceFetch<Record<string, any>>("orders", `/api/orders/${id}/cost-breakdown`),
       serviceFetch<Record<string, any>>("tracking", `/api/views/customer/${id}`),
       serviceFetch<Array<Record<string, any>>>("tracking", `/api/trips?orderId=${id}`),
+      pool.query(orderNumberQuery, [id]),
     ]);
 
     const drivers = driversResult.status === "fulfilled" ? driversResult.value.rows : [];
@@ -43,6 +45,13 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
     const cost = costResult.status === "fulfilled" ? costResult.value : undefined;
     const customerView = customerViewResult.status === "fulfilled" ? customerViewResult.value : undefined;
     const trips = tripsResult.status === "fulfilled" ? tripsResult.value : [];
+    const orderNumber = orderNumberResult.status === "fulfilled" && orderNumberResult.value.rows.length > 0 
+      ? orderNumberResult.value.rows[0].order_number 
+      : undefined;
+
+    if (orderNumber) {
+      order.order_number = orderNumber;
+    }
 
     const detail = buildOrderDetail(order, { drivers, units, cost, customerView, trips });
 
@@ -110,7 +119,8 @@ function buildOrderDetail(
 
   return {
     id: order.id,
-    reference: order.reference ?? order.id?.slice(0, 8)?.toUpperCase() ?? order.id,
+    orderNumber: order.order_number,
+    reference: order.order_number ?? order.reference ?? order.id?.slice(0, 8)?.toUpperCase() ?? order.id,
     status: mapOrderStatus(order.status),
     customer: order.customer ?? order.customer_name ?? order.customer_id ?? "Customer",
     lane,

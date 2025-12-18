@@ -78,7 +78,7 @@ function transformTripRow(row: any): TripListItem {
 
   return {
     id: row.id,
-    tripNumber: row.id.slice(0, 8).toUpperCase(),
+    tripNumber: row.trip_number || row.id.slice(0, 8).toUpperCase(),
     driver: driverName,
     unit: unitName,
     pickup: row.pickup_location || "Unknown",

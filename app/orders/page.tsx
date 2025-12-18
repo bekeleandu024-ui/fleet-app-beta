@@ -74,6 +74,8 @@ export default function OrdersPage() {
 
     if (filterStatus !== "All") {
       filtered = filtered.filter((order) => order.status === filterStatus);
+    } else {
+      filtered = filtered.filter((order) => order.status !== "Delivered" && order.status !== "In Transit");
     }
     if (filterCustomer !== "All") {
       filtered = filtered.filter((order) => order.customer === filterCustomer);

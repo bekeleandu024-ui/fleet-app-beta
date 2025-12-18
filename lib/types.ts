@@ -58,11 +58,13 @@ export const orderStatusSchema = z.enum([
   "Delivered",
   "Exception",
   "Closed",
+  "Completed",
 ]);
 export type OrderStatus = z.infer<typeof orderStatusSchema>;
 
 export const orderListItemSchema = z.object({
   id: z.string(),
+  orderNumber: z.string().optional(),
   reference: z.string(),
   customer: z.string(),
   pickup: z.string(),
@@ -127,6 +129,7 @@ export const bookingUnitSchema = z.object({
 
 export const orderDetailSchema = z.object({
   id: z.string(),
+  orderNumber: z.string().optional(),
   reference: z.string(),
   status: orderStatusSchema,
   customer: z.string(),
