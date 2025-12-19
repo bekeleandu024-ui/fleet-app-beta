@@ -22,7 +22,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
 import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { fetchFleetLocations, fetchOrders } from "@/lib/api";
 import { OrderListItem } from "@/lib/types";
@@ -407,6 +406,14 @@ export default function MapPage() {
 
   // Handlers
   const handleItemSelect = (item: FleetItem, pos?: { lat: number; lng: number }) => {
+    // Toggle deselection behavior
+    if (selectedItem?.id === item.id) {
+      setSelectedItem(null);
+      setZoom(7);
+      setMapCenter({ lat: 43.6532, lng: -79.3832 });
+      return;
+    }
+
     // Set initial state to show the panel immediately
     setSelectedItem(item);
     setShowRoute(false);
@@ -457,7 +464,7 @@ export default function MapPage() {
 
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] w-full overflow-hidden bg-zinc-950 border border-zinc-800 rounded-lg shadow-sm">
+    <div className="flex h-full w-full overflow-hidden bg-zinc-950 border-t border-zinc-800">
       
       {/* Sidebar */}
       <div className={`${isSidebarOpen ? "w-80" : "w-0"} flex flex-col border-r border-zinc-800 bg-zinc-900/50 transition-all duration-300 overflow-hidden relative`}>
@@ -535,14 +542,16 @@ export default function MapPage() {
         </div>
 
         {/* Asset List */}
-        <ScrollArea className="flex-1">
+        <div className="flex-1 overflow-y-auto">
           <div className="divide-y divide-zinc-800/50">
             {filteredItems.map((item) => (
               <div 
                 key={item.id}
                 onClick={() => handleItemSelect(item)}
-                className={`p-3 cursor-pointer transition-colors hover:bg-zinc-800/50 ${
-                  selectedItem?.id === item.id ? "bg-blue-900/10 border-l-2 border-blue-500" : "border-l-2 border-transparent"
+                className={`p-3 cursor-pointer transition-all duration-200 hover:bg-zinc-800/50 border-l-2 ${
+                  selectedItem?.id === item.id 
+                    ? "bg-blue-900/5 border-l-blue-500" 
+                    : "border-l-transparent"
                 }`}
               >
                 <div className="flex items-center justify-between mb-1">
@@ -576,7 +585,7 @@ export default function MapPage() {
               </div>
             )}
           </div>
-        </ScrollArea>
+        </div>
 
         {/* Selected Item Details Panel (Bottom of Sidebar) */}
         {selectedItem && (
@@ -723,7 +732,6 @@ export default function MapPage() {
             defaultCenter={mapCenter}
             zoom={zoom}
             onZoomChanged={(ev) => setZoom(ev.detail.zoom)}
-            onCenterChanged={(ev) => setMapCenter(ev.detail.center)}
             disableDefaultUI={false}
             zoomControl={true}
             mapTypeControl={false}

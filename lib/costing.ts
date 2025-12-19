@@ -140,20 +140,46 @@ export function calculateTripCost(
 
   const result = calculateTripCostNew(driver, distance, durationDays, events);
 
+  // Calculate base wage rate locally to reconstruct the breakdown
+  let baseWageRate = 0;
+  if (driverType === 'OO') {
+    if (distance < 700) baseWageRate = 1.60;
+    else if (distance <= 2200) baseWageRate = 1.55;
+    else baseWageRate = 1.42;
+  } else if (driverType === 'RNR') {
+    baseWageRate = 0.74;
+  } else {
+    baseWageRate = 0.59; // COM
+  }
+
+  const baseWage = distance * baseWageRate;
+  
+  // Calculate components
+  // Note: cost-calculator uses 1.29 markup, but UI breaks down 1.22 (12+5+3+2)
+  // We will use the explicit breakdown for the UI components
+  const benefits = baseWage * 0.12;
+  const performance = baseWage * 0.05;
+  const safety = baseWage * 0.03;
+  const step = baseWage * 0.02;
+  
+  // Maintenance breakdown (0.11 total = 0.08 truck + 0.03 trailer)
+  const truckMaint = distance * 0.08;
+  const trailerMaint = distance * 0.03;
+
   // Map new result back to old structure to maintain compatibility
   // This is an approximation since the new logic groups costs differently
   
   const mileageCosts: MileageCosts = {
-    wage: result.breakdown.labor, // This includes benefits/markup now
+    wage: baseWage, 
     fuel: result.breakdown.fuel,
-    benefits: 0, // Included in wage
-    performance: 0,
-    safety: 0,
-    step: 0,
-    truckMaint: result.breakdown.maintenance, // Combined maintenance
-    trailerMaint: 0, // Included in truckMaint
+    benefits: benefits,
+    performance: performance,
+    safety: safety,
+    step: step,
+    truckMaint: truckMaint,
+    trailerMaint: trailerMaint,
     rolling: 0,
-    subtotal: result.breakdown.labor + result.breakdown.fuel + result.breakdown.maintenance,
+    subtotal: baseWage + benefits + performance + safety + step + result.breakdown.fuel + truckMaint + trailerMaint,
   };
 
   const eventCosts: EventCosts = {
@@ -175,14 +201,22 @@ export function calculateTripCost(
     dailyTotal: result.breakdown.fixed / durationDays, // Daily fixed cost
   } : undefined;
 
+  // Recalculate totals based on the breakdown to ensure consistency
+  const totalMileageCost = mileageCosts.subtotal;
+  const totalEventCost = eventCosts.subtotal;
+  const totalFixedCost = includeOverhead ? result.breakdown.fixed : 0;
+  
+  const calculatedDirectCost = totalMileageCost + totalEventCost;
+  const calculatedTotalCost = calculatedDirectCost + totalFixedCost;
+
   return {
     mileageCosts,
     eventCosts,
     weeklyOverhead,
-    directTripCost: result.totalCost - (includeOverhead ? 0 : result.breakdown.fixed),
-    fullyAllocatedCost: result.totalCost,
-    recommendedRevenue: result.totalCost * 1.22, // Keeping the margin logic from before? Or use new margin analysis?
-    totalCPM: result.metadata.costPerMile,
+    directTripCost: calculatedDirectCost,
+    fullyAllocatedCost: calculatedTotalCost,
+    recommendedRevenue: calculatedTotalCost * 1.22, 
+    totalCPM: calculatedTotalCost / distance,
   };
 }
 

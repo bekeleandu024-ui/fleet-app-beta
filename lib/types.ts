@@ -766,6 +766,10 @@ export const fleetLocationSchema = z.object({
   unitNumber: z.string().nullable().optional(),
   speed: z.number().optional(),
   region: z.string().optional(),
+  currentWeight: z.number().optional(),
+  maxWeight: z.number().optional(),
+  utilizationPercent: z.number().optional(),
+  limitingFactor: z.string().nullable().optional(),
   customs: z.object({
     status: z.string().nullable().optional(),
     crossingPoint: z.string().nullable().optional(),

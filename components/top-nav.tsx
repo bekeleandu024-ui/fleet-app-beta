@@ -109,7 +109,7 @@ function TopNavContent() {
       <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-4 px-6 py-4 lg:px-10">
         <div className="flex flex-wrap items-center gap-3">
           <Link href="/" className="text-lg font-bold text-white hover:text-zinc-300 transition-colors">
-            Fleet Dispatch
+            Fleet Dispatch Demo
           </Link>
           <div className="ml-auto hidden flex-1 items-center gap-3 md:flex">
             <form className="relative flex-1 max-w-xl" onSubmit={handleSubmit}>
