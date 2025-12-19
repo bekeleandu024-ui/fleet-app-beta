@@ -765,13 +765,14 @@ export const fleetLocationSchema = z.object({
   driverName: z.string().nullable().optional(),
   unitNumber: z.string().nullable().optional(),
   speed: z.number().optional(),
+  region: z.string().optional(),
   customs: z.object({
     status: z.string().nullable().optional(),
     crossingPoint: z.string().nullable().optional(),
     requiredDocs: z.array(z.string()).optional(),
     submittedDocs: z.array(z.string()).optional(),
     isApproved: z.boolean().optional(),
-  }).optional(),
+  }).nullable().optional(),
 });
 
 export type FleetLocation = z.infer<typeof fleetLocationSchema>;

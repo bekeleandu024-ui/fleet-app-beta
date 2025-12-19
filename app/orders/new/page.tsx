@@ -331,6 +331,23 @@ export default function CreateOrderPage() {
     if (parsed.delWindowEnd) updates.delWindowEnd = parsed.delWindowEnd;
     if (parsed.requiredTruck) updates.requiredTruck = parsed.requiredTruck;
     if (parsed.notes) updates.notes = parsed.notes;
+    if (parsed.totalWeight) updates.totalWeight = parsed.totalWeight.toString();
+    if (parsed.totalPallets) updates.totalPallets = parsed.totalPallets.toString();
+    
+    if (parsed.palletDimensions) {
+      const dim = parsed.palletDimensions.toLowerCase();
+      if (dim.includes("standard") || dim.includes("48x40x48") || dim === "48x40") {
+        updates.palletDimensions = "Standard (48x40x48)";
+      } else if (dim.includes("euro") || dim.includes("48x40x60")) {
+        updates.palletDimensions = "Euro (48x40x60)";
+      } else {
+        updates.palletDimensions = "Custom";
+      }
+    }
+
+    if (parsed.stackable !== undefined) updates.stackable = parsed.stackable;
+    if (parsed.cubicFeet) updates.cubicFeet = parsed.cubicFeet.toString();
+    if (parsed.linearFeet) updates.linearFeet = parsed.linearFeet.toString();
 
     setFormData(prev => ({ ...prev, ...updates }));
 

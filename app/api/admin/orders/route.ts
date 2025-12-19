@@ -21,6 +21,12 @@ const baseSchema = z.object({
   serviceLevel: z.string().min(1, "Service level is required"),
   commodity: z.string().min(1, "Commodity is required"),
   laneMiles: z.number().min(1, "Lane miles must be positive"),
+  totalWeight: z.number().optional(),
+  totalPallets: z.number().optional(),
+  palletDimensions: z.any().optional(),
+  stackable: z.boolean().optional(),
+  cubicFeet: z.number().optional(),
+  linearFeetRequired: z.number().optional(),
 });
 
 const createSchema = baseSchema.extend({ id: z.string().optional() });
@@ -77,8 +83,14 @@ export async function POST(request: Request) {
           estimated_cost,
           order_number,
           created_at,
-          updated_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW())
+          updated_at,
+          total_weight,
+          total_pallets,
+          pallet_dimensions,
+          stackable,
+          cubic_feet,
+          linear_feet_required
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW(), $11, $12, $13, $14, $15, $16)
         RETURNING id, order_number, customer_id, status`,
         [
           orderId,
@@ -91,6 +103,12 @@ export async function POST(request: Request) {
           orderPayload.special_instructions || null,
           validated.cost || null,
           `ORD-${Date.now().toString().slice(-10)}`, // Generate order number
+          validated.totalWeight || 0,
+          validated.totalPallets || 0,
+          JSON.stringify(validated.palletDimensions || []),
+          validated.stackable || false,
+          validated.cubicFeet || 0,
+          validated.linearFeetRequired || 0
         ]
       );
       

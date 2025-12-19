@@ -179,6 +179,30 @@ function buildTripDetail(
     notes: exception.notes ?? exception.description ?? "",
   }));
 
+  // Calculate capacity metrics
+  const currentWeight = trip.current_weight ? parseFloat(trip.current_weight) : (context.order?.total_weight ? parseFloat(context.order.total_weight) : 0);
+  const currentCube = trip.current_cube ? parseFloat(trip.current_cube) : (context.order?.cubic_feet ? parseFloat(context.order.cubic_feet) : 0);
+  const currentLinearFeet = trip.current_linear_feet ? parseFloat(trip.current_linear_feet) : (context.order?.linear_feet_required ? parseFloat(context.order.linear_feet_required) : 0);
+
+  const maxWeight = unit?.max_weight ? parseFloat(unit.max_weight) : 45000;
+  const maxCube = unit?.max_cube ? parseFloat(unit.max_cube) : 3900;
+  const maxLinearFeet = unit?.linear_feet ? parseFloat(unit.linear_feet) : 53;
+
+  let utilizationPercent = trip.utilization_percent ? parseFloat(trip.utilization_percent) : 0;
+  let limitingFactor = trip.limiting_factor;
+
+  if (!trip.utilization_percent && (currentWeight > 0 || currentCube > 0 || currentLinearFeet > 0)) {
+      const weightUtil = currentWeight / maxWeight;
+      const cubeUtil = currentCube / maxCube;
+      const linearUtil = currentLinearFeet / maxLinearFeet;
+      
+      utilizationPercent = Math.max(weightUtil, cubeUtil, linearUtil) * 100;
+      
+      if (weightUtil >= cubeUtil && weightUtil >= linearUtil) limitingFactor = "Weight";
+      else if (cubeUtil >= weightUtil && cubeUtil >= linearUtil) limitingFactor = "Cube";
+      else limitingFactor = "Linear Feet";
+  }
+
   return {
     id: trip.id,
     tripNumber: listItem.tripNumber,
@@ -214,14 +238,14 @@ function buildTripDetail(
       recommendedRevenue: trip.recommended_revenue ?? trip.revenue,
       marginPct: trip.margin_pct ?? trip.margin,
     },
-    currentWeight: trip.current_weight ? parseFloat(trip.current_weight) : 0,
-    currentCube: trip.current_cube ? parseFloat(trip.current_cube) : 0,
-    currentLinearFeet: trip.current_linear_feet ? parseFloat(trip.current_linear_feet) : 0,
-    utilizationPercent: trip.utilization_percent ? parseFloat(trip.utilization_percent) : 0,
-    limitingFactor: trip.limiting_factor,
-    maxWeight: unit?.max_weight ? parseFloat(unit.max_weight) : 45000,
-    maxCube: unit?.max_cube ? parseFloat(unit.max_cube) : 3900,
-    maxLinearFeet: unit?.linear_feet ? parseFloat(unit.linear_feet) : 53,
+    currentWeight: currentWeight,
+    currentCube: currentCube,
+    currentLinearFeet: currentLinearFeet,
+    utilizationPercent: utilizationPercent,
+    limitingFactor: limitingFactor,
+    maxWeight: maxWeight,
+    maxCube: maxCube,
+    maxLinearFeet: maxLinearFeet,
     timeline,
     exceptions: exceptionItems,
     telemetry: {

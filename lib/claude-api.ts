@@ -232,6 +232,12 @@ interface ParsedOrderData {
   delWindowEnd?: string;
   requiredTruck?: string;
   notes?: string;
+  totalWeight?: number;
+  totalPallets?: number;
+  palletDimensions?: string;
+  stackable?: boolean;
+  cubicFeet?: number;
+  linearFeet?: number;
   confidence: {
     [key: string]: number;
   };
@@ -258,9 +264,14 @@ export async function parseOrderOCR(text?: string, imageBase64?: string): Promis
 5. Extract delivery date/time windows (start and end)
 6. Identify truck/equipment type needed (Dry Van, Flatbed, Reefer, etc.)
 7. Extract any special instructions or notes
-8. Handle typos, abbreviations, and informal language
-9. Provide confidence scores (0-100) for each extracted field
-10. Flag any warnings or ambiguities
+8. Extract total weight (in lbs)
+9. Extract total pallet count
+10. Extract pallet dimensions (e.g. 48x40x48)
+11. Determine if freight is stackable (true/false)
+12. Extract cubic feet and linear feet if available
+13. Handle typos, abbreviations, and informal language
+14. Provide confidence scores (0-100) for each extracted field
+15. Flag any warnings or ambiguities
 
 **COMMON PATTERNS TO RECOGNIZE:**
 - "PU" or "Pickup" = origin
@@ -268,6 +279,8 @@ export async function parseOrderOCR(text?: string, imageBase64?: string): Promis
 - Equipment: "53' dry van", "flatbed", "reefer", "refers to refrigerated"
 - Date formats: various formats like "12/20", "Dec 20", "tomorrow"
 - Time windows: "8am-5pm", "0800-1700", "morning", "afternoon"
+- Weight: "40k", "40,000 lbs", "40000#"
+- Dimensions: "48x40", "standard pallets"
 
 Return ONLY a JSON object with this structure:
 {
@@ -280,12 +293,19 @@ Return ONLY a JSON object with this structure:
   "delWindowEnd": "ISO datetime or null",
   "requiredTruck": "Truck type or null",
   "notes": "Special instructions or null",
+  "totalWeight": number or null,
+  "totalPallets": number or null,
+  "palletDimensions": "string or null",
+  "stackable": boolean or null,
+  "cubicFeet": number or null,
+  "linearFeet": number or null,
   "confidence": {
     "customer": 0-100,
     "origin": 0-100,
     "destination": 0-100,
     "dates": 0-100,
-    "truck": 0-100
+    "truck": 0-100,
+    "capacity": 0-100
   },
   "warnings": ["List any ambiguities or concerns"]
 }`;

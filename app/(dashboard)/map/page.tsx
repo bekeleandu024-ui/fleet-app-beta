@@ -45,6 +45,10 @@ type FleetItem = {
   deliveryLng?: number;
   customs?: any;
   region?: string;
+  currentWeight?: number;
+  maxWeight?: number;
+  utilizationPercent?: number;
+  limitingFactor?: string;
 };
 
 // --- Helper Components ---
@@ -87,7 +91,7 @@ function FleetMarker({ item, onClick, isDimmed, isSelected }: { item: FleetItem,
       color = "#8B5CF6"; // Violet-500
     } else if (item.status === "delayed") {
       color = "#EF4444"; // Red-500
-    } else if (item.status === "Available") {
+    } else if (item.status === "Available" || item.status === "staged") {
       color = "#10B981"; // Emerald-500
     }
 
@@ -328,6 +332,7 @@ export default function MapPage() {
   const [zoom, setZoom] = useState(7);
   const [viewMode, setViewMode] = useState<"all" | "trips" | "staged">("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedRegion, setSelectedRegion] = useState<string | "all">("all");
   const [showRoute, setShowRoute] = useState(false);
   const [routeInfo, setRouteInfo] = useState<{ distance: string; duration: string; eta: string } | null>(null);
   const [destinationCoords, setDestinationCoords] = useState<{ lat: number; lng: number } | null>(null);
@@ -340,7 +345,7 @@ export default function MapPage() {
         const response = await fetchFleetLocations();
         const items: FleetItem[] = response.fleet.map((item) => ({
           id: item.id,
-          type: "trip", // Assuming all from trips table are trips
+          type: item.status === 'staged' ? "staged" : "trip",
           status: item.status,
           lat: item.lat || 0,
           lng: item.lng || 0,
@@ -352,6 +357,11 @@ export default function MapPage() {
           deliveryLat: item.deliveryLat || undefined,
           deliveryLng: item.deliveryLng || undefined,
           customs: item.customs,
+          region: item.region,
+          currentWeight: item.currentWeight,
+          maxWeight: item.maxWeight,
+          utilizationPercent: item.utilizationPercent,
+          limitingFactor: item.limitingFactor,
         }));
 
         setFleetLocations(items);
@@ -373,6 +383,11 @@ export default function MapPage() {
     loadOrders();
   }, []);
 
+  const regions = useMemo(() => {
+    const uniqueRegions = new Set(fleetLocations.map(item => item.region).filter(Boolean));
+    return Array.from(uniqueRegions).sort() as string[];
+  }, [fleetLocations]);
+
   // Filtering
   const filteredItems = useMemo(() => {
     return fleetLocations.filter(item => {
@@ -384,9 +399,11 @@ export default function MapPage() {
         (item.unitNumber?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false) ||
         (item.driverName?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false);
 
-      return matchesMode && matchesSearch;
+      const matchesRegion = selectedRegion === "all" || item.region === selectedRegion;
+
+      return matchesMode && matchesSearch && matchesRegion;
     });
-  }, [fleetLocations, viewMode, searchQuery]);
+  }, [fleetLocations, viewMode, searchQuery, selectedRegion]);
 
   // Handlers
   const handleItemSelect = (item: FleetItem, pos?: { lat: number; lng: number }) => {
@@ -484,6 +501,23 @@ export default function MapPage() {
                 </button>
               ))}
             </div>
+
+            {/* Region Filter */}
+            {regions.length > 0 && (
+              <div className="relative">
+                <select
+                  value={selectedRegion}
+                  onChange={(e) => setSelectedRegion(e.target.value)}
+                  className="h-8 w-full rounded-sm border border-zinc-800 bg-black px-3 text-xs text-zinc-200 focus:border-blue-800 focus:outline-none focus:ring-1 focus:ring-blue-900 appearance-none"
+                >
+                  <option value="all">All Regions</option>
+                  {regions.map(region => (
+                    <option key={region} value={region}>{region}</option>
+                  ))}
+                </select>
+                <ChevronRight className="absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-500 rotate-90 pointer-events-none" />
+              </div>
+            )}
             
             {/* Order Toggle */}
             <button
