@@ -115,6 +115,7 @@ export class CostingService {
 
       // 8. Store trip cost record
       const costId = await this.storeTripCost(
+        request.trip_id,
         request.order_id,
         driver.driver_id,
         unit?.unit_id,
@@ -535,6 +536,7 @@ export class CostingService {
    * Store trip cost record
    */
   private async storeTripCost(
+    tripId: string | undefined,
     orderId: string,
     driverId: string,
     unitId: string | undefined,
@@ -560,22 +562,22 @@ export class CostingService {
   ): Promise<string> {
     const result = await client.query(
       `INSERT INTO trip_costs (
-        order_id, driver_id, unit_id, driver_type, oo_zone,
+        trip_id, order_id, driver_id, unit_id, driver_type, oo_zone,
         miles, direction, is_round_trip,
         border_crossings, drop_hooks, pickups, deliveries,
         fixed_cpm, wage_cpm, rolling_cpm, accessorial_cpm, total_cpm,
         total_cost, revenue, rpm, ppm, profit, margin_pct, is_profitable,
         calculation_formula
       ) VALUES (
-        $1, $2, $3, $4, $5,
-        $6, $7, $8,
-        $9, $10, $11, $12,
-        $13, $14, $15, $16, $17,
-        $18, $19, $20, $21, $22, $23, $24,
-        $25
+        $1, $2, $3, $4, $5, $6,
+        $7, $8, $9,
+        $10, $11, $12, $13,
+        $14, $15, $16, $17, $18,
+        $19, $20, $21, $22, $23, $24, $25,
+        $26
       ) RETURNING cost_id`,
       [
-        orderId, driverId, unitId, driverType, ooZone,
+        tripId, orderId, driverId, unitId, driverType, ooZone,
         miles, direction, isRoundTrip,
         borderCrossings, dropHooks, pickups, deliveries,
         fixedCpm, wageCpm, rollingCpm, accessorialCpm, totalCpm,

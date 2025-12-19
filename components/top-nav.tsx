@@ -106,7 +106,7 @@ function TopNavContent() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-zinc-800/70 bg-black/95 backdrop-blur-xl shadow-lg shadow-black/20">
-      <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-4 px-6 py-4 lg:px-10">
+      <div className="flex w-full flex-col gap-3 px-4 py-3">
         <div className="flex flex-wrap items-center gap-3">
           <Link href="/" className="text-lg font-bold text-white hover:text-zinc-300 transition-colors">
             Fleet Dispatch Demo
@@ -156,7 +156,7 @@ function TopNavContent() {
             </Button>
           </div>
         </div>
-        <nav className="flex flex-wrap items-center gap-2" aria-label="Primary">
+        <nav className="flex flex-wrap items-center justify-center gap-2" aria-label="Primary">
           {navItems.map((item) => {
             const active = item.match(pathname ?? "");
             return (
@@ -164,7 +164,7 @@ function TopNavContent() {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "rounded-full border px-4 py-2 text-sm font-medium transition-all duration-200",
+                  "rounded-full border px-3 py-1.5 text-sm font-medium transition-all duration-200",
                   active
                     ? "border-zinc-600/80 bg-zinc-900/80 text-white shadow-lg shadow-black/40"
                     : "border-transparent text-zinc-400 hover:border-zinc-700 hover:bg-zinc-900/50 hover:text-zinc-200"

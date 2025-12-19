@@ -31,11 +31,13 @@ export async function GET() {
           cc.border_crossing_point,
           cc.required_documents,
           cc.submitted_documents,
-          cc.approved_at
+          cc.approved_at,
+          o.total_weight as order_weight
         FROM trips t
         LEFT JOIN driver_profiles d ON t.driver_id = d.driver_id
         LEFT JOIN unit_profiles u ON t.unit_id = u.unit_id
         LEFT JOIN customs_clearances cc ON t.id = cc.trip_id
+        LEFT JOIN orders o ON t.order_id = o.id
         WHERE t.status IN ('planned', 'planning', 'assigned', 'in_transit', 'en_route_to_pickup', 'at_pickup', 'departed_pickup', 'at_delivery')
       `;
       const result = await client.query(query);
@@ -68,34 +70,47 @@ export async function GET() {
       `;
       const stagedResult = await client.query(stagedQuery);
       
-      const activeFleetData = result.rows.map(row => ({
-        id: row.id,
-        driverId: row.driver_id,
-        unitId: row.unit_id,
-        status: row.status,
-        location: row.pickup_location, 
-        lat: row.last_known_lat || row.pickup_lat,
-        lng: row.last_known_lng || row.pickup_lng,
-        deliveryLocation: row.dropoff_location,
-        deliveryLat: row.dropoff_lat,
-        deliveryLng: row.dropoff_lng,
-        lastUpdate: row.updated_at,
-        driverName: row.driver_name || "Unknown Driver",
-        unitNumber: row.unit_number || "N/A",
-        currentWeight: row.current_weight ? parseFloat(row.current_weight) : 0,
-        maxWeight: row.max_weight ? parseFloat(row.max_weight) : 45000,
-        utilizationPercent: row.utilization_percent ? parseFloat(row.utilization_percent) : 0,
-        limitingFactor: row.limiting_factor,
-        speed: 0,
-        region: row.region,
-        customs: {
-          status: row.customs_status || 'Pending',
-          crossingPoint: row.border_crossing_point,
-          requiredDocs: row.required_documents || [],
-          submittedDocs: row.submitted_documents || [],
-          isApproved: !!row.approved_at
+      const activeFleetData = result.rows.map(row => {
+        let currentWeight = row.current_weight ? parseFloat(row.current_weight) : 0;
+        if (currentWeight === 0 && row.order_weight) {
+          currentWeight = parseFloat(row.order_weight);
         }
-      }));
+        const maxWeight = row.max_weight ? parseFloat(row.max_weight) : 45000;
+        let utilizationPercent = row.utilization_percent ? parseFloat(row.utilization_percent) : 0;
+        
+        if (utilizationPercent === 0 && currentWeight > 0 && maxWeight > 0) {
+          utilizationPercent = (currentWeight / maxWeight) * 100;
+        }
+
+        return {
+          id: row.id,
+          driverId: row.driver_id,
+          unitId: row.unit_id,
+          status: row.status,
+          location: row.pickup_location, 
+          lat: row.last_known_lat || row.pickup_lat,
+          lng: row.last_known_lng || row.pickup_lng,
+          deliveryLocation: row.dropoff_location,
+          deliveryLat: row.dropoff_lat,
+          deliveryLng: row.dropoff_lng,
+          lastUpdate: row.updated_at,
+          driverName: row.driver_name || "Unknown Driver",
+          unitNumber: row.unit_number || "N/A",
+          currentWeight: currentWeight,
+          maxWeight: maxWeight,
+          utilizationPercent: utilizationPercent,
+          limitingFactor: row.limiting_factor,
+          speed: 0,
+          region: row.region,
+          customs: {
+            status: row.customs_status || 'Pending',
+            crossingPoint: row.border_crossing_point,
+            requiredDocs: row.required_documents || [],
+            submittedDocs: row.submitted_documents || [],
+            isApproved: !!row.approved_at
+          }
+        };
+      });
 
       const stagedFleetData = stagedResult.rows.map(row => ({
         id: row.unit_id,

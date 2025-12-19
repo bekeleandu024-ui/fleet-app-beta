@@ -33,7 +33,7 @@ router.get('/drivers', async (_req: Request, res: Response) => {
     const result = await pool.query(
       `SELECT driver_id, driver_name, unit_number, driver_type, oo_zone, region,
               base_wage_cpm, benefits_pct, performance_pct, safety_pct, step_pct,
-              effective_wage_cpm, is_active, created_at, updated_at
+              effective_wage_cpm, is_active, status, created_at, updated_at
        FROM driver_profiles 
        ORDER BY driver_name`
     );
@@ -54,7 +54,7 @@ router.get('/drivers', async (_req: Request, res: Response) => {
 router.get('/units', async (_req: Request, res: Response) => {
   try {
     const result = await pool.query(
-      `SELECT u.unit_id, u.unit_number, u.driver_id, u.region,
+      `SELECT u.unit_id, u.unit_number, u.driver_id, u.region, u.current_location,
               d.driver_name, d.driver_type,
               u.truck_weekly_cost, u.trailer_weekly_cost, u.insurance_weekly_cost,
               u.isaac_weekly_cost, u.prepass_weekly_cost, u.sga_weekly_cost,

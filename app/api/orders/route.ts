@@ -93,7 +93,7 @@ export async function GET() {
         pickup: o.pickup || existing?.pickup || "",
         delivery: o.delivery || existing?.delivery || "",
         window: o.window || existing?.window || "Not Scheduled",
-        status: o.status || existing?.status || "New", // Service status is preferred
+        status: existing?.status || o.status || "New", // Local status is preferred
         ageHours: o.ageHours ?? existing?.ageHours ?? 0,
         cost: Number(o.cost ?? existing?.cost ?? 0),
         lane: o.lane || existing?.lane || "",

@@ -80,6 +80,7 @@ export async function POST(
           await client.query(`
             INSERT INTO trip_costs (
               cost_id,
+              trip_id,
               order_id,
               driver_id,
               unit_id,
@@ -96,7 +97,7 @@ export async function POST(
             ) VALUES (
               gen_random_uuid(),
               $1::uuid,
-              $2,
+              $2::uuid,
               $3,
               $4,
               $5,
@@ -106,11 +107,11 @@ export async function POST(
               $9,
               $10,
               $11,
+              $12,
               NOW(),
               NOW()
             )
-          `, [
-            trip.order_id,
+          `, [            tripId,            trip.order_id,
             trip.driver_id,
             trip.unit_id,
             trip.driver_type || 'Unknown',

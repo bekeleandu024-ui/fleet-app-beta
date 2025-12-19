@@ -14,6 +14,11 @@ export async function POST(
     try {
       await client.query('BEGIN');
 
+      // Fetch trip details first to ensure we have the order_id
+      const tripQuery = await client.query('SELECT order_id FROM trips WHERE id = $1', [id]);
+      const orderId = tripQuery.rows[0]?.order_id;
+      console.log(`[TripEvent] Processing event ${eventType} for trip ${id}, linked order: ${orderId}`);
+
       // Insert event
       const insertEventQuery = `
         INSERT INTO trip_events (id, trip_id, event_type, status, source, payload, occurred_at, created_at)
@@ -39,29 +44,29 @@ export async function POST(
       else if (eventType === 'LEFT_DELIVERY') newStatus = 'completed'; 
 
       if (newStatus) {
-        const tripUpdateRes = await client.query(
-          `UPDATE trips SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING order_id`, 
+        await client.query(
+          `UPDATE trips SET status = $1, updated_at = NOW() WHERE id = $2`, 
           [newStatus, id]
         );
 
         // Sync status to Order
-        if (tripUpdateRes.rows.length > 0) {
-          const orderId = tripUpdateRes.rows[0].order_id;
-          if (orderId) {
-            let orderStatus = null;
-            // Map trip status to order status
-            if (newStatus === 'in_transit') orderStatus = 'In Transit';
-            else if (newStatus === 'completed') orderStatus = 'Delivered';
-            else if (newStatus === 'at_pickup') orderStatus = 'In Transit'; // Once at pickup, it's started
-            else if (newStatus === 'at_delivery') orderStatus = 'In Transit';
+        if (orderId) {
+          let orderStatus = null;
+          // Map trip status to order status
+          if (newStatus === 'in_transit') orderStatus = 'In Transit';
+          else if (newStatus === 'completed') orderStatus = 'Delivered';
+          else if (newStatus === 'at_pickup') orderStatus = 'In Transit'; // Once at pickup, it's started
+          else if (newStatus === 'at_delivery') orderStatus = 'In Transit';
 
-            if (orderStatus) {
-              await client.query(
-                `UPDATE orders SET status = $1, updated_at = NOW() WHERE id = $2`, 
-                [orderStatus, orderId]
-              );
-            }
+          if (orderStatus) {
+            console.log(`[TripEvent] Updating order ${orderId} status to ${orderStatus}`);
+            await client.query(
+              `UPDATE orders SET status = $1, updated_at = NOW() WHERE id = $2`, 
+              [orderStatus, orderId]
+            );
           }
+        } else {
+          console.warn(`[TripEvent] No order linked to trip ${id}, skipping order status update`);
         }
       }
       

@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { serviceFetch, ServiceError } from "@/lib/service-client";
 import { mapTripListItem } from "@/lib/transformers";
 import pool from "@/lib/db";
+import { calculateTripCost, type DriverType } from "@/lib/costing";
 
 // Helper function to calculate distance if missing
 async function calculateTripDistance(tripId: string, pickupLat?: number, pickupLng?: number, dropoffLat?: number, dropoffLng?: number) {
@@ -50,15 +51,110 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
 
     const client = await pool.connect();
     try {
-      const tripCheck = await client.query('SELECT id FROM trips WHERE id = $1', [id]);
+      await client.query('BEGIN');
+      const tripCheck = await client.query('SELECT id, driver_id, unit_id, planned_miles FROM trips WHERE id = $1', [id]);
       if (tripCheck.rows.length === 0) {
+        await client.query('ROLLBACK');
         return NextResponse.json({ error: "Trip not found" }, { status: 404 });
       }
+      
+      const trip = tripCheck.rows[0];
 
       await client.query('UPDATE trips SET order_id = $1 WHERE id = $2', [orderId, id]);
       await client.query("UPDATE orders SET status = 'Planning' WHERE id = $1", [orderId]);
 
+      // Calculate and insert costs if we have driver and order info
+      if (trip.driver_id) {
+          const orderRes = await client.query('SELECT * FROM orders WHERE id = $1', [orderId]);
+          if (orderRes.rows.length > 0) {
+              const order = orderRes.rows[0];
+              let miles = Number(trip.planned_miles) || Number(order.lane_miles) || 0;
+              
+              if (miles > 0) {
+                  // Get driver type
+                  const driverRes = await client.query('SELECT driver_type FROM driver_profiles WHERE driver_id = $1', [trip.driver_id]);
+                  const driverType = (driverRes.rows[0]?.driver_type as DriverType) || 'RNR';
+                  
+                  const costResult = calculateTripCost(
+                      driverType,
+                      miles,
+                      order.pickup_location || '',
+                      order.dropoff_location || '',
+                      { pickups: 1, deliveries: 1 }
+                  );
+                  
+                  // Check if cost already exists
+                  const costCheck = await client.query('SELECT cost_id FROM trip_costs WHERE trip_id = $1', [id]);
+                  
+                  if (costCheck.rows.length === 0) {
+                      const revenue = 0; // We might not have revenue yet
+                      const profit = revenue - costResult.fullyAllocatedCost;
+                      
+                      await client.query(`
+                        INSERT INTO trip_costs (
+                          cost_id,
+                          trip_id,
+                          order_id,
+                          driver_id,
+                          unit_id,
+                          driver_type,
+                          miles,
+                          total_cpm,
+                          total_cost,
+                          revenue,
+                          rpm,
+                          profit,
+                          margin_pct,
+                          is_profitable,
+                          calculation_formula,
+                          created_at,
+                          updated_at
+                        ) VALUES (
+                          gen_random_uuid(),
+                          $1::uuid,
+                          $2::uuid,
+                          $3::uuid,
+                          $4::uuid,
+                          $5,
+                          $6,
+                          $7,
+                          $8,
+                          $9,
+                          $10,
+                          $11,
+                          $12,
+                          $13,
+                          $14,
+                          NOW(),
+                          NOW()
+                        )
+                      `, [
+                        id,
+                        orderId,
+                        trip.driver_id,
+                        trip.unit_id,
+                        driverType,
+                        miles,
+                        costResult.totalCPM,
+                        costResult.fullyAllocatedCost,
+                        revenue,
+                        0, // rpm
+                        profit,
+                        0, // margin
+                        false,
+                        JSON.stringify({ method: 'auto_calc_on_assign' })
+                      ]);
+                  }
+              }
+          }
+      }
+
+      await client.query('COMMIT');
+
       return NextResponse.json({ success: true });
+    } catch (e) {
+      await client.query('ROLLBACK');
+      throw e;
     } finally {
       client.release();
     }
@@ -96,8 +192,9 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
     `;
     const unitsQuery = `SELECT unit_id as id, unit_number, truck_weekly_cost, region, max_weight, max_cube, linear_feet, unit_type FROM unit_profiles`;
     const tripNumberQuery = `SELECT trip_number FROM trips WHERE id = $1`;
+    const tripCostsQuery = `SELECT * FROM trip_costs WHERE trip_id = $1 ORDER BY created_at DESC LIMIT 1`;
 
-    const [orderResult, driversResult, unitsResult, eventsResult, exceptionsResult, tripNumberResult] = await Promise.allSettled([
+    const [orderResult, driversResult, unitsResult, eventsResult, exceptionsResult, tripNumberResult, tripCostsResult] = await Promise.allSettled([
       trip.order_id
         ? serviceFetch<Record<string, any>>("orders", `/api/orders/${trip.order_id}`)
         : Promise.resolve(undefined),
@@ -106,6 +203,7 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
       serviceFetch<Array<Record<string, any>>>("tracking", `/api/trips/${id}/events`),
       serviceFetch<Array<Record<string, any>>>("tracking", `/api/trips/${id}/exceptions`),
       pool.query(tripNumberQuery, [id]),
+      pool.query(tripCostsQuery, [id]),
     ]);
 
     const order = orderResult.status === "fulfilled" ? orderResult.value : undefined;
@@ -116,9 +214,21 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
     const tripNumber = tripNumberResult.status === "fulfilled" && tripNumberResult.value.rows.length > 0
       ? tripNumberResult.value.rows[0].trip_number
       : undefined;
+    const tripCosts = tripCostsResult.status === "fulfilled" && tripCostsResult.value.rows.length > 0
+      ? tripCostsResult.value.rows[0]
+      : undefined;
 
     if (tripNumber) {
       trip.trip_number = tripNumber;
+    }
+
+    // Merge trip costs if available
+    if (tripCosts) {
+        trip.total_cost = tripCosts.total_cost;
+        trip.total_cpm = tripCosts.total_cpm;
+        trip.revenue = tripCosts.revenue;
+        trip.margin_pct = tripCosts.margin_pct;
+        trip.driver_type = tripCosts.driver_type;
     }
 
     const detail = buildTripDetail(trip, { order, driverRecords: drivers, unitRecords: units, events, exceptions });

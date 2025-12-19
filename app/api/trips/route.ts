@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import pool from "@/lib/db";
 import type { TripListItem } from "@/lib/types";
+import { calculateTripCost, type DriverType } from "@/lib/costing";
 
 // ...existing code...
 
@@ -20,7 +21,7 @@ export async function GET(request: Request) {
         FROM trips t
         LEFT JOIN driver_profiles d ON t.driver_id = d.driver_id
         LEFT JOIN unit_profiles u ON t.unit_id = u.unit_id
-        LEFT JOIN orders o ON t.order_id = o.id::text
+        LEFT JOIN orders o ON t.order_id = o.id
       `;
       
       if (statusFilter === "closed") {
@@ -144,6 +145,8 @@ export async function POST(request: Request) {
     try {
       let stops = inputStops;
       let driverId = inputDriverId;
+      let driverType: DriverType = 'RNR'; // Default
+      let calculatedMiles = miles || 0;
 
       // Quick Create Logic: Populate missing data
       if (!stops && orderId) {
@@ -154,6 +157,11 @@ export async function POST(request: Request) {
                  { sequence: 1, stopType: 'Pickup', name: order.pickup_location, scheduledAt: order.pickup_time },
                  { sequence: 2, stopType: 'Delivery', name: order.dropoff_location, scheduledAt: order.dropoff_time }
              ];
+             
+             // Try to get miles from order if not provided
+             if (!calculatedMiles && order.lane_miles) {
+                 calculatedMiles = Number(order.lane_miles);
+             }
          }
       }
 
@@ -163,10 +171,40 @@ export async function POST(request: Request) {
           const unitRes = await client.query('SELECT unit_number FROM unit_profiles WHERE unit_id = $1', [unitId]);
           if (unitRes.rows.length > 0) {
               const unitNumber = unitRes.rows[0].unit_number;
-              const driverRes = await client.query('SELECT driver_id FROM driver_profiles WHERE unit_number = $1', [unitNumber]);
+              const driverRes = await client.query('SELECT driver_id, driver_type FROM driver_profiles WHERE unit_number = $1', [unitNumber]);
               if (driverRes.rows.length > 0) {
                   driverId = driverRes.rows[0].driver_id;
+                  driverType = (driverRes.rows[0].driver_type as DriverType) || 'RNR';
               }
+          }
+      } else if (driverId) {
+          const driverRes = await client.query('SELECT driver_type FROM driver_profiles WHERE driver_id = $1', [driverId]);
+          if (driverRes.rows.length > 0) {
+              driverType = (driverRes.rows[0].driver_type as DriverType) || 'RNR';
+          }
+      }
+
+      // Calculate costs if missing but we have enough info
+      let finalCost = Number(totalCost) || 0;
+      let finalRevenue = Number(totalRevenue) || 0;
+      let finalCpm = Number(totalCpm) || 0;
+
+      if (finalCost === 0 && calculatedMiles > 0 && driverId) {
+          const pickupStop = stops?.find((s: any) => s.stopType === 'Pickup');
+          const deliveryStop = stops?.find((s: any) => s.stopType === 'Delivery');
+          
+          const costResult = calculateTripCost(
+              driverType,
+              calculatedMiles,
+              pickupStop?.name || '',
+              deliveryStop?.name || '',
+              { pickups: 1, deliveries: 1 }
+          );
+          
+          finalCost = costResult.fullyAllocatedCost;
+          finalCpm = costResult.totalCPM;
+          if (finalRevenue === 0) {
+              finalRevenue = costResult.recommendedRevenue;
           }
       }
 
@@ -214,21 +252,20 @@ export async function POST(request: Request) {
         pickupLocation,
         dropoffLocation,
         plannedStart,
-        miles
+        calculatedMiles
       ]);
 
       const tripId = tripRes.rows[0].id;
 
       // Insert Trip Costs
       // Calculate profit and margin
-      const revenue = Number(totalRevenue) || 0;
-      const cost = Number(totalCost) || 0;
-      const profit = revenue - cost;
-      const marginPct = revenue > 0 ? (profit / revenue) * 100 : 0;
+      const profit = finalRevenue - finalCost;
+      const marginPct = finalRevenue > 0 ? (profit / finalRevenue) * 100 : 0;
 
       await client.query(`
         INSERT INTO trip_costs (
           cost_id,
+          trip_id,
           order_id,
           driver_id,
           unit_id,
@@ -249,7 +286,7 @@ export async function POST(request: Request) {
           $1::uuid,
           $2::uuid,
           $3::uuid,
-          $4,
+          $4::uuid,
           $5,
           $6,
           $7,
@@ -259,23 +296,25 @@ export async function POST(request: Request) {
           $11,
           $12,
           $13,
+          $14,
           NOW(),
           NOW()
         )
       `, [
+        tripId,
         orderId,
         driverId,
         unitId,
-        tripType || 'Unknown',
-        miles || 0,
-        totalCpm || 0,
-        cost,
-        revenue,
+        driverType,
+        calculatedMiles,
+        finalCpm,
+        finalCost,
+        finalRevenue,
         rpm || 0,
         profit,
         marginPct,
         profit > 0,
-        JSON.stringify({ method: 'manual_booking' })
+        JSON.stringify({ method: 'manual_booking_auto_calc' })
       ]);
 
       // Insert Stops

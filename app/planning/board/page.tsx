@@ -31,7 +31,7 @@ function DraggableOrder({ order }: { order: OrderListItem }) {
       style={style} 
       {...listeners} 
       {...attributes} 
-      className="group p-3 mb-3 bg-zinc-900 border border-zinc-800 rounded-md shadow-sm cursor-move hover:border-zinc-600 hover:bg-zinc-800 transition-colors"
+      className="group w-full p-3 mb-3 bg-zinc-900 border border-zinc-800 rounded-md shadow-sm cursor-move hover:border-zinc-600 hover:bg-zinc-800 transition-colors"
     >
       <div className="flex justify-between items-start mb-2 gap-2">
         <span className="font-mono text-xs text-blue-400 font-medium truncate flex-1 min-w-0" title={order.orderNumber || order.reference}>
@@ -303,12 +303,12 @@ export default function PlanningBoardPage() {
       <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         <div className="flex flex-1 overflow-hidden">
           {/* Left Panel: Unassigned Orders */}
-          <div className="w-96 flex flex-col border-r border-zinc-800 bg-zinc-950/50 min-h-0">
+          <div className="w-[420px] flex flex-col border-r border-zinc-800 bg-zinc-950/50 min-h-0">
             <div className="p-4 border-b border-zinc-800 bg-zinc-950 shrink-0">
               <h2 className="text-sm font-medium text-zinc-400 uppercase tracking-wider">Unassigned Orders</h2>
             </div>
             <ScrollArea className="flex-1">
-              <div className="p-4">
+              <div className="p-4 pr-6">
                 {orders.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-40 text-zinc-600">
                       <Package className="w-8 h-8 mb-2 opacity-20" />

@@ -150,6 +150,7 @@ export interface TripCost {
 
 // Cost calculation request
 export interface CostCalculationRequest {
+  trip_id?: string;
   order_id: string;
   driver_id?: string;
   unit_number?: string;

@@ -84,15 +84,15 @@ async function seed() {
       // Insert Driver
       await client.query(`
         INSERT INTO driver_profiles (
-          driver_id, driver_name, unit_number, driver_type, region, is_active, created_at, updated_at
-        ) VALUES ($1, $2, $3, $4, $5, true, NOW(), NOW())
+          driver_id, driver_name, unit_number, driver_type, region, is_active, status, created_at, updated_at
+        ) VALUES ($1, $2, $3, $4, $5, true, 'active', NOW(), NOW())
       `, [driverId, row.driver, row.unit, row.type, row.region]);
 
       // Insert Unit
       await client.query(`
         INSERT INTO unit_profiles (
-          unit_id, unit_number, driver_id, truck_weekly_cost, region, is_active, created_at, updated_at
-        ) VALUES ($1, $2, $3, $4, $5, true, NOW(), NOW())
+          unit_id, unit_number, driver_id, truck_weekly_cost, region, is_active, current_location, created_at, updated_at
+        ) VALUES ($1, $2, $3, $4, $5, true, NULL, NOW(), NOW())
       `, [unitId, row.unit, driverId, row.truck_wk, row.region]);
     }
 

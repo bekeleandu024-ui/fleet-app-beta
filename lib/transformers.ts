@@ -14,11 +14,13 @@ import type {
 
 const STATUS_MAP: Record<string, OrderStatus> = {
   pending: "New",
+  new: "New",
   planning: "Planning",
   confirmed: "Planning",
   assigned: "Planning",
   in_progress: "In Transit",
   in_transit: "In Transit",
+  "in transit": "In Transit",
   en_route_to_pickup: "Planning",
   at_pickup: "Planning",
   departed_pickup: "In Transit",
@@ -30,6 +32,7 @@ const STATUS_MAP: Record<string, OrderStatus> = {
   exception: "Exception",
   delayed: "At Risk",
   at_risk: "At Risk",
+  "at risk": "At Risk",
 };
 
 const REVERSE_STATUS_MAP: Record<OrderStatus, string> = {

@@ -49,37 +49,39 @@ const orderStatuses = ["New", "Qualifying", "Qualified", "Ready to Book"];
 const orderSources = ["Email", "Phone", "Portal", "EDI", "Manual"];
 const palletTypes = ["Standard (48x40x48)", "Euro (48x40x60)", "Custom"];
 
+const INITIAL_FORM_DATA: OrderFormData = {
+  id: "", // Auto-generated
+  customer: "",
+  origin: "",
+  destination: "",
+  puWindowStart: "",
+  puWindowEnd: "",
+  delWindowStart: "",
+  delWindowEnd: "",
+  requiredTruck: "Dry Van",
+  notes: "",
+  status: "New",
+  qualificationNotes: "",
+  source: "Manual",
+  customerId: "",
+  pickup: "",
+  delivery: "",
+  totalWeight: "",
+  totalPallets: "",
+  stackable: false,
+  cubicFeet: "",
+  linearFeet: "",
+  palletDimensions: "Standard (48x40x48)",
+  customPalletWidth: "",
+  customPalletLength: "",
+  customPalletHeight: "",
+};
+
 export default function CreateOrderPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
 
-  const [formData, setFormData] = useState<OrderFormData>({
-    id: "", // Auto-generated
-    customer: "",
-    origin: "",
-    destination: "",
-    puWindowStart: "",
-    puWindowEnd: "",
-    delWindowStart: "",
-    delWindowEnd: "",
-    requiredTruck: "Dry Van",
-    notes: "",
-    status: "New",
-    qualificationNotes: "",
-    source: "Manual",
-    customerId: "",
-    pickup: "",
-    delivery: "",
-    totalWeight: "",
-    totalPallets: "",
-    stackable: false,
-    cubicFeet: "",
-    linearFeet: "",
-    palletDimensions: "Standard (48x40x48)",
-    customPalletWidth: "",
-    customPalletLength: "",
-    customPalletHeight: "",
-  });
+  const [formData, setFormData] = useState<OrderFormData>(INITIAL_FORM_DATA);
 
   const [estimatedCost, setEstimatedCost] = useState<number | null>(null);
   const [calculatedDistance, setCalculatedDistance] = useState<number | null>(null);
@@ -98,7 +100,14 @@ export default function CreateOrderPage() {
     mutationFn: (payload: OrderAdminCreate) => createAdminOrder(payload),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.orders() });
-      router.push(`/orders/${data.id}`);
+      // Reset form instead of redirecting
+      setFormData(INITIAL_FORM_DATA);
+      setEstimatedCost(null);
+      setCalculatedDistance(null);
+      setOcrText("");
+      setAiSuggestions([]);
+      setValidationErrors([]);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     },
     onError: (error: any) => {
       console.error("Failed to create order:", error);
