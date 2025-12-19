@@ -32,6 +32,10 @@ interface Order {
   pickupWindowEnd?: string;
   deliveryWindowStart?: string;
   deliveryWindowEnd?: string;
+  totalWeight?: number;
+  totalPallets?: number;
+  cubicFeet?: number;
+  linearFeetRequired?: number;
 }
 
 interface Driver {
@@ -54,6 +58,9 @@ interface Unit {
   status: string;
   driverType?: string;
   recommended?: boolean;
+  maxWeight?: number;
+  maxCube?: number;
+  linearFeet?: number;
 }
 
 interface RateCard {
@@ -498,6 +505,23 @@ function BookTripContent() {
     }
   };
 
+  const validateCapacity = (order: Order | null, unit: Unit) => {
+    if (!order) return { valid: true, errors: [] };
+    
+    const errors: string[] = [];
+    if (order.totalWeight && unit.maxWeight && order.totalWeight > unit.maxWeight) {
+      errors.push(`Weight: ${order.totalWeight} > ${unit.maxWeight}`);
+    }
+    if (order.cubicFeet && unit.maxCube && order.cubicFeet > unit.maxCube) {
+      errors.push(`Cube: ${order.cubicFeet} > ${unit.maxCube}`);
+    }
+    if (order.linearFeetRequired && unit.linearFeet && order.linearFeetRequired > unit.linearFeet) {
+      errors.push(`Length: ${order.linearFeetRequired} > ${unit.linearFeet}`);
+    }
+    
+    return { valid: errors.length === 0, errors };
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedOrder || !driverId || !unitId || !driverType) {
@@ -918,7 +942,11 @@ function BookTripContent() {
               Available Units
             </h3>
             <div className="space-y-1 max-h-[180px] overflow-y-auto">
-              {units.map(unit => (
+              {units.map(unit => {
+                const validation = validateCapacity(selectedOrder, unit);
+                const isCompatible = validation.valid;
+                
+                return (
                 <div
                   key={unit.id}
                   onClick={() => setUnitId(unit.id)}
@@ -932,13 +960,23 @@ function BookTripContent() {
                 >
                   <div className="flex justify-between items-start">
                     <p className="text-[11px] font-semibold text-white leading-tight">{unit.code}</p>
-                    {unit.status === 'Busy' && (
-                      <span className="text-[8px] bg-amber-900/30 text-amber-500 px-1 rounded">BUSY</span>
-                    )}
+                    <div className="flex gap-1">
+                      {!isCompatible && (
+                        <span className="text-[8px] bg-rose-900/30 text-rose-500 px-1 rounded" title={validation.errors.join('\n')}>CAPACITY</span>
+                      )}
+                      {unit.status === 'Busy' && (
+                        <span className="text-[8px] bg-amber-900/30 text-amber-500 px-1 rounded">BUSY</span>
+                      )}
+                    </div>
                   </div>
                   <p className="text-[9px] text-zinc-400 mt-0.5">{unit.type} • {unit.status}</p>
+                  {unitId === unit.id && !isCompatible && (
+                     <div className="mt-1 text-[9px] text-rose-400">
+                       {validation.errors[0]}
+                     </div>
+                  )}
                 </div>
-              ))}
+              )})}
               {units.length === 0 && (
                 <p className="text-xs text-zinc-500 text-center py-4">No units available</p>
               )}

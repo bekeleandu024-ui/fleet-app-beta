@@ -3,7 +3,7 @@
 import { useState, type ReactNode, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Calculator, Send, FileText, Upload, Sparkles, Truck, Calendar, MapPin } from "lucide-react";
+import { ArrowLeft, Calculator, Send, FileText, Upload, Sparkles, Truck, Calendar, MapPin, Package } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -33,11 +33,21 @@ interface OrderFormData {
   customerId: string;
   pickup?: string;
   delivery?: string;
+  totalWeight: string;
+  totalPallets: string;
+  stackable: boolean;
+  cubicFeet: string;
+  linearFeet: string;
+  palletDimensions: string;
+  customPalletWidth: string;
+  customPalletLength: string;
+  customPalletHeight: string;
 }
 
 const truckTypes = ["Dry Van", "Flatbed", "Reefer", "Step Deck", "Box Truck", "Tanker"];
 const orderStatuses = ["New", "Qualifying", "Qualified", "Ready to Book"];
 const orderSources = ["Email", "Phone", "Portal", "EDI", "Manual"];
+const palletTypes = ["Standard (48x40x48)", "Euro (48x40x60)", "Custom"];
 
 export default function CreateOrderPage() {
   const router = useRouter();
@@ -60,6 +70,15 @@ export default function CreateOrderPage() {
     customerId: "",
     pickup: "",
     delivery: "",
+    totalWeight: "",
+    totalPallets: "",
+    stackable: false,
+    cubicFeet: "",
+    linearFeet: "",
+    palletDimensions: "Standard (48x40x48)",
+    customPalletWidth: "",
+    customPalletLength: "",
+    customPalletHeight: "",
   });
 
   const [estimatedCost, setEstimatedCost] = useState<number | null>(null);
@@ -139,6 +158,38 @@ export default function CreateOrderPage() {
     // Also validate with AI
     await validateWithAI();
   };
+
+  // Auto-calculate capacity
+  useEffect(() => {
+    const pallets = parseFloat(formData.totalPallets) || 0;
+    if (pallets === 0) return;
+
+    let length = 48; // inches
+    let width = 40; // inches
+    let height = 48; // inches
+
+    if (formData.palletDimensions.includes("Euro")) {
+      height = 60;
+    } else if (formData.palletDimensions === "Custom") {
+      length = parseFloat(formData.customPalletLength) || 0;
+      width = parseFloat(formData.customPalletWidth) || 0;
+      height = parseFloat(formData.customPalletHeight) || 0;
+    }
+
+    if (length > 0 && width > 0 && height > 0) {
+      // Linear Feet Calculation
+      // Standard loading: 2 pallets wide
+      const palletsPerRow = 2;
+      const rows = Math.ceil(pallets / (palletsPerRow * (formData.stackable ? 2 : 1)));
+      const linearFeet = rows * (length / 12);
+      
+      setFormData(prev => ({ ...prev, linearFeet: linearFeet.toFixed(1) }));
+
+      // Cubic Feet Calculation
+      const cubicFeet = (length * width * height / 1728) * pallets;
+      setFormData(prev => ({ ...prev, cubicFeet: cubicFeet.toFixed(0) }));
+    }
+  }, [formData.totalPallets, formData.stackable, formData.palletDimensions, formData.customPalletLength, formData.customPalletWidth, formData.customPalletHeight]);
 
   // AI-powered OCR parsing
   const handleOcrPaste = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
@@ -357,6 +408,14 @@ export default function CreateOrderPage() {
       serviceLevel: formData.requiredTruck,
       commodity: "General Freight",
       laneMiles: calculatedDistance || calculateMiles(formData.origin, formData.destination),
+      totalWeight: parseFloat(formData.totalWeight) || 0,
+      totalPallets: parseFloat(formData.totalPallets) || 0,
+      palletDimensions: formData.palletDimensions === "Custom" 
+        ? { length: formData.customPalletLength, width: formData.customPalletWidth, height: formData.customPalletHeight }
+        : formData.palletDimensions,
+      stackable: formData.stackable,
+      cubicFeet: parseFloat(formData.cubicFeet) || 0,
+      linearFeetRequired: parseFloat(formData.linearFeet) || 0,
     };
 
     createMutation.mutate(payload);
@@ -623,6 +682,108 @@ export default function CreateOrderPage() {
                   </Select>
                 </div>
               </FormField>
+
+              {/* Capacity & Dimensions */}
+              <div className="space-y-3 pt-4 border-t border-zinc-800/50">
+                <div className="flex items-center gap-2 mb-2">
+                  <Package className="w-4 h-4 text-blue-400" />
+                  <h3 className="text-sm font-semibold text-zinc-200">Capacity & Dimensions</h3>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <FormField label="Total Weight (lbs)" required>
+                    <Input
+                      type="number"
+                      placeholder="e.g. 45000"
+                      value={formData.totalWeight}
+                      onChange={(e) => handleInputChange("totalWeight", e.target.value)}
+                      className="bg-black/20 border-zinc-800 text-zinc-300 focus:border-blue-900/50"
+                    />
+                  </FormField>
+                  <FormField label="Total Pallets" required>
+                    <Input
+                      type="number"
+                      placeholder="e.g. 26"
+                      value={formData.totalPallets}
+                      onChange={(e) => handleInputChange("totalPallets", e.target.value)}
+                      className="bg-black/20 border-zinc-800 text-zinc-300 focus:border-blue-900/50"
+                    />
+                  </FormField>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <FormField label="Pallet Dimensions">
+                    <Select
+                      value={formData.palletDimensions}
+                      onChange={(e) => handleInputChange("palletDimensions", e.target.value)}
+                      className="bg-black/20 border-zinc-800 text-zinc-300 focus:border-blue-900/50"
+                    >
+                      {palletTypes.map((type) => (
+                        <option key={type} value={type}>{type}</option>
+                      ))}
+                    </Select>
+                  </FormField>
+                  <div className="flex items-center h-full pt-6">
+                    <label className="flex items-center gap-2 text-sm text-zinc-300 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formData.stackable}
+                        onChange={(e) => setFormData(prev => ({ ...prev, stackable: e.target.checked }))}
+                        className="rounded border-zinc-700 bg-zinc-900 text-blue-600 focus:ring-blue-900"
+                      />
+                      Stackable?
+                    </label>
+                  </div>
+                </div>
+
+                {formData.palletDimensions === "Custom" && (
+                  <div className="grid grid-cols-3 gap-2">
+                    <FormField label="Length (in)">
+                      <Input
+                        type="number"
+                        value={formData.customPalletLength}
+                        onChange={(e) => handleInputChange("customPalletLength", e.target.value)}
+                        className="bg-black/20 border-zinc-800 text-zinc-300 focus:border-blue-900/50"
+                      />
+                    </FormField>
+                    <FormField label="Width (in)">
+                      <Input
+                        type="number"
+                        value={formData.customPalletWidth}
+                        onChange={(e) => handleInputChange("customPalletWidth", e.target.value)}
+                        className="bg-black/20 border-zinc-800 text-zinc-300 focus:border-blue-900/50"
+                      />
+                    </FormField>
+                    <FormField label="Height (in)">
+                      <Input
+                        type="number"
+                        value={formData.customPalletHeight}
+                        onChange={(e) => handleInputChange("customPalletHeight", e.target.value)}
+                        className="bg-black/20 border-zinc-800 text-zinc-300 focus:border-blue-900/50"
+                      />
+                    </FormField>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-3">
+                  <FormField label="Cubic Feet">
+                    <Input
+                      type="number"
+                      value={formData.cubicFeet}
+                      onChange={(e) => handleInputChange("cubicFeet", e.target.value)}
+                      className="bg-black/20 border-zinc-800 text-zinc-300 focus:border-blue-900/50"
+                    />
+                  </FormField>
+                  <FormField label="Linear Feet Required">
+                    <Input
+                      type="number"
+                      value={formData.linearFeet}
+                      onChange={(e) => handleInputChange("linearFeet", e.target.value)}
+                      className="bg-black/20 border-zinc-800 text-zinc-300 focus:border-blue-900/50"
+                    />
+                  </FormField>
+                </div>
+              </div>
 
               {/* Notes */}
               <FormField label="Notes">

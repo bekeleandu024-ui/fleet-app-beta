@@ -295,6 +295,7 @@ export async function updateTripStatus(
     updates.push("pickup_departure = $" + (values.length + 1));
     values.push(now);
     await markStopTimestamp(tripId, "pickup", "departed_at", now);
+    await updateTripCapacity(tripId, "add");
   }
   if (nextStatus === TripStatus.AT_DELIVERY) {
     updates.push("delivery_arrival = $" + (values.length + 1));
@@ -305,6 +306,7 @@ export async function updateTripStatus(
     updates.push("delivery_departure = $" + (values.length + 1));
     values.push(now);
     await markStopTimestamp(tripId, "delivery", "departed_at", now);
+    await updateTripCapacity(tripId, "remove");
   }
   if (nextStatus === TripStatus.COMPLETED) {
     updates.push("completed_at = $" + (values.length + 1));
@@ -599,4 +601,88 @@ function isUsLocation(value: string): boolean {
 
 function normalizeLocation(value: string): string {
   return value?.toLowerCase?.() ?? "";
+}
+
+async function updateTripCapacity(tripId: string, action: "add" | "remove") {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    
+    // Get trip and order details
+    const tripRes = await client.query("SELECT order_id, current_weight, current_cube, current_linear_feet FROM trips WHERE id = $1", [tripId]);
+    const trip = tripRes.rows[0];
+    
+    if (!trip || !trip.order_id) {
+      await client.query("ROLLBACK");
+      return;
+    }
+    
+    const orderRes = await client.query("SELECT total_weight, cubic_feet, linear_feet_required FROM orders WHERE id = $1", [trip.order_id]);
+    const order = orderRes.rows[0];
+    
+    if (!order) {
+      await client.query("ROLLBACK");
+      return;
+    }
+    
+    const weight = parseFloat(order.total_weight || 0);
+    const cube = parseFloat(order.cubic_feet || 0);
+    const linear = parseFloat(order.linear_feet_required || 0);
+    
+    let newWeight = parseFloat(trip.current_weight || 0);
+    let newCube = parseFloat(trip.current_cube || 0);
+    let newLinear = parseFloat(trip.current_linear_feet || 0);
+    
+    if (action === "add") {
+      newWeight += weight;
+      newCube += cube;
+      newLinear += linear;
+    } else {
+      newWeight = Math.max(0, newWeight - weight);
+      newCube = Math.max(0, newCube - cube);
+      newLinear = Math.max(0, newLinear - linear);
+    }
+    
+    // Get unit capacity to calculate utilization
+    const unitRes = await client.query(`
+      SELECT u.max_weight, u.max_cube, u.linear_feet 
+      FROM trips t 
+      JOIN unit_profiles u ON t.unit_id = u.unit_id 
+      WHERE t.id = $1
+    `, [tripId]);
+    
+    let utilization = 0;
+    let limitingFactor = null;
+    
+    if (unitRes.rows.length > 0) {
+      const unit = unitRes.rows[0];
+      const maxWeight = parseFloat(unit.max_weight || 45000);
+      const maxCube = parseFloat(unit.max_cube || 3900);
+      const maxLinear = parseFloat(unit.linear_feet || 53);
+      
+      const weightPct = (newWeight / maxWeight) * 100;
+      const cubePct = (newCube / maxCube) * 100;
+      const linearPct = (newLinear / maxLinear) * 100;
+      
+      utilization = Math.max(weightPct, cubePct, linearPct);
+      
+      if (utilization === weightPct) limitingFactor = "Weight";
+      else if (utilization === cubePct) limitingFactor = "Cube";
+      else limitingFactor = "Linear Feet";
+    }
+    
+    await client.query(`
+      UPDATE trips 
+      SET current_weight = $1, current_cube = $2, current_linear_feet = $3, 
+          utilization_percent = $4, limiting_factor = $5
+      WHERE id = $6
+    `, [newWeight, newCube, newLinear, utilization, limitingFactor, tripId]);
+    
+    await client.query("COMMIT");
+  } catch (err) {
+    await client.query("ROLLBACK");
+    console.error("Failed to update trip capacity:", err);
+  } finally {
+    client.release();
+  }
 }

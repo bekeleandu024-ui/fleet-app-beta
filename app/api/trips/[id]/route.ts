@@ -94,7 +94,7 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
       FROM driver_profiles d
       LEFT JOIN unit_profiles u ON d.unit_number = u.unit_number
     `;
-    const unitsQuery = `SELECT unit_id as id, unit_number, truck_weekly_cost, region FROM unit_profiles`;
+    const unitsQuery = `SELECT unit_id as id, unit_number, truck_weekly_cost, region, max_weight, max_cube, linear_feet, unit_type FROM unit_profiles`;
     const tripNumberQuery = `SELECT trip_number FROM trips WHERE id = $1`;
 
     const [orderResult, driversResult, unitsResult, eventsResult, exceptionsResult, tripNumberResult] = await Promise.allSettled([
@@ -214,6 +214,14 @@ function buildTripDetail(
       recommendedRevenue: trip.recommended_revenue ?? trip.revenue,
       marginPct: trip.margin_pct ?? trip.margin,
     },
+    currentWeight: trip.current_weight ? parseFloat(trip.current_weight) : 0,
+    currentCube: trip.current_cube ? parseFloat(trip.current_cube) : 0,
+    currentLinearFeet: trip.current_linear_feet ? parseFloat(trip.current_linear_feet) : 0,
+    utilizationPercent: trip.utilization_percent ? parseFloat(trip.utilization_percent) : 0,
+    limitingFactor: trip.limiting_factor,
+    maxWeight: unit?.max_weight ? parseFloat(unit.max_weight) : 45000,
+    maxCube: unit?.max_cube ? parseFloat(unit.max_cube) : 3900,
+    maxLinearFeet: unit?.linear_feet ? parseFloat(unit.linear_feet) : 53,
     timeline,
     exceptions: exceptionItems,
     telemetry: {

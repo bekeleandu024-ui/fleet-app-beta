@@ -302,6 +302,14 @@ export const tripDetailSchema = z.object({
       marginPct: z.coerce.number().optional(),
     })
     .optional(),
+  currentWeight: z.number().optional(),
+  currentCube: z.number().optional(),
+  currentLinearFeet: z.number().optional(),
+  utilizationPercent: z.number().optional(),
+  limitingFactor: z.string().optional(),
+  maxWeight: z.number().optional(),
+  maxCube: z.number().optional(),
+  maxLinearFeet: z.number().optional(),
 });
 export type TripDetail = z.infer<typeof tripDetailSchema>;
 
@@ -585,6 +593,12 @@ export const orderAdminSchema = z.object({
   serviceLevel: z.string(),
   commodity: z.string(),
   laneMiles: z.number(),
+  totalWeight: z.number().optional(),
+  totalPallets: z.number().optional(),
+  palletDimensions: z.any().optional(),
+  stackable: z.boolean().optional(),
+  cubicFeet: z.number().optional(),
+  linearFeetRequired: z.number().optional(),
 });
 export type OrderAdminRecord = z.infer<typeof orderAdminSchema>;
 export type OrderAdminCreate = Omit<OrderAdminRecord, "id"> & { id?: string };

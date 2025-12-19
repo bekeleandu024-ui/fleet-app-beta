@@ -49,8 +49,12 @@ export async function createOrder(request: CreateOrderRequest): Promise<Order> {
     );
 
     const result = await client.query(
-      `INSERT INTO orders (id, customer_id, order_type, status, pickup_location, dropoff_location, pickup_time, special_instructions)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      `INSERT INTO orders (
+        id, customer_id, order_type, status, pickup_location, dropoff_location, 
+        pickup_time, special_instructions,
+        total_weight, total_pallets, pallet_dimensions, stackable, cubic_feet, linear_feet_required
+      )
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
        RETURNING *`,
       [
         orderId,
@@ -61,6 +65,12 @@ export async function createOrder(request: CreateOrderRequest): Promise<Order> {
         request.dropoff_location,
         request.pickup_time || null,
         request.special_instructions || null,
+        request.total_weight || 0,
+        request.total_pallets || 0,
+        JSON.stringify(request.pallet_dimensions || []),
+        request.stackable || false,
+        request.cubic_feet || 0,
+        request.linear_feet_required || 0
       ]
     );
 

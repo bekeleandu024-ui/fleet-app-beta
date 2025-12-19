@@ -24,6 +24,12 @@ export interface Order {
   dropoff_time?: Date;
   special_instructions?: string;
   estimated_cost?: number;
+  total_weight?: number;
+  total_pallets?: number;
+  pallet_dimensions?: any;
+  stackable?: boolean;
+  cubic_feet?: number;
+  linear_feet_required?: number;
   created_at: Date;
   updated_at: Date;
 }
@@ -35,4 +41,10 @@ export interface CreateOrderRequest {
   dropoff_location: string;
   pickup_time?: string;
   special_instructions?: string;
+  total_weight?: number;
+  total_pallets?: number;
+  pallet_dimensions?: any;
+  stackable?: boolean;
+  cubic_feet?: number;
+  linear_feet_required?: number;
 }

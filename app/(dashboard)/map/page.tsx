@@ -587,6 +587,28 @@ export default function MapPage() {
                     <div className="text-xs text-zinc-200 truncate">{selectedItem.location || "Unknown"}</div>
                   </div>
 
+                  {(selectedItem.utilizationPercent !== undefined) && (
+                    <div className="p-2 rounded bg-black border border-zinc-800">
+                      <div className="flex justify-between items-center mb-1">
+                        <div className="text-[10px] text-zinc-500">Capacity</div>
+                        <div className="text-[10px] font-bold text-zinc-300">{Math.round(selectedItem.utilizationPercent)}%</div>
+                      </div>
+                      <div className="w-full bg-zinc-800 rounded-full h-1.5 mb-1">
+                        <div 
+                          className={`h-1.5 rounded-full ${
+                            selectedItem.utilizationPercent > 90 ? 'bg-orange-500' : 
+                            selectedItem.utilizationPercent > 70 ? 'bg-yellow-500' : 'bg-emerald-500'
+                          }`} 
+                          style={{ width: `${Math.min(100, selectedItem.utilizationPercent)}%` }}
+                        />
+                      </div>
+                      <div className="flex justify-between text-[9px] text-zinc-500">
+                        <span>{selectedItem.currentWeight?.toLocaleString()} lbs</span>
+                        <span>{selectedItem.limitingFactor ? `Limit: ${selectedItem.limitingFactor}` : ''}</span>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="flex gap-2">
                     <Button
                       size="sm"

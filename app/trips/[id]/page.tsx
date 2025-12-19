@@ -15,11 +15,13 @@ import {
   NotebookPen,
   Package,
   Sparkles,
+  Search,
 } from "lucide-react";
 
 import { TripTicket } from "@/components/trips/trip-ticket";
 import { DriverCostComparison } from "@/components/trips/driver-cost-comparison";
 import { CostingBreakdown } from "@/components/costing/costing-breakdown";
+import { CapacityGauge } from "@/components/trips/capacity-gauge";
 import AIInsights from "@/components/AIInsights";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -163,6 +165,25 @@ export default function TripDetailPage() {
                   />
                 </div>
               </div>
+            </div>
+
+            <div className="border-b border-neutral-800 pb-4">
+               <CapacityGauge 
+                 currentWeight={data.currentWeight || 0}
+                 maxWeight={data.maxWeight || 45000}
+                 currentCube={data.currentCube || 0}
+                 maxCube={data.maxCube || 3900}
+                 currentLinearFeet={data.currentLinearFeet || 0}
+                 maxLinearFeet={data.maxLinearFeet || 53}
+                 utilizationPercent={data.utilizationPercent || 0}
+                 limitingFactor={data.limitingFactor}
+               />
+               <div className="mt-3">
+                 <Button variant="outline" size="sm" className="w-full text-xs border-dashed border-zinc-700 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800">
+                   <Search className="w-3 h-3 mr-2" />
+                   Find Compatible Orders
+                 </Button>
+               </div>
             </div>
 
             <div>
