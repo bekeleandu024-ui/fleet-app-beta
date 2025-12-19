@@ -21,14 +21,14 @@ interface VehicleRoute {
 
 // --- Helper: Color Palette for Routes ---
 const ROUTE_COLORS = [
-  '#2563EB', // Blue
-  '#DC2626', // Red
-  '#16A34A', // Green
-  '#9333EA', // Purple
-  '#EA580C', // Orange
-  '#0891B2', // Cyan
-  '#DB2777', // Pink
-  '#CA8A04', // Yellow
+  '#3B82F6', // Blue 500 (Brighter for Dark Mode)
+  '#EF4444', // Red 500
+  '#22C55E', // Green 500
+  '#A855F7', // Purple 500
+  '#F97316', // Orange 500
+  '#06B6D4', // Cyan 500
+  '#EC4899', // Pink 500
+  '#EAB308', // Yellow 500
 ];
 
 function RoutePolyline({ path, color }: { path: google.maps.LatLngLiteral[], color: string }) {

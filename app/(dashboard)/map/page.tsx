@@ -47,35 +47,78 @@ type FleetItem = {
 
 // --- Helper Components ---
 
-function FleetMarker({ item, onClick }: { item: FleetItem, onClick: () => void }) {
+function FleetMarker({ item, onClick, isDimmed }: { item: FleetItem, onClick: (pos: { lat: number; lng: number }) => void, isDimmed?: boolean }) {
   const map = useMap();
+  const geocodingLib = useMapsLibrary("geocoding");
   const [icon, setIcon] = useState<google.maps.Symbol | undefined>(undefined);
+  const [position, setPosition] = useState<{ lat: number; lng: number } | null>(
+    item.lat !== 0 && item.lng !== 0 ? { lat: item.lat, lng: item.lng } : null
+  );
+
+  useEffect(() => {
+    if (item.lat !== 0 && item.lng !== 0) {
+      setPosition({ lat: item.lat, lng: item.lng });
+    } else if (item.location && geocodingLib) {
+      const geocoder = new geocodingLib.Geocoder();
+      geocoder.geocode({ address: item.location }, (results, status) => {
+        if (status === "OK" && results && results[0]) {
+          const loc = results[0].geometry.location;
+          setPosition({ lat: loc.lat(), lng: loc.lng() });
+        }
+      });
+    }
+  }, [item.lat, item.lng, item.location, geocodingLib]);
 
   useEffect(() => {
     if (!map || typeof google === 'undefined' || !google.maps || !google.maps.Point) return;
     
-    const color = item.type === "staged" ? "#3b82f6" : 
-                  item.status === "in_transit" ? "#10b981" : 
-                  "#f59e0b";
+    // Updated colors for Dark Mode High Contrast
+    let color = "#F59E0B"; // Default Bright Orange/Amber
+    
+    if (item.type === "staged") {
+      color = "#3B82F6"; // Bright Blue
+    } else if (item.status === "Available") {
+      color = "#10B981"; // Bright Green
+    } else if (item.status === "in_transit" || item.status === "departed_pickup") {
+      color = "#F59E0B"; // Bright Orange
+    } else if (item.status === "at_pickup" || item.status === "at_delivery" || item.status === "en_route_to_pickup") {
+      color = "#3B82F6"; // Bright Blue
+    } else if (item.status === "delayed") {
+      color = "#EF4444"; // Bright Red
+    } else if (item.status === "assigned" || item.status === "planned") {
+      color = "#3B82F6"; // Bright Blue
+    } else if (item.status === "off_duty") {
+      color = "#6B7280"; // Medium Gray
+    }
 
     setIcon({
       path: "M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z",
       fillColor: color,
-      fillOpacity: 1,
+      fillOpacity: isDimmed ? 0.3 : 1,
       strokeWeight: 1,
       strokeColor: "#ffffff",
+      strokeOpacity: isDimmed ? 0.3 : 1,
       scale: 1.5,
       anchor: new google.maps.Point(12, 24),
     });
-  }, [map, item.type, item.status]);
+  }, [map, item.type, item.status, isDimmed]);
 
-  if (!icon) return null;
+  if (!icon || !position) return null;
 
   return (
     <Marker
-      position={{ lat: item.lat, lng: item.lng }}
-      onClick={onClick}
+      position={position}
+      onClick={() => onClick(position)}
       icon={icon}
+      label={item.unitNumber ? {
+        text: item.unitNumber,
+        color: "white",
+        fontSize: "10px",
+        fontWeight: "bold",
+        className: "bg-black/50 px-1 rounded"
+      } : undefined}
+      opacity={isDimmed ? 0.3 : 1}
+      zIndex={isDimmed ? 1 : 10}
     />
   );
 }
@@ -102,9 +145,9 @@ function Directions({
       suppressMarkers: true,
       preserveViewport: false,
       polylineOptions: {
-        strokeColor: "#10b981", // Emerald-500
-        strokeWeight: 4,
-        strokeOpacity: 0.8
+        strokeColor: "#06b6d4", // Cyan-500 (High contrast)
+        strokeWeight: 6,
+        strokeOpacity: 0.9
       }
     });
     setDirectionsService(ds);
@@ -131,13 +174,24 @@ function Directions({
   return null;
 }
 
-function MapUpdater({ center }: { center: { lat: number; lng: number } }) {
+function MapController({ center }: { center: { lat: number; lng: number } }) {
   const map = useMap();
+  
   useEffect(() => {
     if (map) {
-      map.panTo(center);
+      const current = map.getCenter();
+      if (!current) return;
+      
+      const latDiff = Math.abs(current.lat() - center.lat);
+      const lngDiff = Math.abs(current.lng() - center.lng);
+      
+      // Only pan if difference is significant to avoid fighting with user drag
+      if (latDiff > 0.0001 || lngDiff > 0.0001) {
+        map.panTo(center);
+      }
     }
   }, [map, center]);
+  
   return null;
 }
 
@@ -176,6 +230,7 @@ export default function MapPage() {
   const [fleetLocations, setFleetLocations] = useState<FleetItem[]>([]);
   const [selectedItem, setSelectedItem] = useState<FleetItem | null>(null);
   const [mapCenter, setMapCenter] = useState({ lat: 43.6532, lng: -79.3832 });
+  const [zoom, setZoom] = useState(7);
   const [viewMode, setViewMode] = useState<"all" | "trips" | "staged">("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [showRoute, setShowRoute] = useState(false);
@@ -229,13 +284,38 @@ export default function MapPage() {
   }, [fleetLocations, viewMode, searchQuery]);
 
   // Handlers
-  const handleItemSelect = (item: FleetItem) => {
+  const handleItemSelect = (item: FleetItem, pos?: { lat: number; lng: number }) => {
+    // Set initial state to show the panel immediately
     setSelectedItem(item);
-    setMapCenter({ lat: item.lat, lng: item.lng });
     setShowRoute(false);
     setRouteInfo(null);
     setDestinationCoords(null);
     if (!isSidebarOpen) setIsSidebarOpen(true);
+
+    let targetPos = pos;
+    if (!targetPos && item.lat !== 0 && item.lng !== 0) {
+      targetPos = { lat: item.lat, lng: item.lng };
+    }
+
+    if (targetPos) {
+      setMapCenter(targetPos);
+      setZoom(15);
+      // Ensure selected item has the coords
+      setSelectedItem({ ...item, lat: targetPos.lat, lng: targetPos.lng });
+    } else if (item.location && typeof google !== 'undefined' && google.maps && google.maps.Geocoder) {
+      // Geocode if we don't have coords but have a location string
+      const geocoder = new google.maps.Geocoder();
+      geocoder.geocode({ address: item.location }, (results, status) => {
+        if (status === "OK" && results && results[0]) {
+          const loc = results[0].geometry.location;
+          const newPos = { lat: loc.lat(), lng: loc.lng() };
+          // Update selected item with resolved coords if it's still the selected item
+          setSelectedItem(prev => prev && prev.id === item.id ? { ...prev, lat: newPos.lat, lng: newPos.lng } : prev);
+          setMapCenter(newPos);
+          setZoom(15);
+        }
+      });
+    }
   };
 
   const handleRouteFound = (result: google.maps.DirectionsResult) => {
@@ -351,7 +431,10 @@ export default function MapPage() {
           <div className="border-t border-zinc-800 bg-zinc-900 p-4 animate-in slide-in-from-bottom-10">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-xs font-bold text-zinc-100 uppercase tracking-wider">Selected Asset</h3>
-              <button onClick={() => setSelectedItem(null)} className="text-zinc-500 hover:text-zinc-300">
+              <button onClick={() => {
+                setSelectedItem(null);
+                setZoom(7);
+              }} className="text-zinc-500 hover:text-zinc-300">
                 <X className="h-3.5 w-3.5" />
               </button>
             </div>
@@ -370,10 +453,26 @@ export default function MapPage() {
 
               {selectedItem.type === "trip" && (
                 <div className="space-y-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="p-2 rounded bg-black border border-zinc-800">
+                      <div className="text-[10px] text-zinc-500">Driver</div>
+                      <div className="text-xs text-zinc-200 truncate">{selectedItem.driverName || "Unassigned"}</div>
+                    </div>
+                    <div className="p-2 rounded bg-black border border-zinc-800">
+                      <div className="text-[10px] text-zinc-500">Status</div>
+                      <div className="text-xs text-zinc-200 capitalize">{selectedItem.status.replace(/_/g, " ")}</div>
+                    </div>
+                  </div>
+                  
+                  <div className="p-2 rounded bg-black border border-zinc-800">
+                    <div className="text-[10px] text-zinc-500">Current Location</div>
+                    <div className="text-xs text-zinc-200 truncate">{selectedItem.location || "Unknown"}</div>
+                  </div>
+
                   <Button
                     size="sm"
                     variant="subtle"
-                    className={`w-full h-8 text-xs justify-between ${showRoute ? "bg-emerald-900/20 border-emerald-800 text-emerald-400" : "bg-zinc-800 border-zinc-700 text-zinc-300"}`}
+                    className={`w-full h-8 text-xs justify-between ${showRoute ? "bg-cyan-900/20 border-cyan-800 text-cyan-400" : "bg-zinc-800 border-zinc-700 text-zinc-300"}`}
                     onClick={() => setShowRoute(!showRoute)}
                   >
                     <span>{showRoute ? "Hide Route" : "Show Route"}</span>
@@ -381,18 +480,18 @@ export default function MapPage() {
                   </Button>
                   
                   {showRoute && routeInfo && (
-                    <div className="grid grid-cols-3 gap-1 text-center p-2 rounded bg-emerald-950/30 border border-emerald-900/50">
+                    <div className="grid grid-cols-3 gap-1 text-center p-2 rounded bg-cyan-950/30 border border-cyan-900/50">
                       <div>
                         <div className="text-[9px] text-zinc-500 uppercase">Dist</div>
-                        <div className="text-xs font-bold text-emerald-400">{routeInfo.distance}</div>
+                        <div className="text-xs font-bold text-cyan-400">{routeInfo.distance}</div>
                       </div>
                       <div>
                         <div className="text-[9px] text-zinc-500 uppercase">Time</div>
-                        <div className="text-xs font-bold text-emerald-400">{routeInfo.duration}</div>
+                        <div className="text-xs font-bold text-cyan-400">{routeInfo.duration}</div>
                       </div>
                       <div>
                         <div className="text-[9px] text-zinc-500 uppercase">ETA</div>
-                        <div className="text-xs font-bold text-emerald-400">{routeInfo.eta}</div>
+                        <div className="text-xs font-bold text-cyan-400">{routeInfo.eta}</div>
                       </div>
                     </div>
                   )}
@@ -437,80 +536,165 @@ export default function MapPage() {
           <Map
             defaultZoom={7}
             defaultCenter={mapCenter}
-            disableDefaultUI={true}
+            zoom={zoom}
+            onZoomChanged={(ev) => setZoom(ev.detail.zoom)}
+            onCenterChanged={(ev) => setMapCenter(ev.detail.center)}
+            disableDefaultUI={false}
+            zoomControl={true}
+            mapTypeControl={false}
+            scaleControl={false}
+            streetViewControl={false}
+            rotateControl={false}
+            fullscreenControl={true}
+            gestureHandling={'greedy'}
+            minZoom={4}
+            maxZoom={18}
+            restriction={{
+              latLngBounds: {
+                north: 85,
+                south: -85,
+                west: -180,
+                east: 180
+              }
+            }}
             className="w-full h-full"
             styles={[
-              { elementType: "geometry", stylers: [{ color: "#18181b" }] }, // zinc-950
-              { elementType: "labels.text.stroke", stylers: [{ color: "#18181b" }] },
-              { elementType: "labels.text.fill", stylers: [{ color: "#a1a1aa" }] }, // zinc-400
+              // Night mode styling (Option 2 + Fleet Specifics)
+              { elementType: "geometry", stylers: [{ color: "#1d2c4d" }] },
+              { elementType: "labels.text.fill", stylers: [{ color: "#8ec3b9" }] },
+              { elementType: "labels.text.stroke", stylers: [{ color: "#1a3646" }] },
               {
-                featureType: "administrative",
-                elementType: "geometry",
-                stylers: [{ visibility: "off" }],
+                featureType: "administrative.country",
+                elementType: "geometry.stroke",
+                stylers: [{ color: "#4b6878" }]
+              },
+              {
+                featureType: "administrative.land_parcel",
+                elementType: "labels.text.fill",
+                stylers: [{ color: "#64779e" }]
               },
               {
                 featureType: "administrative.province",
                 elementType: "geometry.stroke",
-                stylers: [{ visibility: "on" }, { color: "#3f3f46" }], // zinc-700
+                stylers: [{ color: "#4b6878" }]
               },
               {
-                featureType: "administrative.country",
+                featureType: "landscape.man_made",
                 elementType: "geometry.stroke",
-                stylers: [{ visibility: "on" }, { color: "#52525b" }], // zinc-600
+                stylers: [{ color: "#334e87" }]
               },
               {
-                featureType: "administrative.locality",
-                elementType: "labels.text.fill",
-                stylers: [{ color: "#e4e4e7" }], // zinc-200
+                featureType: "landscape.natural",
+                elementType: "geometry",
+                stylers: [{ color: "#023e58" }]
+              },
+              {
+                featureType: "poi",
+                elementType: "geometry",
+                stylers: [{ color: "#283d6a" }]
               },
               {
                 featureType: "poi",
                 elementType: "labels.text.fill",
-                stylers: [{ color: "#71717a" }], // zinc-500
+                stylers: [{ color: "#6f9ba5" }]
+              },
+              {
+                featureType: "poi",
+                elementType: "labels.text.stroke",
+                stylers: [{ color: "#1d2c4d" }]
               },
               {
                 featureType: "poi.park",
-                elementType: "geometry",
-                stylers: [{ color: "#27272a" }], // zinc-800
+                elementType: "geometry.fill",
+                stylers: [{ color: "#023e58" }]
+              },
+              {
+                featureType: "poi.park",
+                elementType: "labels.text.fill",
+                stylers: [{ color: "#3C7680" }]
               },
               {
                 featureType: "road",
                 elementType: "geometry",
-                stylers: [{ color: "#3f3f46" }], // zinc-700
+                stylers: [{ color: "#304a7d" }]
               },
               {
                 featureType: "road",
-                elementType: "geometry.stroke",
-                stylers: [{ color: "#27272a" }], // zinc-800
+                elementType: "labels.text.fill",
+                stylers: [{ color: "#98a5be" }]
+              },
+              {
+                featureType: "road",
+                elementType: "labels.text.stroke",
+                stylers: [{ color: "#1d2c4d" }]
               },
               {
                 featureType: "road.highway",
                 elementType: "geometry",
-                stylers: [{ color: "#52525b" }], // zinc-600
+                stylers: [{ color: "#2c6675" }]
               },
               {
                 featureType: "road.highway",
                 elementType: "geometry.stroke",
-                stylers: [{ color: "#27272a" }], // zinc-800
+                stylers: [{ color: "#255763" }]
+              },
+              {
+                featureType: "road.highway",
+                elementType: "labels.text.fill",
+                stylers: [{ color: "#b0d5ce" }]
+              },
+              {
+                featureType: "road.highway",
+                elementType: "labels.text.stroke",
+                stylers: [{ color: "#023e58" }]
+              },
+              {
+                featureType: "transit",
+                elementType: "labels.text.fill",
+                stylers: [{ color: "#98a5be" }]
+              },
+              {
+                featureType: "transit",
+                elementType: "labels.text.stroke",
+                stylers: [{ color: "#1d2c4d" }]
+              },
+              {
+                featureType: "transit.line",
+                elementType: "geometry.fill",
+                stylers: [{ color: "#283d6a" }]
+              },
+              {
+                featureType: "transit.station",
+                elementType: "geometry",
+                stylers: [{ color: "#3a4762" }]
               },
               {
                 featureType: "water",
                 elementType: "geometry",
-                stylers: [{ color: "#09090b" }], // zinc-950 (darker)
+                stylers: [{ color: "#0e1626" }]
               },
               {
                 featureType: "water",
                 elementType: "labels.text.fill",
-                stylers: [{ color: "#52525b" }], // zinc-600
+                stylers: [{ color: "#4e6d70" }]
               },
+              // Specific Fleet Overrides
+              {
+                featureType: "poi",
+                stylers: [{ visibility: "off" }]
+              },
+              {
+                featureType: "transit.station",
+                stylers: [{ visibility: "off" }]
+              }
             ]}
           >
-            <MapUpdater center={mapCenter} />
+            <MapController center={mapCenter} />
             
             {/* Route Rendering */}
             {selectedItem && showRoute && selectedItem.type === "trip" && 
              (selectedItem.deliveryLocation || (selectedItem.deliveryLat && selectedItem.deliveryLng)) && 
-             selectedItem.lat && selectedItem.lng && (
+             (selectedItem.lat !== 0 || selectedItem.lng !== 0) && (
                <>
                  <Directions 
                    origin={{ lat: selectedItem.lat, lng: selectedItem.lng }}
@@ -526,15 +710,17 @@ export default function MapPage() {
             )}
             
             {/* Markers */}
-            {filteredItems.map((item) => (
-              item.lat && item.lng ? (
+            {filteredItems.map((item) => {
+              const isDimmed = selectedItem ? item.id !== selectedItem.id : false;
+              return (item.lat && item.lng) || item.location ? (
                 <FleetMarker
                   key={item.id}
                   item={item}
-                  onClick={() => handleItemSelect(item)}
+                  onClick={(pos) => handleItemSelect(item, pos)}
+                  isDimmed={isDimmed}
                 />
-              ) : null
-            ))}
+              ) : null;
+            })}
           </Map>
         </APIProvider>
       </div>
