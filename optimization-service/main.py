@@ -1,5 +1,6 @@
 import os
 import logging
+import math
 from typing import List, Optional
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
@@ -72,7 +73,26 @@ def get_distance_matrix(locations: List[tuple]) -> List[List[int]]:
     Returns a 2D list of distances in meters.
     """
     if not gmaps:
-        raise HTTPException(status_code=500, detail="Google Maps API key is not configured.")
+        logger.warning("Google Maps API key not configured. Using Haversine distance fallback.")
+        matrix = []
+        for i in range(len(locations)):
+            row = []
+            for j in range(len(locations)):
+                if i == j:
+                    row.append(0)
+                else:
+                    lat1, lon1 = locations[i]
+                    lat2, lon2 = locations[j]
+                    # Haversine formula
+                    R = 6371000  # Radius of Earth in meters
+                    phi1, phi2 = math.radians(lat1), math.radians(lat2)
+                    dphi = math.radians(lat2 - lat1)
+                    dlambda = math.radians(lon2 - lon1)
+                    a = math.sin(dphi / 2)**2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2)**2
+                    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+                    row.append(int(R * c))
+            matrix.append(row)
+        return matrix
 
     # Google Maps Distance Matrix API has a limit of 100 elements per request (origins * destinations).
     # For a standard plan, it's 25 origins and 25 destinations max per request.

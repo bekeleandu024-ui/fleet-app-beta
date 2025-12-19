@@ -33,10 +33,10 @@ export async function createOrder(request: CreateOrderRequest): Promise<Order> {
 
     // Get next sequence number for today
     const seqResult = await client.query(
-      `SELECT COALESCE(MAX(CAST(SUBSTRING(id FROM 6) AS INTEGER)), 0) + 1 AS next_seq
+      `SELECT COALESCE(MAX(CAST(SUBSTRING(id::text FROM 6) AS INTEGER)), 0) + 1 AS next_seq
        FROM orders
        WHERE DATE(created_at) = CURRENT_DATE
-       AND id ~ '^[PDR][A-Z]{4}[0-9]{4}$'`
+       AND id::text ~ '^[PDR][A-Z]{4}[0-9]{4}$'`
     );
     const sequence = seqResult.rows[0]?.next_seq || 1;
 

@@ -123,6 +123,9 @@ router.get("/:id/cost-breakdown", async (req, res) => {
   try {
     const orderId = req.params.id;
     const breakdown = await getCostBreakdown(orderId);
+    if (!breakdown) {
+      return res.status(404).json({ error: 'Cost breakdown not found' });
+    }
     res.json(breakdown);
   } catch (error: any) {
     console.error('Error getting cost breakdown:', error);

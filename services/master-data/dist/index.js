@@ -9,6 +9,7 @@ const client_1 = require("./db/client");
 const init_1 = require("./db/init");
 const kafkaProducer_1 = require("./services/kafkaProducer");
 const costing_1 = __importDefault(require("./routes/costing"));
+const metadata_1 = __importDefault(require("./routes/metadata"));
 const app = (0, express_1.default)();
 app.use(express_1.default.json());
 // Health check
@@ -17,6 +18,8 @@ app.get('/health', (req, res) => {
 });
 // Costing API routes
 app.use('/api/costing', costing_1.default);
+// Metadata API routes
+app.use('/api/metadata', metadata_1.default);
 async function startServer() {
     try {
         // Run database migrations

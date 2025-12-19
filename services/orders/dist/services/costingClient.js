@@ -34,6 +34,11 @@ async function getCostBreakdown(orderId) {
         return response.data;
     }
     catch (error) {
+        // If the master-data service responds with 404, treat as missing breakdown (return null)
+        if (error.response && error.response.status === 404) {
+            console.warn(`Cost breakdown not found for order ${orderId}`);
+            return null;
+        }
         console.error('Error getting cost breakdown:', error.message);
         throw new Error(`Failed to get cost breakdown: ${error.message}`);
     }

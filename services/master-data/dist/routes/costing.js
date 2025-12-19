@@ -39,6 +39,10 @@ router.get('/breakdown/:orderId', async (req, res) => {
     }
     catch (error) {
         console.error('Error getting cost breakdown:', error);
+        // If there is no cost record for the order, return 404 instead of 500
+        if (error && typeof error.message === 'string' && error.message.startsWith('No cost record found')) {
+            return res.status(404).json({ error: error.message });
+        }
         res.status(500).json({ error: error.message });
     }
 });
