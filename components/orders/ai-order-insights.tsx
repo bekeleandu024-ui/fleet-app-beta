@@ -164,9 +164,6 @@ export function AIOrderInsights({ orderId }: AIOrderInsightsProps) {
             <h3 className="text-base font-semibold text-white">
               AI Booking Assistant
             </h3>
-            <p className="text-xs text-neutral-400 mt-0.5">
-              Powered by Claude Sonnet 4
-            </p>
           </div>
           {insights.can_dispatch && (
             <div className="flex items-center gap-1.5 text-xs font-medium text-green-400 bg-green-950/30 border border-green-900/50 rounded-full px-2.5 py-1">

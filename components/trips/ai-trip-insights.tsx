@@ -150,9 +150,6 @@ export function AITripInsights({ tripId }: AITripInsightsProps) {
             <h3 className="text-base font-semibold text-white">
               AI Trip Insights
             </h3>
-            <p className="text-xs text-neutral-400 mt-0.5">
-              Powered by Claude Sonnet 4
-            </p>
           </div>
           {insights.metadata?.generated_at && (
             <span className="text-xs text-neutral-500">
