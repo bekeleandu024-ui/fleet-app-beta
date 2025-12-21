@@ -1,4 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
+import fs from 'fs';
+import path from 'path';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY || "",
@@ -19,11 +21,22 @@ export async function generateTripInsights(
   const { trip, order, driver, unit, costing, alternatives } = context;
 
   const prompt = buildInsightsPrompt(context);
+  
+  // Read system prompt from file
+  let systemPrompt = "";
+  try {
+    systemPrompt = fs.readFileSync(path.join(process.cwd(), 'AI_TRIP_INSIGHTS_PROMPT.md'), 'utf-8');
+  } catch (e) {
+    console.error("Failed to read system prompt file:", e);
+    // Fallback to a minimal system prompt if file is missing
+    systemPrompt = "You are an AI trip analyst. Analyze the provided trip data and return JSON insights.";
+  }
 
   try {
     const message = await anthropic.messages.create({
       model: "claude-sonnet-4-20250514",
       max_tokens: 2000,
+      system: systemPrompt,
       messages: [
         {
           role: "user",
@@ -47,75 +60,113 @@ export async function generateTripInsights(
 }
 
 function buildInsightsPrompt(context: TripInsightsContext): string {
-  const { trip, order, driver, unit, costing, alternatives } = context;
+  const { trip, order, driver, unit, costing } = context;
 
-  return `You are a fleet management AI analyst. Analyze this trip and provide actionable insights.
+  const tripData = {
+    id: trip.id,
+    status: trip.status,
+    planned_start: trip.plannedStart,
+    actual_start: trip.actualStart,
+    pickup_location: trip.pickup,
+    dropoff_location: trip.delivery,
+    planned_miles: trip.estimatedDistance,
+    on_time_pickup: trip.onTimePickup,
+    on_time_delivery: trip.onTimeDelivery,
+    route_history: [],
+    pickup_window: trip.pickupWindowStart,
+    delivery_window: trip.deliveryWindowStart,
+    // Include stored financial & capacity data from database
+    stored_revenue: costing.storedRevenue,
+    stored_cost: costing.storedCost,
+    stored_margin_pct: costing.storedMarginPct,
+    utilization_percent: trip.utilizationPercent,
+    limiting_factor: trip.limitingFactor,
+    current_weight: trip.currentWeight,
+    current_cube: trip.currentCube,
+    current_linear_feet: trip.currentLinearFeet
+  };
 
-**TRIP DETAILS:**
-- Trip ID: ${trip.id}
-- Route: ${trip.pickup} → ${trip.delivery}
-- Distance: ${trip.estimatedDistance} miles
-- Duration: ${trip.estimatedDuration} hours
+  // Use stored values with fallbacks
+  const actualRevenue = costing.storedRevenue || order?.revenue || 0;
+  const actualCost = costing.storedCost || costing.totalCost || 0;
+  const actualMargin = costing.storedMarginPct ?? costing.margin ?? 0;
+
+  const orderData = order ? {
+    id: order.id,
+    order_number: order.id,
+    status: "active",
+    customer: order.customer,
+    lane: `${trip.pickup} -> ${trip.delivery}`,
+    lane_miles: trip.estimatedDistance,
+    service_level: order.serviceLevel,
+    commodity: order.commodity,
+    revenue: actualRevenue,
+    cost_basis: actualCost,
+    target_margin: 15,
+    actual_margin: actualMargin,
+    pickup_window: trip.pickupWindowStart ? { start: trip.pickupWindowStart, end: trip.pickupWindowEnd } : null,
+    delivery_window: trip.deliveryWindowStart ? { start: trip.deliveryWindowStart, end: trip.deliveryWindowEnd } : null,
+    stops: 2
+  } : {};
+
+  const driverData = driver ? {
+    id: driver.id,
+    name: driver.name,
+    type: driver.type,
+    region: driver.region,
+    hours_available: driver.hoursAvailable,
+    status: "active",
+    assigned: true,
+    certifications: ["FAST", "TWIC"],
+    current_location: driver.location,
+    performance_metrics: {
+      on_time_rate: driver.onTimeRate
+    }
+  } : { assigned: false, name: null };
+
+  const unitData = unit ? {
+    id: unit.id,
+    unit_number: unit.unitNumber,
+    type: unit.type,
+    status: unit.status,
+    region: unit.region,
+    location: unit.location,
+    assigned: true,
+    maintenance_status: "ok"
+  } : { assigned: false, unit_number: null };
+  
+  // Explicit financial summary for AI to reference
+  const financialStatus = {
+    revenue: actualRevenue,
+    total_cost: actualCost,
+    margin_pct: actualMargin,
+    profit: actualRevenue - actualCost,
+    is_profitable: actualMargin > 0,
+    margin_is_healthy: actualMargin >= 15,
+    data_source: costing.storedRevenue ? "database" : "calculated"
+  };
+
+  return `
+TRIP: ${JSON.stringify(tripData)}
+
+ORDER: ${JSON.stringify(orderData)}
+
+DRIVER: ${JSON.stringify(driverData)}
+
+UNIT: ${JSON.stringify(unitData)}
+
+CONFIRMED FINANCIALS: ${JSON.stringify(financialStatus)}
+
+CRITICAL CONTEXT:
+- Driver "${driverData.name || 'None'}" is ${driverData.assigned ? 'ASSIGNED' : 'NOT assigned'}
+- Unit "${unitData.unit_number || 'None'}" is ${unitData.assigned ? 'ASSIGNED' : 'NOT assigned'}  
+- Revenue: $${actualRevenue.toFixed(2)} (${financialStatus.data_source})
+- Cost: $${actualCost.toFixed(2)}
+- Margin: ${actualMargin.toFixed(1)}% ${financialStatus.margin_is_healthy ? '(HEALTHY)' : '(needs attention)'}
 - Status: ${trip.status}
-- On-time Pickup: ${trip.onTimePickup ? "Yes" : "No"}
-- On-time Delivery: ${trip.onTimeDelivery ? "Yes" : "No"}
 
-**ORDER INFORMATION:**
-${order ? `- Customer: ${order.customer}
-- Commodity: ${order.commodity || "Standard freight"}
-- Service Level: ${order.serviceLevel || "Standard"}
-- Revenue: $${order.revenue || "N/A"}` : "- Order details not available"}
-
-**CURRENT ASSIGNMENT:**
-${driver ? `- Driver: ${driver.name} (${driver.type})
-- Location: ${driver.location || "Unknown"}
-- Hours Available: ${driver.hoursAvailable || "Unknown"}
-- On-time Rate: ${driver.onTimeRate ? (driver.onTimeRate * 100).toFixed(1) + "%" : "N/A"}
-- Estimated Cost: $${driver.estimatedCost}` : "- Driver not assigned"}
-
-${unit ? `- Unit: ${unit.unitNumber} (${unit.type})
-- Status: ${unit.status}
-- Location: ${unit.location || "Unknown"}` : ""}
-
-**COST BREAKDOWN:**
-- Linehaul: $${costing.linehaulCost}
-- Fuel: $${costing.fuelCost}
-- Driver: $${costing.driverCost}
-- Total Cost: $${costing.totalCost}
-- Margin: ${costing.margin}%
-- Recommended Revenue: $${costing.recommendedRevenue}
-
-**ALTERNATIVE DRIVERS:**
-${alternatives && alternatives.length > 0 ? alternatives.map(alt => 
-  `- ${alt.name} (${alt.type}): $${alt.estimatedCost} (saves $${(costing.driverCost - alt.estimatedCost).toFixed(0)})`
-).join("\n") : "- No alternatives available"}
-
-Provide insights in the following JSON structure:
-{
-  "summary": "Brief 1-sentence trip description",
-  "marginAnalysis": {
-    "status": "healthy|warning|critical",
-    "message": "Analysis of profit margin",
-    "recommendation": "Specific recommendation"
-  },
-  "driverAnalysis": {
-    "currentAssignment": "Assessment of current driver",
-    "recommendation": "Should driver be changed? Why or why not?",
-    "bestAlternative": "Name and reason if change recommended",
-    "costImpact": "Savings or cost increase amount"
-  },
-  "riskFactors": [
-    "List any risks: late delivery, driver fatigue, route issues, etc."
-  ],
-  "keyInsights": [
-    "3-5 bullet points of actionable insights"
-  ],
-  "recommendations": [
-    "Specific actionable recommendations"
-  ]
-}
-
-Respond ONLY with the JSON object, no other text.`;
+Do NOT report missing cost data, revenue analysis issues, or driver assignment problems if the data above shows valid values.
+`;
 }
 
 function parseInsightsResponse(response: string, context: TripInsightsContext): any {
@@ -125,8 +176,30 @@ function parseInsightsResponse(response: string, context: TripInsightsContext): 
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]);
       
+      // Map new structure to old structure for backward compatibility
+      const mappedOldStructure = {
+        summary: parsed.summary,
+        marginAnalysis: {
+          status: "unknown", 
+          message: "See detailed insights",
+          recommendation: "Check financial analysis in insights"
+        },
+        driverAnalysis: {
+          currentAssignment: context.driver ? context.driver.name : "Unassigned",
+          recommendation: "See detailed insights",
+          bestAlternative: null,
+          costImpact: 0
+        },
+        riskFactors: parsed.insights ? parsed.insights
+          .filter((i: any) => i.severity === 'critical' || i.severity === 'warning')
+          .map((i: any) => `${i.title}: ${i.detail}`) : [],
+        keyInsights: parsed.insights ? parsed.insights.map((i: any) => i.summary || `${i.title}: ${i.detail}`) : [],
+        recommendations: parsed.insights ? parsed.insights.map((i: any) => i.action) : []
+      };
+      
       // Enhance with context data
       return {
+        ...mappedOldStructure,
         ...parsed,
         routeProfile: {
           distance: context.trip.estimatedDistance,

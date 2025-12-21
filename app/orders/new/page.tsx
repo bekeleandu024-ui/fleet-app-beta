@@ -354,7 +354,7 @@ export default function CreateOrderPage() {
       }
     }
 
-    if (parsed.stackable !== undefined) updates.stackable = parsed.stackable;
+    if (parsed.stackable !== undefined && parsed.stackable !== null) updates.stackable = parsed.stackable;
     if (parsed.cubicFeet) updates.cubicFeet = parsed.cubicFeet.toString();
     if (parsed.linearFeet) updates.linearFeet = parsed.linearFeet.toString();
 

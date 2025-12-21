@@ -147,22 +147,36 @@ export async function POST(request: Request) {
       let driverId = inputDriverId;
       let driverType: DriverType = 'RNR'; // Default
       let calculatedMiles = miles || 0;
+      
+      // Order data for enrichment
+      let order: any = null;
+      let unit: any = null;
 
       // Quick Create Logic: Populate missing data
-      if (!stops && orderId) {
+      if (orderId) {
          const orderRes = await client.query('SELECT * FROM orders WHERE id = $1', [orderId]);
          if (orderRes.rows.length > 0) {
-             const order = orderRes.rows[0];
-             stops = [
-                 { sequence: 1, stopType: 'Pickup', name: order.pickup_location, scheduledAt: order.pickup_time },
-                 { sequence: 2, stopType: 'Delivery', name: order.dropoff_location, scheduledAt: order.dropoff_time }
-             ];
+             order = orderRes.rows[0];
+             if (!stops) {
+               stops = [
+                   { sequence: 1, stopType: 'Pickup', name: order.pickup_location, scheduledAt: order.pickup_time },
+                   { sequence: 2, stopType: 'Delivery', name: order.dropoff_location, scheduledAt: order.dropoff_time }
+               ];
+             }
              
              // Try to get miles from order if not provided
              if (!calculatedMiles && order.lane_miles) {
                  calculatedMiles = Number(order.lane_miles);
              }
          }
+      }
+      
+      // Get unit data for capacity/utilization calculation
+      if (unitId) {
+        const unitRes = await client.query('SELECT * FROM unit_profiles WHERE unit_id = $1', [unitId]);
+        if (unitRes.rows.length > 0) {
+          unit = unitRes.rows[0];
+        }
       }
 
       if (!driverId && unitId) {
@@ -207,6 +221,11 @@ export async function POST(request: Request) {
               finalRevenue = costResult.recommendedRevenue;
           }
       }
+      
+      // If still no revenue, try to get from order's quoted_rate
+      if (finalRevenue === 0 && order?.quoted_rate) {
+        finalRevenue = Number(order.quoted_rate);
+      }
 
       await client.query('BEGIN');
 
@@ -214,22 +233,81 @@ export async function POST(request: Request) {
       const pickupStop = stops?.find((s: any) => s.stopType === 'Pickup');
       const deliveryStop = stops?.find((s: any) => s.stopType === 'Delivery');
       
-      const pickupLocation = pickupStop?.name || "Unknown";
-      const dropoffLocation = deliveryStop?.name || "Unknown";
-      const plannedStart = pickupStop?.scheduledAt || new Date().toISOString();
+      const pickupLocation = pickupStop?.name || order?.pickup_location || "Unknown";
+      const dropoffLocation = deliveryStop?.name || order?.dropoff_location || "Unknown";
+      const plannedStart = pickupStop?.scheduledAt || order?.pickup_time || new Date().toISOString();
+      
+      // Time windows - copy from order or derive from stop times
+      const pickupWindowStart = order?.pu_window_start || (pickupStop?.scheduledAt ? new Date(new Date(pickupStop.scheduledAt).getTime() - 2*60*60*1000) : null);
+      const pickupWindowEnd = order?.pu_window_end || (pickupStop?.scheduledAt ? new Date(new Date(pickupStop.scheduledAt).getTime() + 2*60*60*1000) : null);
+      const deliveryWindowStart = order?.del_window_start || (deliveryStop?.scheduledAt ? new Date(new Date(deliveryStop.scheduledAt).getTime() - 2*60*60*1000) : null);
+      const deliveryWindowEnd = order?.del_window_end || (deliveryStop?.scheduledAt ? new Date(new Date(deliveryStop.scheduledAt).getTime() + 4*60*60*1000) : null);
+      
+      // Cargo data from order
+      const currentWeight = order?.total_weight || 0;
+      const currentCube = order?.cubic_feet || 0;
+      const currentLinearFeet = order?.linear_feet_required || 0;
+      
+      // Calculate utilization
+      let utilizationPercent = 0;
+      let limitingFactor = null;
+      if (unit && (currentWeight > 0 || currentCube > 0 || currentLinearFeet > 0)) {
+        const maxWeight = unit.max_weight || 45000;
+        const maxCube = unit.max_cube || 3900;
+        const maxLinear = unit.linear_feet || 53;
+        
+        const weightUtil = (currentWeight / maxWeight) * 100;
+        const cubeUtil = (currentCube / maxCube) * 100;
+        const linearUtil = (currentLinearFeet / maxLinear) * 100;
+        
+        utilizationPercent = Math.max(weightUtil, cubeUtil, linearUtil);
+        
+        if (weightUtil >= cubeUtil && weightUtil >= linearUtil) {
+          limitingFactor = 'Weight';
+        } else if (cubeUtil >= weightUtil && cubeUtil >= linearUtil) {
+          limitingFactor = 'Cube';
+        } else {
+          limitingFactor = 'Linear Feet';
+        }
+      }
+      
+      // Calculate margin
+      const profit = finalRevenue - finalCost;
+      const marginPct = finalRevenue > 0 ? (profit / finalRevenue) * 100 : 0;
+      
+      // Generate trip number
+      const tripNumber = `TRP-${Date.now().toString().slice(-8)}`;
 
-      // Create Trip
+      // Create Trip with ALL required fields populated
       const tripRes = await client.query(`
         INSERT INTO trips (
           id,
+          trip_number,
           order_id,
           driver_id,
           unit_id,
           status,
           pickup_location,
           dropoff_location,
+          pickup_window_start,
+          pickup_window_end,
+          delivery_window_start,
+          delivery_window_end,
           planned_start,
           planned_miles,
+          distance_miles,
+          current_weight,
+          current_cube,
+          current_linear_feet,
+          utilization_percent,
+          limiting_factor,
+          revenue,
+          expected_revenue,
+          total_cost,
+          margin_pct,
+          on_time_pickup,
+          on_time_delivery,
+          risk_level,
           created_at,
           updated_at
         ) VALUES (
@@ -237,31 +315,58 @@ export async function POST(request: Request) {
           $1,
           $2,
           $3,
-          'assigned',
           $4,
+          'assigned',
           $5,
           $6,
           $7,
+          $8,
+          $9,
+          $10,
+          $11,
+          $12,
+          $12,
+          $13,
+          $14,
+          $15,
+          $16,
+          $17,
+          $18,
+          $18,
+          $19,
+          $20,
+          NULL,
+          NULL,
+          'green',
           NOW(),
           NOW()
         ) RETURNING id
       `, [
+        tripNumber,
         orderId,
         driverId,
         unitId,
         pickupLocation,
         dropoffLocation,
+        pickupWindowStart,
+        pickupWindowEnd,
+        deliveryWindowStart,
+        deliveryWindowEnd,
         plannedStart,
-        calculatedMiles
+        calculatedMiles,
+        currentWeight,
+        currentCube,
+        currentLinearFeet,
+        Math.round(utilizationPercent),
+        limitingFactor,
+        finalRevenue,
+        finalCost,
+        marginPct.toFixed(2)
       ]);
 
       const tripId = tripRes.rows[0].id;
 
-      // Insert Trip Costs
-      // Calculate profit and margin
-      const profit = finalRevenue - finalCost;
-      const marginPct = finalRevenue > 0 ? (profit / finalRevenue) * 100 : 0;
-
+      // Insert Trip Costs for detailed audit trail
       await client.query(`
         INSERT INTO trip_costs (
           cost_id,
@@ -310,11 +415,11 @@ export async function POST(request: Request) {
         finalCpm,
         finalCost,
         finalRevenue,
-        rpm || 0,
+        rpm || (calculatedMiles > 0 ? finalRevenue / calculatedMiles : 0),
         profit,
         marginPct,
         profit > 0,
-        JSON.stringify({ method: 'manual_booking_auto_calc' })
+        JSON.stringify({ method: 'booking_auto_calc', driverType, miles: calculatedMiles })
       ]);
 
       // Insert Stops
@@ -358,8 +463,16 @@ export async function POST(request: Request) {
       `, [orderId]);
 
       await client.query('COMMIT');
+      
+      console.log(`[Trip Create] Created trip ${tripNumber} with:`, {
+        revenue: finalRevenue,
+        cost: finalCost,
+        margin: marginPct.toFixed(2),
+        utilization: Math.round(utilizationPercent),
+        timeWindows: { pickupWindowStart, deliveryWindowStart }
+      });
 
-      return NextResponse.json({ success: true, id: tripId });
+      return NextResponse.json({ success: true, id: tripId, tripNumber });
     } catch (error) {
       await client.query('ROLLBACK');
       throw error;

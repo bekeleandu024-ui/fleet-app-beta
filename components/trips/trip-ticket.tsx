@@ -90,12 +90,18 @@ export function TripTicket({ trip, aiInsights }: TripTicketProps) {
               </div>
             </div>
           </div>
-          <div className="flex flex-wrap gap-2 text-xs text-emerald-400">
-            {trip.onTimePickup && (
-              <span className="rounded-full bg-emerald-500/10 px-3 py-1">On-time pickup</span>
+          <div className="flex flex-wrap gap-2 text-xs">
+            {trip.onTimePickup === true && (
+              <span className="rounded-full bg-emerald-500/10 text-emerald-400 px-3 py-1">On-time pickup</span>
             )}
-            {trip.onTimeDelivery && (
-              <span className="rounded-full bg-emerald-500/10 px-3 py-1">On-time delivery</span>
+            {trip.onTimePickup === false && (
+              <span className="rounded-full bg-rose-500/10 text-rose-400 px-3 py-1">Late pickup</span>
+            )}
+            {trip.onTimeDelivery === true && (
+              <span className="rounded-full bg-emerald-500/10 text-emerald-400 px-3 py-1">On-time delivery</span>
+            )}
+            {trip.onTimeDelivery === false && (
+              <span className="rounded-full bg-rose-500/10 text-rose-400 px-3 py-1">Late delivery</span>
             )}
           </div>
         </div>

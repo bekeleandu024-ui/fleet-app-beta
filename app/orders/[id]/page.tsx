@@ -19,12 +19,11 @@ import {
 import { useState, useEffect } from "react";
 
 import { RecommendationCallout } from "@/components/recommendation-callout";
-import { AIOrderInsightPanel } from "@/components/AIOrderInsightPanel";
+import { AIOrderInsights } from "@/components/orders/ai-order-insights";
 import { StatChip } from "@/components/stat-chip";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { fetchOrderDetail, updateOrderStatus } from "@/lib/api";
-import { generateOrderInsightsPrompt } from "@/lib/orderInsightsPrompt";
 import { formatDateTime, formatDurationHours } from "@/lib/format";
 import { queryKeys } from "@/lib/query";
 import type { OrderDetail } from "@/lib/types";
@@ -48,8 +47,6 @@ export default function OrderDetailPage() {
   const [selectedPricing, setSelectedPricing] = useState("");
   const [notes, setNotes] = useState("");
   const [isBooking, setIsBooking] = useState(false);
-  const [aiInsights, setAiInsights] = useState<any>(null);
-  const [loadingInsights, setLoadingInsights] = useState(false);
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: queryKeys.order(orderId),
@@ -144,47 +141,8 @@ export default function OrderDetailPage() {
   // Filter pricing based on driver type if needed
   const availablePricing = selectedDriver && selectedUnit ? pricingOptions : pricingOptions;
 
-  // Fetch AI insights when data loads
+  // Fetch booking guardrails when data loads
   useEffect(() => {
-    async function fetchInsights() {
-      if (!data) return;
-      
-      setLoadingInsights(true);
-      try {
-        const prompt = generateOrderInsightsPrompt(data);
-        
-        const response = await fetch("/api/ai/order-insights", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt }),
-        });
-
-        if (!response.ok) {
-          throw new Error("Failed to fetch insights");
-        }
-
-        const insights = await response.json();
-        setAiInsights(insights);
-      } catch (error) {
-        console.error("Error fetching AI insights:", error);
-        setAiInsights({
-          summary: "Unable to generate insights at this time",
-          canDispatch: false,
-          recommendedDriver: { id: null, name: "N/A", reason: "Analysis unavailable" },
-          recommendedUnit: { id: null, number: "N/A", reason: "Analysis unavailable" },
-          insights: [{
-            category: "Risk",
-            severity: "warning",
-            title: "Insight Generation Failed",
-            description: "Unable to analyze order data. Please review manually.",
-            recommendation: "Check order details and try again"
-          }]
-        });
-      } finally {
-        setLoadingInsights(false);
-      }
-    }
-
     async function fetchGuardrails() {
       if (!data) return;
       
@@ -210,7 +168,6 @@ export default function OrderDetailPage() {
       }
     }
 
-    fetchInsights();
     fetchGuardrails();
   }, [data]);
 
@@ -231,6 +188,22 @@ export default function OrderDetailPage() {
         throw new Error("Missing pickup or delivery information");
       }
 
+      // Build stops array with time windows
+      const stops = [
+        { 
+          sequence: 0, 
+          stopType: 'Pickup', 
+          name: pickup.location,
+          scheduledAt: pickup.windowStart || new Date().toISOString()
+        },
+        { 
+          sequence: 1, 
+          stopType: 'Delivery', 
+          name: delivery.location,
+          scheduledAt: delivery.windowStart || new Date(Date.now() + 86400000).toISOString()
+        }
+      ];
+
       const response = await fetch("/api/trips", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -238,16 +211,9 @@ export default function OrderDetailPage() {
           orderId: data.id,
           driverId: selectedDriver,
           unitId: selectedUnit,
-          pickup: {
-            location: pickup.location,
-            windowStart: pickup.windowStart,
-            windowEnd: pickup.windowEnd,
-          },
-          delivery: {
-            location: delivery.location,
-            windowStart: delivery.windowStart,
-            windowEnd: delivery.windowEnd,
-          },
+          stops,
+          miles: data.laneMiles || 0,
+          totalRevenue: data.cost || 0, // Use order cost as initial revenue
           notes,
         }),
       });
@@ -258,7 +224,7 @@ export default function OrderDetailPage() {
       }
 
       const trip = await response.json();
-      const tripId = trip?.id ? String(trip.id).slice(0, 8) : "New";
+      const tripId = trip?.tripNumber || (trip?.id ? String(trip.id).slice(0, 8) : "New");
       alert(`Trip ${tripId} booked successfully! Redirecting to trips page...`);
       setNotes("");
       
@@ -409,7 +375,7 @@ export default function OrderDetailPage() {
         
         {/* LEFT COLUMN - AI Insights */}
         <div className="col-span-12 lg:col-span-4 space-y-4">
-          <AIOrderInsightPanel insights={loadingInsights ? null : aiInsights} />
+          <AIOrderInsights orderId={orderId} />
         </div>
 
         {/* CENTER COLUMN - Order Summary & Pricing */}

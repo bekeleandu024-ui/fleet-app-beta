@@ -289,8 +289,8 @@ export const tripDetailSchema = z.object({
   actualStart: z.string().optional(),
   pickupDeparture: z.string().optional(),
   completedAt: z.string().optional(),
-  onTimePickup: z.boolean().optional(),
-  onTimeDelivery: z.boolean().optional(),
+  onTimePickup: z.boolean().nullable().optional(),
+  onTimeDelivery: z.boolean().nullable().optional(),
   metrics: z
     .object({
       distanceMiles: z.coerce.number().optional(),
@@ -593,12 +593,12 @@ export const orderAdminSchema = z.object({
   serviceLevel: z.string(),
   commodity: z.string(),
   laneMiles: z.number(),
-  totalWeight: z.number().optional(),
-  totalPallets: z.number().optional(),
-  palletDimensions: z.any().optional(),
-  stackable: z.boolean().optional(),
-  cubicFeet: z.number().optional(),
-  linearFeetRequired: z.number().optional(),
+  totalWeight: z.number().optional().nullable(),
+  totalPallets: z.number().optional().nullable(),
+  palletDimensions: z.any().optional().nullable(),
+  stackable: z.boolean().optional().nullable(),
+  cubicFeet: z.number().optional().nullable(),
+  linearFeetRequired: z.number().optional().nullable(),
 });
 export type OrderAdminRecord = z.infer<typeof orderAdminSchema>;
 export type OrderAdminCreate = Omit<OrderAdminRecord, "id"> & { id?: string };

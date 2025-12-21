@@ -22,12 +22,11 @@ import { TripTicket } from "@/components/trips/trip-ticket";
 import { DriverCostComparison } from "@/components/trips/driver-cost-comparison";
 import { CostingBreakdown } from "@/components/costing/costing-breakdown";
 import { CapacityGauge } from "@/components/trips/capacity-gauge";
-import AIInsights from "@/components/AIInsights";
+import { AITripInsights } from "@/components/trips/ai-trip-insights";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { StatChip } from "@/components/stat-chip";
 import { fetchTripDetail } from "@/lib/api";
-import { getTripInsights } from "@/lib/ai-service";
 import { formatCurrency, formatDateTime } from "@/lib/format";
 import { queryKeys } from "@/lib/query";
 import { calculateTripCost, type DriverType } from "@/lib/costing";
@@ -43,13 +42,6 @@ export default function TripDetailPage() {
     queryFn: () => fetchTripDetail(tripId),
     enabled: Boolean(tripId),
     refetchInterval: 30000,
-  });
-
-  const { data: aiInsights, isLoading: aiLoading } = useQuery({
-    queryKey: ["tripInsights", tripId],
-    queryFn: () => getTripInsights(tripId),
-    enabled: Boolean(tripId),
-    staleTime: 5 * 60 * 1000,
   });
 
   const handleAddNote = () => {
@@ -122,7 +114,7 @@ export default function TripDetailPage() {
       </div>
 
       {/* Trip ticket spanning all columns */}
-      <TripTicket trip={data} aiInsights={aiInsights} />
+      <TripTicket trip={data} />
 
       {/* Main 3-column layout */}
       <div className="grid gap-4 grid-cols-12">
@@ -292,7 +284,7 @@ export default function TripDetailPage() {
 
         {/* RIGHT COLUMN - AI Insights */}
         <div className="col-span-12 lg:col-span-3">
-          <AIInsights type="trip" id={tripId} />
+          <AITripInsights tripId={tripId} />
         </div>
       </div>
     </div>

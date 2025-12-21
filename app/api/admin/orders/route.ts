@@ -21,12 +21,12 @@ const baseSchema = z.object({
   serviceLevel: z.string().min(1, "Service level is required"),
   commodity: z.string().min(1, "Commodity is required"),
   laneMiles: z.number().min(1, "Lane miles must be positive"),
-  totalWeight: z.number().optional(),
-  totalPallets: z.number().optional(),
-  palletDimensions: z.any().optional(),
-  stackable: z.boolean().optional(),
-  cubicFeet: z.number().optional(),
-  linearFeetRequired: z.number().optional(),
+  totalWeight: z.number().optional().nullable(),
+  totalPallets: z.number().optional().nullable(),
+  palletDimensions: z.any().optional().nullable(),
+  stackable: z.boolean().optional().nullable(),
+  cubicFeet: z.number().optional().nullable(),
+  linearFeetRequired: z.number().optional().nullable(),
 });
 
 const createSchema = baseSchema.extend({ id: z.string().optional() });
@@ -56,6 +56,24 @@ export async function POST(request: Request) {
     // Generate UUID for the order - this is the primary key
     const orderId = randomUUID();
     
+    // Parse time windows from the window field (format: "2024-01-15 08:00 - 2024-01-15 18:00")
+    const windowParts = validated.window?.split(" - ") || [];
+    const pickupTime = windowParts[0] ? new Date(windowParts[0]) : null;
+    const deliveryTime = windowParts[1] ? new Date(windowParts[1]) : null;
+    
+    // Generate time windows with 2-hour buffers if only single times provided
+    const puWindowStart = pickupTime ? new Date(pickupTime.getTime() - 2 * 60 * 60 * 1000) : null;
+    const puWindowEnd = pickupTime ? new Date(pickupTime.getTime() + 2 * 60 * 60 * 1000) : null;
+    const delWindowStart = deliveryTime ? new Date(deliveryTime.getTime() - 2 * 60 * 60 * 1000) : null;
+    const delWindowEnd = deliveryTime ? new Date(deliveryTime.getTime() + 2 * 60 * 60 * 1000) : null;
+    
+    // Generate lane identifier for analytics
+    const extractCity = (location: string) => {
+      const parts = location.split(',');
+      return parts[0]?.trim() || location.slice(0, 20);
+    };
+    const lane = `${extractCity(validated.pickup)} → ${extractCity(validated.delivery)}`;
+    
     // Transform to backend CreateOrderRequest format
     // Backend expects: customer_id, order_type, pickup_location, dropoff_location, pickup_time?, special_instructions?
     const orderPayload = {
@@ -64,11 +82,11 @@ export async function POST(request: Request) {
       order_type: "round_trip", // Default order type
       pickup_location: validated.pickup,
       dropoff_location: validated.delivery,
-      pickup_time: validated.window?.split(" - ")[0] || undefined, // Extract from window if available
+      pickup_time: pickupTime?.toISOString() || undefined,
       special_instructions: `Service Level: ${validated.serviceLevel}, Commodity: ${validated.commodity}`,
     };
     
-    // Insert order into local database first
+    // Insert order into local database first with ALL required fields
     try {
       const insertResult = await pool.query(
         `INSERT INTO orders (
@@ -79,8 +97,16 @@ export async function POST(request: Request) {
           pickup_location, 
           dropoff_location, 
           pickup_time,
+          dropoff_time,
+          pu_window_start,
+          pu_window_end,
+          del_window_start,
+          del_window_end,
           special_instructions,
           estimated_cost,
+          quoted_rate,
+          lane,
+          required_equipment,
           order_number,
           created_at,
           updated_at,
@@ -90,18 +116,26 @@ export async function POST(request: Request) {
           stackable,
           cubic_feet,
           linear_feet_required
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW(), $11, $12, $13, $14, $15, $16)
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, NOW(), NOW(), $19, $20, $21, $22, $23, $24)
         RETURNING id, order_number, customer_id, status`,
         [
           orderId,
           orderPayload.customer_id,
           orderPayload.order_type,
-          'pending',
+          'New',
           orderPayload.pickup_location,
           orderPayload.dropoff_location,
-          orderPayload.pickup_time || null,
+          pickupTime,
+          deliveryTime,
+          puWindowStart,
+          puWindowEnd,
+          delWindowStart,
+          delWindowEnd,
           orderPayload.special_instructions || null,
-          validated.cost || null,
+          validated.cost || null, // estimated_cost
+          validated.cost || null, // quoted_rate - use same as cost initially
+          lane,
+          validated.serviceLevel || 'Dry Van', // required_equipment
           `ORD-${Date.now().toString().slice(-10)}`, // Generate order number
           validated.totalWeight || 0,
           validated.totalPallets || 0,
@@ -112,7 +146,7 @@ export async function POST(request: Request) {
         ]
       );
       
-      console.log(`[Order Create] Inserted into local DB:`, insertResult.rows[0]);
+      console.log(`[Order Create] Inserted into local DB with time windows:`, insertResult.rows[0]);
     } catch (dbError) {
       console.error(`[Order Create] Failed to insert into local DB:`, dbError);
       throw new Error(`Failed to create order in database: ${dbError instanceof Error ? dbError.message : 'Unknown error'}`);

@@ -336,8 +336,9 @@ function buildTripDetail(
     actualStart: trip.actual_start ? toIso(trip.actual_start) : undefined,
     pickupDeparture: trip.pickup_departure ? toIso(trip.pickup_departure) : undefined,
     completedAt: trip.completed_at || trip.completedAt ? toIso(trip.completed_at ?? trip.completedAt) : undefined,
-    onTimePickup: Boolean(trip.on_time_pickup ?? trip.onTimePickup),
-    onTimeDelivery: Boolean(trip.on_time_delivery ?? trip.onTimeDelivery),
+    // Only show on-time status if trip has actually started/completed those phases
+    onTimePickup: trip.actual_start ? (trip.on_time_pickup ?? trip.onTimePickup ?? null) : null,
+    onTimeDelivery: trip.completed_at ? (trip.on_time_delivery ?? trip.onTimeDelivery ?? null) : null,
     metrics: {
       distanceMiles: trip.distance_miles ?? trip.actual_miles ?? trip.planned_miles ?? trip.miles ?? trip.distance,
       estDurationHours: trip.duration_hours ?? trip.est_duration_hours,
