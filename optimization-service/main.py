@@ -203,6 +203,12 @@ def optimize_routes(request: OptimizationRequest):
 
     # Define cost of each arc (distance)
     routing.SetArcCostEvaluatorOfAllVehicles(transit_callback_index)
+    
+    # Add fixed cost per vehicle to encourage using multiple vehicles
+    # This represents the overhead cost of dispatching a vehicle (driver pay, fuel, etc.)
+    # Set to ~1000km equivalent to make it worthwhile to use multiple trucks for long hauls
+    for vehicle_id in range(num_vehicles):
+        routing.SetFixedCostOfVehicle(1000000, vehicle_id)  # 1000km worth of distance
 
     # Add distance dimension for ordering constraints
     routing.AddDimension(
