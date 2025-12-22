@@ -24,7 +24,9 @@ export async function GET() {
           t.status,
           t.driver_id,
           t.unit_id,
-          o.customer_id
+          o.customer_id,
+          o.weight_lbs,
+          o.volume_cuft
         FROM trips t
         LEFT JOIN orders o ON t.order_id = o.id
         WHERE t.status NOT IN ('completed', 'closed', 'cancelled')
@@ -42,11 +44,13 @@ export async function GET() {
 
       const tripsResult = await client.query(tripsQuery);
 
-      // Fetch available units/drivers
+      // Fetch available units/drivers with capacity limits
       const unitsQuery = `
         SELECT 
           u.unit_id,
           u.unit_number,
+          u.max_weight_lbs,
+          u.max_volume_cuft,
           d.driver_id,
           d.driver_name,
           d.driver_type,
@@ -71,7 +75,9 @@ export async function GET() {
           t.dropoff_lat,
           t.dropoff_lng,
           t.status,
-          o.customer_id
+          o.customer_id,
+          o.weight_lbs,
+          o.volume_cuft
         FROM trips t
         LEFT JOIN orders o ON t.order_id = o.id
         WHERE (t.driver_id IS NULL OR t.unit_id IS NULL)
@@ -95,20 +101,63 @@ export async function GET() {
       // Create paired stops: pickup (demand +1) and delivery (demand -1)
       const stops: any[] = [];
       const pickupDeliveryPairs: { pickup_index: number; delivery_index: number }[] = [];
+      const stopLocationMap: Record<string, { pickup: string; delivery: string; customer: string }> = {};
 
       validTrips.forEach((trip, tripIdx) => {
         const pickupIndex = stops.length;
+        const tripIdShort = trip.id.slice(0, 8);
+        
+        // Use actual weight from order, or default to reasonable amount (in lbs)
+        // Normalize to a scale where 45000 lbs (full truckload) = 45 capacity units
+        const weightLbs = trip.weight_lbs || 15000; // Default ~15k lbs if missing
+        const volumeCuft = trip.volume_cuft || 1000; // Default ~1000 cuft if missing
+        
+        // Calculate demand based on weight (primary) and volume (secondary)
+        // Scale: 1000 lbs = 1 capacity unit, so 45000 lbs = 45 units
+        const weightDemand = Math.ceil(weightLbs / 1000);
+        const volumeDemand = Math.ceil(volumeCuft / 100);
+        const demand = Math.max(weightDemand, volumeDemand); // Use the limiting factor
+        
+        // Helper to extract city from full address
+        const extractCity = (addr: string) => {
+          if (!addr) return 'Unknown';
+          const parts = addr.split(',').map(p => p.trim());
+          // Try to get city, state format (e.g., "Columbus, OH" or "Milwaukee, WI")
+          if (parts.length >= 2) {
+            return `${parts[parts.length - 3] || parts[0]}, ${parts[parts.length - 2]}`;
+          }
+          return parts[0] || 'Unknown';
+        };
+
+        const pickupCity = extractCity(trip.pickup_location);
+        const deliveryCity = extractCity(trip.dropoff_location);
+        
+        // Store location mapping for display
+        stopLocationMap[`pickup-${tripIdShort}`] = {
+          pickup: pickupCity,
+          delivery: deliveryCity,
+          customer: trip.customer_id || 'Unknown'
+        };
+        stopLocationMap[`delivery-${tripIdShort}`] = {
+          pickup: pickupCity,
+          delivery: deliveryCity,
+          customer: trip.customer_id || 'Unknown'
+        };
         
         // Pickup stop (adds load to vehicle)
         stops.push({
-          id: `pickup-${trip.id.slice(0, 8)}`,
+          id: `pickup-${tripIdShort}`,
           tripId: trip.id,
           orderId: trip.order_id,
           stop_type: 'pickup',
           location: trip.pickup_location,
+          pickupCity,
+          deliveryCity,
           latitude: parseFloat(trip.pickup_lat),
           longitude: parseFloat(trip.pickup_lng),
-          demand: 1, // Positive: picking up load
+          demand: demand, // Positive: picking up load (based on actual weight/volume)
+          weight_lbs: weightLbs,
+          volume_cuft: volumeCuft,
           customer: trip.customer_id || 'Unknown',
         });
 
@@ -116,14 +165,18 @@ export async function GET() {
 
         // Delivery stop (removes load from vehicle)
         stops.push({
-          id: `delivery-${trip.id.slice(0, 8)}`,
+          id: `delivery-${tripIdShort}`,
           tripId: trip.id,
           orderId: trip.order_id,
           stop_type: 'delivery',
           location: trip.dropoff_location,
+          pickupCity,
+          deliveryCity,
           latitude: parseFloat(trip.dropoff_lat),
           longitude: parseFloat(trip.dropoff_lng),
-          demand: -1, // Negative: delivering/dropping load
+          demand: -demand, // Negative: delivering/dropping load
+          weight_lbs: weightLbs,
+          volume_cuft: volumeCuft,
           customer: trip.customer_id || 'Unknown',
         });
 
@@ -146,7 +199,7 @@ export async function GET() {
         }));
 
       // Transform units into vehicles format for optimizer  
-      // Set capacity to 2 to allow each vehicle to handle ~2 trips at a time
+      // Use real capacity limits from unit_profiles (scaled to match demand)
       const vehicles = unitsResult.rows.map(unit => ({
         id: unit.unit_id,
         unitNumber: unit.unit_number,
@@ -154,7 +207,10 @@ export async function GET() {
         driverName: unit.driver_name || 'Unassigned',
         driverType: unit.driver_type || 'Company',
         region: unit.region || 'Unknown',
-        capacity_limit: 2, // Each vehicle can carry up to 2 loads simultaneously
+        // Scale capacity to match demand units: 45000 lbs max = 45 capacity units
+        capacity_limit: Math.ceil((unit.max_weight_lbs || 45000) / 1000), 
+        max_weight_lbs: unit.max_weight_lbs || 45000,
+        max_volume_cuft: unit.max_volume_cuft || 3000,
       }));
 
       // Calculate a sensible depot location (centroid of all pickup stops, or default)
@@ -171,6 +227,7 @@ export async function GET() {
         vehicles,
         depot,
         pickupDeliveryPairs,
+        stopLocationMap,
         tripsNeedingCoords,
         unassignedTrips: unassignedResult.rows.length,
         totalTrips: tripsResult.rows.length,

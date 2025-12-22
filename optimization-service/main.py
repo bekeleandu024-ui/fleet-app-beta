@@ -79,8 +79,16 @@ def get_distance_matrix(locations: List[tuple]) -> List[List[int]]:
     Fetches the distance matrix from Google Maps API.
     Returns a 2D list of distances in meters.
     """
-    if not gmaps:
-        logger.warning("Google Maps API key not configured. Using Haversine distance fallback.")
+    num_locations = len(locations)
+    
+    # Google Maps Distance Matrix API has a limit of 100 elements per request
+    # For requests with more than 10 locations (10x10=100), use Haversine fallback
+    if not gmaps or num_locations > 10:
+        if num_locations > 10:
+            logger.warning(f"Using Haversine distance for {num_locations} locations (exceeds Google Maps API limit).")
+        else:
+            logger.warning("Google Maps API key not configured. Using Haversine distance fallback.")
+        
         matrix = []
         for i in range(len(locations)):
             row = []
@@ -100,17 +108,6 @@ def get_distance_matrix(locations: List[tuple]) -> List[List[int]]:
                     row.append(int(R * c))
             matrix.append(row)
         return matrix
-
-    # Google Maps Distance Matrix API has a limit of 100 elements per request (origins * destinations).
-    # For a standard plan, it's 25 origins and 25 destinations max per request.
-    # If len(locations) * len(locations) > 100, we need to chunk the requests.
-    
-    num_locations = len(locations)
-    if num_locations * num_locations > 100:
-        # TODO: Chunking is required for larger fleets.
-        # Implement logic to break down the matrix request into smaller sub-matrices 
-        # and reconstruct the full matrix.
-        logger.warning(f"Requesting matrix for {num_locations} locations ({num_locations**2} elements). This might exceed API limits if not chunked.")
     
     # Format locations for the API: "lat,lng"
     formatted_locations = [f"{lat},{lng}" for lat, lng in locations]
@@ -207,6 +204,14 @@ def optimize_routes(request: OptimizationRequest):
     # Define cost of each arc (distance)
     routing.SetArcCostEvaluatorOfAllVehicles(transit_callback_index)
 
+    # Add distance dimension for ordering constraints
+    routing.AddDimension(
+        transit_callback_index,
+        0,  # no slack
+        300000000,  # vehicle maximum travel distance (300,000 km in meters)
+        True,  # start cumul to zero
+        'Distance')
+
     # 5. Add Capacity Constraints
     def demand_callback(from_index):
         # Returns the demand of the node.
@@ -252,10 +257,12 @@ def optimize_routes(request: OptimizationRequest):
                 routing.VehicleVar(pickup_index) == routing.VehicleVar(delivery_index)
             )
             
-            # Ensure pickup happens before delivery on the same route
+            # Ensure pickup happens before delivery (using distance dimension instead of capacity)
+            dimension_name = 'Distance'
+            distance_dimension = routing.GetDimensionOrDie(dimension_name)
             routing.solver().Add(
-                routing.CumulVar(pickup_index, "Capacity") <= 
-                routing.CumulVar(delivery_index, "Capacity")
+                distance_dimension.CumulVar(pickup_index) <= 
+                distance_dimension.CumulVar(delivery_index)
             )
 
     # 7. Solve

@@ -13,9 +13,13 @@ interface OptimizationData {
     tripId: string;
     orderId: string;
     location: string;
+    pickupCity?: string;
+    deliveryCity?: string;
     latitude: number;
     longitude: number;
     demand: number;
+    weight_lbs?: number;
+    volume_cuft?: number;
     customer: string;
     stop_type: 'pickup' | 'delivery';
   }>;
@@ -28,6 +32,7 @@ interface OptimizationData {
   }>;
   depot: { latitude: number; longitude: number };
   pickupDeliveryPairs?: Array<{ pickup_index: number; delivery_index: number }>;
+  stopLocationMap?: Record<string, { pickup: string; delivery: string; customer: string }>;
   hasData: boolean;
   totalTrips: number;
   totalStops: number;
@@ -245,8 +250,8 @@ export default function OptimizePage() {
                   <div className="text-xs text-zinc-500 mt-1">Available Vehicles</div>
                 </div>
                 <div className="bg-zinc-950 p-4 rounded-lg border border-zinc-800">
-                  <div className="text-2xl font-bold text-cyan-400">2</div>
-                  <div className="text-xs text-zinc-500 mt-1">Capacity/Vehicle</div>
+                  <div className="text-2xl font-bold text-cyan-400">45k lbs</div>
+                  <div className="text-xs text-zinc-500 mt-1">Truck Capacity</div>
                 </div>
                 <div className="bg-zinc-950 p-4 rounded-lg border border-zinc-800">
                   <div className="text-2xl font-bold text-amber-400">{optimizationData.totalTrips - optimizationData.tripsWithCoords}</div>
@@ -450,6 +455,9 @@ export default function OptimizePage() {
                           const isDelivery = step.stop_id?.startsWith('delivery-');
                           const tripId = step.stop_id?.replace('pickup-', '').replace('delivery-', '');
                           
+                          // Get location info from stopLocationMap if available
+                          const locationInfo = optimizationData?.stopLocationMap?.[step.stop_id];
+                          
                           return (
                           <div key={idx} className="relative flex items-start gap-4 group">
                             <div className={`w-6 h-6 rounded-full flex items-center justify-center z-10 mt-0.5 shadow-lg ${
@@ -465,12 +473,33 @@ export default function OptimizePage() {
                             </div>
                             <div className="flex-1 bg-zinc-950/50 p-3 rounded-md border border-zinc-800/50 group-hover:border-zinc-700 transition-colors">
                               <div className="flex justify-between items-start">
-                                <div>
+                                <div className="flex-1">
                                   <div className="text-sm font-medium text-zinc-200 flex items-center gap-2">
                                     <MapPin className={`w-3 h-3 ${isPickup ? 'text-emerald-500' : isDelivery ? 'text-orange-500' : 'text-zinc-500'}`} />
                                     <span>{isPickup ? '📦 Pickup' : isDelivery ? '🚚 Delivery' : 'Stop'}</span>
-                                    <span className="text-zinc-500 font-mono text-xs">{tripId}</span>
                                   </div>
+                                  {locationInfo && (
+                                    <div className="text-xs text-zinc-400 mt-1.5 font-medium">
+                                      {isPickup ? (
+                                        <span>{locationInfo.pickup} → {locationInfo.delivery}</span>
+                                      ) : (
+                                        <span>Drop in {locationInfo.delivery}</span>
+                                      )}
+                                    </div>
+                                  )}
+                                  {locationInfo && (
+                                    <div className="text-[10px] text-zinc-600 mt-0.5">
+                                      {locationInfo.customer}
+                                    </div>
+                                  )}
+                                  {step.weight_lbs && (
+                                    <div className="text-[10px] text-zinc-500 mt-1 flex items-center gap-2">
+                                      <span>⚖️ {Math.round(step.weight_lbs).toLocaleString()} lbs</span>
+                                      {step.volume_cuft && (
+                                        <span>📦 {Math.round(step.volume_cuft)} cuft</span>
+                                      )}
+                                    </div>
+                                  )}
                                   <div className="text-xs text-zinc-500 mt-1">
                                     Leg: {(step.distance_from_prev_meters / 1000).toFixed(1)} km
                                   </div>
