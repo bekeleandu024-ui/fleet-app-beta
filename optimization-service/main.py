@@ -37,16 +37,23 @@ class Stop(BaseModel):
     id: str
     latitude: float
     longitude: float
-    demand: int  # e.g., weight or number of packages
+    demand: int  # positive for pickup, negative for delivery
+    stop_type: Optional[str] = "stop"  # "pickup", "delivery", or "stop"
+    paired_stop_id: Optional[str] = None  # ID of the paired pickup/delivery
 
 class Depot(BaseModel):
     latitude: float
     longitude: float
 
+class PickupDeliveryPair(BaseModel):
+    pickup_index: int
+    delivery_index: int
+
 class OptimizationRequest(BaseModel):
     vehicles: List[Vehicle]
     stops: List[Stop]
     depot: Depot
+    pickup_delivery_pairs: Optional[List[PickupDeliveryPair]] = None  # For pickup-delivery constraints
 
 class RouteStep(BaseModel):
     stop_id: str
@@ -227,6 +234,29 @@ def optimize_routes(request: OptimizationRequest):
     #    routing_enums_pb2.LocalSearchMetaheuristic.GUIDED_LOCAL_SEARCH
     # )
     # search_parameters.time_limit.seconds = 5
+
+    # 6b. Add Pickup and Delivery Constraints (if pairs are specified)
+    if request.pickup_delivery_pairs:
+        for pair in request.pickup_delivery_pairs:
+            pickup_node = pair.pickup_index + 1  # +1 because index 0 is depot
+            delivery_node = pair.delivery_index + 1
+            
+            pickup_index = manager.NodeToIndex(pickup_node)
+            delivery_index = manager.NodeToIndex(delivery_node)
+            
+            # Add pickup and delivery constraint
+            routing.AddPickupAndDelivery(pickup_index, delivery_index)
+            
+            # Ensure same vehicle serves both pickup and delivery
+            routing.solver().Add(
+                routing.VehicleVar(pickup_index) == routing.VehicleVar(delivery_index)
+            )
+            
+            # Ensure pickup happens before delivery on the same route
+            routing.solver().Add(
+                routing.CumulVar(pickup_index, "Capacity") <= 
+                routing.CumulVar(delivery_index, "Capacity")
+            )
 
     # 7. Solve
     solution = routing.SolveWithParameters(search_parameters)
