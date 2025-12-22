@@ -33,7 +33,19 @@ export async function GET(
   try {
     // Fetch trip from database
     const tripResult = await pool.query(`
-      SELECT * FROM trips WHERE id = $1
+      SELECT 
+        id, status, order_id, driver_id, unit_id,
+        planned_start, actual_start,
+        pickup_location, dropoff_location,
+        planned_miles, distance_miles,
+        on_time_pickup, on_time_delivery,
+        revenue, total_cost, margin_pct, profit,
+        utilization_percent, limiting_factor,
+        current_weight, current_cube, current_linear_feet,
+        pickup_window_start, pickup_window_end,
+        delivery_window_start, delivery_window_end
+      FROM trips 
+      WHERE id = $1
     `, [tripId]);
 
     if (tripResult.rows.length === 0) {
@@ -48,20 +60,47 @@ export async function GET(
     // Fetch related data
     const [orderResult, driverResult, unitResult] = await Promise.allSettled([
       trip.order_id
-        ? pool.query(`SELECT * FROM orders WHERE id = $1`, [trip.order_id])
+        ? pool.query(`
+            SELECT 
+              id, order_number, status, customer_name, customer_id,
+              order_type, service_level, special_instructions,
+              lane_miles, quoted_rate
+            FROM orders 
+            WHERE id = $1
+          `, [trip.order_id])
         : Promise.resolve({ rows: [] }),
       trip.driver_id
         ? pool.query(`
-            SELECT d.*, u.truck_weekly_cost, u.current_location as unit_location
+            SELECT 
+              d.driver_id, d.driver_name, d.driver_type, d.region, 
+              d.is_active, d.unit_number,
+              u.truck_weekly_cost, u.current_location as unit_location
             FROM driver_profiles d
             LEFT JOIN unit_profiles u ON d.unit_number = u.unit_number
             WHERE d.driver_id = $1
           `, [trip.driver_id])
         : Promise.resolve({ rows: [] }),
       trip.unit_id
-        ? pool.query(`SELECT * FROM unit_profiles WHERE unit_id = $1`, [trip.unit_id])
+        ? pool.query(`
+            SELECT 
+              unit_id, unit_number, unit_type, region, 
+              current_location, is_active
+            FROM unit_profiles 
+            WHERE unit_id = $1
+          `, [trip.unit_id])
         : Promise.resolve({ rows: [] }),
     ]);
+
+    // Check for any rejected promises and log them
+    if (orderResult.status === 'rejected') {
+      console.error('Order query failed:', orderResult.reason);
+    }
+    if (driverResult.status === 'rejected') {
+      console.error('Driver query failed:', driverResult.reason);
+    }
+    if (unitResult.status === 'rejected') {
+      console.error('Unit query failed:', unitResult.reason);
+    }
 
     const order = orderResult.status === 'fulfilled' && orderResult.value.rows.length > 0
       ? orderResult.value.rows[0]
@@ -133,7 +172,7 @@ export async function GET(
       status: driver.is_active ? 'active' : 'inactive',
       assigned: true,
       certifications: ['FAST', 'TWIC'], // Assume certifications
-      current_location: driver.current_location || driver.unit_location,
+      current_location: driver.unit_location || 'Unknown',
       performance_metrics: {
         on_time_rate: 0.98,
       },
@@ -284,7 +323,11 @@ Analyze this trip and return insights in the specified JSON format. Remember:
       },
     };
 
-    return NextResponse.json(enrichedInsights);
+    return NextResponse.json(enrichedInsights, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+      },
+    });
 
   } catch (error: any) {
     console.error('Error generating trip insights:', error);

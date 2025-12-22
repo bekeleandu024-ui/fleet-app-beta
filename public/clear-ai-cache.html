@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Clear AI Insights Cache</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 600px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #0a0a0a;
+      color: #e5e5e5;
+    }
+    .card {
+      background: #171717;
+      border: 1px solid #262626;
+      border-radius: 8px;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+    button {
+      background: #7c3aed;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    button:hover {
+      background: #6d28d9;
+    }
+    .success {
+      background: #064e3b;
+      border-color: #065f46;
+      color: #34d399;
+    }
+    h1 { margin-top: 0; }
+    code {
+      background: #262626;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>🧹 Clear AI Insights Cache</h1>
+    <p>This will clear all cached AI insights from localStorage, forcing fresh data to be fetched on your next page visit.</p>
+    <p><strong>When to use:</strong></p>
+    <ul>
+      <li>After system updates or bug fixes</li>
+      <li>When seeing stale or incorrect data</li>
+      <li>To force immediate refresh of insights</li>
+    </ul>
+    <button onclick="clearCache()">Clear Cache Now</button>
+    <div id="result" style="margin-top: 20px;"></div>
+  </div>
+
+  <div class="card">
+    <h2>📋 Current Cached Items</h2>
+    <div id="cacheList"></div>
+  </div>
+
+  <script>
+    function displayCachedItems() {
+      const list = document.getElementById('cacheList');
+      const items = [];
+      
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (key.includes('ai-trip-insights') || key.includes('ai-order-insights'))) {
+          const value = localStorage.getItem(key);
+          try {
+            const data = JSON.parse(value);
+            const age = data.metadata?.generated_at 
+              ? Math.round((Date.now() - new Date(data.metadata.generated_at).getTime()) / 1000 / 60)
+              : 'unknown';
+            items.push(`<code>${key}</code> - ${age} minutes old`);
+          } catch (e) {
+            items.push(`<code>${key}</code>`);
+          }
+        }
+      }
+      
+      if (items.length === 0) {
+        list.innerHTML = '<p style="color: #737373;">No cached insights found</p>';
+      } else {
+        list.innerHTML = '<ul>' + items.map(item => `<li>${item}</li>`).join('') + '</ul>';
+      }
+    }
+
+    function clearCache() {
+      let count = 0;
+      const keys = [];
+      
+      // Collect keys to delete
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (key.includes('ai-trip-insights') || key.includes('ai-order-insights'))) {
+          keys.push(key);
+        }
+      }
+      
+      // Delete them
+      keys.forEach(key => {
+        localStorage.removeItem(key);
+        count++;
+      });
+      
+      const result = document.getElementById('result');
+      if (count > 0) {
+        result.innerHTML = `<div class="card success">✅ Cleared ${count} cached insight${count > 1 ? 's' : ''}</div>`;
+      } else {
+        result.innerHTML = `<div class="card">ℹ️ No cached insights to clear</div>`;
+      }
+      
+      displayCachedItems();
+    }
+
+    // Display cached items on load
+    displayCachedItems();
+  </script>
+</body>
+</html>

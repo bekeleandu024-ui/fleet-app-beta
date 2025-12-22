@@ -42,13 +42,33 @@ export function AITripInsights({ tripId }: AITripInsightsProps) {
   const [insights, setInsights] = useState<TripInsightsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isStale, setIsStale] = useState(false);
 
   useEffect(() => {
     async function fetchInsights() {
       if (!tripId) return;
       
       try {
-        setLoading(true);
+        // Check localStorage for cached data first
+        const cacheKey = `ai-trip-insights-${tripId}`;
+        const cached = localStorage.getItem(cacheKey);
+        
+        if (cached) {
+          try {
+            const cachedData = JSON.parse(cached);
+            const cacheAge = Date.now() - new Date(cachedData.metadata?.generated_at || 0).getTime();
+            
+            // Use cache if less than 5 minutes old
+            if (cacheAge < 5 * 60 * 1000) {
+              setInsights(cachedData);
+              setLoading(false);
+              setIsStale(true); // Mark as stale so we fetch fresh data in background
+            }
+          } catch (e) {
+            console.warn('Failed to parse cached insights:', e);
+          }
+        }
+        
         setError(null);
         
         const response = await fetch(`/api/trips/${tripId}/ai-insights`);
@@ -60,6 +80,10 @@ export function AITripInsights({ tripId }: AITripInsightsProps) {
         
         const data = await response.json();
         setInsights(data);
+        setIsStale(false);
+        
+        // Cache the response
+        localStorage.setItem(cacheKey, JSON.stringify(data));
       } catch (err) {
         console.error('Error fetching AI insights:', err);
         setError(err instanceof Error ? err.message : 'Unknown error');
@@ -150,6 +174,9 @@ export function AITripInsights({ tripId }: AITripInsightsProps) {
             <h3 className="text-base font-semibold text-white">
               AI Trip Insights
             </h3>
+            {isStale && (
+              <p className="text-xs text-neutral-500 mt-0.5">Updating...</p>
+            )}
           </div>
           {insights.metadata?.generated_at && (
             <span className="text-xs text-neutral-500">

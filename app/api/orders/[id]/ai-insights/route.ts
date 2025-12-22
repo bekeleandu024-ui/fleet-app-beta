@@ -55,7 +55,15 @@ export async function GET(
   try {
     // Fetch order from database
     const orderResult = await pool.query(`
-      SELECT * FROM orders WHERE id = $1
+      SELECT 
+        id, order_number, status, customer_id, customer_name,
+        pickup_location, dropoff_location, pickup_time, pu_window_start, pu_window_end,
+        dropoff_time, del_window_start, del_window_end,
+        lane, order_type, special_instructions,
+        quoted_rate, estimated_cost,
+        total_weight, total_pallets, cubic_feet, linear_feet_required
+      FROM orders 
+      WHERE id = $1
     `, [orderId]);
 
     if (orderResult.rows.length === 0) {
@@ -112,9 +120,25 @@ export async function GET(
     const drivers = driversResult.rows;
     const units = unitsResult.rows;
 
+    // Try to get distance from related trip if exists, otherwise use default
+    let laneMiles = 380; // Default distance
+    try {
+      const tripResult = await pool.query(`
+        SELECT distance_miles, planned_miles 
+        FROM trips 
+        WHERE order_id = $1 
+        LIMIT 1
+      `, [orderId]);
+      
+      if (tripResult.rows.length > 0) {
+        laneMiles = Number(tripResult.rows[0].distance_miles || tripResult.rows[0].planned_miles || 380);
+      }
+    } catch (e) {
+      console.warn('Could not fetch trip distance for order:', e);
+    }
+
     // Calculate distance and cost options
-    const laneMiles = Number(order.lane_miles || order.distance || 380); // default to 380 if not set
-    const revenue = Number(order.quoted_rate || order.revenue || order.estimated_cost || 2000);
+    const revenue = Number(order.quoted_rate || order.estimated_cost || 2000);
     
     // Calculate costs for different driver types
     const pickup = order.pickup_location || '';
@@ -133,7 +157,7 @@ export async function GET(
     });
 
     // Calculate time until pickup
-    const pickupTime = order.pickup_time || order.pu_window_start || order.pickup_window_start;
+    const pickupTime = order.pickup_time || order.pu_window_start;
     const hoursUntilPickup = pickupTime
       ? Math.round((new Date(pickupTime).getTime() - Date.now()) / (1000 * 60 * 60))
       : 999;
@@ -147,9 +171,9 @@ export async function GET(
       pickup_location: order.pickup_location,
       dropoff_location: order.dropoff_location,
       pickup_window_start: pickupTime,
-      delivery_window_start: order.dropoff_time || order.del_window_start || order.delivery_window_start,
+      delivery_window_start: order.dropoff_time || order.del_window_start,
       lane_miles: laneMiles,
-      service_level: order.order_type || order.service_level || 'Standard',
+      service_level: order.order_type || 'Standard',
       commodity: order.special_instructions || 'General Freight',
       estimated_cost: Math.max(...costOptions.map(c => c.estimated_cost)),
       revenue: revenue,
@@ -289,7 +313,11 @@ Analyze this order and provide booking recommendations in the specified JSON for
       },
     };
 
-    return NextResponse.json(enrichedInsights);
+    return NextResponse.json(enrichedInsights, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+      },
+    });
 
   } catch (error: any) {
     console.error('Error generating order insights:', error);

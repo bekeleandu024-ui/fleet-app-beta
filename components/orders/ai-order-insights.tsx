@@ -68,13 +68,33 @@ export function AIOrderInsights({ orderId }: AIOrderInsightsProps) {
   const [insights, setInsights] = useState<OrderInsightsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isStale, setIsStale] = useState(false);
 
   useEffect(() => {
     async function fetchInsights() {
       if (!orderId) return;
       
       try {
-        setLoading(true);
+        // Check localStorage for cached data first
+        const cacheKey = `ai-order-insights-${orderId}`;
+        const cached = localStorage.getItem(cacheKey);
+        
+        if (cached) {
+          try {
+            const cachedData = JSON.parse(cached);
+            const cacheAge = Date.now() - new Date(cachedData.metadata?.generated_at || 0).getTime();
+            
+            // Use cache if less than 5 minutes old
+            if (cacheAge < 5 * 60 * 1000) {
+              setInsights(cachedData);
+              setLoading(false);
+              setIsStale(true); // Mark as stale so we fetch fresh data in background
+            }
+          } catch (e) {
+            console.warn('Failed to parse cached insights:', e);
+          }
+        }
+        
         setError(null);
         
         const response = await fetch(`/api/orders/${orderId}/ai-insights`);
@@ -86,6 +106,10 @@ export function AIOrderInsights({ orderId }: AIOrderInsightsProps) {
         
         const data = await response.json();
         setInsights(data);
+        setIsStale(false);
+        
+        // Cache the response
+        localStorage.setItem(cacheKey, JSON.stringify(data));
       } catch (err) {
         console.error('Error fetching AI order insights:', err);
         setError(err instanceof Error ? err.message : 'Unknown error');
@@ -164,6 +188,9 @@ export function AIOrderInsights({ orderId }: AIOrderInsightsProps) {
             <h3 className="text-base font-semibold text-white">
               AI Booking Assistant
             </h3>
+            {isStale && (
+              <p className="text-xs text-neutral-500 mt-0.5">Updating...</p>
+            )}
           </div>
           {insights.can_dispatch && (
             <div className="flex items-center gap-1.5 text-xs font-medium text-green-400 bg-green-950/30 border border-green-900/50 rounded-full px-2.5 py-1">
