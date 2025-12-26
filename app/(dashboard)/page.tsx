@@ -19,6 +19,7 @@ import Link from "next/link";
 
 import { formatNumber } from "@/lib/format";
 import { Button } from "@/components/ui/button";
+import { DashboardMap } from "@/components/dashboard-map";
 
 // Define the metrics interface based on our API response
 interface DashboardMetrics {
@@ -153,27 +154,8 @@ export default function DashboardPage() {
             />
           </div>
 
-          {/* Live Network Map Placeholder */}
-          <div className="flex-1 rounded-lg border border-zinc-800 bg-zinc-950 overflow-hidden flex flex-col min-h-[300px]">
-            <div className="flex items-center justify-between border-b border-zinc-800 bg-zinc-900/50 px-4 py-3">
-              <h3 className="text-sm font-medium text-zinc-300 uppercase tracking-wider flex items-center gap-2">
-                <MapIcon className="h-4 w-4 text-zinc-500" />
-                Live Network
-              </h3>
-              <Button variant="plain" size="sm" className="h-6 text-xs text-blue-400 hover:text-blue-300" asChild>
-                <Link href="/map">Full Map</Link>
-              </Button>
-            </div>
-            <div className="relative flex-1 bg-[#0B0E14] group">
-              <div className="absolute inset-0 bg-[url('/map-placeholder.png')] bg-cover bg-center opacity-20 group-hover:opacity-30 transition-opacity" />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="text-center p-6 rounded-lg bg-black/60 backdrop-blur-sm border border-zinc-800">
-                  <MapIcon className="mx-auto h-8 w-8 text-zinc-500 mb-2" />
-                  <p className="text-sm text-zinc-400">Geospatial view of fleet operations</p>
-                </div>
-              </div>
-            </div>
-          </div>
+          {/* Live Network Map */}
+          <DashboardMap />
         </div>
 
         {/* Right Column: Financials (1/3 width) */}

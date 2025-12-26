@@ -16,9 +16,9 @@ export async function GET() {
         ),
         trip_stats AS (
           SELECT 
-            COUNT(*) FILTER (WHERE status IN ('In Transit', 'En Route') AND risk_level IN ('High', 'Critical')) as risk_count,
-            COUNT(*) FILTER (WHERE status = 'Completed' AND completed_at > NOW() - INTERVAL '30 days') as completed_30d,
-            COUNT(*) FILTER (WHERE status = 'Completed' AND completed_at > NOW() - INTERVAL '30 days' AND on_time_delivery = true) as on_time_30d
+            COUNT(*) FILTER (WHERE status IN ('in_transit', 'en_route_to_pickup', 'departed_pickup') AND risk_level IN ('High', 'Critical')) as risk_count,
+            COUNT(*) FILTER (WHERE status = 'completed' AND completed_at > NOW() - INTERVAL '30 days') as completed_30d,
+            COUNT(*) FILTER (WHERE status = 'completed' AND completed_at > NOW() - INTERVAL '30 days' AND on_time_delivery = true) as on_time_30d
           FROM trips
         ),
         driver_stats AS (

@@ -1,5 +1,18 @@
 
 services:
+  nginx:
+    build: ./nginx
+    ports:
+      - "80:80"
+    depends_on:
+      - master-data
+      - orders
+      - dispatch
+      - tracking
+      - mcp-fleet-connector
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
   postgres:
     image: postgres:15
     environment:
