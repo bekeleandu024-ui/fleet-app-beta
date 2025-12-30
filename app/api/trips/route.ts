@@ -179,23 +179,38 @@ export async function POST(request: Request) {
         }
       }
 
+      // Context data for denormalized fields (for historical accuracy)
+      let driverName: string | null = null;
+      let unitNumber: string | null = null;
+      let customerName: string | null = null;
+      let lane: string | null = null;
+
       if (!driverId && unitId) {
           // Try to find driver assigned to this unit
           // First get unit_number
           const unitRes = await client.query('SELECT unit_number FROM unit_profiles WHERE unit_id = $1', [unitId]);
           if (unitRes.rows.length > 0) {
-              const unitNumber = unitRes.rows[0].unit_number;
-              const driverRes = await client.query('SELECT driver_id, driver_type FROM driver_profiles WHERE unit_number = $1', [unitNumber]);
+              unitNumber = unitRes.rows[0].unit_number;
+              const driverRes = await client.query('SELECT driver_id, driver_type, driver_name FROM driver_profiles WHERE unit_number = $1', [unitNumber]);
               if (driverRes.rows.length > 0) {
                   driverId = driverRes.rows[0].driver_id;
                   driverType = (driverRes.rows[0].driver_type as DriverType) || 'RNR';
+                  driverName = driverRes.rows[0].driver_name;
               }
           }
       } else if (driverId) {
-          const driverRes = await client.query('SELECT driver_type FROM driver_profiles WHERE driver_id = $1', [driverId]);
+          const driverRes = await client.query('SELECT driver_type, driver_name, unit_number FROM driver_profiles WHERE driver_id = $1', [driverId]);
           if (driverRes.rows.length > 0) {
               driverType = (driverRes.rows[0].driver_type as DriverType) || 'RNR';
+              driverName = driverRes.rows[0].driver_name;
+              unitNumber = driverRes.rows[0].unit_number;
           }
+      }
+
+      // Get customer name from order (customer_id IS the customer name in this system)
+      if (order) {
+          customerName = order.customer_id || order.customer_name;
+          lane = order.lane;
       }
 
       // Calculate costs if missing but we have enough info
@@ -275,6 +290,19 @@ export async function POST(request: Request) {
       const profit = finalRevenue - finalCost;
       const marginPct = finalRevenue > 0 ? (profit / finalRevenue) * 100 : 0;
       
+      // Generate lane from locations if not set
+      if (!lane && pickupLocation && dropoffLocation) {
+          const pickupCity = pickupLocation.split(',')[0]?.trim();
+          const dropoffCity = dropoffLocation.split(',')[0]?.trim();
+          if (pickupCity && dropoffCity) {
+              lane = `${pickupCity} → ${dropoffCity}`;
+          }
+      }
+
+      // Calculate estimated fuel (assuming 6.5 MPG for trucks)
+      const AVG_MPG = 6.5;
+      const estimatedFuelGallons = calculatedMiles > 0 ? Math.round((calculatedMiles / AVG_MPG) * 100) / 100 : null;
+      
       // Generate trip number
       const tripNumber = `TRP-${Date.now().toString().slice(-8)}`;
 
@@ -296,6 +324,8 @@ export async function POST(request: Request) {
           planned_start,
           planned_miles,
           distance_miles,
+          actual_miles,
+          estimated_fuel_gallons,
           current_weight,
           current_cube,
           current_linear_feet,
@@ -304,7 +334,12 @@ export async function POST(request: Request) {
           revenue,
           expected_revenue,
           total_cost,
+          profit,
           margin_pct,
+          driver_name,
+          unit_number,
+          customer_name,
+          lane,
           on_time_pickup,
           on_time_delivery,
           risk_level,
@@ -326,15 +361,22 @@ export async function POST(request: Request) {
           $11,
           $12,
           $12,
+          $12,
           $13,
           $14,
           $15,
           $16,
           $17,
           $18,
-          $18,
+          $19,
           $19,
           $20,
+          $21,
+          $22,
+          $23,
+          $24,
+          $25,
+          $26,
           NULL,
           NULL,
           'green',
@@ -354,6 +396,7 @@ export async function POST(request: Request) {
         deliveryWindowEnd,
         plannedStart,
         calculatedMiles,
+        estimatedFuelGallons,
         currentWeight,
         currentCube,
         currentLinearFeet,
@@ -361,7 +404,12 @@ export async function POST(request: Request) {
         limitingFactor,
         finalRevenue,
         finalCost,
-        marginPct.toFixed(2)
+        profit,
+        marginPct.toFixed(2),
+        driverName,
+        unitNumber,
+        customerName,
+        lane
       ]);
 
       const tripId = tripRes.rows[0].id;
@@ -376,6 +424,7 @@ export async function POST(request: Request) {
           unit_id,
           driver_type,
           miles,
+          actual_miles,
           total_cpm,
           total_cost,
           revenue,
@@ -393,6 +442,7 @@ export async function POST(request: Request) {
           $3::uuid,
           $4::uuid,
           $5,
+          $6,
           $6,
           $7,
           $8,

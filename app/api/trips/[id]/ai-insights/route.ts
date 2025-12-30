@@ -63,8 +63,8 @@ export async function GET(
         ? pool.query(`
             SELECT 
               id, order_number, status, customer_name, customer_id,
-              order_type, service_level, special_instructions,
-              lane_miles, quoted_rate
+              order_type, required_equipment as service_level, special_instructions,
+              lane, quoted_rate
             FROM orders 
             WHERE id = $1
           `, [trip.order_id])

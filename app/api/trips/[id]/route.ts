@@ -185,21 +185,27 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
       }
     }
 
-    const driversQuery = `
+    // Optimized queries: fetch only the specific driver and unit for this trip
+    const driverQuery = `
       SELECT d.driver_id as id, d.driver_name as name, d.driver_type, d.unit_number, u.truck_weekly_cost as "truckWk", d.region
       FROM driver_profiles d
       LEFT JOIN unit_profiles u ON d.unit_number = u.unit_number
+      WHERE d.driver_id = $1
     `;
-    const unitsQuery = `SELECT unit_id as id, unit_number, truck_weekly_cost, region, max_weight, max_cube, linear_feet, unit_type FROM unit_profiles`;
+    const unitQuery = `SELECT unit_id as id, unit_number, truck_weekly_cost, region, max_weight, max_cube, linear_feet, unit_type FROM unit_profiles WHERE unit_id = $1`;
     const tripNumberQuery = `SELECT trip_number FROM trips WHERE id = $1`;
     const tripCostsQuery = `SELECT * FROM trip_costs WHERE trip_id = $1 ORDER BY created_at DESC LIMIT 1`;
 
-    const [orderResult, driversResult, unitsResult, eventsResult, exceptionsResult, tripNumberResult, tripCostsResult] = await Promise.allSettled([
+    const [orderResult, driverResult, unitResult, eventsResult, exceptionsResult, tripNumberResult, tripCostsResult] = await Promise.allSettled([
       trip.order_id
         ? serviceFetch<Record<string, any>>("orders", `/api/orders/${trip.order_id}`)
         : Promise.resolve(undefined),
-      pool.query(driversQuery),
-      pool.query(unitsQuery),
+      trip.driver_id
+        ? pool.query(driverQuery, [trip.driver_id])
+        : Promise.resolve({ rows: [] }),
+      trip.unit_id
+        ? pool.query(unitQuery, [trip.unit_id])
+        : Promise.resolve({ rows: [] }),
       serviceFetch<Array<Record<string, any>>>("tracking", `/api/trips/${id}/events`),
       serviceFetch<Array<Record<string, any>>>("tracking", `/api/trips/${id}/exceptions`),
       pool.query(tripNumberQuery, [id]),
@@ -207,8 +213,9 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
     ]);
 
     const order = orderResult.status === "fulfilled" ? orderResult.value : undefined;
-    const drivers = driversResult.status === "fulfilled" ? driversResult.value.rows : [];
-    const units = unitsResult.status === "fulfilled" ? unitsResult.value.rows : [];
+    // Directly access the single driver/unit record (no more JS filtering needed)
+    const driver = driverResult.status === "fulfilled" ? driverResult.value.rows[0] : undefined;
+    const unit = unitResult.status === "fulfilled" ? unitResult.value.rows[0] : undefined;
     const events = eventsResult.status === "fulfilled" ? eventsResult.value ?? [] : [];
     const exceptions = exceptionsResult.status === "fulfilled" ? exceptionsResult.value ?? [] : [];
     const tripNumber = tripNumberResult.status === "fulfilled" && tripNumberResult.value.rows.length > 0
@@ -231,7 +238,7 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
         trip.driver_type = tripCosts.driver_type;
     }
 
-    const detail = buildTripDetail(trip, { order, driverRecords: drivers, unitRecords: units, events, exceptions });
+    const detail = buildTripDetail(trip, { order, driver, unit, events, exceptions });
 
     return NextResponse.json(detail);
   } catch (error) {
@@ -247,15 +254,16 @@ function buildTripDetail(
   trip: Record<string, any>,
   context: {
     order?: Record<string, any>;
-    driverRecords: Array<Record<string, any>>;
-    unitRecords: Array<Record<string, any>>;
+    driver?: Record<string, any>;
+    unit?: Record<string, any>;
     events: Array<Record<string, any>>;
     exceptions: Array<Record<string, any>>;
   }
 ) {
-  const driver = context.driverRecords.find((record) => String(record.id ?? record.driver_id) === String(trip.driver_id));
+  // Driver and unit are now fetched directly by ID - no JS filtering needed
+  const driver = context.driver;
   const driverName = driver?.driver_name ?? driver?.name ?? trip.driver_id ?? "Unassigned";
-  const unit = context.unitRecords.find((record) => String(record.id ?? record.unit_id) === String(trip.unit_id));
+  const unit = context.unit;
   const unitNumber = unit?.unit_number ?? trip.unit_number ?? trip.unit_id ?? "Pending";
   const pickupWindowStart = trip.pickup_window_start ?? trip.pickup_window?.start;
   const pickupWindowEnd = trip.pickup_window_end ?? trip.pickup_window?.end;

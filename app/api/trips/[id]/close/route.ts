@@ -19,21 +19,42 @@ export async function POST(
       documents,
       notes,
       closedAt,
+      actualMiles, // Allow override from UI
+      actualFuelGallons, // Allow override from UI
     } = body;
 
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
 
-      // 1. Update trip status to "Closed"
+      // Get trip details to populate actual values
+      const tripDetails = await client.query(`
+        SELECT planned_miles, distance_miles, estimated_fuel_gallons
+        FROM trips WHERE id = $1
+      `, [tripId]);
+      
+      const trip = tripDetails.rows[0];
+      
+      // Calculate actual miles: use provided value, or distance_miles, or planned_miles
+      const finalActualMiles = actualMiles ?? trip?.distance_miles ?? trip?.planned_miles;
+      
+      // Calculate actual fuel: use provided value, estimated fuel, or calculate from miles
+      const AVG_MPG = 6.5;
+      const finalActualFuel = actualFuelGallons 
+        ?? trip?.estimated_fuel_gallons 
+        ?? (finalActualMiles ? Math.round((finalActualMiles / AVG_MPG) * 100) / 100 : null);
+
+      // 1. Update trip status to "Closed" and set actual tracking values
       await client.query(`
         UPDATE trips 
         SET 
           status = 'closed',
           closed_at = $2,
+          actual_miles = COALESCE($4, actual_miles, distance_miles, planned_miles),
+          actual_fuel_gallons = COALESCE($5, actual_fuel_gallons, estimated_fuel_gallons),
           notes = COALESCE(notes, '') || E'\n[Closed]: ' || $3
         WHERE id = $1
-      `, [tripId, closedAt || new Date().toISOString(), notes || '']);
+      `, [tripId, closedAt || new Date().toISOString(), notes || '', finalActualMiles, finalActualFuel]);
 
       // 2. Update or Insert final financial data into trip_costs
       // First check if a cost record exists
@@ -44,7 +65,7 @@ export async function POST(
       const marginPct = finalRevenue > 0 ? (profit / finalRevenue) * 100 : 0;
 
       if (costRes.rows.length > 0) {
-        // Update existing
+        // Update existing - also set actual_miles
         await client.query(`
           UPDATE trip_costs
           SET
@@ -53,6 +74,7 @@ export async function POST(
             profit = $4,
             margin_pct = $5,
             is_profitable = $6,
+            actual_miles = COALESCE($7, actual_miles, miles),
             updated_at = NOW()
           WHERE cost_id = $1
         `, [
@@ -61,22 +83,24 @@ export async function POST(
           finalCost,
           profit,
           marginPct,
-          profit > 0
+          profit > 0,
+          finalActualMiles
         ]);
       } else {
         // Insert new (fallback if it wasn't created at booking)
         // We need to fetch trip details to populate other fields
-        const tripDetails = await client.query(`
+        const tripDetailsForCost = await client.query(`
           SELECT 
-            t.order_id, t.driver_id, t.unit_id, t.planned_miles,
+            t.order_id, t.driver_id, t.unit_id, t.planned_miles, t.actual_miles,
             d.driver_type
           FROM trips t
           LEFT JOIN driver_profiles d ON t.driver_id = d.driver_id
           WHERE t.id = $1
         `, [tripId]);
 
-        if (tripDetails.rows.length > 0) {
-          const trip = tripDetails.rows[0];
+        if (tripDetailsForCost.rows.length > 0) {
+          const tripForCost = tripDetailsForCost.rows[0];
+          const milesForCost = finalActualMiles || tripForCost.actual_miles || tripForCost.planned_miles || 0;
           await client.query(`
             INSERT INTO trip_costs (
               cost_id,
@@ -86,6 +110,7 @@ export async function POST(
               unit_id,
               driver_type,
               miles,
+              actual_miles,
               total_cost,
               revenue,
               profit,
@@ -102,6 +127,7 @@ export async function POST(
               $4,
               $5,
               $6,
+              $6,
               $7,
               $8,
               $9,
@@ -111,11 +137,13 @@ export async function POST(
               NOW(),
               NOW()
             )
-          `, [            tripId,            trip.order_id,
-            trip.driver_id,
-            trip.unit_id,
-            trip.driver_type || 'Unknown',
-            trip.planned_miles || 0,
+          `, [
+            tripId,
+            tripForCost.order_id,
+            tripForCost.driver_id,
+            tripForCost.unit_id,
+            tripForCost.driver_type || 'Unknown',
+            milesForCost,
             finalCost,
             finalRevenue,
             profit,

@@ -14,16 +14,28 @@ const { DistanceService } = require('./distance-service');
 
 class DatabaseConnection {
   constructor(config = {}) {
-    this.pool = new Pool({
-      host: config.host || process.env.DB_HOST || 'localhost',
-      port: config.port || process.env.DB_PORT || 5432,
-      database: config.database || process.env.DB_NAME || 'fleet_management',
-      user: config.user || process.env.DB_USER || 'postgres',
-      password: config.password || process.env.DB_PASSWORD || '',
-      max: config.maxConnections || 20,
-      idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 10000,
-    });
+    // Prefer connection string if available, otherwise build from parts
+    const connectionString = config.connectionString || process.env.DATABASE_URL;
+
+    if (connectionString) {
+      this.pool = new Pool({
+        connectionString,
+        max: config.maxConnections || 20,
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 10000,
+      });
+    } else {
+      this.pool = new Pool({
+        host: config.host || process.env.DB_HOST || 'localhost',
+        port: config.port || process.env.DB_PORT || 5432,
+        database: config.database || process.env.DB_NAME || 'fleet_management',
+        user: config.user || process.env.DB_USER || 'postgres',
+        password: config.password || process.env.DB_PASSWORD || 'postgres', // Default to postgres if not set
+        max: config.maxConnections || 20,
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 10000,
+      });
+    }
 
     this.pool.on('error', (err) => {
       console.error('Unexpected database error:', err);
