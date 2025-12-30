@@ -1,19 +1,27 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback, Suspense } from "react";
+import { useState, useEffect, useMemo, useCallback, Suspense, lazy } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Package, CheckCircle, Sparkles, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { AIInsightsPanel } from "@/components/ai-insights-panel";
 import { AIChatAssistant } from "@/components/ai-chat-assistant";
 import { DriverUnitSelector } from "@/components/booking/driver-unit-selector";
 import { RateSelector } from "@/components/booking/rate-selector";
 import { StopManager, type TripStop } from "@/components/booking/stop-manager";
 import { RevenueCalculator } from "@/components/booking/revenue-calculator";
-import { CostingCard } from "@/components/costing/costing-card";
 import { getAllCostingOptions } from "@/lib/costing";
-import { useAIInsights } from "@/hooks/use-ai-insights";
+import { 
+  OrderSnapshotSkeleton, 
+  EmptyStatePlaceholder, 
+  BookingFormSkeleton, 
+  ResourceListSkeleton 
+} from "@/components/booking/skeletons";
+import { AIAnalysisSkeleton } from "@/components/booking/ai-analysis-skeleton";
+import { DriverAccordion } from "@/components/booking/driver-accordion";
+import { BookingInsights } from "@/lib/types";
+
+const AIAnalysisSection = lazy(() => import("@/components/booking/ai-analysis-section"));
 
 interface Order {
   id: string;
@@ -128,17 +136,19 @@ function BookTripContent() {
   const [recommendedUnitId, setRecommendedUnitId] = useState<string | null>(null);
   const [recommendedRateId, setRecommendedRateId] = useState<string | null>(null);
   
-  // AI Insights Hook
-  const { insights, isGenerating: isGeneratingInsights, error: insightsError, generateInsights: triggerInsights } = useAIInsights();
+  // AI Insights State
+  const [insights, setInsights] = useState<BookingInsights | null>(null);
   
   // Chat State
   const [isChatOpen, setIsChatOpen] = useState(false);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
 
   // Fetch data
   useEffect(() => {
+    setIsInitialLoading(true);
     Promise.all([
       fetch("/api/orders").then(r => r.json()),
       fetch("/api/drivers?active=true").then(r => r.json()),
@@ -161,6 +171,8 @@ function BookTripContent() {
       setRates(ratesList);
     }).catch(err => {
       console.error("Error fetching data:", err);
+    }).finally(() => {
+      setIsInitialLoading(false);
     });
   }, []);
 
@@ -399,9 +411,9 @@ function BookTripContent() {
     return new Date(deadlineDate.getTime() - durationMs).toISOString();
   }, [selectedOrder, routeDuration]);
 
-  // Generate AI Insights
-  const generateInsights = useCallback(async () => {
-    if (!selectedOrder || actualMiles === 0) return;
+  // Trip Context for AI
+  const tripContext = useMemo(() => {
+    if (!selectedOrder || actualMiles === 0) return null;
 
     // Prepare context for Claude
     // Available drivers by type (filter out busy drivers)
@@ -410,7 +422,7 @@ function BookTripContent() {
     // Available units (filter out busy units)
     const availableUnitsList = units.filter(u => u.status !== 'Busy' && u.status !== 'Inactive');
 
-    const tripContext = {
+    return {
       customer: selectedOrder.customer,
       lane: `${selectedOrder.pickup} → ${selectedOrder.delivery}`,
       distance: actualMiles,
@@ -444,23 +456,7 @@ function BookTripContent() {
       historicalMargin: 5,
       laneFrequency: "High"
     };
-
-    await triggerInsights(tripContext);
-  }, [selectedOrder, actualMiles, costingOptions, drivers, routeDuration, triggerInsights]);
-
-  // Trigger insights generation when relevant data changes (debounced)
-  useEffect(() => {
-    // Don't regenerate if a driver is already selected (user manually assigned)
-    if (driverId) return;
-
-    const timer = setTimeout(() => {
-      if (selectedOrder && actualMiles > 0) {
-        generateInsights();
-      }
-    }, 1000);
-    
-    return () => clearTimeout(timer);
-  }, [selectedOrder, actualMiles, generateInsights, driverId]);
+  }, [selectedOrder, actualMiles, costingOptions, drivers, routeDuration, units]);
 
   const handleApplyRecommendation = (recommendation: any) => {
     if (recommendation.driver) {
@@ -597,14 +593,16 @@ function BookTripContent() {
   return (
     <div className="min-h-screen bg-black p-6">
       {/* Header */}
-      <div className="mb-4">
+      <div className="mb-4 opacity-0 animate-fade-in" style={{ animationFillMode: 'forwards' }}>
         <h1 className="text-2xl font-semibold text-white mb-1">Trip Booking Control Center</h1>
         <p className="text-sm text-zinc-400">AI-powered recommendations, dispatch console, and real-time resource availability.</p>
       </div>
 
-      {/* Order Snapshot - Horizontal Card at Top */}
-      {selectedOrder ? (
-        <Card className="mb-4 rounded-lg border border-zinc-800/70 bg-zinc-900/40 p-4">
+      {/* Order Snapshot - Horizontal Card at Top with Skeleton */}
+      {isInitialLoading ? (
+        <OrderSnapshotSkeleton />
+      ) : selectedOrder ? (
+        <Card className="mb-4 rounded-lg border border-zinc-800/70 bg-zinc-900/40 p-4 min-h-[72px] opacity-0 animate-fade-in" style={{ animationDelay: '100ms', animationFillMode: 'forwards' }}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-6">
               <div>
@@ -708,44 +706,45 @@ function BookTripContent() {
           </div>
         </Card>
       ) : (
-        <div className="mb-4 rounded-lg border border-dashed border-zinc-800 bg-zinc-900/20 p-6 text-center">
-          <p className="text-sm text-zinc-400">Select a qualified order from the right panel to begin booking</p>
-        </div>
+        <EmptyStatePlaceholder />
       )}
 
-      {/* Three Column Layout */}
+      {/* Three Column Layout - Fixed heights to prevent shifts */}
       <div className="grid grid-cols-12 gap-4">
         
-        {/* LEFT COLUMN: AI Booking Recommendations */}
+        {/* LEFT COLUMN: AI Booking Recommendations - Fixed width and height */}
         <div className="col-span-3">
-          <AIInsightsPanel
-            insights={insights}
-            loading={isGeneratingInsights}
-            error={insightsError}
-            onRetry={generateInsights}
-            totalCost={totalCost}
-            latestTripStart={latestTripStart}
-            onSelectDriver={(driverId) => {
-              setDriverId(driverId);
-              const driver = drivers.find(d => d.id === driverId);
-              if (driver) {
-                setDriverName(driver.name);
-                setDriverType(driver.type);
-              }
-            }}
-            onSelectUnit={(unitId) => {
-              setUnitId(unitId);
-              const unit = units.find(u => u.id === unitId);
-              if (unit) {
-                setUnitCode(unit.code);
-              }
-            }}
-          />
+          <Suspense fallback={<AIAnalysisSkeleton />}>
+            <AIAnalysisSection
+              tripContext={tripContext}
+              totalCost={totalCost}
+              latestTripStart={latestTripStart}
+              onSelectDriver={(driverId) => {
+                setDriverId(driverId);
+                const driver = drivers.find(d => d.id === driverId);
+                if (driver) {
+                  setDriverName(driver.name);
+                  setDriverType(driver.type);
+                }
+              }}
+              onSelectUnit={(unitId) => {
+                setUnitId(unitId);
+                const unit = units.find(u => u.id === unitId);
+                if (unit) {
+                  setUnitCode(unit.code);
+                }
+              }}
+              onInsightsUpdate={setInsights}
+            />
+          </Suspense>
         </div>
 
         {/* CENTER COLUMN: Trip Booking Form */}
         <div className="col-span-6">
-          <form onSubmit={handleSubmit}>
+          {isInitialLoading ? (
+            <BookingFormSkeleton />
+          ) : (
+          <form onSubmit={handleSubmit} className="opacity-0 animate-fade-in" style={{ animationDelay: '200ms', animationFillMode: 'forwards' }}>
             <Card className="rounded-lg border border-zinc-800/70 bg-zinc-900/40 p-5">
               <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
                 <Package className="h-5 w-5 text-blue-400" />
@@ -765,43 +764,22 @@ function BookTripContent() {
                       </span>
                     )}
                   </div>
-                  <div className="grid grid-cols-1 gap-3">
-                    {costingOptions.map((option, index) => {
-                      const isRecommended = option.cost.directTripCost === Math.min(
-                        ...costingOptions.map(o => o.cost.directTripCost)
-                      );
-                      
-                      // Construct reduced insight if this is the recommended option and we have savings
-                      let insightText = undefined;
-                      if (isRecommended && insights?.costOptimization?.potentialSavings && insights.costOptimization.potentialSavings !== "0") {
-                         insightText = `Save ${insights.costOptimization.potentialSavings} - Best Efficiency`;
-                      }
-
-                      return (
-                      <CostingCard
-                        key={`form-costing-${option.driverType}-${option.zone || index}`}
-                        driverType={option.driverType}
-                        label={option.label}
-                        cost={option.cost}
-                        distance={actualMiles}
-                        isRecommended={isRecommended}
-                        isSelected={selectedCostingOption?.driverType === option.driverType && 
-                                    selectedCostingOption?.zone === option.zone}
-                        insight={insightText}
-                        onSelect={() => {
-                          // Store the full costing option
-                          setSelectedCostingOption(option);
-                          // Set the driver type
-                          setDriverType(option.driverType);
-                          // Auto-calculate revenue based on cost
-                          const revenue = option.cost.recommendedRevenue;
-                          setTotalRevenue(revenue);
-                          setRpm(actualMiles > 0 ? revenue / actualMiles : 0);
-                        }}
-                      />
-                    );
-                    })}
-                  </div>
+                  <DriverAccordion
+                    options={costingOptions}
+                    selectedOption={selectedCostingOption}
+                    actualMiles={actualMiles}
+                    insights={insights}
+                    onSelect={(option) => {
+                      // Store the full costing option
+                      setSelectedCostingOption(option);
+                      // Set the driver type
+                      setDriverType(option.driverType);
+                      // Auto-calculate revenue based on cost
+                      const revenue = option.cost.recommendedRevenue;
+                      setTotalRevenue(revenue);
+                      setRpm(actualMiles > 0 ? revenue / actualMiles : 0);
+                    }}
+                  />
                 </div>
               )}
 
@@ -867,13 +845,21 @@ function BookTripContent() {
               )}
             </Card>
           </form>
+          )}
         </div>
 
         {/* RIGHT COLUMN: Available Resources */}
         <div className="col-span-3 space-y-3">
-          
+          {isInitialLoading ? (
+            <>
+              <ResourceListSkeleton title="Available Orders" icon={Package} itemCount={4} />
+              <ResourceListSkeleton title="Available Drivers" icon={TrendingUp} itemCount={5} />
+              <ResourceListSkeleton title="Available Units" icon={Sparkles} itemCount={5} />
+            </>
+          ) : (
+            <>
           {/* Available Orders */}
-          <Card className="rounded-lg border border-zinc-800/70 bg-zinc-900/40 p-3">
+          <Card className="rounded-lg border border-zinc-800/70 bg-zinc-900/40 p-3 min-h-[240px] opacity-0 animate-fade-in" style={{ animationDelay: '300ms', animationFillMode: 'forwards' }}>
             <h3 className="text-xs font-bold text-white mb-3 uppercase tracking-wider flex items-center gap-2">
               <Package className="h-3.5 w-3.5" />
               Available Orders
@@ -902,7 +888,7 @@ function BookTripContent() {
           </Card>
 
           {/* Available Drivers */}
-          <Card className="rounded-lg border border-zinc-800/70 bg-zinc-900/40 p-3">
+          <Card className="rounded-lg border border-zinc-800/70 bg-zinc-900/40 p-3 min-h-[240px] opacity-0 animate-fade-in" style={{ animationDelay: '350ms', animationFillMode: 'forwards' }}>
             <h3 className="text-xs font-bold text-white mb-2 uppercase tracking-wider flex items-center gap-2">
               <TrendingUp className="h-3.5 w-3.5" />
               Available Drivers
@@ -936,7 +922,7 @@ function BookTripContent() {
           </Card>
 
           {/* Available Units */}
-          <Card className="rounded-lg border border-zinc-800/70 bg-zinc-900/40 p-3">
+          <Card className="rounded-lg border border-zinc-800/70 bg-zinc-900/40 p-3 min-h-[240px] opacity-0 animate-fade-in" style={{ animationDelay: '400ms', animationFillMode: 'forwards' }}>
             <h3 className="text-xs font-bold text-white mb-2 uppercase tracking-wider flex items-center gap-2">
               <Sparkles className="h-3.5 w-3.5" />
               Available Units
@@ -982,6 +968,8 @@ function BookTripContent() {
               )}
             </div>
           </Card>
+          </>
+          )}
         </div>
       </div>
 

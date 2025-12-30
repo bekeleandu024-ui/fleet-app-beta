@@ -4,6 +4,7 @@ import { Sparkles, TrendingDown, AlertTriangle, CheckCircle, Info, User, DollarS
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { BookingInsights } from '@/lib/types';
+import { AIInsightsPanelSkeleton } from './booking/skeletons';
 
 interface AIInsightsPanelProps {
   insights: BookingInsights | null;
@@ -28,43 +29,33 @@ export function AIInsightsPanel({
 }: AIInsightsPanelProps) {
   
   if (loading) {
-    return (
-      <Card className="p-6 border-zinc-800 bg-zinc-900/40 animate-pulse">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-8 h-8 rounded-full bg-zinc-800"></div>
-          <div className="h-4 w-32 bg-zinc-800 rounded"></div>
-        </div>
-        <div className="space-y-3">
-          <div className="h-20 bg-zinc-800/50 rounded-lg"></div>
-          <div className="h-12 bg-zinc-800/50 rounded-lg"></div>
-          <div className="h-32 bg-zinc-800/50 rounded-lg"></div>
-        </div>
-      </Card>
-    );
+    return <AIInsightsPanelSkeleton />;
   }
 
   if (error) {
     return (
-      <Card className="p-6 border-rose-900/30 bg-rose-950/10">
-        <div className="flex flex-col items-center text-center gap-3">
-          <AlertTriangle className="w-8 h-8 text-rose-500" />
-          <p className="text-sm text-rose-200">{error}</p>
-          <Button variant="subtle" size="sm" onClick={onRetry} className="border-rose-800 text-rose-400 hover:bg-rose-950/50">
-            Retry Analysis
-          </Button>
-        </div>
-      </Card>
+      <div className="h-[720px] flex items-center justify-center">
+        <Card className="p-6 border-rose-900/30 bg-rose-950/10 w-full">
+          <div className="flex flex-col items-center text-center gap-3">
+            <AlertTriangle className="w-8 h-8 text-rose-500" />
+            <p className="text-sm text-rose-200">{error}</p>
+            <Button variant="subtle" size="sm" onClick={onRetry} className="border-rose-800 text-rose-400 hover:bg-rose-950/50">
+              Retry Analysis
+            </Button>
+          </div>
+        </Card>
+      </div>
     );
   }
 
   if (!insights) {
-    return null;
+    return <AIInsightsPanelSkeleton />;
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 min-h-[720px]">
       {/* Header */}
-      <div className="flex items-center gap-2 mb-2">
+      <div className="flex items-center gap-2 mb-2 opacity-0 animate-fade-in" style={{ animationDelay: '100ms', animationFillMode: 'forwards' }}>
         <Sparkles className="w-4 h-4 text-blue-400" />
         <h3 className="text-sm font-semibold text-blue-100">AI Analysis & Recommendations</h3>
       </div>
@@ -86,7 +77,7 @@ export function AIInsightsPanel({
 
       {/* Specific Resource Recommendation */}
       {(insights.specificDriverRecommendation || insights.specificUnitRecommendation) && (
-        <Card className="p-4 bg-zinc-900/40 border-zinc-800">
+        <Card className="p-4 bg-zinc-900/40 border-zinc-800 min-h-[180px] opacity-0 animate-fade-in" style={{ animationDelay: '200ms', animationFillMode: 'forwards' }}>
           <div className="flex items-start gap-3">
             <div className="p-2 bg-blue-900/20 rounded-lg shrink-0">
               <User className="w-5 h-5 text-blue-400" />
@@ -131,7 +122,7 @@ export function AIInsightsPanel({
       )}
 
       {/* Trip Execution Parameters (Revenue & Timing) */}
-      <div className="p-3 rounded-lg bg-zinc-900/30 border border-zinc-800/50">
+      <div className="p-3 rounded-lg bg-zinc-900/30 border border-zinc-800/50 min-h-[160px] opacity-0 animate-fade-in" style={{ animationDelay: '300ms', animationFillMode: 'forwards' }}>
         <h4 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-3">Revenue & Start Date Recommendation</h4>
         
         <div className="flex items-center justify-between mb-2">

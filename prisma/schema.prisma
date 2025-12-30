@@ -1,0 +1,605 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model business_rules {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  rule_key    String    @unique @db.VarChar(100)
+  scope       String    @db.VarChar(50)
+  rule_value  Decimal   @db.Decimal(10, 2)
+  unit        String?   @db.VarChar(20)
+  severity    String?   @default("warning") @db.VarChar(20)
+  description String?
+  is_active   Boolean?  @default(true)
+  created_at  DateTime? @default(now()) @db.Timestamp(6)
+  updated_at  DateTime? @default(now()) @db.Timestamp(6)
+
+  @@index([scope, is_active], map: "idx_business_rules_scope")
+}
+
+model costing_rules {
+  rule_id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  rule_key       String   @db.VarChar(100)
+  rule_type      String   @db.VarChar(50)
+  rule_value     Decimal  @db.Decimal(10, 4)
+  description    String?
+  effective_date DateTime @default(now()) @db.Timestamp(6)
+  is_active      Boolean  @default(true)
+  created_at     DateTime @default(now()) @db.Timestamp(6)
+  updated_at     DateTime @default(now()) @db.Timestamp(6)
+
+  @@unique([rule_key, rule_type, effective_date])
+  @@index([is_active], map: "idx_costing_rules_is_active")
+  @@index([rule_key, rule_type], map: "idx_costing_rules_key_type")
+}
+
+model customs_activity_log {
+  id                 String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  clearance_id       String             @db.Uuid
+  action             String             @db.VarChar(100)
+  actor              String?            @db.VarChar(255)
+  actor_type         String?            @db.VarChar(50)
+  details            Json?
+  notes              String?
+  created_at         DateTime           @default(now()) @db.Timestamptz(6)
+  customs_clearances customs_clearances @relation(fields: [clearance_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([clearance_id], map: "idx_customs_log_clearance")
+  @@index([created_at(sort: Desc)], map: "idx_customs_log_created")
+}
+
+model customs_agents {
+  id                     String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  agent_name             String               @db.VarChar(255)
+  company                String               @db.VarChar(100)
+  email                  String?              @db.VarChar(255)
+  phone                  String?              @db.VarChar(50)
+  specialization         String?              @db.VarChar(100)
+  is_active              Boolean              @default(true)
+  current_workload       Int                  @default(0)
+  max_concurrent_reviews Int                  @default(10)
+  created_at             DateTime             @default(now()) @db.Timestamptz(6)
+  updated_at             DateTime             @default(now()) @db.Timestamptz(6)
+  customs_clearances     customs_clearances[]
+
+  @@index([is_active, current_workload], map: "idx_customs_agents_active")
+}
+
+model customs_clearances {
+  id                      String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  trip_id                 String                 @db.Uuid
+  order_id                String                 @db.VarChar(36)
+  driver_id               String                 @db.Uuid
+  unit_id                 String?                @db.Uuid
+  status                  String                 @default("PENDING_DOCS") @db.VarChar(50)
+  priority                String                 @default("NORMAL") @db.VarChar(20)
+  border_crossing_point   String                 @db.VarChar(255)
+  crossing_direction      String                 @db.VarChar(50)
+  estimated_crossing_time DateTime?              @db.Timestamptz(6)
+  actual_crossing_time    DateTime?              @db.Timestamptz(6)
+  required_documents      Json                   @default("[]")
+  submitted_documents     Json                   @default("[]")
+  assigned_agent_id       String?                @db.Uuid
+  agent_name              String?                @db.VarChar(255)
+  review_started_at       DateTime?              @db.Timestamptz(6)
+  review_completed_at     DateTime?              @db.Timestamptz(6)
+  review_notes            String?
+  rejection_reason        String?
+  flagged_at              DateTime               @default(now()) @db.Timestamptz(6)
+  docs_submitted_at       DateTime?              @db.Timestamptz(6)
+  approved_at             DateTime?              @db.Timestamptz(6)
+  cleared_at              DateTime?              @db.Timestamptz(6)
+  created_at              DateTime               @default(now()) @db.Timestamptz(6)
+  updated_at              DateTime               @default(now()) @db.Timestamptz(6)
+  customs_activity_log    customs_activity_log[]
+  customs_agents          customs_agents?        @relation(fields: [assigned_agent_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  driver_profiles         driver_profiles        @relation(fields: [driver_id], references: [driver_id], onDelete: NoAction, onUpdate: NoAction)
+  trips                   trips                  @relation(fields: [trip_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  unit_profiles           unit_profiles?         @relation(fields: [unit_id], references: [unit_id], onDelete: NoAction, onUpdate: NoAction)
+  customs_documents       customs_documents[]
+
+  @@index([assigned_agent_id], map: "idx_customs_agent")
+  @@index([estimated_crossing_time], map: "idx_customs_crossing_time")
+  @@index([status], map: "idx_customs_status")
+  @@index([trip_id], map: "idx_customs_trip")
+}
+
+model customs_documents {
+  id                 String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  clearance_id       String             @db.Uuid
+  document_type      String             @db.VarChar(100)
+  document_name      String             @db.VarChar(255)
+  file_url           String?            @db.VarChar(1000)
+  file_size_kb       Int?
+  file_type          String?            @db.VarChar(50)
+  status             String             @default("UPLOADED") @db.VarChar(50)
+  verification_notes String?
+  uploaded_by        String?            @db.VarChar(100)
+  uploaded_at        DateTime           @default(now()) @db.Timestamptz(6)
+  verified_by        String?            @db.VarChar(255)
+  verified_at        DateTime?          @db.Timestamptz(6)
+  created_at         DateTime           @default(now()) @db.Timestamptz(6)
+  customs_clearances customs_clearances @relation(fields: [clearance_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([clearance_id], map: "idx_customs_docs_clearance")
+  @@index([document_type], map: "idx_customs_docs_type")
+}
+
+model dispatches {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  order_id     String    @db.VarChar(255)
+  driver_id    String    @db.VarChar(255)
+  status       String    @default("assigned") @db.VarChar(50)
+  assigned_at  DateTime  @default(now()) @db.Timestamp(6)
+  picked_up_at DateTime? @db.Timestamp(6)
+  delivered_at DateTime? @db.Timestamp(6)
+  updated_at   DateTime  @default(now()) @db.Timestamp(6)
+  created_at   DateTime  @default(now()) @db.Timestamp(6)
+
+  @@index([assigned_at(sort: Desc)], map: "idx_dispatches_assigned_at")
+  @@index([driver_id], map: "idx_dispatches_driver_id")
+  @@index([order_id], map: "idx_dispatches_order_id")
+  @@index([status], map: "idx_dispatches_status")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model distance_cache {
+  id                   String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  origin_location      String
+  origin_lat           Float?
+  origin_lng           Float?
+  destination_location String
+  destination_lat      Float?
+  destination_lng      Float?
+  distance_miles       Decimal   @db.Decimal(10, 2)
+  duration_hours       Decimal   @db.Decimal(6, 2)
+  distance_km          Decimal?  @db.Decimal(10, 2)
+  duration_minutes     Int?
+  provider             String    @db.VarChar(50)
+  route_data           Json?
+  cache_key            String    @unique @db.VarChar(64)
+  hit_count            Int?      @default(0)
+  last_accessed_at     DateTime? @default(now()) @db.Timestamptz(6)
+  created_at           DateTime  @default(now()) @db.Timestamptz(6)
+  expires_at           DateTime  @default(dbgenerated("(now() + '30 days'::interval)")) @db.Timestamptz(6)
+
+  @@index([expires_at], map: "idx_distance_cache_expires")
+  @@index([cache_key], map: "idx_distance_cache_key")
+  @@index([origin_location, destination_location], map: "idx_distance_cache_locations")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model driver_profiles {
+  driver_id          String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  driver_name        String               @db.VarChar(255)
+  unit_number        String?              @db.VarChar(50)
+  driver_type        String               @db.VarChar(10)
+  oo_zone            String?              @db.VarChar(10)
+  base_wage_cpm      Decimal              @default(0) @db.Decimal(10, 4)
+  benefits_pct       Decimal              @default(0) @db.Decimal(5, 4)
+  performance_pct    Decimal              @default(0) @db.Decimal(5, 4)
+  safety_pct         Decimal              @default(0) @db.Decimal(5, 4)
+  step_pct           Decimal              @default(0) @db.Decimal(5, 4)
+  effective_wage_cpm Decimal              @default(0) @db.Decimal(10, 4)
+  is_active          Boolean              @default(true)
+  created_at         DateTime             @default(now()) @db.Timestamp(6)
+  updated_at         DateTime             @default(now()) @db.Timestamp(6)
+  region             String?              @db.VarChar(50)
+  status             String?
+  customs_clearances customs_clearances[]
+  trip_costs         trip_costs[]
+  unit_profiles      unit_profiles[]
+
+  @@index([is_active], map: "idx_driver_profiles_active")
+  @@index([is_active, region, driver_type], map: "idx_driver_profiles_active_region")
+  @@index([driver_name], map: "idx_driver_profiles_driver_name")
+  @@index([driver_type], map: "idx_driver_profiles_driver_type")
+  @@index([is_active], map: "idx_driver_profiles_is_active")
+  @@index([region], map: "idx_driver_profiles_region")
+  @@index([unit_number], map: "idx_driver_profiles_unit")
+  @@index([unit_number], map: "idx_driver_profiles_unit_number")
+}
+
+model event_rules {
+  rule_id           String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  event_code        String      @db.VarChar(50)
+  trigger_type      String      @db.VarChar(100)
+  trigger_condition Json
+  created_at        DateTime    @default(now()) @db.Timestamp(6)
+  updated_at        DateTime    @default(now()) @db.Timestamp(6)
+  event_types       event_types @relation(fields: [event_code], references: [event_code], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([event_code], map: "idx_event_rules_event_code")
+  @@index([trigger_type], map: "idx_event_rules_trigger_type")
+}
+
+model event_types {
+  event_id       String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  event_code     String        @unique @db.VarChar(50)
+  event_name     String        @db.VarChar(255)
+  cost_per_event Decimal       @default(0) @db.Decimal(10, 2)
+  is_automatic   Boolean       @default(false)
+  created_at     DateTime      @default(now()) @db.Timestamp(6)
+  updated_at     DateTime      @default(now()) @db.Timestamp(6)
+  event_rules    event_rules[]
+
+  @@index([event_code], map: "idx_event_types_event_code")
+  @@index([is_automatic], map: "idx_event_types_is_automatic")
+}
+
+model market_lanes {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  origin      String    @db.VarChar(255)
+  destination String    @db.VarChar(255)
+  lane        String    @db.VarChar(100)
+  rpm         Decimal   @db.Decimal(6, 2)
+  currency    String?   @default("USD") @db.VarChar(3)
+  source      String?   @db.VarChar(100)
+  confidence  String?   @db.VarChar(20)
+  sample_size Int?
+  sample_date DateTime  @db.Date
+  valid_until DateTime? @db.Date
+  created_at  DateTime? @default(now()) @db.Timestamp(6)
+  updated_at  DateTime? @default(now()) @db.Timestamp(6)
+
+  @@index([sample_date(sort: Desc)], map: "idx_market_lanes_date")
+  @@index([lane], map: "idx_market_lanes_lane")
+  @@index([origin, destination], map: "idx_market_lanes_origin_dest")
+}
+
+model orders {
+  old_id               String?   @db.VarChar(36)
+  customer_id          String    @db.VarChar(255)
+  order_type           String    @db.VarChar(50)
+  status               String    @default("pending") @db.VarChar(50)
+  pickup_location      String
+  dropoff_location     String
+  pickup_time          DateTime? @db.Timestamp(6)
+  dropoff_time         DateTime? @db.Timestamp(6)
+  special_instructions String?
+  estimated_cost       Decimal?  @db.Decimal(10, 2)
+  created_at           DateTime  @default(now()) @db.Timestamp(6)
+  updated_at           DateTime  @default(now()) @db.Timestamp(6)
+  customer_name        String?   @db.VarChar(255)
+  required_equipment   String?   @db.VarChar(100)
+  qualification_notes  String?
+  quoted_rate          Decimal?  @db.Decimal(10, 2)
+  lane                 String?   @db.VarChar(100)
+  pu_window_start      DateTime? @db.Timestamp(6)
+  pu_window_end        DateTime? @db.Timestamp(6)
+  del_window_start     DateTime? @db.Timestamp(6)
+  del_window_end       DateTime? @db.Timestamp(6)
+  order_number         String?   @unique(map: "orders_order_number_unique") @db.VarChar(20)
+  id                   String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  total_weight         Decimal?  @default(0) @db.Decimal
+  total_pallets        Int?      @default(0)
+  pallet_dimensions    Json?     @default("[]")
+  stackable            Boolean?  @default(false)
+  cubic_feet           Decimal?  @default(0) @db.Decimal
+  linear_feet_required Decimal?  @default(0) @db.Decimal
+  weight_lbs           Decimal?  @default(1000) @db.Decimal
+  volume_cuft          Decimal?  @default(100) @db.Decimal
+
+  @@index([created_at(sort: Desc)], map: "idx_orders_created_at")
+  @@index([customer_id], map: "idx_orders_customer_id")
+  @@index([old_id], map: "idx_orders_id")
+  @@index([lane], map: "idx_orders_lane")
+  @@index([old_id], map: "idx_orders_old_id")
+  @@index([order_number], map: "idx_orders_order_number")
+  @@index([pickup_time], map: "idx_orders_pickup_time")
+  @@index([pu_window_start], map: "idx_orders_pickup_window_start")
+  @@index([status], map: "idx_orders_status")
+  @@index([volume_cuft], map: "idx_orders_volume")
+  @@index([weight_lbs], map: "idx_orders_weight")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model orders_backup_pre_uuid {
+  id                   String?   @db.VarChar(36)
+  customer_id          String?   @db.VarChar(255)
+  order_type           String?   @db.VarChar(50)
+  status               String?   @db.VarChar(50)
+  pickup_location      String?
+  dropoff_location     String?
+  pickup_time          DateTime? @db.Timestamp(6)
+  dropoff_time         DateTime? @db.Timestamp(6)
+  special_instructions String?
+  estimated_cost       Decimal?  @db.Decimal(10, 2)
+  created_at           DateTime? @db.Timestamp(6)
+  updated_at           DateTime? @db.Timestamp(6)
+  customer_name        String?   @db.VarChar(255)
+  required_equipment   String?   @db.VarChar(100)
+  qualification_notes  String?
+  quoted_rate          Decimal?  @db.Decimal(10, 2)
+  lane                 String?   @db.VarChar(100)
+  pu_window_start      DateTime? @db.Timestamp(6)
+  pu_window_end        DateTime? @db.Timestamp(6)
+  del_window_start     DateTime? @db.Timestamp(6)
+  del_window_end       DateTime? @db.Timestamp(6)
+  order_number         String?   @db.VarChar(20)
+
+  @@ignore
+}
+
+model rate_cards {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  rate_type         String    @db.VarChar(50)
+  zone              String?   @db.VarChar(50)
+  description       String?
+  fixed_cpm         Decimal?  @default(0) @db.Decimal(6, 3)
+  wage_cpm          Decimal?  @default(0) @db.Decimal(6, 3)
+  fuel_cpm          Decimal?  @default(0) @db.Decimal(6, 3)
+  truck_maint_cpm   Decimal?  @default(0) @db.Decimal(6, 3)
+  trailer_maint_cpm Decimal?  @default(0) @db.Decimal(6, 3)
+  addons_cpm        Decimal?  @default(0) @db.Decimal(6, 3)
+  rolling_cpm       Decimal?  @default(0) @db.Decimal(6, 3)
+  total_cpm         Decimal?  @default(dbgenerated("((((((fixed_cpm + wage_cpm) + fuel_cpm) + truck_maint_cpm) + trailer_maint_cpm) + addons_cpm) + rolling_cpm)")) @db.Decimal(6, 3)
+  is_active         Boolean?  @default(true)
+  effective_date    DateTime? @default(dbgenerated("CURRENT_DATE")) @db.Date
+  expired_date      DateTime? @db.Date
+  created_at        DateTime? @default(now()) @db.Timestamp(6)
+  updated_at        DateTime? @default(now()) @db.Timestamp(6)
+
+  @@index([is_active, effective_date], map: "idx_rate_cards_active")
+  @@index([rate_type, zone], map: "idx_rate_cards_type_zone")
+}
+
+model schema_migrations {
+  filename   String    @id @db.VarChar(255)
+  applied_at DateTime? @default(now()) @db.Timestamp(6)
+}
+
+model trip_costs {
+  cost_id             String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  order_id            String           @db.VarChar
+  driver_id           String?          @db.Uuid
+  unit_id             String?          @db.Uuid
+  driver_type         String?          @db.VarChar(10)
+  oo_zone             String?          @db.VarChar(10)
+  miles               Decimal          @db.Decimal(10, 2)
+  direction           String?          @db.VarChar(20)
+  is_round_trip       Boolean          @default(false)
+  border_crossings    Int              @default(0)
+  drop_hooks          Int              @default(0)
+  pickups             Int              @default(0)
+  deliveries          Int              @default(0)
+  fixed_cpm           Decimal          @default(0) @db.Decimal(10, 4)
+  wage_cpm            Decimal          @default(0) @db.Decimal(10, 4)
+  rolling_cpm         Decimal          @default(0) @db.Decimal(10, 4)
+  accessorial_cpm     Decimal          @default(0) @db.Decimal(10, 4)
+  total_cpm           Decimal          @default(0) @db.Decimal(10, 4)
+  total_cost          Decimal          @default(0) @db.Decimal(10, 2)
+  revenue             Decimal?         @db.Decimal(10, 2)
+  rpm                 Decimal?         @db.Decimal(10, 4)
+  ppm                 Decimal?         @db.Decimal(10, 4)
+  profit              Decimal?         @db.Decimal(10, 2)
+  margin_pct          Decimal?         @db.Decimal(10, 2)
+  is_profitable       Boolean?
+  calculation_formula Json
+  calculated_at       DateTime         @default(now()) @db.Timestamp(6)
+  calculated_by       String?          @db.VarChar(255)
+  actual_miles        Decimal?         @db.Decimal(10, 2)
+  actual_cost         Decimal?         @db.Decimal(10, 2)
+  variance            Decimal?         @db.Decimal(10, 2)
+  variance_pct        Decimal?         @db.Decimal(10, 2)
+  created_at          DateTime         @default(now()) @db.Timestamp(6)
+  updated_at          DateTime         @default(now()) @db.Timestamp(6)
+  trip_id             String?          @db.Uuid
+  driver_profiles     driver_profiles? @relation(fields: [driver_id], references: [driver_id], onDelete: NoAction, onUpdate: NoAction)
+  unit_profiles       unit_profiles?   @relation(fields: [unit_id], references: [unit_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([calculated_at], map: "idx_trip_costs_calculated_at")
+  @@index([driver_id], map: "idx_trip_costs_driver_id")
+  @@index([is_profitable], map: "idx_trip_costs_is_profitable")
+  @@index([order_id], map: "idx_trip_costs_order_id")
+  @@index([trip_id], map: "idx_trip_costs_trip_id")
+  @@index([unit_id], map: "idx_trip_costs_unit_id")
+}
+
+model trip_events {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  trip_id      String   @db.Uuid
+  event_type   String
+  status       String?
+  source       String?
+  payload      Json?
+  triggered_by String?
+  occurred_at  DateTime @db.Timestamptz(6)
+  created_at   DateTime @default(now()) @db.Timestamptz(6)
+  trips        trips    @relation(fields: [trip_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([trip_id], map: "idx_trip_events_trip_id")
+  @@index([trip_id, occurred_at(sort: Desc)], map: "idx_trip_events_trip_id_occurred_at")
+}
+
+model trip_exceptions {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  trip_id        String    @db.Uuid
+  exception_type String
+  severity       String
+  message        String
+  resolved       Boolean   @default(false)
+  resolved_at    DateTime? @db.Timestamptz(6)
+  created_at     DateTime  @default(now()) @db.Timestamptz(6)
+  trips          trips     @relation(fields: [trip_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([trip_id], map: "idx_trip_exceptions_trip_id")
+}
+
+model trip_locations {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  trip_id     String   @db.Uuid
+  driver_id   String?  @db.Uuid
+  latitude    Float
+  longitude   Float
+  speed       Decimal? @db.Decimal
+  heading     Decimal? @db.Decimal
+  odometer    Decimal? @db.Decimal
+  fuel_level  Decimal? @db.Decimal
+  source      String?
+  recorded_at DateTime @db.Timestamptz(6)
+  created_at  DateTime @default(now()) @db.Timestamptz(6)
+  trips       trips    @relation(fields: [trip_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([trip_id, recorded_at(sort: Desc)], map: "idx_trip_locations_trip_id_recorded_at")
+}
+
+model trip_stops {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  trip_id      String    @db.Uuid
+  sequence     Int       @db.SmallInt
+  type         String
+  location     String
+  lat          Float?
+  lng          Float?
+  window_start DateTime? @db.Timestamptz(6)
+  window_end   DateTime? @db.Timestamptz(6)
+  arrived_at   DateTime? @db.Timestamptz(6)
+  departed_at  DateTime? @db.Timestamptz(6)
+  notes        String?
+  created_at   DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime  @default(now()) @db.Timestamptz(6)
+  trips        trips     @relation(fields: [trip_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([trip_id, sequence])
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model trips {
+  id                            String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  order_id                      String               @db.Uuid
+  dispatch_id                   String?              @db.Uuid
+  driver_id                     String               @db.Uuid
+  unit_id                       String?              @db.Uuid
+  status                        String
+  pickup_location               String
+  pickup_lat                    Float?
+  pickup_lng                    Float?
+  dropoff_location              String
+  dropoff_lat                   Float?
+  dropoff_lng                   Float?
+  pickup_window_start           DateTime?            @db.Timestamptz(6)
+  pickup_window_end             DateTime?            @db.Timestamptz(6)
+  delivery_window_start         DateTime?            @db.Timestamptz(6)
+  delivery_window_end           DateTime?            @db.Timestamptz(6)
+  planned_start                 DateTime?            @db.Timestamptz(6)
+  actual_start                  DateTime?            @db.Timestamptz(6)
+  pickup_arrival                DateTime?            @db.Timestamptz(6)
+  pickup_departure              DateTime?            @db.Timestamptz(6)
+  delivery_arrival              DateTime?            @db.Timestamptz(6)
+  delivery_departure            DateTime?            @db.Timestamptz(6)
+  completed_at                  DateTime?            @db.Timestamptz(6)
+  closed_at                     DateTime?            @db.Timestamptz(6)
+  planned_miles                 Decimal?             @db.Decimal
+  actual_miles                  Decimal?             @db.Decimal
+  estimated_fuel_gallons        Decimal?             @db.Decimal
+  actual_fuel_gallons           Decimal?             @db.Decimal
+  pickup_dwell_minutes          Int?
+  delivery_dwell_minutes        Int?
+  on_time_pickup                Boolean?             @default(true)
+  on_time_delivery              Boolean?             @default(true)
+  route_history                 Json?                @default("[]")
+  notes                         String?
+  pod_url                       String?
+  last_known_lat                Float?
+  last_known_lng                Float?
+  last_ping_at                  DateTime?            @db.Timestamptz(6)
+  risk_level                    String?              @default("green")
+  created_at                    DateTime             @default(now()) @db.Timestamptz(6)
+  updated_at                    DateTime             @default(now()) @db.Timestamptz(6)
+  distance_miles                Decimal?             @db.Decimal(10, 2)
+  duration_hours                Decimal?             @db.Decimal(6, 2)
+  distance_calculated_at        DateTime?            @db.Timestamptz(6)
+  distance_calculation_provider String?              @db.VarChar(50)
+  distance_calculation_method   String?              @default("auto") @db.VarChar(50)
+  revenue                       Decimal?             @db.Decimal(12, 2)
+  expected_revenue              Decimal?             @db.Decimal(12, 2)
+  margin_pct                    Decimal?             @db.Decimal(5, 2)
+  final_margin_pct              Decimal?             @db.Decimal(5, 2)
+  eta_prediction                DateTime?            @db.Timestamptz(6)
+  delay_risk_pct                Decimal?             @db.Decimal(5, 2)
+  eta_baseline                  DateTime?            @db.Timestamptz(6)
+  driver_name                   String?              @db.VarChar(255)
+  unit_number                   String?              @db.VarChar(50)
+  customer_name                 String?              @db.VarChar(255)
+  lane                          String?              @db.VarChar(100)
+  week_start                    DateTime?            @db.Date
+  total_cost                    Decimal?             @db.Decimal(12, 2)
+  profit                        Decimal?             @db.Decimal(12, 2)
+  trip_number                   String?              @unique(map: "trips_trip_number_unique") @db.VarChar(20)
+  current_weight                Decimal?             @default(0) @db.Decimal
+  current_cube                  Decimal?             @default(0) @db.Decimal
+  current_linear_feet           Decimal?             @default(0) @db.Decimal
+  utilization_percent           Decimal?             @default(0) @db.Decimal
+  limiting_factor               String?              @db.VarChar(50)
+  customs_clearances            customs_clearances[]
+  trip_events                   trip_events[]
+  trip_exceptions               trip_exceptions[]
+  trip_locations                trip_locations[]
+  trip_stops                    trip_stops[]
+
+  @@index([dispatch_id], map: "idx_trips_dispatch")
+  @@index([driver_id], map: "idx_trips_driver")
+  @@index([driver_id], map: "idx_trips_driver_id")
+  @@index([driver_id, unit_id], map: "idx_trips_driver_unit")
+  @@index([eta_prediction], map: "idx_trips_eta")
+  @@index([order_id], map: "idx_trips_order_id")
+  @@index([status], map: "idx_trips_status")
+  @@index([unit_id], map: "idx_trips_unit_id")
+  @@index([week_start], map: "idx_trips_week_start")
+}
+
+model unit_profiles {
+  unit_id               String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  unit_number           String               @unique @db.VarChar(50)
+  driver_id             String?              @db.Uuid
+  truck_weekly_cost     Decimal              @default(0) @db.Decimal(10, 2)
+  trailer_weekly_cost   Decimal              @default(0) @db.Decimal(10, 2)
+  insurance_weekly_cost Decimal              @default(0) @db.Decimal(10, 2)
+  isaac_weekly_cost     Decimal              @default(0) @db.Decimal(10, 2)
+  prepass_weekly_cost   Decimal              @default(0) @db.Decimal(10, 2)
+  sga_weekly_cost       Decimal              @default(0) @db.Decimal(10, 2)
+  dtops_weekly_cost     Decimal              @default(0) @db.Decimal(10, 2)
+  misc_weekly_cost      Decimal              @default(0) @db.Decimal(10, 2)
+  total_weekly_cost     Decimal              @default(0) @db.Decimal(10, 2)
+  is_active             Boolean              @default(true)
+  created_at            DateTime             @default(now()) @db.Timestamp(6)
+  updated_at            DateTime             @default(now()) @db.Timestamp(6)
+  region                String?              @db.VarChar(50)
+  unit_type             String?              @default("53' Dry Van") @db.VarChar(50)
+  max_weight            Decimal?             @default(45000) @db.Decimal
+  max_cube              Decimal?             @default(3900) @db.Decimal
+  linear_feet           Decimal?             @default(53) @db.Decimal
+  pallet_positions      Int?                 @default(26)
+  current_location      String?
+  max_weight_lbs        Decimal?             @default(45000) @db.Decimal
+  max_volume_cuft       Decimal?             @default(3000) @db.Decimal
+  customs_clearances    customs_clearances[]
+  trip_costs            trip_costs[]
+  driver_profiles       driver_profiles?     @relation(fields: [driver_id], references: [driver_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([is_active], map: "idx_unit_profiles_active")
+  @@index([is_active, region], map: "idx_unit_profiles_active_region")
+  @@index([driver_id], map: "idx_unit_profiles_driver_id")
+  @@index([is_active], map: "idx_unit_profiles_is_active")
+  @@index([unit_number], map: "idx_unit_profiles_number")
+  @@index([region], map: "idx_unit_profiles_region")
+  @@index([unit_number], map: "idx_unit_profiles_unit_number")
+}
+
+model week_miles_summary {
+  summary_id  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  unit_number String   @db.VarChar(50)
+  week_start  DateTime @db.Date
+  total_miles Decimal  @default(0) @db.Decimal(10, 2)
+  trip_count  Int      @default(0)
+  created_at  DateTime @default(now()) @db.Timestamp(6)
+  updated_at  DateTime @default(now()) @db.Timestamp(6)
+
+  @@unique([unit_number, week_start])
+  @@index([unit_number, week_start], map: "idx_week_miles_unit_week")
+}
