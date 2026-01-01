@@ -59,68 +59,61 @@ export function TripTicket({ trip, aiInsights }: TripTicketProps) {
   const hasRealDistance = distance != null && distance > 0;
 
   return (
-    <Card className="p-6 border-neutral-800/80 bg-neutral-900/60">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div className="space-y-3">
+    <Card className="p-4 border-neutral-800/80 bg-neutral-900/60">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+        <div className="space-y-2">
           <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-xl font-semibold text-neutral-100">Trip {shortId}</h1>
+            <h1 className="text-lg font-semibold text-neutral-100">Trip {shortId}</h1>
             <StatChip label={trip.status.toUpperCase()} variant={getStatusVariant(trip.status)} />
           </div>
           <div className="flex flex-wrap items-center gap-2 text-sm text-neutral-300">
             <Route className="h-4 w-4 text-neutral-500" />
             <span className="font-medium text-neutral-100">{laneLabel}</span>
           </div>
-          <div className="grid gap-2 text-sm text-neutral-300 sm:grid-cols-2">
-            <div className="flex items-start gap-2">
+          <div className="grid gap-x-6 gap-y-1 text-sm text-neutral-300 sm:grid-cols-2">
+            <div className="flex items-center gap-2">
               <ClockBadge />
-              <div>
-                <p className="text-xs text-neutral-500">Pickup window</p>
-                <p className="font-medium text-neutral-100">
-                  {formatWindow(trip.pickupWindowStart, trip.pickupWindowEnd)}
-                </p>
-              </div>
+              <span className="text-xs text-neutral-500">Pickup window</span>
+              <span className="text-xs font-medium text-neutral-100">
+                {formatWindow(trip.pickupWindowStart, trip.pickupWindowEnd)}
+              </span>
             </div>
-            <div className="flex items-start gap-2">
+            <div className="flex items-center gap-2">
               <ClockBadge />
-              <div>
-                <p className="text-xs text-neutral-500">Delivery window</p>
-                <p className="font-medium text-neutral-100">
-                  {formatWindow(trip.deliveryWindowStart, trip.deliveryWindowEnd || trip.eta)}
-                </p>
-              </div>
+              <span className="text-xs text-neutral-500">Delivery window</span>
+              <span className="text-xs font-medium text-neutral-100">
+                {formatWindow(trip.deliveryWindowStart, trip.deliveryWindowEnd || trip.eta)}
+              </span>
             </div>
           </div>
           <div className="flex flex-wrap gap-2 text-xs">
-            {trip.onTimePickup === true && (
-              <span className="rounded-full bg-emerald-500/10 text-emerald-400 px-3 py-1">On-time pickup</span>
-            )}
-            {trip.onTimePickup === false && (
-              <span className="rounded-full bg-rose-500/10 text-rose-400 px-3 py-1">Late pickup</span>
-            )}
-            {trip.onTimeDelivery === true && (
-              <span className="rounded-full bg-emerald-500/10 text-emerald-400 px-3 py-1">On-time delivery</span>
-            )}
-            {trip.onTimeDelivery === false && (
-              <span className="rounded-full bg-rose-500/10 text-rose-400 px-3 py-1">Late delivery</span>
-            )}
+            {distance && hasRealDistance ? (
+              <Badge label={`~${Math.round(distance)} mi`} icon={<Route className="h-3.5 w-3.5" />} />
+            ) : !hasRealDistance ? (
+              <Badge 
+                label="Distance pending" 
+                icon={<Route className="h-3.5 w-3.5 text-amber-500" />} 
+              />
+            ) : null}
+            {margin !== undefined ? <Badge label={`${margin}% margin`} icon={<DollarBadge />} /> : null}
           </div>
         </div>
 
-        <div className="flex flex-col gap-3 lg:min-w-[280px]">
-          <div className="rounded-lg border border-neutral-800/80 bg-neutral-900/60 p-3 text-sm text-neutral-200">
-            <div className="mb-2 flex items-center gap-2 text-xs uppercase tracking-wide text-neutral-500">
-              <User className="h-4 w-4" /> Driver & Unit
+        <div className="flex flex-col gap-2 lg:min-w-[260px]">
+          <div className="rounded-lg border border-neutral-800/80 bg-neutral-900/60 p-2.5 text-sm text-neutral-200">
+            <div className="mb-1.5 flex items-center gap-2 text-xs uppercase tracking-wide text-neutral-500">
+              <User className="h-3.5 w-3.5" /> Driver & Unit
             </div>
             <div className="space-y-1">
               <div className="flex items-center gap-2 text-sm">
-                <User className="h-4 w-4 text-neutral-500" />
+                <User className="h-3.5 w-3.5 text-neutral-500" />
                 <span className="font-medium">{trip.driver}</span>
                 {trip.driverType && (
                   <span className="rounded-full bg-neutral-800 px-2 py-0.5 text-[11px] text-neutral-400">{trip.driverType}</span>
                 )}
               </div>
               <div className="flex items-center gap-2 text-sm">
-                <Truck className="h-4 w-4 text-neutral-500" />
+                <Truck className="h-3.5 w-3.5 text-neutral-500" />
                 <span className="font-medium">{trip.unitNumber || trip.unit}</span>
                 {trip.unitType && (
                   <span className="rounded-full bg-neutral-800 px-2 py-0.5 text-[11px] text-neutral-400">{trip.unitType}</span>
@@ -140,21 +133,6 @@ export function TripTicket({ trip, aiInsights }: TripTicketProps) {
             </Button>
           </div>
         </div>
-      </div>
-
-      <div className="mt-4 flex flex-wrap gap-3 text-xs text-neutral-400">
-        {distance && hasRealDistance ? (
-          <Badge label={`~${Math.round(distance)} mi`} icon={<Route className="h-3.5 w-3.5" />} />
-        ) : !hasRealDistance ? (
-          <Badge 
-            label="Distance pending" 
-            icon={<Route className="h-3.5 w-3.5 text-amber-500" />} 
-          />
-        ) : null}
-        {durationHours ? (
-          <Badge label={formatDurationHours(durationHours)} icon={<ClockBadge />} />
-        ) : null}
-        {margin !== undefined ? <Badge label={`${margin}% margin`} icon={<DollarBadge />} /> : null}
       </div>
     </Card>
   );

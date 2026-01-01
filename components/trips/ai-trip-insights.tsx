@@ -2,13 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import { 
-  Sparkles, 
   AlertCircle, 
   CheckCircle, 
   Info, 
   AlertTriangle,
   TrendingUp,
-  Loader2
+  Loader2,
+  Zap
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 
@@ -99,14 +99,14 @@ export function AITripInsights({ tripId }: AITripInsightsProps) {
     return (
       <Card className="bg-neutral-950 border-neutral-800 p-6">
         <div className="flex items-center space-x-3 mb-4">
-          <Sparkles className="w-5 h-5 text-purple-400 animate-pulse" />
-          <h3 className="text-lg font-semibold text-white">AI Trip Insights</h3>
+          <Zap className="w-5 h-5 text-purple-400 animate-pulse" />
+          <h3 className="text-lg font-semibold text-white">Trip Insights</h3>
         </div>
         <div className="flex items-center justify-center py-12">
           <div className="text-center space-y-3">
             <Loader2 className="w-8 h-8 text-purple-400 animate-spin mx-auto" />
             <p className="text-sm text-neutral-400">
-              Analyzing trip data with Claude AI...
+              Analyzing trip data...
             </p>
           </div>
         </div>
@@ -119,7 +119,7 @@ export function AITripInsights({ tripId }: AITripInsightsProps) {
       <Card className="bg-neutral-950 border-red-900/50 p-6">
         <div className="flex items-center space-x-3 mb-3">
           <AlertCircle className="w-5 h-5 text-red-400" />
-          <h3 className="text-lg font-semibold text-white">AI Insights Error</h3>
+          <h3 className="text-lg font-semibold text-white">Insights Error</h3>
         </div>
         <p className="text-sm text-red-300/70">{error || 'Failed to load insights'}</p>
       </Card>
@@ -169,10 +169,10 @@ export function AITripInsights({ tripId }: AITripInsightsProps) {
       {/* Header */}
       <div className="p-4 border-b border-neutral-800">
         <div className="flex items-center space-x-3">
-          <Sparkles className="w-5 h-5 text-purple-400" />
+          <Zap className="w-5 h-5 text-purple-400" />
           <div className="flex-1">
             <h3 className="text-base font-semibold text-white">
-              AI Trip Insights
+              Trip Insights
             </h3>
             {isStale && (
               <p className="text-xs text-neutral-500 mt-0.5">Updating...</p>

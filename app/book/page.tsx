@@ -271,7 +271,7 @@ function BookTripContent() {
     }
   }, [driverType, routeDistance, miles, rates, rateId]);
 
-  // Fetch route data when order is selected
+  // Fetch route data when order is selected (skip if order already has laneMiles)
   useEffect(() => {
     if (!selectedOrder?.pickup || !selectedOrder?.delivery) {
       setRouteDistance(null);
@@ -279,6 +279,17 @@ function BookTripContent() {
       return;
     }
 
+    // If order already has laneMiles from creation, use it directly (skip slow API call)
+    if (selectedOrder.laneMiles && selectedOrder.laneMiles > 0) {
+      setRouteDistance(selectedOrder.laneMiles);
+      setMiles(selectedOrder.laneMiles);
+      setIsRealDistance(true);
+      // Estimate duration: ~50 mph average
+      setRouteDuration(Math.round(selectedOrder.laneMiles / 50 * 60));
+      return;
+    }
+
+    // Only fetch if laneMiles is missing
     const fetchRouteData = async () => {
       setRouteLoading(true);
       try {
