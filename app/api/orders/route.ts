@@ -40,7 +40,13 @@ export async function GET() {
       // 3. Fetch local orders (fallback/merge source)
       // Fetch ALL orders, do not filter by status
       const query = `
-        SELECT * FROM orders 
+        SELECT 
+          id, order_number, customer_id, pickup_location, dropoff_location,
+          pickup_time, dropoff_time, status, dispatch_status, created_at,
+          estimated_cost, order_type, equipment_type, 
+          COALESCE(weight_lbs, total_weight_lbs, total_weight) as weight,
+          quoted_rate
+        FROM orders 
         ORDER BY created_at DESC
       `;
       
@@ -106,6 +112,10 @@ export async function GET() {
         pickupWindowEnd: existing?.pickupWindowEnd,
         deliveryWindowStart: existing?.deliveryWindowStart,
         deliveryWindowEnd: existing?.deliveryWindowEnd,
+        equipmentType: existing?.equipmentType || "Dry Van",
+        weight: existing?.weight || 0,
+        pickupDate: existing?.pickupDate,
+        rate: existing?.rate || 0,
       };
       orderMap.set(id, mapped);
     });
@@ -145,6 +155,9 @@ function transformOrderFromDb(order: Record<string, any>): OrderResponse {
   const window = resolveWindow(pickupDateTime) ?? "Not Scheduled";
   const lane = buildLane(pickup, delivery);
 
+  // Use dispatch_status if available, otherwise fall back to status
+  const effectiveStatus = order.dispatch_status || order.status;
+
   return {
     id,
     orderNumber: order.order_number,
@@ -153,19 +166,23 @@ function transformOrderFromDb(order: Record<string, any>): OrderResponse {
     pickup,
     delivery,
     window,
-    status: mapOrderStatus(order.status),
+    status: mapOrderStatus(effectiveStatus),
     ageHours,
     cost: Number(order.estimated_cost ?? 0) || 0,
     lane,
     serviceLevel: order.order_type ?? "Standard",
     commodity: "General", // Default as not in DB schema
-    laneMiles: 0, // Default as not in DB schema
+    laneMiles: 0, // Not tracked in orders table directly
     revenue: 0, // Default as not in DB schema
     created: createdAt,
     pickupWindowStart: order.pickup_time ? new Date(order.pickup_time).toISOString() : undefined,
     pickupWindowEnd: undefined,
     deliveryWindowStart: order.dropoff_time ? new Date(order.dropoff_time).toISOString() : undefined,
     deliveryWindowEnd: undefined,
+    equipmentType: order.equipment_type ?? "Dry Van",
+    weight: Number(order.weight) || 0,
+    pickupDate: order.pickup_time ? new Date(order.pickup_time).toLocaleDateString() : undefined,
+    rate: Number(order.quoted_rate ?? order.estimated_cost ?? 0) || 0,
   };
 }
 

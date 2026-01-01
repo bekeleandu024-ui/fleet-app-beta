@@ -36,13 +36,16 @@ export async function GET() {
     
     const customerMap = new Map(orders.map((order: Record<string, any>) => {
       const record = mapCustomerRecord(order);
-      return [record.name, record];
+      // Normalize name for deduplication (uppercase, no extra spaces)
+      const normalizedName = record.name.toUpperCase().trim();
+      return [normalizedName, record];
     }));
 
     // Ensure fixed customers are in the list
     FIXED_CUSTOMERS.forEach(name => {
-      if (!customerMap.has(name)) {
-        customerMap.set(name, {
+      const normalizedName = name.toUpperCase().trim();
+      if (!customerMap.has(normalizedName)) {
+        customerMap.set(normalizedName, {
           id: `cust-${name.toLowerCase().replace(/\s+/g, '-')}`,
           name,
           status: "Active",

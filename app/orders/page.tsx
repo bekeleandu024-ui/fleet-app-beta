@@ -31,6 +31,14 @@ const statusColors = {
   "Qualifying": "bg-amber-500/20 text-amber-400 border-amber-500/30",
   "Qualified": "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
   "Closed": "bg-zinc-800 text-zinc-500 border-zinc-700",
+  "Fleet Assigned": "bg-violet-500/20 text-violet-400 border-violet-500/30",
+  // Farm Out / Brokerage statuses
+  "Brokerage": "bg-amber-500/20 text-amber-400 border-amber-500/30",
+  "Pending Farm Out": "bg-amber-500/20 text-amber-400 border-amber-500/30",
+  "Posted": "bg-cyan-500/20 text-cyan-400 border-cyan-500/30",
+  "Posted to Carriers": "bg-cyan-500/20 text-cyan-400 border-cyan-500/30",
+  "Covered": "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
+  "Covered (External)": "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
 };
 
 export default function OrdersPage() {
@@ -255,7 +263,13 @@ export default function OrdersPage() {
                 Equipment
               </th>
               <th className="whitespace-nowrap px-4 py-2 font-medium uppercase tracking-wider text-right">
-                Distance
+                Weight
+              </th>
+              <th className="whitespace-nowrap px-4 py-2 font-medium uppercase tracking-wider text-right">
+                Miles
+              </th>
+              <th className="whitespace-nowrap px-4 py-2 font-medium uppercase tracking-wider text-right">
+                Rate
               </th>
               <th className="whitespace-nowrap px-4 py-2 font-medium uppercase tracking-wider text-right">
                 Actions
@@ -265,7 +279,7 @@ export default function OrdersPage() {
           <tbody className="divide-y divide-zinc-800/50 bg-black/20">
             {filteredAndSortedData.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-4 py-8 text-center text-zinc-500">
+                <td colSpan={10} className="px-4 py-8 text-center text-zinc-500">
                   No orders found.
                 </td>
               </tr>
@@ -313,13 +327,25 @@ export default function OrdersPage() {
                     </td>
 
                     {/* Equipment */}
-                    <td className="px-4 py-2 align-middle text-zinc-500">
-                      {order.serviceLevel || "—"}
+                    <td className="px-4 py-2 align-middle text-zinc-400">
+                      <span className="inline-flex items-center rounded-sm bg-zinc-800 px-1.5 py-0.5 text-[10px] font-medium text-zinc-300">
+                        {order.equipmentType || "Dry Van"}
+                      </span>
                     </td>
 
-                    {/* Distance */}
+                    {/* Weight */}
                     <td className="px-4 py-2 align-middle text-right font-mono text-zinc-400">
-                      {order.laneMiles ? `${order.laneMiles} mi` : "—"}
+                      {order.weight ? `${order.weight.toLocaleString()} lbs` : "—"}
+                    </td>
+
+                    {/* Miles */}
+                    <td className="px-4 py-2 align-middle text-right font-mono text-zinc-400">
+                      {order.laneMiles ? `${order.laneMiles.toLocaleString()} mi` : "—"}
+                    </td>
+
+                    {/* Rate */}
+                    <td className="px-4 py-2 align-middle text-right font-mono text-emerald-400">
+                      {order.rate ? `$${order.rate.toLocaleString()}` : "—"}
                     </td>
 
                     {/* Actions */}

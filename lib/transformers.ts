@@ -33,6 +33,13 @@ const STATUS_MAP: Record<string, OrderStatus> = {
   delayed: "At Risk",
   at_risk: "At Risk",
   "at risk": "At Risk",
+  // Dispatch status mappings
+  fleet_dispatch: "Fleet Assigned",
+  "fleet assigned": "Fleet Assigned",
+  brokerage_pending: "Pending Farm Out",
+  posted_external: "Posted to Carriers",
+  covered_internal: "Covered",
+  covered_external: "Covered (External)",
 };
 
 const REVERSE_STATUS_MAP: Record<OrderStatus, string> = {
@@ -231,9 +238,19 @@ export function mapTripStatusToService(status: string): string {
 }
 
 export function mapCustomerRecord(order: any): CustomerAdminRecord {
+  // Get the customer identifier - could be ID or name
+  const customerId = order.customer_id ?? order.customer ?? order.id;
+  // Get customer name - prefer customer_name field, otherwise derive from ID
+  let customerName = order.customer_name ?? order.customer ?? "Customer";
+  
+  // If customer name looks like an ID (starts with "cust-"), convert to readable name
+  if (typeof customerName === 'string' && customerName.startsWith('cust-')) {
+    customerName = customerName.replace('cust-', '').replace(/-/g, ' ').toUpperCase();
+  }
+  
   return {
-    id: order.customer_id ?? order.customer ?? order.id,
-    name: order.customer ?? order.customer_id ?? "Customer",
+    id: customerId,
+    name: customerName,
     status: order.customer_status ?? "Active",
     primaryContact: order.primary_contact ?? "Dispatch",
     primaryLane: buildLane(order.pickup_location, order.dropoff_location) || "Lane",

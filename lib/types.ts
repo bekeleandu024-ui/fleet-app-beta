@@ -59,6 +59,13 @@ export const orderStatusSchema = z.enum([
   "Exception",
   "Closed",
   "Completed",
+  "Fleet Assigned",
+  "Brokerage",
+  "Pending Farm Out",
+  "Posted",
+  "Posted to Carriers",
+  "Covered",
+  "Covered (External)",
 ]);
 export type OrderStatus = z.infer<typeof orderStatusSchema>;
 
@@ -78,6 +85,10 @@ export const orderListItemSchema = z.object({
   commodity: z.string().optional(),
   laneMiles: z.number().optional(),
   latestStartTime: z.string().optional(),
+  equipmentType: z.string().optional(),
+  weight: z.number().optional(),
+  pickupDate: z.string().optional(),
+  rate: z.number().optional(),
 });
 export type OrderListItem = z.infer<typeof orderListItemSchema>;
 
@@ -203,20 +214,21 @@ export const tripListItemSchema = z.object({
   status: z.string(),
   exceptions: z.number(),
   lastPing: z.string(),
-  orderId: z.string().optional(),
-  driverId: z.string().optional(),
-  unitId: z.string().optional(),
+  orderId: z.string().optional().nullable(),
+  orderIds: z.array(z.string()).optional(),
+  driverId: z.string().optional().nullable(),
+  unitId: z.string().optional().nullable(),
   // Extended fields for Trip Ticket
-  customer: z.string().optional(),
-  pickupWindow: z.string().optional(),
+  customer: z.string().optional().nullable(),
+  pickupWindow: z.string().optional().nullable(),
   distance: z.number().optional(),
-  duration: z.number().optional(),
+  duration: z.number().optional().nullable(),
   commodity: z.string().optional(),
   driverType: z.string().optional(),
   totalCost: z.number().optional(),
   totalCpm: z.number().optional(),
   serviceLevel: z.string().optional(),
-  completedAt: z.string().optional(),
+  completedAt: z.string().optional().nullable(),
 });
 export type TripListItem = z.infer<typeof tripListItemSchema>;
 

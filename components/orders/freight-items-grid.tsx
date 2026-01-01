@@ -150,7 +150,7 @@ export function FreightItemsGrid({
       </div>
 
       {/* Data Grid */}
-      <div className="flex-1 overflow-y-auto min-h-0 space-y-2 pr-1">
+      <div className="space-y-2 pr-1">
         {fields.map((field, index) => {
           const itemErrors = errors.freightItems?.[index];
           const item = watchedItems?.[index];

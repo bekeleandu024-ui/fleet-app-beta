@@ -80,7 +80,7 @@ export default function TripDetailPage() {
     );
   }
 
-  const distanceMiles = data.metrics?.distanceMiles ?? aiInsights?.routeOptimization?.distance;
+  const distanceMiles = data.metrics?.distanceMiles ?? 0;
   const activeExceptions = data.exceptions.filter((e) => e.severity === "alert" || e.severity === "warn");
 
   // Calculate accurate costing if we have distance and driver type

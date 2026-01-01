@@ -6,10 +6,16 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const board = searchParams.get('board'); // 'fleet' or 'brokerage'
+    const status = searchParams.get('status'); // 'NEW' for demand pool
 
     let whereClause = '';
     
-    if (board === 'fleet') {
+    if (status === 'NEW') {
+      // Demand pool: Only NEW/unassigned orders (not yet dispatched to fleet or brokerage)
+      whereClause = `WHERE (o.dispatch_status IS NULL OR o.dispatch_status = 'NEW') 
+                     AND o.assigned_driver_id IS NULL 
+                     AND o.awarded_carrier_id IS NULL`;
+    } else if (board === 'fleet') {
       // Fleet board: NEW orders and FLEET_DISPATCH orders
       whereClause = `WHERE o.dispatch_status IN ('NEW', 'FLEET_DISPATCH', 'COVERED_INTERNAL')`;
     } else if (board === 'brokerage') {
@@ -24,7 +30,8 @@ export async function GET(request: Request) {
       SELECT 
         o.id,
         o.order_number,
-        o.customer_name,
+        COALESCE(o.customer_name, UPPER(REPLACE(REPLACE(o.customer_id, 'cust-', ''), '-', ' '))) AS customer_name,
+        o.customer_id,
         o.pickup_location,
         o.dropoff_location,
         o.pickup_time,
@@ -84,8 +91,8 @@ export async function GET(request: Request) {
       dropoffTime: row.dropoff_time,
       dispatchStatus: row.dispatch_status,
       equipmentType: row.equipment_type,
-      totalWeightLbs: row.total_weight_lbs,
-      totalPallets: row.total_pallets,
+      totalWeightLbs: parseFloat(row.total_weight_lbs) || 0,
+      totalPallets: parseInt(row.total_pallets) || 0,
       quotedRate: parseFloat(row.quoted_rate) || null,
       targetRate: parseFloat(row.target_rate) || null,
       assignedDriverId: row.assigned_driver_id,

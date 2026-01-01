@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useForm } from "react-hook-form";
+import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { 
@@ -30,6 +30,7 @@ import {
   mapAIExtractionToFormInput,
   type EnterpriseOrderInput,
   type AIOrderExtraction,
+  type OrderStopInput,
 } from "@/lib/schemas/enterprise-order";
 import { fetchAdminCustomers } from "@/lib/api";
 
@@ -90,6 +91,37 @@ export default function EnterpriseOrderPage() {
   const watchedItems = watch("freightItems");
   const watchedStops = watch("stops");
 
+  // Field array for stops - used to add stops from header
+  const { fields: stopsFields, append: appendStop } = useFieldArray({
+    control,
+    name: "stops",
+  });
+
+  const addStop = (type: "pickup" | "delivery" | "intermediate") => {
+    const newStop: OrderStopInput = {
+      id: `stop-${Date.now()}`,
+      stopSequence: stopsFields.length,
+      stopType: type,
+      locationName: null,
+      streetAddress: null,
+      city: "",
+      state: null,
+      postalCode: null,
+      country: "USA",
+      latitude: null,
+      longitude: null,
+      appointmentType: "fcfs",
+      appointmentStart: null,
+      appointmentEnd: null,
+      contactName: null,
+      contactPhone: null,
+      contactEmail: null,
+      specialInstructions: null,
+      driverInstructions: null,
+    };
+    appendStop(newStop);
+  };
+
   // State
   const [ocrText, setOcrText] = useState("");
   const [isProcessingOCR, setIsProcessingOCR] = useState(false);
@@ -132,7 +164,7 @@ export default function EnterpriseOrderPage() {
   };
 
   // OCR Handlers
-  const handleOcrPaste = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+  const handleOcrPaste = async (e: React.ClipboardEvent<HTMLInputElement>) => {
     const items = e.clipboardData.items;
     for (let i = 0; i < items.length; i++) {
       if (items[i].type.indexOf("image") !== -1) {
@@ -378,64 +410,97 @@ export default function EnterpriseOrderPage() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-black text-zinc-300 overflow-hidden">
-      {/* Header */}
-      <div className="flex-none border-b border-zinc-800 bg-zinc-950">
-        <div className="w-full px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Button 
-              size="sm" 
-              variant="subtle" 
-              onClick={() => router.back()} 
-              className="text-zinc-400 hover:text-white hover:bg-zinc-800"
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </Button>
-            <div>
-              <h1 className="text-lg font-semibold text-white">New Order</h1>
-              <p className="text-xs text-zinc-500">Enterprise Order Entry</p>
-            </div>
+    <div className="h-screen flex flex-col bg-black text-zinc-300">
+      {/* STICKY HEADER */}
+      <div className="flex-none border-b border-zinc-800 bg-zinc-950 px-4 py-2">
+        <div className="flex items-center gap-4">
+          {/* Back + Title */}
+          <Button 
+            size="sm" 
+            variant="subtle" 
+            onClick={() => router.back()} 
+            className="text-zinc-400 hover:text-white hover:bg-zinc-800"
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </Button>
+          <div className="mr-4">
+            <h1 className="text-base font-semibold text-white">New Order</h1>
           </div>
-          
-          <div className="flex items-center gap-3">
-            {/* Priority */}
-            <Select
-              value={watchedPriority}
-              onChange={(e) => setValue("priority", e.target.value as any)}
-              className={`h-8 w-28 text-xs bg-zinc-900 border-zinc-800 ${priorityConfig?.color}`}
-            >
-              {PRIORITIES.map(p => (
-                <option key={p.value} value={p.value}>{p.label}</option>
-              ))}
-            </Select>
 
-            {/* Status */}
-            <Chip 
-              tone={watchedStatus === "Qualified" ? "ok" : "default"} 
-              className="bg-zinc-800 text-zinc-300 border-zinc-700 h-8 px-3 text-xs"
-            >
-              {watchedStatus}
-            </Chip>
+          {/* Customer */}
+          <Select
+            value={watch("customerId") || ""}
+            onChange={(e) => handleCustomerSelect(e.target.value)}
+            className="h-8 text-sm bg-zinc-900 border-zinc-700 text-zinc-200 w-44"
+          >
+            <option value="">Customer...</option>
+            {customers?.map((c, idx) => (
+              <option key={`${c.id}-${idx}`} value={c.id}>{c.name}</option>
+            ))}
+          </Select>
 
-            {/* Submit */}
-            <Button
-              onClick={handleSubmit(onSubmit)}
-              disabled={!isValid || createMutation.isPending}
-              className="bg-blue-600 hover:bg-blue-500 text-white h-8 text-xs"
-            >
-              <Send className="w-3 h-3 mr-2" />
-              {createMutation.isPending ? "Creating..." : "Create Order"}
-            </Button>
+          {/* Equipment */}
+          <Select
+            {...register("equipmentType")}
+            className="h-8 text-sm bg-zinc-900 border-zinc-700 text-zinc-200 w-28"
+          >
+            {EQUIPMENT_TYPES.map(type => (
+              <option key={type} value={type}>{type}</option>
+            ))}
+          </Select>
+          <Select
+            {...register("equipmentLength", { valueAsNumber: true })}
+            className="h-8 text-sm bg-zinc-900 border-zinc-700 text-zinc-200 w-20"
+          >
+            {EQUIPMENT_LENGTHS.map(len => (
+              <option key={len} value={len}>{len}'</option>
+            ))}
+          </Select>
+
+          {/* AI Paste Input */}
+          <div
+            className={`flex-1 relative rounded border transition-colors ${
+              isDragging ? "border-indigo-500 bg-indigo-500/10" : "border-zinc-700 bg-zinc-900"
+            }`}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+          >
+            <Sparkles className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-indigo-400" />
+            <input
+              type="text"
+              className="w-full h-8 bg-transparent pl-8 pr-8 text-sm text-zinc-300 placeholder-zinc-500 focus:outline-none"
+              placeholder="Paste rate con or drag image..."
+              value={ocrText}
+              onChange={(e) => setOcrText(e.target.value)}
+              onPaste={handleOcrPaste}
+            />
+            <input type="file" accept="image/*" onChange={handleFileInput} className="hidden" id="ocr-upload" />
+            <label htmlFor="ocr-upload" className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-indigo-400 cursor-pointer">
+              <Upload className="w-4 h-4" />
+            </label>
           </div>
+          {isProcessingOCR && <span className="text-xs text-indigo-400 animate-pulse">Processing...</span>}
+
+          {/* Priority */}
+          <Select
+            value={watchedPriority}
+            onChange={(e) => setValue("priority", e.target.value as any)}
+            className={`h-8 w-24 text-xs bg-zinc-900 border-zinc-800 ${priorityConfig?.color}`}
+          >
+            {PRIORITIES.map(p => (
+              <option key={p.value} value={p.value}>{p.label}</option>
+            ))}
+          </Select>
         </div>
       </div>
 
       {/* AI Warnings Banner */}
       {aiWarnings.length > 0 && (
-        <div className="flex-none border-b border-amber-500/20 bg-amber-500/10">
-          <div className="w-full px-4 py-2 flex items-center gap-2 text-xs text-amber-400">
-            <AlertTriangle className="w-4 h-4" />
-            <span className="font-medium">AI Parsing Warnings:</span>
+        <div className="flex-none border-b border-amber-500/20 bg-amber-500/10 px-4 py-1.5">
+          <div className="flex items-center gap-2 text-xs text-amber-400">
+            <AlertTriangle className="w-3 h-3" />
+            <span className="font-medium">AI Warnings:</span>
             {aiWarnings.map((w, i) => (
               <span key={i} className="text-amber-300">{w}</span>
             ))}
@@ -443,368 +508,260 @@ export default function EnterpriseOrderPage() {
         </div>
       )}
 
-      {/* Tabs Layout */}
-      <Tabs defaultValue="main" className="flex-1 flex flex-col min-h-0">
-        <div className="flex-none border-b border-zinc-800 bg-zinc-950/50">
-          <div className="w-full px-4">
-            <TabsList className="w-full justify-start gap-3 bg-transparent p-0 h-12 border-0">
+      {/* SCROLLABLE CONTENT */}
+      <div className="flex-1 overflow-y-auto min-h-0">
+        <Tabs defaultValue="main" className="h-full flex flex-col">
+          <div className="flex-none border-b border-zinc-800 bg-zinc-950/80 px-4 sticky top-0 z-10">
+            <TabsList className="justify-start gap-2 bg-transparent p-0 h-10 border-0">
               <TabsTrigger 
                 value="main" 
-                className="rounded-md px-4 py-2 text-xs font-medium text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50 data-[state=active]:bg-zinc-800 data-[state=active]:text-white data-[state=active]:shadow-none border-0 transition-all"
+                className="rounded px-3 py-1.5 text-xs font-medium text-zinc-400 hover:text-zinc-200 data-[state=active]:bg-zinc-800 data-[state=active]:text-white border-0"
               >
                 Main
               </TabsTrigger>
               <TabsTrigger 
                 value="other" 
-                className="rounded-md px-4 py-2 text-xs font-medium text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50 data-[state=active]:bg-zinc-800 data-[state=active]:text-white data-[state=active]:shadow-none border-0 transition-all"
+                className="rounded px-3 py-1.5 text-xs font-medium text-zinc-400 hover:text-zinc-200 data-[state=active]:bg-zinc-800 data-[state=active]:text-white border-0"
               >
                 Other Details
               </TabsTrigger>
             </TabsList>
           </div>
-        </div>
 
-        <TabsContent value="main" className="flex-1 min-h-0 m-0 p-0 data-[state=active]:flex flex-col items-center bg-black">
-          <div className="w-full flex-1 grid grid-cols-12 gap-0 min-h-0 border-x border-zinc-800/50">
-            
-            {/* COLUMN 1: THE ROUTE (Stops Timeline) */}
-            <div className="col-span-3 flex flex-col border-r border-zinc-800/50 min-h-0">
-              <div className="flex-1 overflow-y-auto p-3">
+          <TabsContent value="main" className="flex-1 m-0 p-0">
+            <div className="p-4 space-y-6 pb-8">
+              {/* FREIGHT ITEMS */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-semibold text-zinc-200">Freight Items</h3>
+                </div>
+                <FreightItemsGrid
+                  control={control}
+                  register={register}
+                  setValue={setValue}
+                  watch={watch}
+                  errors={errors}
+                  className=""
+                />
+              </div>
+
+              {/* ROUTE STOPS - Horizontal */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-semibold text-zinc-200">Route</h3>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => addStop("pickup")}
+                      className="h-7 px-2 text-xs text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50"
+                    >
+                      <Plus className="w-3 h-3 mr-1" />
+                      Pickup
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => addStop("intermediate")}
+                      className="h-7 px-2 text-xs text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50"
+                    >
+                      <Plus className="w-3 h-3 mr-1" />
+                      Stop
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => addStop("delivery")}
+                      className="h-7 px-2 text-xs text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50"
+                    >
+                      <Plus className="w-3 h-3 mr-1" />
+                      Delivery
+                    </Button>
+                  </div>
+                </div>
                 <StopsTimeline
                   control={control}
                   register={register}
                   watch={watch}
                   errors={errors}
+                  layout="horizontal"
+                  hideAddButtons={true}
                 />
               </div>
             </div>
+          </TabsContent>
 
-            {/* COLUMN 2: THE LOAD (Freight Items + Intake) */}
-            <div className="col-span-6 flex flex-col border-r border-zinc-800/50 min-h-0">
-              <div className="flex-1 overflow-y-auto p-1 space-y-1">
-                {/* OCR Intake */}
-                <Card className="flex-none bg-[#0a0d12] border-zinc-800/50">
-                  <div className="p-3">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Sparkles className="w-3 h-3 text-indigo-400" />
-                      <h3 className="text-xs font-semibold text-zinc-200">AI Order Intake</h3>
-                      {isProcessingOCR && (
-                        <span className="text-[10px] text-indigo-400 animate-pulse">Processing...</span>
-                      )}
-                      {aiConfidence.overall && (
-                        <span className="text-[10px] text-emerald-400">{aiConfidence.overall}% confidence</span>
-                      )}
-                    </div>
-                    <div
-                      className={`relative rounded-lg border border-dashed transition-colors ${
-                        isDragging ? "border-indigo-500/50 bg-indigo-500/10" : "border-zinc-800 bg-black/30"
-                      }`}
-                      onDragOver={handleDragOver}
-                      onDragLeave={handleDragLeave}
-                      onDrop={handleDrop}
-                    >
-                      <textarea
-                        rows={2}
-                        className="w-full bg-transparent px-3 py-2 text-xs text-zinc-300 placeholder-zinc-600 focus:outline-none resize-none"
-                        placeholder="Paste email text..."
-                        value={ocrText}
-                        onChange={(e) => setOcrText(e.target.value)}
-                        onPaste={handleOcrPaste}
-                      />
-                      <div className="absolute bottom-1.5 right-2 flex items-center gap-2">
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleFileInput}
-                          className="hidden"
-                          id="ocr-upload"
-                        />
-                        <label
-                          htmlFor="ocr-upload"
-                          className="flex items-center gap-1 text-[10px] text-zinc-500 hover:text-indigo-400 cursor-pointer"
-                        >
-                          <Upload className="w-3 h-3" />
-                          Upload
-                        </label>
-                      </div>
-                    </div>
-                  </div>
-                </Card>
-
-                {/* Freight Items Grid */}
-                <Card className="flex-1 bg-[#0a0d12] border-zinc-800/50 min-h-[300px]">
-                  <div className="h-full p-1">
-                    <FreightItemsGrid
-                      control={control}
-                      register={register}
-                      setValue={setValue}
-                      watch={watch}
-                      errors={errors}
-                      className="h-full flex flex-col"
-                    />
-                  </div>
-                </Card>
-              </div>
-            </div>
-
-            {/* COLUMN 3: DETAILS & SUMMARY */}
-            <div className="col-span-3 flex flex-col min-h-0">
-              <div className="flex-1 overflow-y-auto p-3 space-y-3">
-                {/* Customer Section */}
-                <Card className="flex-none bg-[#0a0d12] border-zinc-800/50">
-                  <div className="p-3">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Building2 className="w-3 h-3 text-zinc-400" />
-                      <h3 className="text-xs font-semibold text-zinc-200">Customer</h3>
-                    </div>
-                    <Select
-                      value={watch("customerId") || ""}
-                      onChange={(e) => handleCustomerSelect(e.target.value)}
-                      className="h-8 text-xs bg-black/30 border-zinc-800 text-zinc-300"
-                    >
-                      <option value="">Select Customer...</option>
-                      {customers?.map((c) => (
-                        <option key={c.id} value={c.id}>{c.name}</option>
-                      ))}
-                    </Select>
-                    {errors.customerName && (
-                      <p className="mt-1 text-[10px] text-rose-400">{errors.customerName.message}</p>
-                    )}
-                  </div>
-                </Card>
-
-                {/* Equipment Section */}
-                <Card className="flex-none bg-[#0a0d12] border-zinc-800/50">
-                  <div className="p-3">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Truck className="w-3 h-3 text-zinc-400" />
-                      <h3 className="text-xs font-semibold text-zinc-200">Equipment</h3>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="text-[10px] font-medium uppercase text-zinc-500 mb-1 block">Type</label>
-                        <Select
-                          {...register("equipmentType")}
-                          className="h-8 text-xs bg-black/30 border-zinc-800 text-zinc-300"
-                        >
-                          {EQUIPMENT_TYPES.map(type => (
-                            <option key={type} value={type}>{type}</option>
-                          ))}
-                        </Select>
-                      </div>
-                      <div>
-                        <label className="text-[10px] font-medium uppercase text-zinc-500 mb-1 block">Length</label>
-                        <Select
-                          {...register("equipmentLength", { valueAsNumber: true })}
-                          className="h-8 text-xs bg-black/30 border-zinc-800 text-zinc-300"
-                        >
-                          {EQUIPMENT_LENGTHS.map(len => (
-                            <option key={len} value={len}>{len} ft</option>
-                          ))}
-                        </Select>
-                      </div>
-                    </div>
-                    {watchedEquipment === "Reefer" && (
-                      <div className="mt-2">
-                        <label className="text-[10px] font-medium uppercase text-zinc-500 mb-1 block">Temperature</label>
-                        <Input
-                          {...register("temperatureSetting")}
-                          placeholder="e.g., 34°F"
-                          className="h-8 text-xs bg-black/30 border-zinc-800 text-zinc-300"
-                        />
-                      </div>
-                    )}
-                  </div>
-                </Card>
-
-                {/* Order Summary */}
-                <Card className="flex-none bg-[#0a0d12] border-zinc-800/50">
-                  <div className="p-3">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Settings2 className="w-3 h-3 text-zinc-400" />
-                      <h3 className="text-xs font-semibold text-zinc-200">Summary</h3>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div className="p-2 rounded bg-black/30 border border-zinc-800/50">
-                        <div className="text-zinc-500 text-[10px] uppercase mb-0.5">Stops</div>
-                        <div className="text-zinc-200 font-medium">{watchedStops?.length || 0}</div>
-                      </div>
-                      <div className="p-2 rounded bg-black/30 border border-zinc-800/50">
-                        <div className="text-zinc-500 text-[10px] uppercase mb-0.5">Items</div>
-                        <div className="text-zinc-200 font-medium">{watchedItems?.length || 0}</div>
-                      </div>
-                      <div className="p-2 rounded bg-black/30 border border-zinc-800/50">
-                        <div className="text-zinc-500 text-[10px] uppercase mb-0.5">Weight</div>
-                        <div className="text-zinc-200 font-medium">
-                          {(watch("totalWeightLbs") || 0).toLocaleString()} <span className="text-[10px] text-zinc-500">lbs</span>
-                        </div>
-                      </div>
-                      <div className="p-2 rounded bg-black/30 border border-zinc-800/50">
-                        <div className="text-zinc-500 text-[10px] uppercase mb-0.5">Pallets</div>
-                        <div className="text-zinc-200 font-medium">{watch("totalPallets") || 0}</div>
-                      </div>
-                    </div>
-                    
-                    {/* Validation Status */}
-                    <div className="mt-3 pt-3 border-t border-zinc-800/50">
-                      {isValid ? (
-                        <div className="flex items-center gap-2 text-xs text-emerald-400">
-                          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                          Ready to create
-                        </div>
-                      ) : (
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-2 text-xs text-amber-400">
-                            <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                            Complete required fields
-                          </div>
-                          {Object.keys(errors).length > 0 && (
-                            <ul className="text-[10px] text-amber-500/80 list-disc pl-4 space-y-0.5">
-                              {errors.customerName && <li>Customer is required</li>}
-                              {errors.stops && <li>Stop details missing (City, etc.)</li>}
-                              {errors.freightItems && <li>Freight details missing (Commodity, etc.)</li>}
-                              {Object.keys(errors).map(key => {
-                                if (['customerName', 'stops', 'freightItems'].includes(key)) return null;
-                                return (
-                                  <li key={key} className="capitalize">
-                                    {key.replace(/([A-Z])/g, ' $1').toLowerCase()} required
-                                  </li>
-                                );
-                              })}
-                            </ul>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </Card>
-              </div>
-            </div>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="other" className="flex-1 min-h-0 m-0 p-0 data-[state=active]:flex flex-col">
-          <div className="flex-1 overflow-y-auto p-6">
-            <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6">
+          <TabsContent value="other" className="flex-1 m-0 p-0">
+            <div className="p-4 space-y-6 pb-8">
               
               {/* Billing Section */}
-              <Card className="flex-none bg-[#0a0d12] border-zinc-800/50">
-                <div className="p-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <CreditCard className="w-4 h-4 text-zinc-400" />
-                    <h3 className="text-sm font-semibold text-zinc-200">Billing</h3>
-                  </div>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="text-xs font-medium uppercase text-zinc-500 mb-1 block">Bill To</label>
-                      <Select
-                        {...register("billing.billToType")}
-                        className="h-9 text-sm bg-black/30 border-zinc-800 text-zinc-300"
-                      >
-                        {BILL_TO_TYPES.map(type => (
-                          <option key={type.value} value={type.value}>{type.label}</option>
-                        ))}
-                      </Select>
-                    </div>
-                    {watch("billing.billToType") === "third_party" && (
-                      <div>
-                        <label className="text-xs font-medium uppercase text-zinc-500 mb-1 block">Third Party Name</label>
-                        <Input
-                          {...register("billing.billToName")}
-                          placeholder="Company name"
-                          className="h-9 text-sm bg-black/30 border-zinc-800 text-zinc-300"
-                        />
-                      </div>
-                    )}
-                    <div>
-                      <label className="text-xs font-medium uppercase text-zinc-500 mb-1 block">Payment Terms</label>
-                      <Select
-                        {...register("billing.paymentTerms")}
-                        className="h-9 text-sm bg-black/30 border-zinc-800 text-zinc-300"
-                      >
-                        {PAYMENT_TERMS.map(term => (
-                          <option key={term.value} value={term.value}>{term.label}</option>
-                        ))}
-                      </Select>
-                    </div>
-                    <div className="flex items-center gap-6 pt-2">
-                      <label className="flex items-center gap-2 text-sm text-zinc-400 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          {...register("billing.requirePod")}
-                          className="rounded border-zinc-700 bg-zinc-900 text-blue-600 w-4 h-4"
-                        />
-                        Require POD
-                      </label>
-                      <label className="flex items-center gap-2 text-sm text-zinc-400 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          {...register("billing.requireBol")}
-                          className="rounded border-zinc-700 bg-zinc-900 text-blue-600 w-4 h-4"
-                        />
-                        Require BOL
-                      </label>
-                    </div>
-                  </div>
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-semibold text-zinc-200">Billing</h3>
                 </div>
-              </Card>
-
-              {/* Instructions & Notes */}
-              <Card className="flex-none bg-[#0a0d12] border-zinc-800/50">
-                <div className="p-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <FileText className="w-4 h-4 text-zinc-400" />
-                    <h3 className="text-sm font-semibold text-zinc-200">Instructions</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div>
+                    <label className="text-xs font-medium uppercase text-zinc-500 mb-1 block">Bill To</label>
+                    <Select
+                      {...register("billing.billToType")}
+                      className="h-9 text-sm bg-black/30 border-zinc-800 text-zinc-300"
+                    >
+                      {BILL_TO_TYPES.map(type => (
+                        <option key={type.value} value={type.value}>{type.label}</option>
+                      ))}
+                    </Select>
                   </div>
-                  <div className="space-y-4">
+                  {watch("billing.billToType") === "third_party" && (
                     <div>
-                      <label className="text-xs font-medium uppercase text-zinc-500 mb-1 block">Special Instructions</label>
-                      <textarea
-                        {...register("specialInstructions")}
-                        rows={3}
-                        placeholder="Customer/driver instructions..."
-                        className="w-full text-sm bg-black/30 border border-zinc-800 rounded px-3 py-2 text-zinc-300 placeholder:text-zinc-600 resize-none focus:outline-none focus:border-zinc-700"
+                      <label className="text-xs font-medium uppercase text-zinc-500 mb-1 block">Third Party Name</label>
+                      <Input
+                        {...register("billing.billToName")}
+                        placeholder="Company name"
+                        className="h-9 text-sm bg-black/30 border-zinc-800 text-zinc-300"
                       />
                     </div>
-                    <div>
-                      <label className="text-xs font-medium uppercase text-zinc-500 mb-1 block">Internal Notes</label>
-                      <textarea
-                        {...register("internalNotes")}
-                        rows={3}
-                        placeholder="Internal notes (not shared)..."
-                        className="w-full text-sm bg-black/30 border border-zinc-800 rounded px-3 py-2 text-zinc-300 placeholder:text-zinc-600 resize-none focus:outline-none focus:border-zinc-700"
+                  )}
+                  <div>
+                    <label className="text-xs font-medium uppercase text-zinc-500 mb-1 block">Payment Terms</label>
+                    <Select
+                      {...register("billing.paymentTerms")}
+                      className="h-9 text-sm bg-black/30 border-zinc-800 text-zinc-300"
+                    >
+                      {PAYMENT_TERMS.map(term => (
+                        <option key={term.value} value={term.value}>{term.label}</option>
+                      ))}
+                    </Select>
+                  </div>
+                  <div className="flex items-end gap-4 pb-1">
+                    <label className="flex items-center gap-2 text-xs text-zinc-400 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        {...register("billing.requirePod")}
+                        className="rounded border-zinc-700 bg-zinc-900 text-blue-600 w-4 h-4"
                       />
-                    </div>
+                      Require POD
+                    </label>
+                    <label className="flex items-center gap-2 text-xs text-zinc-400 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        {...register("billing.requireBol")}
+                        className="rounded border-zinc-700 bg-zinc-900 text-blue-600 w-4 h-4"
+                      />
+                      Require BOL
+                    </label>
                   </div>
                 </div>
-              </Card>
+              </div>
 
-              {/* References */}
-              <Card className="bg-[#0a0d12] border-zinc-800/50">
-                <div className="p-4">
+              {/* Instructions Section */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-semibold text-zinc-200">Instructions & Notes</h3>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-medium uppercase text-zinc-500 mb-1 block">Special Instructions</label>
+                    <textarea
+                      {...register("specialInstructions")}
+                      rows={3}
+                      placeholder="Customer/driver instructions..."
+                      className="w-full text-sm bg-black/30 border border-zinc-800 rounded px-3 py-2 text-zinc-300 placeholder:text-zinc-600 resize-none focus:outline-none focus:border-zinc-700"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium uppercase text-zinc-500 mb-1 block">Internal Notes</label>
+                    <textarea
+                      {...register("internalNotes")}
+                      rows={3}
+                      placeholder="Internal notes (not shared)..."
+                      className="w-full text-sm bg-black/30 border border-zinc-800 rounded px-3 py-2 text-zinc-300 placeholder:text-zinc-600 resize-none focus:outline-none focus:border-zinc-700"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* References & Accessorials Row */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* References */}
+                <div>
                   <ReferenceTags
                     control={control}
                     register={register}
                     errors={errors}
                   />
                 </div>
-              </Card>
 
-              {/* Accessorials */}
-              <Card className="bg-[#0a0d12] border-zinc-800/50">
-                <div className="p-4">
+                {/* Accessorials */}
+                <div>
                   <AccessorialsList
                     control={control}
                     register={register}
                     errors={errors}
                   />
                 </div>
-              </Card>
+              </div>
 
             </div>
+          </TabsContent>
+        </Tabs>
+      </div>
+
+      {/* STICKY FOOTER */}
+      <div className="flex-none border-t border-zinc-800 bg-zinc-950 px-4 py-3">
+        <div className="flex items-center justify-between">
+          {/* Summary Stats */}
+          <div className="flex items-center gap-4 text-sm">
+            <div className="flex items-center gap-2">
+              <span className="text-zinc-500">{watchedStops?.length || 0}</span>
+              <span className="text-zinc-600">stops</span>
+            </div>
+            <span className="text-zinc-700">•</span>
+            <div className="flex items-center gap-2">
+              <span className="text-zinc-500">{watchedItems?.length || 0}</span>
+              <span className="text-zinc-600">items</span>
+            </div>
+            <span className="text-zinc-700">•</span>
+            <div className="flex items-center gap-2">
+              <span className="text-zinc-500">{(watch("totalWeightLbs") || 0).toLocaleString()}</span>
+              <span className="text-zinc-600">lbs</span>
+            </div>
+            <span className="text-zinc-700">•</span>
+            <div className="flex items-center gap-2">
+              <span className="text-zinc-500">{watch("totalPallets") || 0}</span>
+              <span className="text-zinc-600">pallets</span>
+            </div>
           </div>
-        </TabsContent>
-      </Tabs>
+
+          {/* Validation + Submit */}
+          <div className="flex items-center gap-4">
+            {isValid ? (
+              <div className="flex items-center gap-2 text-sm text-emerald-400">
+                <CheckCircle2 className="w-4 h-4" />
+                <span>Ready to create</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 text-sm text-amber-400">
+                <AlertTriangle className="w-4 h-4" />
+                <span>
+                  {!watch("customerId") && "Select customer"}
+                  {watch("customerId") && Object.keys(errors).length > 0 && "Complete required fields"}
+                </span>
+              </div>
+            )}
+            <Button
+              onClick={handleSubmit(onSubmit)}
+              disabled={!isValid || createMutation.isPending}
+              className="bg-blue-600 hover:bg-blue-500 disabled:bg-zinc-700 disabled:text-zinc-400 text-white h-9 px-6"
+            >
+              <Send className="w-4 h-4 mr-2" />
+              {createMutation.isPending ? "Creating..." : "Create Order"}
+            </Button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

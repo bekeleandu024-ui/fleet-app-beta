@@ -1,20 +1,21 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 
-// GET /api/dispatch/drivers - Fetch available drivers
+// GET /api/dispatch/drivers - Fetch available drivers with their units
 export async function GET() {
   try {
     const result = await pool.query(`
       SELECT 
-        driver_id,
-        driver_name,
-        unit_number,
-        driver_type,
-        region,
-        status,
-        CASE WHEN status = 'ACTIVE' OR status IS NULL THEN true ELSE false END AS is_active
-      FROM driver_profiles
-      ORDER BY driver_name ASC
+        dp.driver_id,
+        dp.driver_name,
+        COALESCE(dp.unit_number, up.unit_number) AS unit_number,
+        dp.driver_type,
+        dp.region,
+        COALESCE(dp.status, 'Available') AS status,
+        true AS is_active
+      FROM driver_profiles dp
+      LEFT JOIN unit_profiles up ON dp.driver_id = up.driver_id
+      ORDER BY dp.driver_name ASC
     `);
 
     const drivers = result.rows.map(row => ({

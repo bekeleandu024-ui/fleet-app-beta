@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import { devtools, subscribeWithSelector } from 'zustand/middleware';
+import { devtools, subscribeWithSelector, persist } from 'zustand/middleware';
+import { nanoid } from 'nanoid';
 
 // ============================================================================
 // TYPES
@@ -7,11 +8,38 @@ import { devtools, subscribeWithSelector } from 'zustand/middleware';
 
 export type DispatchStatus = 
   | 'NEW'
+  | 'PLANNED'
   | 'FLEET_DISPATCH'
   | 'BROKERAGE_PENDING'
   | 'POSTED_EXTERNAL'
   | 'COVERED_INTERNAL'
   | 'COVERED_EXTERNAL';
+
+// Draft Trip - Consolidated Shipment in Planning stage
+export interface DraftTrip {
+  id: string;
+  tripNumber: string;
+  orderIds: string[];
+  orders: DispatchOrder[];
+  // Aggregated data
+  totalWeightLbs: number;
+  totalPallets: number;
+  totalStops: number;
+  projectedRevenue: number;
+  projectedCost: number;
+  projectedMargin: number;
+  // Route info
+  pickupLocations: string[];
+  dropoffLocations: string[];
+  equipmentType: string;
+  // Assignment info
+  assignedResourceId: string | null;
+  assignedResourceType: 'driver' | 'carrier' | null;
+  assignedResourceName: string | null;
+  // Metadata
+  createdAt: string;
+  status: 'draft' | 'ready' | 'published';
+}
 
 export interface DispatchOrder {
   id: string;
@@ -96,10 +124,14 @@ interface DispatchState {
   // Data
   fleetOrders: DispatchOrder[];
   brokerageOrders: DispatchOrder[];
+  demandOrders: DispatchOrder[]; // NEW status orders (Order Pool)
+  draftTrips: DraftTrip[]; // Planning/Staging area
   drivers: Driver[];
   units: Unit[];
   selectedOrderId: string | null;
   selectedOrderBids: CarrierBid[];
+  selectedOrderIds: string[]; // Multi-select for grouping
+  selectedTripId: string | null;
   
   // UI State
   isLoading: boolean;
@@ -108,6 +140,9 @@ interface DispatchState {
   isAssignModalOpen: boolean;
   isKickModalOpen: boolean;
   draggedOrderId: string | null;
+  draggedTripId: string | null;
+  activeColumn: 'demand' | 'planning' | 'execution' | null;
+  executionTab: 'fleet' | 'brokerage';
   
   // Filters
   fleetFilter: {
@@ -120,12 +155,18 @@ interface DispatchState {
     postedOnly: boolean;
     hasBids: boolean;
   };
+  demandFilter: {
+    search: string;
+    equipmentType: string | null;
+    customer: string | null;
+  };
 }
 
 interface DispatchActions {
   // Data Fetching
   fetchFleetOrders: () => Promise<void>;
   fetchBrokerageOrders: () => Promise<void>;
+  fetchDemandOrders: () => Promise<void>;
   fetchDrivers: () => Promise<void>;
   fetchUnits: () => Promise<void>;
   fetchOrderBids: (orderId: string) => Promise<void>;
@@ -133,11 +174,22 @@ interface DispatchActions {
   
   // Order Actions
   selectOrder: (orderId: string | null) => void;
+  toggleOrderSelection: (orderId: string) => void;
+  clearOrderSelection: () => void;
+  selectAllOrders: (orderIds: string[]) => void;
   assignToFleet: (orderId: string, driverId: string, unitId?: string) => Promise<void>;
   unassignFromFleet: (orderId: string) => Promise<void>;
   kickToBrokerage: (orderId: string, reason?: string) => Promise<void>;
   postToCarriers: (orderId: string) => Promise<void>;
   unpostFromCarriers: (orderId: string) => Promise<void>;
+  
+  // Draft Trip Actions (NEW)
+  createDraftTrip: (orderIds: string[]) => void;
+  addOrderToTrip: (tripId: string, orderId: string) => void;
+  removeOrderFromTrip: (tripId: string, orderId: string) => void;
+  deleteDraftTrip: (tripId: string) => void;
+  publishTrip: (tripId: string, resourceId: string, resourceType: 'driver' | 'carrier') => Promise<boolean>;
+  selectTrip: (tripId: string | null) => void;
   
   // Bid Actions
   addBid: (orderId: string, bid: Omit<CarrierBid, 'id' | 'orderId' | 'status' | 'isLowestCost' | 'isFastest' | 'receivedAt'>) => Promise<void>;
@@ -154,14 +206,19 @@ interface DispatchActions {
   openKickModal: (orderId: string) => void;
   closeKickModal: () => void;
   setDraggedOrder: (orderId: string | null) => void;
+  setDraggedTrip: (tripId: string | null) => void;
+  setActiveColumn: (column: 'demand' | 'planning' | 'execution' | null) => void;
+  setExecutionTab: (tab: 'fleet' | 'brokerage') => void;
   
   // Filters
   setFleetFilter: (filter: Partial<DispatchState['fleetFilter']>) => void;
   setBrokerageFilter: (filter: Partial<DispatchState['brokerageFilter']>) => void;
+  setDemandFilter: (filter: Partial<DispatchState['demandFilter']>) => void;
   
   // Optimistic Updates
   moveOrderToFleet: (orderId: string) => void;
   moveOrderToBrokerage: (orderId: string) => void;
+  moveOrderToPlanning: (orderId: string, tripId?: string) => void;
 }
 
 // ============================================================================
@@ -170,14 +227,19 @@ interface DispatchActions {
 
 export const useDispatchStore = create<DispatchState & DispatchActions>()(
   devtools(
-    subscribeWithSelector((set, get) => ({
+    persist(
+      subscribeWithSelector((set, get) => ({
       // Initial State
       fleetOrders: [],
       brokerageOrders: [],
+      demandOrders: [],
+      draftTrips: [],
       drivers: [],
       units: [],
       selectedOrderId: null,
       selectedOrderBids: [],
+      selectedOrderIds: [],
+      selectedTripId: null,
       
       isLoading: false,
       isBidModalOpen: false,
@@ -185,6 +247,9 @@ export const useDispatchStore = create<DispatchState & DispatchActions>()(
       isAssignModalOpen: false,
       isKickModalOpen: false,
       draggedOrderId: null,
+      draggedTripId: null,
+      activeColumn: null,
+      executionTab: 'fleet',
       
       fleetFilter: {
         search: '',
@@ -195,6 +260,11 @@ export const useDispatchStore = create<DispatchState & DispatchActions>()(
         search: '',
         postedOnly: false,
         hasBids: false,
+      },
+      demandFilter: {
+        search: '',
+        equipmentType: null,
+        customer: null,
       },
       
       // ========================================
@@ -231,12 +301,30 @@ export const useDispatchStore = create<DispatchState & DispatchActions>()(
         }
       },
       
-      fetchDrivers: async () => {
+      fetchDemandOrders: async () => {
+        set({ isLoading: true });
         try {
-          const response = await fetch('/api/dispatch/drivers');
+          const response = await fetch('/api/dispatch/orders?status=NEW');
           const data = await response.json();
           if (data.success) {
+            set({ demandOrders: data.data });
+          }
+        } catch (error) {
+          console.error('Failed to fetch demand orders:', error);
+        } finally {
+          set({ isLoading: false });
+        }
+      },
+      
+      fetchDrivers: async () => {
+        try {
+          console.log('[fetchDrivers] Fetching...');
+          const response = await fetch('/api/dispatch/drivers');
+          const data = await response.json();
+          console.log('[fetchDrivers] Response:', data);
+          if (data.success) {
             set({ drivers: data.data });
+            console.log('[fetchDrivers] Set drivers:', data.data.length);
           }
         } catch (error) {
           console.error('Failed to fetch drivers:', error);
@@ -268,10 +356,11 @@ export const useDispatchStore = create<DispatchState & DispatchActions>()(
       },
       
       refreshAll: async () => {
-        const { fetchFleetOrders, fetchBrokerageOrders, fetchDrivers, fetchUnits } = get();
+        const { fetchFleetOrders, fetchBrokerageOrders, fetchDemandOrders, fetchDrivers, fetchUnits } = get();
         await Promise.all([
           fetchFleetOrders(),
           fetchBrokerageOrders(),
+          fetchDemandOrders(),
           fetchDrivers(),
           fetchUnits(),
         ]);
@@ -289,6 +378,228 @@ export const useDispatchStore = create<DispatchState & DispatchActions>()(
           set({ selectedOrderBids: [] });
         }
       },
+      
+      toggleOrderSelection: (orderId) => {
+        set((state) => {
+          const isSelected = state.selectedOrderIds.includes(orderId);
+          return {
+            selectedOrderIds: isSelected
+              ? state.selectedOrderIds.filter((id) => id !== orderId)
+              : [...state.selectedOrderIds, orderId],
+          };
+        });
+      },
+      
+      clearOrderSelection: () => {
+        set({ selectedOrderIds: [] });
+      },
+      
+      selectAllOrders: (orderIds) => {
+        set({ selectedOrderIds: orderIds });
+      },
+      
+      // ========================================
+      // DRAFT TRIP ACTIONS
+      // ========================================
+      
+      createDraftTrip: (orderIds) => {
+        console.log('[createDraftTrip] Called with orderIds:', orderIds);
+        
+        const state = get();
+        
+        // Deduplicate orderIds
+        const uniqueOrderIds = [...new Set(orderIds)];
+        console.log('[createDraftTrip] Unique orderIds:', uniqueOrderIds);
+        
+        // Check for duplicates in source data
+        const allOrders = [...state.demandOrders, ...state.fleetOrders];
+        console.log('[createDraftTrip] All demandOrders:', state.demandOrders.map(o => o.orderNumber));
+        console.log('[createDraftTrip] All fleetOrders:', state.fleetOrders.map(o => o.orderNumber));
+        
+        const orders = allOrders.filter((o) => uniqueOrderIds.includes(o.id));
+        
+        console.log('[createDraftTrip] Matched orders:', orders.length, orders.map(o => ({ id: o.id, num: o.orderNumber })));
+        
+        if (orders.length === 0) return;
+        
+        // Deduplicate orders by id as well (in case source has duplicates)
+        const uniqueOrders = orders.filter((order, index, self) => 
+          index === self.findIndex((o) => o.id === order.id)
+        );
+        
+        console.log('[createDraftTrip] After dedup, uniqueOrders:', uniqueOrders.length, uniqueOrders.map(o => o.orderNumber));
+        
+        const tripId = nanoid(10);
+        const tripNumber = `DFT-${Date.now().toString(36).toUpperCase()}`;
+        
+        // Aggregate order data using deduplicated orders
+        const totalWeightLbs = uniqueOrders.reduce((sum, o) => sum + (o.totalWeightLbs || 0), 0);
+        const totalPallets = uniqueOrders.reduce((sum, o) => sum + (o.totalPallets || 0), 0);
+        const projectedRevenue = uniqueOrders.reduce((sum, o) => sum + (o.quotedRate || 0), 0);
+        const projectedCost = projectedRevenue * 0.85; // Estimate 85% cost ratio
+        
+        const newTrip: DraftTrip = {
+          id: tripId,
+          tripNumber,
+          orderIds: uniqueOrderIds,
+          orders: uniqueOrders,
+          totalWeightLbs,
+          totalPallets,
+          totalStops: uniqueOrders.length * 2, // Pickup + Delivery per order
+          projectedRevenue,
+          projectedCost,
+          projectedMargin: projectedRevenue - projectedCost,
+          pickupLocations: [...new Set(uniqueOrders.map((o) => o.pickupLocation))],
+          dropoffLocations: [...new Set(uniqueOrders.map((o) => o.dropoffLocation))],
+          equipmentType: uniqueOrders[0]?.equipmentType || 'Van',
+          assignedResourceId: null,
+          assignedResourceType: null,
+          assignedResourceName: null,
+          createdAt: new Date().toISOString(),
+          status: 'draft',
+        };
+        
+        set((state) => ({
+          draftTrips: [...state.draftTrips, newTrip],
+          demandOrders: state.demandOrders.filter((o) => !uniqueOrderIds.includes(o.id)),
+          selectedOrderIds: [],
+        }));
+      },
+      
+      addOrderToTrip: (tripId, orderId) => {
+        set((state) => {
+          const order = state.demandOrders.find((o) => o.id === orderId);
+          if (!order) return state;
+          
+          const tripIndex = state.draftTrips.findIndex((t) => t.id === tripId);
+          if (tripIndex === -1) return state;
+          
+          const trip = state.draftTrips[tripIndex];
+          
+          // Prevent duplicate orders in the same trip
+          if (trip.orderIds.includes(orderId)) return state;
+          const updatedTrip: DraftTrip = {
+            ...trip,
+            orderIds: [...trip.orderIds, orderId],
+            orders: [...trip.orders, order],
+            totalWeightLbs: trip.totalWeightLbs + (order.totalWeightLbs || 0),
+            totalPallets: trip.totalPallets + (order.totalPallets || 0),
+            totalStops: trip.totalStops + 2,
+            projectedRevenue: trip.projectedRevenue + (order.quotedRate || 0),
+            projectedCost: (trip.projectedRevenue + (order.quotedRate || 0)) * 0.85,
+            projectedMargin: (trip.projectedRevenue + (order.quotedRate || 0)) * 0.15,
+            pickupLocations: [...new Set([...trip.pickupLocations, order.pickupLocation])],
+            dropoffLocations: [...new Set([...trip.dropoffLocations, order.dropoffLocation])],
+          };
+          
+          const newTrips = [...state.draftTrips];
+          newTrips[tripIndex] = updatedTrip;
+          
+          return {
+            draftTrips: newTrips,
+            demandOrders: state.demandOrders.filter((o) => o.id !== orderId),
+          };
+        });
+      },
+      
+      removeOrderFromTrip: (tripId, orderId) => {
+        set((state) => {
+          const tripIndex = state.draftTrips.findIndex((t) => t.id === tripId);
+          if (tripIndex === -1) return state;
+          
+          const trip = state.draftTrips[tripIndex];
+          const order = trip.orders.find((o) => o.id === orderId);
+          if (!order) return state;
+          
+          // If only one order, delete the whole trip
+          if (trip.orderIds.length === 1) {
+            return {
+              draftTrips: state.draftTrips.filter((t) => t.id !== tripId),
+              demandOrders: [...state.demandOrders, order],
+            };
+          }
+          
+          const updatedTrip: DraftTrip = {
+            ...trip,
+            orderIds: trip.orderIds.filter((id) => id !== orderId),
+            orders: trip.orders.filter((o) => o.id !== orderId),
+            totalWeightLbs: trip.totalWeightLbs - (order.totalWeightLbs || 0),
+            totalPallets: trip.totalPallets - (order.totalPallets || 0),
+            totalStops: trip.totalStops - 2,
+            projectedRevenue: trip.projectedRevenue - (order.quotedRate || 0),
+            projectedCost: (trip.projectedRevenue - (order.quotedRate || 0)) * 0.85,
+            projectedMargin: (trip.projectedRevenue - (order.quotedRate || 0)) * 0.15,
+          };
+          
+          const newTrips = [...state.draftTrips];
+          newTrips[tripIndex] = updatedTrip;
+          
+          return {
+            draftTrips: newTrips,
+            demandOrders: [...state.demandOrders, order],
+          };
+        });
+      },
+      
+      deleteDraftTrip: (tripId) => {
+        set((state) => {
+          const trip = state.draftTrips.find((t) => t.id === tripId);
+          if (!trip) return state;
+          
+          return {
+            draftTrips: state.draftTrips.filter((t) => t.id !== tripId),
+            demandOrders: [...state.demandOrders, ...trip.orders],
+          };
+        });
+      },
+      
+      publishTrip: async (tripId, resourceId, resourceType) => {
+        console.log('[publishTrip] Called with:', { tripId, resourceId, resourceType });
+        const trip = get().draftTrips.find((t) => t.id === tripId);
+        if (!trip) {
+          console.log('[publishTrip] Trip not found in draftTrips');
+          return false;
+        }
+        
+        // Deduplicate orderIds
+        const uniqueOrderIds = [...new Set(trip.orderIds)];
+        console.log('[publishTrip] Publishing trip with orders:', uniqueOrderIds);
+        
+        try {
+          const response = await fetch('/api/dispatch/trips', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              tripId,
+              orderIds: uniqueOrderIds,
+              resourceId,
+              resourceType,
+            }),
+          });
+          
+          const data = await response.json();
+          console.log('[publishTrip] API response:', data);
+          if (data.success) {
+            set((state) => ({
+              draftTrips: state.draftTrips.filter((t) => t.id !== tripId),
+            }));
+            get().refreshAll();
+            return true;
+          }
+          return false;
+        } catch (error) {
+          console.error('Failed to publish trip:', error);
+          return false;
+        }
+      },
+      
+      selectTrip: (tripId) => {
+        set({ selectedTripId: tripId });
+      },
+      
+      // ========================================
+      // ORDER ACTIONS
+      // ========================================
       
       assignToFleet: async (orderId, driverId, unitId) => {
         try {
@@ -461,6 +772,9 @@ export const useDispatchStore = create<DispatchState & DispatchActions>()(
       closeKickModal: () => set({ isKickModalOpen: false }),
       
       setDraggedOrder: (orderId) => set({ draggedOrderId: orderId }),
+      setDraggedTrip: (tripId) => set({ draggedTripId: tripId }),
+      setActiveColumn: (column) => set({ activeColumn: column }),
+      setExecutionTab: (tab) => set({ executionTab: tab }),
       
       // ========================================
       // FILTERS
@@ -476,17 +790,24 @@ export const useDispatchStore = create<DispatchState & DispatchActions>()(
           brokerageFilter: { ...state.brokerageFilter, ...filter },
         })),
       
+      setDemandFilter: (filter) =>
+        set((state) => ({
+          demandFilter: { ...state.demandFilter, ...filter },
+        })),
+      
       // ========================================
       // OPTIMISTIC UPDATES
       // ========================================
       
       moveOrderToFleet: (orderId) => {
         set((state) => {
-          const order = state.brokerageOrders.find((o) => o.id === orderId);
+          const order = state.brokerageOrders.find((o) => o.id === orderId) 
+            || state.demandOrders.find((o) => o.id === orderId);
           if (!order) return state;
           
           return {
             brokerageOrders: state.brokerageOrders.filter((o) => o.id !== orderId),
+            demandOrders: state.demandOrders.filter((o) => o.id !== orderId),
             fleetOrders: [
               ...state.fleetOrders,
               { ...order, dispatchStatus: 'FLEET_DISPATCH' as DispatchStatus },
@@ -497,11 +818,13 @@ export const useDispatchStore = create<DispatchState & DispatchActions>()(
       
       moveOrderToBrokerage: (orderId) => {
         set((state) => {
-          const order = state.fleetOrders.find((o) => o.id === orderId);
+          const order = state.fleetOrders.find((o) => o.id === orderId)
+            || state.demandOrders.find((o) => o.id === orderId);
           if (!order) return state;
           
           return {
             fleetOrders: state.fleetOrders.filter((o) => o.id !== orderId),
+            demandOrders: state.demandOrders.filter((o) => o.id !== orderId),
             brokerageOrders: [
               ...state.brokerageOrders,
               { 
@@ -516,7 +839,26 @@ export const useDispatchStore = create<DispatchState & DispatchActions>()(
           };
         });
       },
+      
+      moveOrderToPlanning: (orderId, tripId) => {
+        const state = get();
+        const order = state.demandOrders.find((o) => o.id === orderId);
+        if (!order) return;
+        
+        if (tripId) {
+          // Add to existing trip
+          get().addOrderToTrip(tripId, orderId);
+        } else {
+          // Create new trip with single order
+          get().createDraftTrip([orderId]);
+        }
+      },
     })),
+    {
+      name: 'dispatch-draft-trips',
+      partialize: (state) => ({ draftTrips: state.draftTrips }),
+    }
+    ),
     { name: 'dispatch-store' }
   )
 );
@@ -578,14 +920,64 @@ export const selectSelectedOrder = (state: DispatchState) => {
   return (
     state.fleetOrders.find((o) => o.id === state.selectedOrderId) ||
     state.brokerageOrders.find((o) => o.id === state.selectedOrderId) ||
+    state.demandOrders.find((o) => o.id === state.selectedOrderId) ||
     null
   );
 };
 
 export const selectAvailableDrivers = (state: DispatchState) => {
-  return state.drivers.filter((d) => d.isActive);
+  // Show all drivers - they can be assigned regardless of current status
+  return state.drivers;
 };
 
 export const selectAvailableUnits = (state: DispatchState) => {
   return state.units.filter((u) => u.isActive);
+};
+
+// NEW SELECTORS for Kanban Board
+
+export const selectDemandOrdersFiltered = (state: DispatchState) => {
+  // Get all order IDs that are already in draft trips
+  const orderIdsInDraftTrips = new Set(
+    state.draftTrips.flatMap((trip) => trip.orderIds)
+  );
+  
+  // Start with orders NOT already in a draft trip
+  let orders = state.demandOrders.filter((o) => !orderIdsInDraftTrips.has(o.id));
+  
+  const { search, equipmentType, customer } = state.demandFilter;
+  
+  if (search) {
+    const s = search.toLowerCase();
+    orders = orders.filter(
+      (o) =>
+        o.orderNumber?.toLowerCase().includes(s) ||
+        o.customerName?.toLowerCase().includes(s) ||
+        o.pickupLocation?.toLowerCase().includes(s) ||
+        o.dropoffLocation?.toLowerCase().includes(s)
+    );
+  }
+  
+  if (equipmentType) {
+    orders = orders.filter((o) => o.equipmentType === equipmentType);
+  }
+  
+  if (customer) {
+    orders = orders.filter((o) => o.customerName === customer);
+  }
+  
+  return orders;
+};
+
+export const selectDraftTrips = (state: DispatchState) => {
+  return state.draftTrips;
+};
+
+export const selectSelectedTrip = (state: DispatchState) => {
+  if (!state.selectedTripId) return null;
+  return state.draftTrips.find((t) => t.id === state.selectedTripId) || null;
+};
+
+export const selectSelectedOrders = (state: DispatchState) => {
+  return state.demandOrders.filter((o) => state.selectedOrderIds.includes(o.id));
 };

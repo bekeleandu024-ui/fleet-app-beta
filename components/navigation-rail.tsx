@@ -14,6 +14,7 @@ import {
   Calendar,
   ClipboardList,
   Archive,
+  Building2,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -24,6 +25,7 @@ const primaryItems = [
   { label: "Book Trip", href: "/book", icon: Calendar },
   { label: "Trips", href: "/trips", icon: Route },
   { label: "Closed Trips", href: "/trips/closed", icon: Archive },
+  { label: "Farm Out", href: "/farm-out", icon: Building2 },
   { label: "Trip Events", href: "/events", icon: ClipboardList },
   { label: "Customs", href: "/customs", icon: FileCheck },
   { label: "Map", href: "/map", icon: MapPinned },

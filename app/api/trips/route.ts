@@ -66,6 +66,10 @@ function transformTripRow(row: any): TripListItem {
     completed: "Completed",
     cancelled: "Cancelled",
     closed: "Closed",
+    // Brokerage / Farm Out statuses
+    brokerage_pending: "Pending Farm Out",
+    posted_external: "Posted to Carriers",
+    covered_external: "Covered (External)",
   };
 
   const driverName = row.driver_name || "Unknown Driver";
@@ -89,6 +93,7 @@ function transformTripRow(row: any): TripListItem {
     exceptions: 0,
     lastPing: toISO(row.updated_at || row.created_at),
     orderId: row.order_id,
+    orderIds: row.order_ids || (row.order_id ? [row.order_id] : []),
     driverId: row.driver_id,
     customer: row.customer_name || "Unknown Customer", 
     pickupWindow: row.pickup_window_start ? new Date(row.pickup_window_start).toLocaleString() : undefined,

@@ -1,32 +1,175 @@
 "use client";
 
-import { useParams } from "next/navigation";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useParams, useRouter } from "next/navigation";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import Link from "next/link";
 import { 
-  CalendarClock, 
   Gauge, 
-  Sparkles, 
   CheckCircle2, 
   AlertCircle,
   MapPin,
   Truck,
-  DollarSign,
-  ChevronDown,
-  ChevronUp,
-  AlertTriangle,
-  Info
+  Clock,
+  ExternalLink,
+  Layers,
+  ArrowRight,
+  Package,
+  FileText,
+  User,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 
-import { RecommendationCallout } from "@/components/recommendation-callout";
 import { AIOrderInsights } from "@/components/orders/ai-order-insights";
 import { StatChip } from "@/components/stat-chip";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { fetchOrderDetail, updateOrderStatus } from "@/lib/api";
-import { formatDateTime, formatDurationHours } from "@/lib/format";
+import { formatDurationHours } from "@/lib/format";
 import { queryKeys } from "@/lib/query";
-import type { OrderDetail } from "@/lib/types";
+import { cn } from "@/lib/utils";
+
+// ============================================================================
+// FULFILLMENT STATUS WIDGET
+// ============================================================================
+
+interface FulfillmentStatusProps {
+  status: string;
+  tripId?: string | null;
+  tripNumber?: string | null;
+  driverName?: string | null;
+  dispatchStatus?: string;
+}
+
+function FulfillmentStatus({ 
+  status, 
+  tripId, 
+  tripNumber, 
+  driverName,
+  dispatchStatus 
+}: FulfillmentStatusProps) {
+  const isPlanned = tripId || dispatchStatus === "PLANNED" || dispatchStatus === "FLEET_DISPATCH";
+  const isInTransit = status === "In Transit";
+  const isDelivered = status === "Delivered" || status === "Completed";
+
+  if (isDelivered) {
+    return (
+      <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-emerald-500/20">
+              <CheckCircle2 className="h-5 w-5 text-emerald-400" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-emerald-400">Delivered</h3>
+              <p className="text-xs text-emerald-400/70">Order has been completed successfully</p>
+            </div>
+          </div>
+          {tripId && (
+            <Link href={`/trips/${tripId}`}>
+              <Button size="sm" variant="subtle" className="border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20">
+                <FileText className="h-4 w-4 mr-2" />
+                View Trip Details
+              </Button>
+            </Link>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  if (isInTransit) {
+    return (
+      <div className="rounded-xl border border-blue-500/30 bg-blue-500/10 p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-blue-500/20">
+              <Truck className="h-5 w-5 text-blue-400 animate-pulse" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-blue-400">In Transit</h3>
+              <p className="text-xs text-blue-400/70">
+                {driverName ? `Assigned to ${driverName}` : "Currently being transported"}
+                {tripNumber && ` - Trip ${tripNumber}`}
+              </p>
+            </div>
+          </div>
+          {tripId && (
+            <Link href={`/trips/${tripId}`}>
+              <Button size="sm" variant="subtle" className="border-blue-500/30 text-blue-400 hover:bg-blue-500/20">
+                <MapPin className="h-4 w-4 mr-2" />
+                Track Shipment
+              </Button>
+            </Link>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  if (isPlanned) {
+    return (
+      <div className="rounded-xl border border-violet-500/30 bg-violet-500/10 p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-violet-500/20">
+              <Layers className="h-5 w-5 text-violet-400" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-violet-400">Assigned to Trip</h3>
+              <p className="text-xs text-violet-400/70">
+                {tripNumber ? `Trip #${tripNumber}` : "Assigned to a planned trip"}
+                {driverName && ` - ${driverName}`}
+              </p>
+            </div>
+          </div>
+          {tripId ? (
+            <Link href={`/trips/${tripId}`}>
+              <Button size="sm" variant="subtle" className="border-violet-500/30 text-violet-400 hover:bg-violet-500/20">
+                <ExternalLink className="h-4 w-4 mr-2" />
+                View Trip
+              </Button>
+            </Link>
+          ) : (
+            <Link href="/dispatch">
+              <Button size="sm" variant="subtle" className="border-violet-500/30 text-violet-400 hover:bg-violet-500/20">
+                <Layers className="h-4 w-4 mr-2" />
+                View on Dispatch Board
+              </Button>
+            </Link>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Unplanned / Pending Dispatch
+  return (
+    <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-amber-500/20">
+            <Clock className="h-5 w-5 text-amber-400" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-amber-400">Pending Dispatch</h3>
+            <p className="text-xs text-amber-400/70">This order has not been assigned to a trip yet</p>
+          </div>
+        </div>
+        <Link href="/dispatch">
+          <Button size="sm" className="bg-amber-600 hover:bg-amber-700 text-white">
+            <ArrowRight className="h-4 w-4 mr-2" />
+            Go to Dispatch Board
+          </Button>
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// STATUS VARIANT CONFIG
+// ============================================================================
 
 const statusVariant: Record<string, "default" | "ok" | "warn" | "alert"> = {
   "In Transit": "ok",
@@ -38,15 +181,15 @@ const statusVariant: Record<string, "default" | "ok" | "warn" | "alert"> = {
   "At Risk": "warn",
 };
 
+// ============================================================================
+// MAIN ORDER DETAIL PAGE
+// ============================================================================
+
 export default function OrderDetailPage() {
   const params = useParams<{ id: string }>();
+  const router = useRouter();
   const orderId = params?.id ?? "";
   const queryClient = useQueryClient();
-  const [selectedDriver, setSelectedDriver] = useState("");
-  const [selectedUnit, setSelectedUnit] = useState("");
-  const [selectedPricing, setSelectedPricing] = useState("");
-  const [notes, setNotes] = useState("");
-  const [isBooking, setIsBooking] = useState(false);
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: queryKeys.order(orderId),
@@ -56,212 +199,21 @@ export default function OrderDetailPage() {
     retryDelay: 500,
   });
 
-  // Debug logging
   useEffect(() => {
     if (isError) {
       console.error("Order fetch error:", error);
-      console.error("Order ID attempted:", orderId);
     }
-    if (data) {
-      console.log("Order data loaded:", data);
-    }
-  }, [data, isError, error]);
-
-  const [bookingGuardrails, setBookingGuardrails] = useState<string[]>([]);
-  const [loadingGuardrails, setLoadingGuardrails] = useState(false);
-
-  // Initialize form values when data loads
-  useEffect(() => {
-    if (data) {
-      setSelectedDriver(data.booking.recommendedDriverId || "");
-      setSelectedUnit(data.booking.recommendedUnitId || "");
-      setSelectedPricing("");
-    }
-  }, [data]);
-
-  // Pricing configuration options based on driver type
-  const pricingOptions = [
-    { id: "oo", label: "OO (Owner Operator)", description: "$0.70/mi base + $0.50 fuel", baseRate: 0.70, fuelRate: 0.50, hasWeekly: false },
-    { id: "oo-z1", label: "OO Z1 (Zone 1)", description: "$0.72/mi base + $0.50 fuel", baseRate: 0.72, fuelRate: 0.50, hasWeekly: false },
-    { id: "oo-z2", label: "OO Z2 (Zone 2)", description: "$0.68/mi base + $0.50 fuel", baseRate: 0.68, fuelRate: 0.50, hasWeekly: false },
-    { id: "oo-z3", label: "OO Z3 (Zone 3)", description: "$0.65/mi base + $0.50 fuel", baseRate: 0.65, fuelRate: 0.50, hasWeekly: false },
-    { id: "rnr", label: "RNR (Rental Driver)", description: "$0.38/mi + maintenance", baseRate: 0.38, fuelRate: 0.42, rmRate: 0.16, hasWeekly: true, benefitsPct: 0.12 },
-    { id: "com", label: "COM (Company Driver)", description: "$0.45/mi + full benefits", baseRate: 0.45, fuelRate: 0.45, rmRate: 0.16, hasWeekly: true, benefitsPct: 0.12 },
-  ];
-
-  // Calculate pricing based on selected driver type
-  const calculatePricing = (pricingType: string, miles: number) => {
-    const pricing = pricingOptions.find(p => p.id === pricingType);
-    if (!pricing || !miles) return null;
-
-    // Base calculation
-    const baseWage = miles * pricing.baseRate;
-    const fuel = miles * pricing.fuelRate;
-    const rm = pricing.rmRate ? miles * pricing.rmRate : 0;
-    const benefits = pricing.benefitsPct ? baseWage * pricing.benefitsPct : 0;
-    
-    // Events and accessorials
-    const borderCrossing = 15; // Detect if cross-border
-    const dropHook = 15; // Drop/hook event
-    const pickup = 30;
-    const delivery = 30;
-    const events = borderCrossing + dropHook + pickup + delivery;
-    
-    // Weekly allocations for COM/RNR
-    const weeklyAllocation = pricing.hasWeekly ? 200 : 0; // Prorated estimate
-    
-    const linehaul = baseWage + benefits + weeklyAllocation;
-    const fuelSurcharge = fuel;
-    const accessorials = rm + events;
-    const totalCost = linehaul + fuelSurcharge + accessorials;
-    const revenue = Math.round(totalCost / 0.95); // 5% margin
-    
-    return {
-      linehaul: Math.round(linehaul),
-      fuel: Math.round(fuelSurcharge),
-      accessorials: Math.round(accessorials),
-      totalCost: Math.round(totalCost),
-      revenue,
-      margin: 5,
-    };
-  };
-
-  // Recalculate pricing when driver type changes
-  const [calculatedPricing, setCalculatedPricing] = useState<any>(null);
-  
-  useEffect(() => {
-    if (selectedPricing && data?.laneMiles) {
-      const pricing = calculatePricing(selectedPricing, data.laneMiles);
-      setCalculatedPricing(pricing);
-    } else {
-      setCalculatedPricing(null);
-    }
-  }, [selectedPricing, data?.laneMiles]);
-
-  // Filter pricing based on driver type if needed
-  const availablePricing = selectedDriver && selectedUnit ? pricingOptions : pricingOptions;
-
-  // Fetch booking guardrails when data loads
-  useEffect(() => {
-    async function fetchGuardrails() {
-      if (!data) return;
-      
-      setLoadingGuardrails(true);
-      try {
-        const response = await fetch("/api/ai/booking-guardrails", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ orderData: data }),
-        });
-
-        if (!response.ok) {
-          throw new Error("Failed to fetch guardrails");
-        }
-
-        const guardrails = await response.json();
-        setBookingGuardrails(Array.isArray(guardrails) ? guardrails : []);
-      } catch (error) {
-        console.error("Error fetching booking guardrails:", error);
-        setBookingGuardrails(["Review order details before booking"]);
-      } finally {
-        setLoadingGuardrails(false);
-      }
-    }
-
-    fetchGuardrails();
-  }, [data]);
-
-
-
-  const handleBookTrip = async () => {
-    if (!data || !selectedDriver || !selectedUnit) {
-      alert("Please select both a driver and unit");
-      return;
-    }
-
-    setIsBooking(true);
-    try {
-      const pickup = data.snapshot.stops.find(s => s.type === "Pickup");
-      const delivery = data.snapshot.stops.find(s => s.type === "Delivery");
-
-      if (!pickup || !delivery) {
-        throw new Error("Missing pickup or delivery information");
-      }
-
-      // Build stops array with time windows
-      const stops = [
-        { 
-          sequence: 0, 
-          stopType: 'Pickup', 
-          name: pickup.location,
-          scheduledAt: pickup.windowStart || new Date().toISOString()
-        },
-        { 
-          sequence: 1, 
-          stopType: 'Delivery', 
-          name: delivery.location,
-          scheduledAt: delivery.windowStart || new Date(Date.now() + 86400000).toISOString()
-        }
-      ];
-
-      const response = await fetch("/api/trips", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          orderId: data.id,
-          driverId: selectedDriver,
-          unitId: selectedUnit,
-          stops,
-          miles: data.laneMiles || 0,
-          totalRevenue: data.cost || 0, // Use order cost as initial revenue
-          notes,
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to book trip");
-      }
-
-      const trip = await response.json();
-      const tripId = trip?.tripNumber || (trip?.id ? String(trip.id).slice(0, 8) : "New");
-      alert(`Trip ${tripId} booked successfully! Redirecting to trips page...`);
-      setNotes("");
-      
-      // Redirect to trips page after successful booking
-      setTimeout(() => {
-        window.location.href = "/trips";
-      }, 1500);
-    } catch (error: any) {
-      console.error("Error booking trip:", error);
-      alert(error.message || "Failed to book trip");
-    } finally {
-      setIsBooking(false);
-    }
-  };
-
-  const handleCalculateCost = async () => {
-    alert("Cost calculation feature coming soon");
-  };
+  }, [isError, error]);
 
   const handleStatusChange = async (newStatus: string) => {
     try {
       await updateOrderStatus(orderId, newStatus);
       queryClient.invalidateQueries({ queryKey: queryKeys.order(orderId) });
-    } catch (error) {
-      console.error("Failed to update status:", error);
+    } catch (err) {
+      console.error("Failed to update status:", err);
       alert("Failed to update status");
     }
   };
-
-
-
-  // Collect all missing data
-  const missingData = [];
-  if (!selectedDriver) missingData.push("Driver selection");
-  if (!selectedUnit) missingData.push("Unit selection");
-  if (!data?.snapshot.stops[0]?.windowStart) missingData.push("Pickup window");
-  if (!data?.snapshot.stops[1]?.windowStart) missingData.push("Delivery window");
 
   if (isLoading) {
     return <OrderDetailSkeleton />;
@@ -281,17 +233,10 @@ export default function OrderDetailPage() {
             )}
           </div>
           <div className="flex gap-2 mt-4">
-            <Button 
-              onClick={() => window.location.href = "/orders"}
-              variant="outline"
-              size="sm"
-            >
+            <Button onClick={() => router.push("/orders")} variant="outline" size="sm">
               Back to Orders
             </Button>
-            <Button 
-              onClick={() => queryClient.invalidateQueries({ queryKey: queryKeys.order(orderId) })}
-              size="sm"
-            >
+            <Button onClick={() => queryClient.invalidateQueries({ queryKey: queryKeys.order(orderId) })} size="sm">
               Retry
             </Button>
           </div>
@@ -305,31 +250,40 @@ export default function OrderDetailPage() {
     { label: `${data.laneMiles} lane mi` },
   ];
 
-  // Progress steps
   const progressSteps = [
     { label: "Created", active: true },
-    { label: "Ready to Book", active: !isBooking },
-    { label: "Booked", active: (data.status as string) === "Booked" || data.status === "In Transit" },
-    { label: "In Transit", active: data.status === "In Transit" },
-    { label: "Delivered", active: data.status === "Delivered" },
+    { label: "Dispatched", active: data.status !== "New" && data.status !== "Planning" },
+    { label: "In Transit", active: data.status === "In Transit" || data.status === "Delivered" || data.status === "Completed" },
+    { label: "Delivered", active: data.status === "Delivered" || data.status === "Completed" },
   ];
 
   return (
     <div className="col-span-12 max-w-[1440px] mx-auto">
+      {/* Fulfillment Status Banner */}
+      <div className="mb-4">
+        <FulfillmentStatus 
+          status={data.status}
+          tripId={data.tripId}
+          tripNumber={data.tripNumber}
+          driverName={data.driverName}
+          dispatchStatus={data.dispatchStatus}
+        />
+      </div>
+
       {/* Header */}
       <header className="rounded-xl border border-neutral-800 bg-neutral-900/60 px-4 py-3 mb-4">
         <div className="flex items-center justify-between gap-3 mb-3">
           <div>
             <h1 className="text-lg font-semibold text-neutral-200">Order {data.reference}</h1>
-            <p className="text-xs text-neutral-500">ID: {data.id} • {data.lane}</p>
+            <p className="text-xs text-neutral-500">ID: {data.id} - {data.lane}</p>
           </div>
           <div className="flex items-center gap-2">
             <div className="relative">
               <div className={`absolute left-2 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full pointer-events-none z-10 ${
-                statusVariant[data.status] === 'ok' ? 'bg-emerald-500' :
-                statusVariant[data.status] === 'warn' ? 'bg-amber-500' :
-                statusVariant[data.status] === 'alert' ? 'bg-rose-500' :
-                'bg-neutral-500'
+                statusVariant[data.status] === "ok" ? "bg-emerald-500" :
+                statusVariant[data.status] === "warn" ? "bg-amber-500" :
+                statusVariant[data.status] === "alert" ? "bg-rose-500" :
+                "bg-neutral-500"
               }`} />
               <Select 
                 value={data.status} 
@@ -337,27 +291,22 @@ export default function OrderDetailPage() {
                 className="h-7 w-[130px] text-xs bg-neutral-900 border-neutral-800 pl-6 py-0"
               >
                 {["New", "Planning", "In Transit", "At Risk", "Delivered", "Exception", "Completed"].map((status) => (
-                  <option key={status} value={status}>
-                    {status}
-                  </option>
+                  <option key={status} value={status}>{status}</option>
                 ))}
               </Select>
             </div>
-
             {headerChips.map((chip) => (
-              <StatChip key={chip.label} label={chip.label} variant={chip.variant ?? "default"} />
+              <StatChip key={chip.label} label={chip.label} variant="default" />
             ))}
           </div>
         </div>
-
-        {/* Progress Steps */}
         <div className="flex items-center gap-2">
           {progressSteps.map((step, idx) => (
             <div key={step.label} className="flex items-center">
               <div className={`flex items-center gap-2 px-3 py-1 rounded text-xs ${
                 step.active 
-                  ? 'bg-teal-500/20 text-teal-300 border border-teal-500/30' 
-                  : 'bg-neutral-800/50 text-neutral-500'
+                  ? "bg-teal-500/20 text-teal-300 border border-teal-500/30" 
+                  : "bg-neutral-800/50 text-neutral-500"
               }`}>
                 {step.active && <CheckCircle2 className="w-3 h-3" />}
                 {step.label}
@@ -370,199 +319,140 @@ export default function OrderDetailPage() {
         </div>
       </header>
 
-      {/* 3-Column Layout */}
+      {/* 2-Column Layout */}
       <section className="grid grid-cols-12 gap-4">
-        
-        {/* LEFT COLUMN - AI Insights */}
-        <div className="col-span-12 lg:col-span-4 space-y-4">
+        <div className="col-span-12 lg:col-span-5 space-y-4">
           <AIOrderInsights orderId={orderId} />
         </div>
-
-        {/* CENTER COLUMN - Order Summary & Pricing */}
-        <div className="col-span-12 lg:col-span-4 space-y-4 max-h-screen overflow-y-auto pr-2">
+        <div className="col-span-12 lg:col-span-7 space-y-4">
           {/* Order Summary */}
           <article className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-4">
-            <h2 className="text-sm font-medium text-neutral-400 uppercase tracking-wide mb-3">Order Summary</h2>
+            <h2 className="text-sm font-medium text-neutral-400 uppercase tracking-wide mb-3 flex items-center gap-2">
+              <Package className="h-4 w-4" />
+              Order Summary
+            </h2>
             <div className="space-y-3 text-sm">
-              <div>
-                <p className="text-xs text-neutral-500">Customer</p>
-                <p className="font-semibold text-neutral-200">{data.customer}</p>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs text-neutral-500">Customer</p>
+                  <p className="font-semibold text-neutral-200">{data.customer}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-neutral-500">Service Level</p>
+                  <p className="text-neutral-200">{data.serviceLevel}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-xs text-neutral-500">Service Level / Commodity</p>
-                <p className="text-neutral-200">{data.serviceLevel} • {data.snapshot.commodity}</p>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs text-neutral-500">Commodity</p>
+                  <p className="text-neutral-200">{data.snapshot?.commodity || "N/A"}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-neutral-500">Equipment</p>
+                  <p className="text-neutral-200">{data.equipmentType || "Van"}</p>
+                </div>
               </div>
-              <div className="pt-2 border-t border-neutral-800">
-                <p className="text-xs text-neutral-500 mb-2">Route & Stops</p>
-                <ul className="space-y-2">
-                  {data.snapshot.stops.map((stop) => (
-                    <li key={stop.id} className="rounded-lg border border-neutral-800 bg-neutral-900/50 p-2">
-                      <div className="flex items-center justify-between text-xs text-neutral-500 mb-1">
-                        <span className="font-medium">{stop.type}</span>
-                        <div className="text-right">
-                          <div>
-                            {new Date(stop.windowStart).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" })}
-                          </div>
-                          <div>
-                            {new Date(stop.windowStart).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} –
-                            {" "}
-                            {new Date(stop.windowEnd).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                          </div>
+            </div>
+          </article>
+
+          {/* Route & Stops */}
+          <article className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-4">
+            <h2 className="text-sm font-medium text-neutral-400 uppercase tracking-wide mb-3 flex items-center gap-2">
+              <MapPin className="h-4 w-4" />
+              Route & Stops
+            </h2>
+            <ul className="space-y-3">
+              {data.snapshot?.stops?.map((stop: any, idx: number) => (
+                <li key={stop.id || idx} className="rounded-lg border border-neutral-800 bg-neutral-900/50 p-3">
+                  <div className="flex items-start gap-3">
+                    <div className={cn(
+                      "w-8 h-8 rounded-full flex items-center justify-center shrink-0",
+                      stop.type === "Pickup" ? "bg-emerald-500/20" : "bg-red-500/20"
+                    )}>
+                      <MapPin className={cn(
+                        "h-4 w-4",
+                        stop.type === "Pickup" ? "text-emerald-400" : "text-red-400"
+                      )} />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-1">
+                        <Badge className={cn(
+                          "text-xs",
+                          stop.type === "Pickup" 
+                            ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+                            : "bg-red-500/20 text-red-400 border-red-500/30"
+                        )}>
+                          {stop.type}
+                        </Badge>
+                        <div className="text-xs text-neutral-500">
+                          {stop.windowStart && new Date(stop.windowStart).toLocaleDateString([], { month: "short", day: "numeric" })}
+                          {" "}
+                          {stop.windowStart && new Date(stop.windowStart).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                         </div>
                       </div>
                       <p className="text-sm text-neutral-200">{stop.location}</p>
                       {stop.instructions && (
                         <p className="text-xs text-neutral-500 mt-1">{stop.instructions}</p>
                       )}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              {data.snapshot.notes && (
-                <div className="pt-2 border-t border-neutral-800">
-                  <p className="text-xs text-neutral-500">Notes</p>
-                  <p className="text-xs text-neutral-300 mt-1">{data.snapshot.notes}</p>
-                </div>
-              )}
-            </div>
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
           </article>
 
-          {/* Pricing */}
+          {/* Pricing Summary */}
           <article className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-sm font-semibold text-neutral-200">Pricing</h2>
-              <Gauge className="w-4 h-4 text-neutral-500" />
-            </div>
-            {calculatedPricing ? (
-              // Show calculated pricing based on selected driver type
-              <dl className="space-y-2 text-sm">
-                <div className="flex items-center justify-between py-2 border-b border-neutral-800">
-                  <dt className="text-xs text-neutral-500">Linehaul</dt>
-                  <dd className="font-semibold text-neutral-200">${calculatedPricing.linehaul.toFixed(2)}</dd>
-                </div>
-                <div className="flex items-center justify-between py-2 border-b border-neutral-800">
-                  <dt className="text-xs text-neutral-500">Fuel Surcharge</dt>
-                  <dd className="font-semibold text-neutral-200">${calculatedPricing.fuel.toFixed(2)}</dd>
-                </div>
-                <div className="flex items-center justify-between py-2 border-b border-neutral-800">
-                  <dt className="text-xs text-neutral-500">Accessorials</dt>
-                  <dd className="font-semibold text-neutral-200">${calculatedPricing.accessorials.toFixed(2)}</dd>
-                </div>
-                <div className="flex items-center justify-between py-2 border-b border-neutral-800">
-                  <dt className="text-xs text-neutral-500">Target Margin</dt>
-                  <dd className="font-semibold text-neutral-200">{calculatedPricing.margin}%</dd>
-                </div>
-                <div className="flex items-center justify-between pt-2 border-t-2 border-neutral-700 font-semibold text-neutral-200">
-                  <span>Cost Basis</span>
-                  <span>${calculatedPricing.totalCost.toFixed(2)}</span>
-                </div>
-                <p className="text-xs text-neutral-500 mt-2">
-                  Revenue ${calculatedPricing.revenue.toFixed(2)} • {data.laneMiles} miles
-                </p>
-              </dl>
-            ) : (
-              // Show empty state until pricing configuration selected
-              <div className="flex items-center justify-center py-8 text-sm text-neutral-500">
-                Select a pricing configuration to calculate costs
+            <h2 className="text-sm font-medium text-neutral-400 uppercase tracking-wide flex items-center gap-2 mb-3">
+              <Gauge className="h-4 w-4" />
+              Pricing Summary
+            </h2>
+            <dl className="space-y-2 text-sm">
+              <div className="flex items-center justify-between py-2 border-b border-neutral-800">
+                <dt className="text-xs text-neutral-500">Quoted Rate</dt>
+                <dd className="font-semibold text-emerald-400">${data.cost?.toLocaleString() || "---"}</dd>
               </div>
-            )}
-          </article>
-        </div>
-
-        {/* RIGHT COLUMN - Booking Console & Guardrails */}
-        <div className="col-span-12 lg:col-span-4 space-y-4">
-          
-          {/* Booking Console */}
-          <article className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-4">
-            <h2 className="text-sm font-semibold text-neutral-200 mb-3">Booking Console</h2>
-            <div className="space-y-3">
-              <label className="block">
-                <span className="block text-xs text-neutral-500 mb-1">Driver</span>
-                <select 
-                  className="w-full rounded-md border border-neutral-800 bg-neutral-900 px-3 py-2 text-sm text-neutral-200"
-                  value={selectedDriver}
-                  onChange={(e) => setSelectedDriver(e.target.value)}
-                >
-                  {data.booking.driverOptions.map((driver) => (
-                    <option key={driver.id} value={driver.id}>
-                      {driver.name} • {driver.status} ({driver.hoursAvailable}h)
-                    </option>
-                  ))}
-                </select>
-              </label>
-              
-              <label className="block">
-                <span className="block text-xs text-neutral-500 mb-1">Unit</span>
-                <select 
-                  className="w-full rounded-md border border-neutral-800 bg-neutral-900 px-3 py-2 text-sm text-neutral-200"
-                  value={selectedUnit}
-                  onChange={(e) => setSelectedUnit(e.target.value)}
-                >
-                  {data.booking.unitOptions.map((unit) => (
-                    <option key={unit.id} value={unit.id}>
-                      {unit.type} ({unit.status})
-                    </option>
-                  ))}
-                </select>
-              </label>
-              
-              <label className="block">
-                <span className="block text-xs text-neutral-500 mb-1">Pricing Configuration</span>
-                <select 
-                  className="w-full rounded-md border border-neutral-800 bg-neutral-900 px-3 py-2 text-sm text-neutral-200"
-                  value={selectedPricing}
-                  onChange={(e) => setSelectedPricing(e.target.value)}
-                  disabled={!selectedDriver || !selectedUnit}
-                >
-                  <option value="">Select pricing...</option>
-                  {availablePricing.map((pricing) => (
-                    <option key={pricing.id} value={pricing.id}>
-                      {pricing.label} - {pricing.description}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              
-              <label className="block">
-                <span className="block text-xs text-neutral-500 mb-1">Notes</span>
-                <textarea
-                  rows={2}
-                  className="w-full rounded-md border border-neutral-800 bg-neutral-900 px-3 py-2 text-sm text-neutral-200 placeholder:text-neutral-600 resize-none"
-                  placeholder="Dispatcher notes"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                />
-              </label>
-              
-              <Button 
-                type="button" 
-                variant="primary" 
-                size="sm" 
-                className="w-full bg-emerald-600 hover:bg-emerald-700"
-                onClick={handleBookTrip}
-                disabled={isBooking || !selectedDriver || !selectedUnit}
-              >
-                {isBooking ? "Booking..." : "Book Trip"}
-              </Button>
-            </div>
+              <div className="flex items-center justify-between py-2 border-b border-neutral-800">
+                <dt className="text-xs text-neutral-500">Lane Miles</dt>
+                <dd className="text-neutral-200">{data.laneMiles} mi</dd>
+              </div>
+              <div className="flex items-center justify-between py-2">
+                <dt className="text-xs text-neutral-500">Rate per Mile</dt>
+                <dd className="text-neutral-200">
+                  ${data.cost && data.laneMiles ? (data.cost / data.laneMiles).toFixed(2) : "---"}/mi
+                </dd>
+              </div>
+            </dl>
           </article>
 
-          {/* Guardrails */}
-          {loadingGuardrails ? (
-            <article className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-4">
-              <h3 className="text-sm font-semibold text-neutral-200 mb-2">Booking Guardrails</h3>
-              <div className="animate-pulse space-y-2">
-                <div className="h-4 bg-neutral-800 rounded w-full"></div>
-                <div className="h-4 bg-neutral-800 rounded w-5/6"></div>
-                <div className="h-4 bg-neutral-800 rounded w-4/5"></div>
+          {/* Assignment Info */}
+          {(data.driverName || data.tripNumber) && (
+            <article className="rounded-xl border border-violet-500/30 bg-violet-500/5 p-4">
+              <h2 className="text-sm font-medium text-violet-400 uppercase tracking-wide mb-3 flex items-center gap-2">
+                <User className="h-4 w-4" />
+                Assignment Details
+              </h2>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                {data.tripNumber && (
+                  <div>
+                    <p className="text-xs text-violet-400/70">Trip Number</p>
+                    <p className="font-semibold text-violet-300">{data.tripNumber}</p>
+                  </div>
+                )}
+                {data.driverName && (
+                  <div>
+                    <p className="text-xs text-violet-400/70">Driver</p>
+                    <p className="text-violet-300">{data.driverName}</p>
+                  </div>
+                )}
+                {data.unitNumber && (
+                  <div>
+                    <p className="text-xs text-violet-400/70">Unit</p>
+                    <p className="text-violet-300">{data.unitNumber}</p>
+                  </div>
+                )}
               </div>
             </article>
-          ) : (
-            <RecommendationCallout
-              title="Booking Guardrails"
-              description="Order-specific constraints"
-              bullets={bookingGuardrails}
-            />
           )}
         </div>
       </section>
@@ -572,18 +462,19 @@ export default function OrderDetailPage() {
 
 function OrderDetailSkeleton() {
   return (
-    <>
-      <header className="col-span-12 h-24 animate-pulse rounded-xl border border-neutral-800 bg-neutral-900/60" />
-      <section className="col-span-12 grid gap-6 lg:grid-cols-12">
-        <div className="lg:col-span-7 space-y-6">
+    <div className="col-span-12 max-w-[1440px] mx-auto">
+      <div className="h-20 animate-pulse rounded-xl border border-neutral-800 bg-neutral-900/60 mb-4" />
+      <header className="h-24 animate-pulse rounded-xl border border-neutral-800 bg-neutral-900/60 mb-4" />
+      <section className="grid grid-cols-12 gap-4">
+        <div className="col-span-12 lg:col-span-5 space-y-4">
           <div className="h-64 animate-pulse rounded-xl border border-neutral-800 bg-neutral-900/60" />
-          <div className="h-56 animate-pulse rounded-xl border border-neutral-800 bg-neutral-900/60" />
         </div>
-        <div className="lg:col-span-5 space-y-6">
-          <div className="h-28 animate-pulse rounded-xl border border-neutral-800 bg-neutral-900/60" />
-          <div className="h-72 animate-pulse rounded-xl border border-neutral-800 bg-neutral-900/60" />
+        <div className="col-span-12 lg:col-span-7 space-y-4">
+          <div className="h-40 animate-pulse rounded-xl border border-neutral-800 bg-neutral-900/60" />
+          <div className="h-56 animate-pulse rounded-xl border border-neutral-800 bg-neutral-900/60" />
+          <div className="h-32 animate-pulse rounded-xl border border-neutral-800 bg-neutral-900/60" />
         </div>
       </section>
-    </>
+    </div>
   );
 }

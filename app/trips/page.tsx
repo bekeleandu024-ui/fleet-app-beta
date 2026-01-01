@@ -12,10 +12,12 @@ import {
   Search,
   MoreHorizontal,
   ChevronRight,
+  ChevronDown,
   MapPin,
   Truck,
   Calendar,
-  AlertTriangle
+  AlertTriangle,
+  Package
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -32,6 +34,10 @@ const statusColors: Record<string, string> = {
   "Delivered": "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
   "Completed": "bg-zinc-500/20 text-zinc-500 border-zinc-500/30",
   "Cancelled": "bg-rose-500/20 text-rose-400 border-rose-500/30",
+  // Farm Out / Brokerage statuses
+  "Pending Farm Out": "bg-amber-500/20 text-amber-400 border-amber-500/30",
+  "Posted to Carriers": "bg-cyan-500/20 text-cyan-400 border-cyan-500/30",
+  "Covered (External)": "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
 };
 
 type SortField = "tripNumber" | "customer" | "status" | "driver" | "eta" | "pickup" | "delivery";
@@ -49,6 +55,19 @@ export default function TripsPage() {
   const [filterStatus, setFilterStatus] = useState<string>("All");
   const [filterException, setFilterException] = useState<string>("All");
   const [searchQuery, setSearchQuery] = useState("");
+  const [expandedTrips, setExpandedTrips] = useState<Set<string>>(new Set());
+
+  const toggleExpanded = (tripId: string) => {
+    setExpandedTrips(prev => {
+      const next = new Set(prev);
+      if (next.has(tripId)) {
+        next.delete(tripId);
+      } else {
+        next.add(tripId);
+      }
+      return next;
+    });
+  };
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -236,6 +255,9 @@ export default function TripsPage() {
                 </button>
               </th>
               <th className="whitespace-nowrap px-4 py-2 font-medium uppercase tracking-wider">
+                Orders
+              </th>
+              <th className="whitespace-nowrap px-4 py-2 font-medium uppercase tracking-wider">
                 <button onClick={() => handleSort("status")} className="flex items-center hover:text-zinc-300">
                   Status <SortIcon field="status" />
                 </button>
@@ -260,10 +282,11 @@ export default function TripsPage() {
                   Driver / Unit <SortIcon field="driver" />
                 </button>
               </th>
-              <th className="whitespace-nowrap px-4 py-2 font-medium uppercase tracking-wider">
-                <button onClick={() => handleSort("eta")} className="flex items-center hover:text-zinc-300">
-                  ETA <SortIcon field="eta" />
-                </button>
+              <th className="whitespace-nowrap px-4 py-2 font-medium uppercase tracking-wider text-right">
+                Miles
+              </th>
+              <th className="whitespace-nowrap px-4 py-2 font-medium uppercase tracking-wider text-right">
+                Revenue
               </th>
               <th className="whitespace-nowrap px-4 py-2 font-medium uppercase tracking-wider text-right">
                 Actions
@@ -273,13 +296,15 @@ export default function TripsPage() {
           <tbody className="divide-y divide-zinc-800/50 bg-black/20">
             {filteredAndSortedData.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-4 py-8 text-center text-zinc-500">
+                <td colSpan={10} className="px-4 py-8 text-center text-zinc-500">
                   No trips found.
                 </td>
               </tr>
             ) : (
               filteredAndSortedData.map((trip, idx) => {
                 const statusStyle = statusColors[trip.status] || "bg-zinc-800 text-zinc-400 border-zinc-700";
+                const orderCount = trip.orderIds?.length || 1;
+                const isExpanded = expandedTrips.has(trip.id);
                 
                 return (
                   <tr 
@@ -299,6 +324,38 @@ export default function TripsPage() {
                           </div>
                         )}
                       </div>
+                    </td>
+
+                    {/* Orders */}
+                    <td className="px-4 py-2 align-middle">
+                      <button
+                        onClick={() => toggleExpanded(trip.id)}
+                        className="flex items-center gap-1.5 text-zinc-400 hover:text-zinc-200 transition-colors"
+                      >
+                        {isExpanded ? (
+                          <ChevronDown className="h-3.5 w-3.5 text-violet-400" />
+                        ) : (
+                          <ChevronRight className="h-3.5 w-3.5" />
+                        )}
+                        <Package className="h-3.5 w-3.5 text-violet-400" />
+                        <span className={`text-xs font-medium ${orderCount > 1 ? 'text-violet-400' : 'text-zinc-400'}`}>
+                          {orderCount} order{orderCount !== 1 ? 's' : ''}
+                        </span>
+                      </button>
+                      {isExpanded && trip.orderIds && trip.orderIds.length > 0 && (
+                        <div className="mt-2 pl-5 space-y-1">
+                          {trip.orderIds.map((orderId, i) => (
+                            <div 
+                              key={orderId}
+                              className="flex items-center gap-2 text-[10px] font-mono text-zinc-500 hover:text-zinc-300 cursor-pointer"
+                              onClick={() => router.push(`/orders/${orderId}`)}
+                            >
+                              <span className="text-violet-400/60">#{i + 1}</span>
+                              <span>{orderId.slice(0, 8)}...{orderId.slice(-4)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </td>
 
                     {/* Status */}
@@ -342,16 +399,14 @@ export default function TripsPage() {
                       </div>
                     </td>
 
-                    {/* ETA */}
-                    <td className="px-4 py-2 align-middle">
-                      <div className="flex flex-col">
-                        <span className="text-zinc-300 font-mono">
-                          {trip.eta}
-                        </span>
-                        <span className="text-[10px] text-zinc-500">
-                          Last ping: {trip.lastPing}
-                        </span>
-                      </div>
+                    {/* Miles */}
+                    <td className="px-4 py-2 align-middle text-right font-mono text-zinc-400">
+                      {trip.distance ? `${trip.distance.toLocaleString()} mi` : "—"}
+                    </td>
+
+                    {/* Revenue */}
+                    <td className="px-4 py-2 align-middle text-right font-mono text-emerald-400">
+                      {trip.totalCost ? `$${trip.totalCost.toLocaleString()}` : "—"}
                     </td>
 
                     {/* Actions */}
