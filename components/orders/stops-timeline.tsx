@@ -1,9 +1,9 @@
 "use client";
 
-import { useFieldArray, Control, UseFormRegister, FieldErrors } from "react-hook-form";
+import { useFieldArray, Control, UseFormRegister, FieldErrors, UseFormWatch } from "react-hook-form";
 import { 
   Plus, X, GripVertical, MapPin, Clock, User, Phone, 
-  ChevronUp, ChevronDown, AlertCircle, Building2
+  ChevronUp, ChevronDown, AlertCircle, Building2, Check
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,7 @@ import type { EnterpriseOrderInput, OrderStopInput } from "@/lib/schemas/enterpr
 interface StopsTimelineProps {
   control: Control<EnterpriseOrderInput>;
   register: UseFormRegister<EnterpriseOrderInput>;
+  watch: UseFormWatch<EnterpriseOrderInput>;
   errors: FieldErrors<EnterpriseOrderInput>;
   className?: string;
 }
@@ -21,26 +22,26 @@ const STOP_TYPE_CONFIG = {
   pickup: { 
     label: "Pickup", 
     color: "emerald", 
-    bgClass: "bg-emerald-500/20",
-    borderClass: "border-emerald-500/40",
+    bgClass: "bg-emerald-500/10",
+    borderClass: "border-emerald-500/20",
     dotClass: "bg-emerald-500",
-    textClass: "text-emerald-400"
+    textClass: "text-emerald-500"
   },
   delivery: { 
     label: "Delivery", 
     color: "rose", 
-    bgClass: "bg-rose-500/20",
-    borderClass: "border-rose-500/40",
+    bgClass: "bg-rose-500/10",
+    borderClass: "border-rose-500/20",
     dotClass: "bg-rose-500",
-    textClass: "text-rose-400"
+    textClass: "text-rose-500"
   },
   intermediate: { 
     label: "Stop", 
     color: "blue", 
-    bgClass: "bg-blue-500/20",
-    borderClass: "border-blue-500/40",
+    bgClass: "bg-blue-500/10",
+    borderClass: "border-blue-500/20",
     dotClass: "bg-blue-500",
-    textClass: "text-blue-400"
+    textClass: "text-blue-500"
   },
 };
 
@@ -50,7 +51,7 @@ const APPOINTMENT_TYPES = [
   { value: "open", label: "Open" },
 ];
 
-export function StopsTimeline({ control, register, errors, className = "" }: StopsTimelineProps) {
+export function StopsTimeline({ control, register, watch, errors, className = "" }: StopsTimelineProps) {
   const { fields, append, remove, move } = useFieldArray({
     control,
     name: "stops",
@@ -170,7 +171,7 @@ export function StopsTimeline({ control, register, errors, className = "" }: Sto
                     <div className="flex items-center gap-2">
                       <Select
                         {...register(`stops.${index}.stopType`)}
-                        className={`h-7 px-2 text-xs font-medium ${config.bgClass} border-0 ${config.textClass} w-auto`}
+                        className={`h-7 pl-2 pr-8 text-xs font-medium ${config.bgClass} border-0 ${config.textClass} w-auto`}
                       >
                         <option value="pickup">Pickup</option>
                         <option value="intermediate">Stop</option>
@@ -259,10 +260,16 @@ export function StopsTimeline({ control, register, errors, className = "" }: Sto
                   </div>
 
                   {/* Contact Info */}
-                  <details className="mt-2 pt-2 border-t border-white/5 group">
+                  <details 
+                    className="mt-2 pt-2 border-t border-white/5 group"
+                    open={!!watch(`stops.${index}.contactName`) || !!watch(`stops.${index}.contactPhone`)}
+                  >
                     <summary className="flex items-center gap-1 mb-1.5 cursor-pointer list-none outline-none">
                       <User className="w-3 h-3 text-zinc-500" />
                       <span className="text-[10px] uppercase tracking-wider text-zinc-500">Contact</span>
+                      {(watch(`stops.${index}.contactName`) || watch(`stops.${index}.contactPhone`)) && (
+                        <Check className="w-3 h-3 text-emerald-500 ml-1" />
+                      )}
                       <ChevronDown className="w-3 h-3 text-zinc-500 ml-auto group-open:rotate-180 transition-transform" />
                     </summary>
                     <div className="space-y-2 pb-1">
@@ -280,10 +287,16 @@ export function StopsTimeline({ control, register, errors, className = "" }: Sto
                   </details>
 
                   {/* Instructions */}
-                  <details className="mt-2 pt-2 border-t border-white/5 group">
+                  <details 
+                    className="mt-2 pt-2 border-t border-white/5 group"
+                    open={!!watch(`stops.${index}.specialInstructions`)}
+                  >
                     <summary className="flex items-center gap-1 mb-1.5 cursor-pointer list-none outline-none">
                       <AlertCircle className="w-3 h-3 text-zinc-500" />
                       <span className="text-[10px] uppercase tracking-wider text-zinc-500">Instructions</span>
+                      {watch(`stops.${index}.specialInstructions`) && (
+                        <Check className="w-3 h-3 text-emerald-500 ml-1" />
+                      )}
                       <ChevronDown className="w-3 h-3 text-zinc-500 ml-auto group-open:rotate-180 transition-transform" />
                     </summary>
                     <div className="pb-1">

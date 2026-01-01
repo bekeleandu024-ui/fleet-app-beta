@@ -308,7 +308,7 @@ export default function EnterpriseOrderPage() {
     <div className="h-screen flex flex-col bg-black text-zinc-300 overflow-hidden">
       {/* Header */}
       <div className="flex-none border-b border-zinc-800 bg-zinc-950">
-        <div className="max-w-[1800px] mx-auto px-4 py-3 flex items-center justify-between">
+        <div className="w-full px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Button 
               size="sm" 
@@ -360,7 +360,7 @@ export default function EnterpriseOrderPage() {
       {/* AI Warnings Banner */}
       {aiWarnings.length > 0 && (
         <div className="flex-none border-b border-amber-500/20 bg-amber-500/10">
-          <div className="max-w-[1800px] mx-auto px-4 py-2 flex items-center gap-2 text-xs text-amber-400">
+          <div className="w-full px-4 py-2 flex items-center gap-2 text-xs text-amber-400">
             <AlertTriangle className="w-4 h-4" />
             <span className="font-medium">AI Parsing Warnings:</span>
             {aiWarnings.map((w, i) => (
@@ -373,7 +373,7 @@ export default function EnterpriseOrderPage() {
       {/* Tabs Layout */}
       <Tabs defaultValue="main" className="flex-1 flex flex-col min-h-0">
         <div className="flex-none border-b border-zinc-800 bg-zinc-950/50">
-          <div className="max-w-[1800px] mx-auto px-4">
+          <div className="w-full px-4">
             <TabsList className="w-full justify-start gap-3 bg-transparent p-0 h-12 border-0">
               <TabsTrigger 
                 value="main" 
@@ -392,7 +392,7 @@ export default function EnterpriseOrderPage() {
         </div>
 
         <TabsContent value="main" className="flex-1 min-h-0 m-0 p-0 data-[state=active]:flex flex-col items-center bg-black">
-          <div className="w-full max-w-[1800px] flex-1 grid grid-cols-12 gap-0 min-h-0 border-x border-zinc-800/50">
+          <div className="w-full flex-1 grid grid-cols-12 gap-0 min-h-0 border-x border-zinc-800/50">
             
             {/* COLUMN 1: THE ROUTE (Stops Timeline) */}
             <div className="col-span-3 flex flex-col border-r border-zinc-800/50 min-h-0">
@@ -400,6 +400,7 @@ export default function EnterpriseOrderPage() {
                 <StopsTimeline
                   control={control}
                   register={register}
+                  watch={watch}
                   errors={errors}
                 />
               </div>
@@ -407,7 +408,7 @@ export default function EnterpriseOrderPage() {
 
             {/* COLUMN 2: THE LOAD (Freight Items + Intake) */}
             <div className="col-span-6 flex flex-col border-r border-zinc-800/50 min-h-0">
-              <div className="flex-1 overflow-y-auto p-3 space-y-3">
+              <div className="flex-1 overflow-y-auto p-1 space-y-1">
                 {/* OCR Intake */}
                 <Card className="flex-none bg-[#0a0d12] border-zinc-800/50">
                   <div className="p-3">
@@ -459,7 +460,7 @@ export default function EnterpriseOrderPage() {
 
                 {/* Freight Items Grid */}
                 <Card className="flex-1 bg-[#0a0d12] border-zinc-800/50 min-h-[300px]">
-                  <div className="h-full p-3">
+                  <div className="h-full p-1">
                     <FreightItemsGrid
                       control={control}
                       register={register}
@@ -579,9 +580,26 @@ export default function EnterpriseOrderPage() {
                           Ready to create
                         </div>
                       ) : (
-                        <div className="flex items-center gap-2 text-xs text-amber-400">
-                          <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                          Complete required fields
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2 text-xs text-amber-400">
+                            <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                            Complete required fields
+                          </div>
+                          {Object.keys(errors).length > 0 && (
+                            <ul className="text-[10px] text-amber-500/80 list-disc pl-4 space-y-0.5">
+                              {errors.customerName && <li>Customer is required</li>}
+                              {errors.stops && <li>Stop details missing (City, etc.)</li>}
+                              {errors.freightItems && <li>Freight details missing (Commodity, etc.)</li>}
+                              {Object.keys(errors).map(key => {
+                                if (['customerName', 'stops', 'freightItems'].includes(key)) return null;
+                                return (
+                                  <li key={key} className="capitalize">
+                                    {key.replace(/([A-Z])/g, ' $1').toLowerCase()} required
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                          )}
                         </div>
                       )}
                     </div>

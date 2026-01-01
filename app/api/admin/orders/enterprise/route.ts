@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     
     // 1. Generate order number
     const orderNumResult = await client.query(
-      `SELECT COALESCE(MAX(CAST(SUBSTRING(order_number FROM 5) AS INTEGER)), 10000) + 1 as next_num 
+      `SELECT COALESCE(MAX(CAST(SUBSTRING(order_number FROM 5) AS BIGINT)), 10000) + 1 as next_num 
        FROM orders WHERE order_number LIKE 'ORD-%'`
     );
     const orderNumber = `ORD-${orderNumResult.rows[0].next_num}`;
@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
     // 3. Create main order record
     const orderResult = await client.query(
       `INSERT INTO orders (
-        order_number, reference, customer_id, status,
+        order_number, customer_id, status, order_type,
         pickup_location, dropoff_location,
         pickup_time, dropoff_time,
         equipment_type, equipment_length, temperature_setting,
@@ -61,11 +61,10 @@ export async function POST(request: NextRequest) {
         is_hazmat, is_high_value, declared_value,
         special_instructions, internal_notes,
         priority, source_channel
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23)
+      ) VALUES ($1, $2, $3, 'round_trip', $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
       RETURNING *`,
       [
         orderNumber,
-        orderNumber, // reference = order_number for now
         data.customerId || null,
         data.status,
         pickupLocation,
@@ -205,8 +204,8 @@ export async function POST(request: NextRequest) {
     for (const acc of data.accessorials) {
       await client.query(
         `INSERT INTO order_accessorials (order_id, accessorial_code, accessorial_name, quantity, unit_price, notes)
-         SELECT $1, $2, at.name, $3, COALESCE($4, at.default_price), $5
-         FROM accessorial_types at WHERE at.code = $2`,
+         SELECT $1, $2::varchar, at.name, $3, COALESCE($4, at.default_price), $5
+         FROM accessorial_types at WHERE at.code = $2::varchar`,
         [orderId, acc.accessorialCode, acc.quantity, acc.unitPrice || null, acc.notes || null]
       );
     }

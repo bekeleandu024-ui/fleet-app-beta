@@ -150,172 +150,169 @@ export function FreightItemsGrid({
       </div>
 
       {/* Data Grid */}
-      <div className="flex-1 overflow-auto min-h-0">
-        <table className="w-full text-xs">
-          <thead className="sticky top-0 bg-zinc-950 z-10">
-            <tr className="text-left text-[10px] uppercase tracking-wider text-zinc-500 border-b border-zinc-800">
-              <th className="pb-2 pl-1 w-8">#</th>
-              <th className="pb-2 min-w-[120px]">Commodity</th>
-              <th className="pb-2 w-14">Qty</th>
-              <th className="pb-2 w-14">Pcs</th>
-              <th className="pb-2 w-20">Pkg</th>
-              <th className="pb-2 w-20">Weight</th>
-              <th className="pb-2 w-24">L×W×H</th>
-              <th className="pb-2 w-16">Class</th>
-              <th className="pb-2 w-10 text-center">HM</th>
-              <th className="pb-2 w-10 text-center">ST</th>
-              <th className="pb-2 w-8"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {fields.map((field, index) => {
-              const itemErrors = errors.freightItems?.[index];
-              const item = watchedItems?.[index];
+      <div className="flex-1 overflow-y-auto min-h-0 space-y-2 pr-1">
+        {fields.map((field, index) => {
+          const itemErrors = errors.freightItems?.[index];
+          const item = watchedItems?.[index];
 
-              return (
-                <tr 
-                  key={field.id} 
-                  className={`border-b border-zinc-800/50 hover:bg-zinc-900/30 ${
-                    item?.isHazmat ? "bg-amber-500/5" : ""
-                  }`}
-                >
-                  {/* Line Number */}
-                  <td className="py-1.5 pl-1 text-zinc-500 font-mono">{index + 1}</td>
-                  
-                  {/* Commodity */}
-                  <td className="py-1.5 pr-1">
-                    <Input
-                      {...register(`freightItems.${index}.commodity`)}
-                      placeholder="Commodity *"
-                      className={`h-7 text-xs bg-black/30 border-white/5 text-zinc-200 placeholder:text-zinc-600 ${
-                        itemErrors?.commodity ? "border-rose-500/50" : ""
-                      }`}
-                    />
-                  </td>
-                  
-                  {/* Quantity */}
-                  <td className="py-1.5 pr-1">
-                    <Input
-                      type="number"
-                      {...register(`freightItems.${index}.quantity`, { valueAsNumber: true })}
-                      placeholder="1"
-                      min={1}
-                      className="h-7 text-xs bg-black/30 border-white/5 text-zinc-200 text-center"
-                    />
-                  </td>
-                  
-                  {/* Pieces */}
-                  <td className="py-1.5 pr-1">
-                    <Input
-                      type="number"
-                      {...register(`freightItems.${index}.pieces`, { valueAsNumber: true })}
-                      placeholder="1"
-                      min={1}
-                      className="h-7 text-xs bg-black/30 border-white/5 text-zinc-200 text-center"
-                    />
-                  </td>
-                  
-                  {/* Packaging Type */}
-                  <td className="py-1.5 pr-1">
-                    <Select
-                      {...register(`freightItems.${index}.packagingType`)}
-                      className="h-7 text-xs bg-black/30 border-white/5 text-zinc-300"
-                    >
-                      {PACKAGING_TYPES.map(type => (
-                        <option key={type.value} value={type.value}>{type.label}</option>
-                      ))}
-                    </Select>
-                  </td>
-                  
-                  {/* Weight */}
-                  <td className="py-1.5 pr-1">
+          return (
+            <div 
+              key={field.id} 
+              className={`p-3 rounded-lg border border-zinc-800 bg-zinc-900/30 hover:bg-zinc-900/50 transition-colors ${
+                item?.isHazmat ? "border-amber-500/30 bg-amber-500/5" : ""
+              }`}
+            >
+              {/* Row 1: Header & Commodity */}
+              <div className="flex items-start gap-3 mb-3">
+                <div className="flex-none flex items-center justify-center w-6 h-6 rounded bg-zinc-800 text-zinc-400 text-xs font-mono">
+                  {index + 1}
+                </div>
+                <div className="flex-1">
+                  <Input
+                    {...register(`freightItems.${index}.commodity`)}
+                    placeholder="Commodity Description *"
+                    className={`h-8 text-sm bg-black/30 border-zinc-800 focus:border-blue-500/50 text-zinc-200 placeholder:text-zinc-600 ${
+                      itemErrors?.commodity ? "border-rose-500/50" : ""
+                    }`}
+                  />
+                </div>
+                {fields.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => remove(index)}
+                    className="flex-none w-6 h-6 flex items-center justify-center text-zinc-600 hover:text-rose-400 transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+
+              {/* Row 2: Core Metrics */}
+              <div className="grid grid-cols-12 gap-2 mb-3">
+                {/* Quantity */}
+                <div className="col-span-2">
+                  <label className="block text-[10px] text-zinc-500 uppercase mb-1">Qty</label>
+                  <Input
+                    type="number"
+                    {...register(`freightItems.${index}.quantity`, { valueAsNumber: true })}
+                    placeholder="1"
+                    min={1}
+                    className="h-8 text-xs bg-black/30 border-zinc-800 text-zinc-200 text-center"
+                  />
+                </div>
+                
+                {/* Pieces */}
+                <div className="col-span-2">
+                  <label className="block text-[10px] text-zinc-500 uppercase mb-1">Pieces</label>
+                  <Input
+                    type="number"
+                    {...register(`freightItems.${index}.pieces`, { valueAsNumber: true })}
+                    placeholder="1"
+                    min={1}
+                    className="h-8 text-xs bg-black/30 border-zinc-800 text-zinc-200 text-center"
+                  />
+                </div>
+
+                {/* Packaging */}
+                <div className="col-span-4">
+                  <label className="block text-[10px] text-zinc-500 uppercase mb-1">Type</label>
+                  <Select
+                    {...register(`freightItems.${index}.packagingType`)}
+                    className="h-8 text-xs bg-black/30 border-zinc-800 text-zinc-300"
+                  >
+                    {PACKAGING_TYPES.map(type => (
+                      <option key={type.value} value={type.value}>{type.label}</option>
+                    ))}
+                  </Select>
+                </div>
+
+                {/* Weight */}
+                <div className="col-span-4">
+                  <label className="block text-[10px] text-zinc-500 uppercase mb-1">Weight</label>
+                  <div className="relative">
                     <Input
                       type="number"
                       {...register(`freightItems.${index}.weightLbs`, { valueAsNumber: true })}
-                      placeholder="lbs"
+                      placeholder="0"
                       min={0}
-                      className="h-7 text-xs bg-black/30 border-white/5 text-zinc-200"
+                      className="h-8 text-xs bg-black/30 border-zinc-800 text-zinc-200 pr-6 text-right"
                     />
-                  </td>
-                  
-                  {/* Dimensions (L×W×H) */}
-                  <td className="py-1.5 pr-1">
-                    <div className="flex items-center gap-0.5">
-                      <Input
-                        type="number"
-                        {...register(`freightItems.${index}.lengthIn`, { valueAsNumber: true })}
-                        placeholder="L"
-                        min={0}
-                        className="h-7 w-7 text-xs bg-black/30 border-white/5 text-zinc-200 text-center px-1"
-                      />
-                      <span className="text-zinc-600">×</span>
-                      <Input
-                        type="number"
-                        {...register(`freightItems.${index}.widthIn`, { valueAsNumber: true })}
-                        placeholder="W"
-                        min={0}
-                        className="h-7 w-7 text-xs bg-black/30 border-white/5 text-zinc-200 text-center px-1"
-                      />
-                      <span className="text-zinc-600">×</span>
-                      <Input
-                        type="number"
-                        {...register(`freightItems.${index}.heightIn`, { valueAsNumber: true })}
-                        placeholder="H"
-                        min={0}
-                        className="h-7 w-7 text-xs bg-black/30 border-white/5 text-zinc-200 text-center px-1"
-                      />
-                    </div>
-                  </td>
-                  
-                  {/* Freight Class */}
-                  <td className="py-1.5 pr-1">
-                    <Select
-                      {...register(`freightItems.${index}.freightClass`)}
-                      className="h-7 text-xs bg-black/30 border-white/5 text-zinc-300"
-                    >
-                      <option value="">—</option>
-                      {FREIGHT_CLASSES.map(fc => (
-                        <option key={fc} value={fc}>{fc}</option>
-                      ))}
-                    </Select>
-                  </td>
-                  
-                  {/* Hazmat Toggle */}
-                  <td className="py-1.5 pr-1 text-center">
+                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-zinc-500 pointer-events-none">lb</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Row 3: Dimensions & Class */}
+              <div className="grid grid-cols-12 gap-2">
+                {/* Dimensions */}
+                <div className="col-span-6">
+                  <label className="block text-[10px] text-zinc-500 uppercase mb-1">Dimensions (L × W × H)</label>
+                  <div className="flex items-center gap-1">
+                    <Input
+                      type="number"
+                      {...register(`freightItems.${index}.lengthIn`, { valueAsNumber: true })}
+                      placeholder="L"
+                      min={0}
+                      className="h-8 w-full text-xs bg-black/30 border-zinc-800 text-zinc-200 text-center px-1"
+                    />
+                    <span className="text-zinc-600 text-[10px]">×</span>
+                    <Input
+                      type="number"
+                      {...register(`freightItems.${index}.widthIn`, { valueAsNumber: true })}
+                      placeholder="W"
+                      min={0}
+                      className="h-8 w-full text-xs bg-black/30 border-zinc-800 text-zinc-200 text-center px-1"
+                    />
+                    <span className="text-zinc-600 text-[10px]">×</span>
+                    <Input
+                      type="number"
+                      {...register(`freightItems.${index}.heightIn`, { valueAsNumber: true })}
+                      placeholder="H"
+                      min={0}
+                      className="h-8 w-full text-xs bg-black/30 border-zinc-800 text-zinc-200 text-center px-1"
+                    />
+                  </div>
+                </div>
+
+                {/* Class */}
+                <div className="col-span-3">
+                  <label className="block text-[10px] text-zinc-500 uppercase mb-1">Class</label>
+                  <Select
+                    {...register(`freightItems.${index}.freightClass`)}
+                    className="h-8 text-xs bg-black/30 border-zinc-800 text-zinc-300"
+                  >
+                    <option value="">—</option>
+                    {FREIGHT_CLASSES.map(fc => (
+                      <option key={fc} value={fc}>{fc}</option>
+                    ))}
+                  </Select>
+                </div>
+
+                {/* Toggles */}
+                <div className="col-span-3 flex items-end gap-3 pb-1 justify-end">
+                  <label className="flex items-center gap-1.5 cursor-pointer group/hazmat">
                     <input
                       type="checkbox"
                       {...register(`freightItems.${index}.isHazmat`)}
-                      className="w-4 h-4 rounded border-zinc-700 bg-zinc-900 text-amber-500 focus:ring-amber-500/30"
+                      className="w-4 h-4 rounded border-zinc-700 bg-zinc-900 text-amber-500 focus:ring-amber-500/30 cursor-pointer"
                     />
-                  </td>
+                    <span className="text-[10px] font-medium text-zinc-500 group-hover/hazmat:text-amber-500 transition-colors">HM</span>
+                  </label>
                   
-                  {/* Stackable Toggle */}
-                  <td className="py-1.5 pr-1 text-center">
+                  <label className="flex items-center gap-1.5 cursor-pointer group/stack">
                     <input
                       type="checkbox"
                       {...register(`freightItems.${index}.stackable`)}
                       defaultChecked={true}
-                      className="w-4 h-4 rounded border-zinc-700 bg-zinc-900 text-blue-500 focus:ring-blue-500/30"
+                      className="w-4 h-4 rounded border-zinc-700 bg-zinc-900 text-blue-500 focus:ring-blue-500/30 cursor-pointer"
                     />
-                  </td>
-                  
-                  {/* Remove */}
-                  <td className="py-1.5 text-center">
-                    {fields.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => remove(index)}
-                        className="w-6 h-6 flex items-center justify-center text-zinc-600 hover:text-rose-400 transition-colors"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                    <span className="text-[10px] font-medium text-zinc-500 group-hover/stack:text-blue-400 transition-colors">STK</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       {/* Hazmat Details (shown when any item has hazmat) */}

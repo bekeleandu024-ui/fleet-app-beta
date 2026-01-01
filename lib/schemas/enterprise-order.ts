@@ -124,7 +124,10 @@ export type PaymentTerms = z.infer<typeof paymentTermsSchema>;
 
 export const orderBillingInputSchema = z.object({
   billToType: billToTypeSchema.default("customer"),
-  billToCustomerId: z.string().uuid().optional().nullable(),
+  billToCustomerId: z.preprocess(
+    (val) => (val === "" ? null : val),
+    z.string().optional().nullable()
+  ),
   billToName: z.string().max(255).optional().nullable(),
   billToAddress: z.string().optional().nullable(),
   billToEmail: z.string().email().optional().nullable(),
@@ -163,7 +166,10 @@ export type EquipmentType = z.infer<typeof equipmentTypeSchema>;
 // === MAIN ORDER INPUT SCHEMA ===
 export const enterpriseOrderInputSchema = z.object({
   // Core Info
-  customerId: z.string().uuid().optional().nullable(),
+  customerId: z.preprocess(
+    (val) => (val === "" ? null : val),
+    z.string().optional().nullable()
+  ),
   customerName: z.string().min(1, "Customer is required").max(255),
   
   // Equipment
