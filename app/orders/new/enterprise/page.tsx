@@ -2,12 +2,14 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { 
   ArrowLeft, Send, Sparkles, Upload, AlertTriangle, 
-  Building2, Truck, CreditCard, FileText, Settings2
+  Building2, Truck, CreditCard, FileText, Settings2,
+  CheckCircle2, ArrowRight, Plus
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -113,12 +115,21 @@ export default function EnterpriseOrderPage() {
       return response.json();
     },
     onSuccess: (data) => {
-      reset(createDefaultOrderInput());
-      setAiWarnings([]);
-      setAiConfidence({});
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      // Show success state - data contains the created order
+      setCreatedOrder(data.data);
     },
   });
+
+  // State for created order success
+  const [createdOrder, setCreatedOrder] = useState<{ id: string; order_number: string } | null>(null);
+
+  const handleCreateAnother = () => {
+    setCreatedOrder(null);
+    reset(createDefaultOrderInput());
+    setAiWarnings([]);
+    setAiConfidence({});
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   // OCR Handlers
   const handleOcrPaste = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
@@ -303,6 +314,68 @@ export default function EnterpriseOrderPage() {
   };
 
   const priorityConfig = PRIORITIES.find(p => p.value === watchedPriority);
+
+  // Success screen after order creation
+  if (createdOrder) {
+    return (
+      <div className="h-screen flex flex-col bg-black text-zinc-300">
+        <div className="flex-1 flex items-center justify-center">
+          <div className="max-w-lg w-full mx-4">
+            <Card className="p-8 text-center">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                <CheckCircle2 className="w-8 h-8 text-emerald-400" />
+              </div>
+              <h2 className="text-2xl font-bold text-white mb-2">Order Created!</h2>
+              <p className="text-zinc-400 mb-6">
+                Order <span className="font-mono text-emerald-400">{createdOrder.order_number}</span> has been created
+                and is now ready for dispatch.
+              </p>
+              
+              <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-4 mb-6">
+                <h3 className="text-sm font-medium text-zinc-300 mb-2">What happens next?</h3>
+                <div className="text-xs text-zinc-500 text-left space-y-2">
+                  <div className="flex items-start gap-2">
+                    <span className="text-emerald-400 font-bold">1.</span>
+                    <span>Order appears in <strong className="text-emerald-400">Fleet Ops</strong> panel</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="text-emerald-400 font-bold">2.</span>
+                    <span>Dispatcher assigns a driver or kicks to brokerage</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="text-emerald-400 font-bold">3.</span>
+                    <span>If brokered, post to carriers and collect bids</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-3">
+                <Link href="/dispatch" className="block">
+                  <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white">
+                    <ArrowRight className="w-4 h-4 mr-2" />
+                    Go to Dispatch Command Center
+                  </Button>
+                </Link>
+                <Button
+                  variant="subtle"
+                  className="w-full border-zinc-700"
+                  onClick={handleCreateAnother}
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create Another Order
+                </Button>
+                <Link href="/orders" className="block">
+                  <Button variant="plain" className="w-full text-zinc-400">
+                    View All Orders
+                  </Button>
+                </Link>
+              </div>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-screen flex flex-col bg-black text-zinc-300 overflow-hidden">
