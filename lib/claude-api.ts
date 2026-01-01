@@ -769,6 +769,208 @@ export async function calculateRouteMetrics(origin: string, destination: string)
   }
 }
 
+// ============= ENTERPRISE ORDER OCR =============
+
+import type { AIOrderExtraction } from "./schemas/enterprise-order";
+
+export async function parseEnterpriseOrderOCR(text?: string, imageBase64?: string): Promise<AIOrderExtraction> {
+  if (!process.env.ANTHROPIC_API_KEY) {
+    console.error("ANTHROPIC_API_KEY is not set!");
+    return {
+      stops: [],
+      freightItems: [],
+      references: [],
+      accessorials: [],
+      confidence: {},
+      warnings: ["API key not configured"],
+    };
+  }
+
+  const prompt = `You are an expert at parsing transportation order documents (rate confirmations, emails, BOLs, etc.) into structured data.
+
+**EXTRACTION TASK:**
+Extract all order details into nested JSON structures:
+
+1. **STOPS** - All pickup and delivery locations. Look for:
+   - Origin/Pickup locations with addresses, dates, appointment types (Firm/FCFS)
+   - Destination/Delivery locations
+   - Any intermediate stops (relay, cross-dock)
+   - Contact names and phone numbers at each location
+
+2. **FREIGHT ITEMS** - Line items of what's being shipped:
+   - Commodity descriptions
+   - Quantities, pieces, pallets
+   - Weights (often in lbs, can be "40k" = 40,000)
+   - Dimensions (L×W×H in inches)
+   - Freight class if mentioned
+   - Hazmat indicators (UN numbers, classes)
+   - Temperature requirements
+
+3. **REFERENCES** - Key-value reference numbers:
+   - PO # (Purchase Order)
+   - BOL # (Bill of Lading)
+   - Seal # (Trailer seal)
+   - PRO # (Tracking number)
+   - Quote #, Load #, etc.
+
+4. **ACCESSORIALS** - Extra services mentioned:
+   - Liftgate, Inside delivery, Residential
+   - Detention, Layover
+   - Tarping, Team service
+   - Hazmat handling
+   - Border crossing
+
+5. **EQUIPMENT** - Required truck type:
+   - Dry Van (53', 48', etc.)
+   - Flatbed, Step Deck
+   - Reefer (with temp requirements)
+
+6. **CUSTOMER** - Shipper/customer name
+
+**PARSING RULES:**
+- Parse dates relative to current date (${new Date().toISOString().split('T')[0]})
+- "tomorrow" = next day, "next monday" = etc.
+- Time formats: "8am", "0800", "08:00" → ISO format
+- Weights: "40k" = 40000, "40,000#" = 40000
+- Detect "FIRM" vs "FCFS" appointment types
+- Extract full addresses when available (Street, City, State, ZIP)
+- For multiple items, create separate line items
+
+**OUTPUT FORMAT:**
+Return ONLY valid JSON matching this exact structure:
+{
+  "customerName": "string or null",
+  "equipmentType": "Dry Van|Flatbed|Reefer|Step Deck|Box Truck|Tanker|Lowboy|Double Drop|Conestoga|Power Only or null",
+  "temperatureSetting": "string (e.g., '34°F') or null",
+  "stops": [
+    {
+      "stopType": "pickup|delivery|intermediate",
+      "locationName": "Facility name or null",
+      "streetAddress": "Street address or null",
+      "city": "City (REQUIRED)",
+      "state": "State abbreviation or null",
+      "postalCode": "ZIP code or null",
+      "country": "USA|CAN|MEX",
+      "appointmentType": "firm|fcfs|open or null",
+      "appointmentStart": "ISO datetime or null",
+      "appointmentEnd": "ISO datetime or null",
+      "contactName": "string or null",
+      "contactPhone": "string or null",
+      "specialInstructions": "string or null"
+    }
+  ],
+  "freightItems": [
+    {
+      "commodity": "Description (REQUIRED)",
+      "description": "Additional details or null",
+      "quantity": number or null,
+      "pieces": number or null,
+      "packagingType": "pallet|crate|drum|bag|bundle|roll|box|carton|loose|container or null",
+      "weightLbs": number or null,
+      "lengthIn": number or null,
+      "widthIn": number or null,
+      "heightIn": number or null,
+      "freightClass": "50|55|60|65|70|77.5|85|92.5|100|110|125|150|175|200|250|300|400|500 or null",
+      "isHazmat": boolean or null,
+      "hazmatClass": "string or null",
+      "hazmatUnNumber": "string (e.g., UN1203) or null",
+      "stackable": boolean or null,
+      "temperatureControlled": boolean or null,
+      "tempMinF": number or null,
+      "tempMaxF": number or null
+    }
+  ],
+  "references": [
+    {
+      "referenceType": "PO|BOL|SEAL|PRO|QUOTE|SO|INV|REF|BOOKING|CONTAINER|TRAILER|LOAD|ASN|CUSTOMS|PARS",
+      "referenceValue": "string"
+    }
+  ],
+  "accessorials": ["string mention"],
+  "totalWeightLbs": number or null,
+  "totalPieces": number or null,
+  "totalPallets": number or null,
+  "billToName": "string or null",
+  "paymentTerms": "string or null",
+  "specialInstructions": "string or null",
+  "confidence": {
+    "customer": 0-100,
+    "stops": 0-100,
+    "freightItems": 0-100,
+    "references": 0-100,
+    "dates": 0-100,
+    "overall": 0-100
+  },
+  "warnings": ["List any parsing ambiguities or missing critical info"]
+}`;
+
+  try {
+    const content: any[] = [];
+    
+    if (imageBase64) {
+      let mediaType = "image/jpeg";
+      let imageData = imageBase64;
+
+      if (imageBase64.includes(';base64,')) {
+        const parts = imageBase64.split(';base64,');
+        mediaType = parts[0].replace('data:', '');
+        imageData = parts[1];
+      }
+      
+      if (!['image/jpeg', 'image/png', 'image/gif', 'image/webp'].includes(mediaType)) {
+        mediaType = 'image/jpeg';
+      }
+
+      content.push({
+        type: "image",
+        source: {
+          type: "base64",
+          media_type: mediaType,
+          data: imageData,
+        },
+      });
+      content.push({
+        type: "text",
+        text: "Extract order details from this image.\n\n" + prompt
+      });
+    } else if (text) {
+      content.push({
+        type: "text",
+        text: prompt + "\n\n**TEXT TO PARSE:**\n" + text
+      });
+    } else {
+      throw new Error("No text or image provided for OCR");
+    }
+
+    const message = await anthropic.messages.create({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 3000,
+      messages: [{ role: "user", content }],
+    });
+
+    const responseContent = message.content[0];
+    if (responseContent.type === "text") {
+      const jsonMatch = responseContent.text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        return parsed;
+      }
+    }
+
+    throw new Error("No JSON response from Claude");
+  } catch (error: any) {
+    console.error("Enterprise OCR parsing error:", error);
+    return {
+      stops: [],
+      freightItems: [],
+      references: [],
+      accessorials: [],
+      confidence: {},
+      warnings: [`API Error: ${error.message}`],
+    };
+  }
+}
+
 export async function interpretVoiceCommand(transcript: string): Promise<{ eventType: string | null; confidence: number }> {
   const prompt = `You are an AI assistant for a truck driver app. Your job is to interpret voice commands and map them to specific trip events.
 

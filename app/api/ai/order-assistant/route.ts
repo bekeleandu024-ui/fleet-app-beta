@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   parseOrderOCR,
+  parseEnterpriseOrderOCR,
   suggestOrderFields,
   validateOrder,
   chatWithOrderAssistant,
@@ -15,6 +16,10 @@ export async function POST(request: NextRequest) {
       case "parse-ocr":
         const parsed = await parseOrderOCR(data.text, data.image);
         return NextResponse.json({ success: true, data: parsed });
+
+      case "parse-ocr-enterprise":
+        const enterpriseParsed = await parseEnterpriseOrderOCR(data.text, data.image);
+        return NextResponse.json({ success: true, data: enterpriseParsed });
 
       case "suggest-fields":
         const suggestions = await suggestOrderFields(

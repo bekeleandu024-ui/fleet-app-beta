@@ -12,11 +12,11 @@ import { cn } from "@/lib/utils";
 const navItems = [
   { label: "Dashboard", href: "/", match: (pathname: string) => pathname === "/" },
   { label: "Analytics", href: "/analytics", match: (pathname: string) => pathname.startsWith("/analytics") },
-  { label: "New Order", href: "/orders/new", match: (pathname: string) => pathname === "/orders/new" },
+  { label: "New Order", href: "/orders/new/enterprise", match: (pathname: string) => pathname === "/orders/new/enterprise" },
   {
     label: "Orders",
     href: "/orders",
-    match: (pathname: string) => pathname.startsWith("/orders") && pathname !== "/orders/new",
+    match: (pathname: string) => pathname.startsWith("/orders") && !pathname.startsWith("/orders/new"),
   },
   { label: "Planning", href: "/planning/board", match: (pathname: string) => pathname.startsWith("/planning") },
   { label: "Book Trip", href: "/book", match: (pathname: string) => pathname.startsWith("/book") },
