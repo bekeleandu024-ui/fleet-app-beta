@@ -30,24 +30,25 @@ import { OrderListItem } from "@/lib/types";
 
 type FleetItem = {
   id: string;
-  type: "trip" | "staged";
+  type: "trip" | "staged" | "trailer";
   status: string;
   lat: number;
   lng: number;
   unitNumber?: string;
+  trailerNumber?: string;
+  trailerType?: string;
   name?: string;
   driverName?: string;
   location?: string;
+  locationCity?: string;
   lastUpdate?: string;
   deliveryLocation?: { lat: number; lng: number } | string;
   deliveryLat?: number;
   deliveryLng?: number;
-  customs?: any;
-  region?: string;
-  currentWeight?: number;
-  maxWeight?: number;
-  utilizationPercent?: number;
-  limitingFactor?: string;
+  configuration?: string;
+  hosHoursRemaining?: number;
+  driverCategory?: string;
+  attachedTrailer?: { id: string; number: string; type: string } | null;
 };
 
 // --- Helper Components ---
@@ -84,14 +85,28 @@ function FleetMarker({ item, onClick, isDimmed, isSelected }: { item: FleetItem,
     // Standard Pin Colors
     let color = "#64748B"; // Slate-500 (Idle/Available)
     
-    if (item.status === "in_transit" || item.status === "departed_pickup") {
-      color = "#3B82F6"; // Blue-500 (Active)
-    } else if (item.status === "at_pickup" || item.status === "at_delivery") {
-      color = "#8B5CF6"; // Violet-500
-    } else if (item.status === "delayed") {
-      color = "#EF4444"; // Red-500
-    } else if (item.status === "Available" || item.status === "staged") {
-      color = "#10B981"; // Emerald-500
+    if (item.type === "trailer") {
+      // Trailer colors
+      if (item.status === "Available") {
+        color = "#F97316"; // Orange-500
+      } else if (item.status === "Loaded") {
+        color = "#3B82F6"; // Blue-500
+      } else if (item.status === "Maintenance") {
+        color = "#EF4444"; // Red-500
+      } else {
+        color = "#A855F7"; // Purple-500 (Storage)
+      }
+    } else {
+      // Unit/Trip colors
+      if (item.status === "in_transit" || item.status === "departed_pickup") {
+        color = "#3B82F6"; // Blue-500 (Active)
+      } else if (item.status === "at_pickup" || item.status === "at_delivery") {
+        color = "#8B5CF6"; // Violet-500
+      } else if (item.status === "delayed") {
+        color = "#EF4444"; // Red-500
+      } else if (item.status === "Available" || item.status === "staged") {
+        color = "#10B981"; // Emerald-500
+      }
     }
 
     setIcon({
@@ -103,7 +118,7 @@ function FleetMarker({ item, onClick, isDimmed, isSelected }: { item: FleetItem,
       scale: isSelected ? 2 : (isHovered ? 1.8 : 1.5),
       anchor: new google.maps.Point(12, 24),
     });
-  }, [map, item.status, isDimmed, isSelected, isHovered]);
+  }, [map, item.status, item.type, isDimmed, isSelected, isHovered]);
 
   if (!icon || !position) return null;
 
@@ -117,7 +132,7 @@ function FleetMarker({ item, onClick, isDimmed, isSelected }: { item: FleetItem,
         icon={icon}
         zIndex={isSelected ? 100 : (isHovered ? 90 : 10)}
         label={isSelected || isHovered ? {
-            text: item.unitNumber || "",
+            text: item.type === "trailer" ? (item.trailerNumber || "") : (item.unitNumber || ""),
             color: "white",
             fontSize: "11px",
             fontWeight: "bold",
@@ -324,14 +339,14 @@ function OrderMarker({ order, type }: { order: OrderListItem, type: "pickup" | "
 export default function MapPage() {
   // State
   const [fleetLocations, setFleetLocations] = useState<FleetItem[]>([]);
+  const [trailers, setTrailers] = useState<FleetItem[]>([]);
   const [orders, setOrders] = useState<OrderListItem[]>([]);
   const [showOrders, setShowOrders] = useState(false);
   const [selectedItem, setSelectedItem] = useState<FleetItem | null>(null);
   const [mapCenter, setMapCenter] = useState({ lat: 43.6532, lng: -79.3832 });
   const [zoom, setZoom] = useState(7);
-  const [viewMode, setViewMode] = useState<"all" | "trips" | "staged">("all");
+  const [viewMode, setViewMode] = useState<"all" | "trips" | "staged" | "trailers">("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedRegion, setSelectedRegion] = useState<string | "all">("all");
   const [showRoute, setShowRoute] = useState(false);
   const [routeInfo, setRouteInfo] = useState<{ distance: string; duration: string; eta: string } | null>(null);
   const [destinationCoords, setDestinationCoords] = useState<{ lat: number; lng: number } | null>(null);
@@ -342,28 +357,45 @@ export default function MapPage() {
     const loadFleetData = async () => {
       try {
         const response = await fetchFleetLocations();
-        const items: FleetItem[] = response.fleet.map((item) => ({
+        console.log("API Response - fleet:", response.fleet?.length, "trailers:", response.trailers?.length);
+        
+        const items: FleetItem[] = response.fleet.map((item: any) => ({
           id: item.id,
-          type: item.status === 'staged' ? "staged" : "trip",
+          type: item.type === 'trip' ? "trip" : "staged",
           status: item.status,
           lat: item.lat || 0,
           lng: item.lng || 0,
           unitNumber: item.unitNumber || undefined,
           driverName: item.driverName || undefined,
           location: item.location || undefined,
+          locationCity: item.locationCity || undefined,
           lastUpdate: item.lastUpdate || undefined,
           deliveryLocation: item.deliveryLocation || undefined,
           deliveryLat: item.deliveryLat || undefined,
           deliveryLng: item.deliveryLng || undefined,
-          customs: item.customs,
-          region: item.region,
-          currentWeight: item.currentWeight,
-          maxWeight: item.maxWeight,
-          utilizationPercent: item.utilizationPercent,
-          limitingFactor: item.limitingFactor,
+          configuration: item.configuration || undefined,
+          hosHoursRemaining: item.hosHoursRemaining || undefined,
+          driverCategory: item.driverCategory || undefined,
+          attachedTrailer: item.attachedTrailer || null,
         }));
 
+        // Map trailers from response
+        const trailerItems: FleetItem[] = (response.trailers || []).map((item: any) => ({
+          id: item.id,
+          type: "trailer" as const,
+          status: item.status,
+          lat: item.lat || 0,
+          lng: item.lng || 0,
+          trailerNumber: item.trailerNumber || undefined,
+          trailerType: item.trailerType || undefined,
+          location: item.location || undefined,
+          locationCity: item.locationCity || undefined,
+        }));
+        
+        console.log("Parsed trailerItems:", trailerItems.length);
+
         setFleetLocations(items);
+        setTrailers(trailerItems);
       } catch (error) {
         console.error("Failed to load fleet data", error);
       }
@@ -382,27 +414,28 @@ export default function MapPage() {
     loadOrders();
   }, []);
 
-  const regions = useMemo(() => {
-    const uniqueRegions = new Set(fleetLocations.map(item => item.region).filter(Boolean));
-    return Array.from(uniqueRegions).sort() as string[];
-  }, [fleetLocations]);
-
   // Filtering
   const filteredItems = useMemo(() => {
-    return fleetLocations.filter(item => {
+    // Combine fleet and trailers based on view mode
+    const allItems = viewMode === "trailers" ? trailers : 
+                     viewMode === "all" ? [...fleetLocations, ...trailers] : 
+                     fleetLocations;
+    
+    return allItems.filter(item => {
       const matchesMode = viewMode === "all" || 
         (viewMode === "trips" && item.type === "trip") || 
-        (viewMode === "staged" && item.type === "staged");
+        (viewMode === "staged" && item.type === "staged") ||
+        (viewMode === "trailers" && item.type === "trailer");
       
       const matchesSearch = !searchQuery || 
         (item.unitNumber?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false) ||
-        (item.driverName?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false);
+        (item.trailerNumber?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false) ||
+        (item.driverName?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false) ||
+        (item.location?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false);
 
-      const matchesRegion = selectedRegion === "all" || item.region === selectedRegion;
-
-      return matchesMode && matchesSearch && matchesRegion;
+      return matchesMode && matchesSearch;
     });
-  }, [fleetLocations, viewMode, searchQuery, selectedRegion]);
+  }, [fleetLocations, trailers, viewMode, searchQuery]);
 
   // Handlers
   const handleItemSelect = (item: FleetItem, pos?: { lat: number; lng: number }) => {
@@ -477,7 +510,9 @@ export default function MapPage() {
               Fleet Assets
             </h2>
             <div className="flex items-center gap-2">
-               <span className="text-xs font-mono text-zinc-500">{filteredItems.length} Units</span>
+               <span className="text-xs font-mono text-zinc-500">
+                 {viewMode === "trailers" ? `${filteredItems.length} Trailers` : `${filteredItems.length} Assets`}
+               </span>
             </div>
           </div>
 
@@ -487,14 +522,14 @@ export default function MapPage() {
               <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-500" />
               <input 
                 type="text" 
-                placeholder="Search unit or driver..." 
+                placeholder={viewMode === "trailers" ? "Search trailer..." : "Search unit or driver..."} 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="h-8 w-full rounded-sm border border-zinc-800 bg-black pl-8 pr-3 text-xs text-zinc-200 placeholder:text-zinc-600 focus:border-blue-800 focus:outline-none focus:ring-1 focus:ring-blue-900"
               />
             </div>
             <div className="flex gap-1 p-1 bg-black rounded-md border border-zinc-800">
-              {(["all", "trips", "staged"] as const).map((mode) => (
+              {(["all", "staged", "trailers", "trips"] as const).map((mode) => (
                 <button
                   key={mode}
                   onClick={() => setViewMode(mode)}
@@ -509,23 +544,6 @@ export default function MapPage() {
               ))}
             </div>
 
-            {/* Region Filter */}
-            {regions.length > 0 && (
-              <div className="relative">
-                <select
-                  value={selectedRegion}
-                  onChange={(e) => setSelectedRegion(e.target.value)}
-                  className="h-8 w-full rounded-sm border border-zinc-800 bg-black px-3 text-xs text-zinc-200 focus:border-blue-800 focus:outline-none focus:ring-1 focus:ring-blue-900 appearance-none"
-                >
-                  <option value="all">All Regions</option>
-                  {regions.map(region => (
-                    <option key={region} value={region}>{region}</option>
-                  ))}
-                </select>
-                <ChevronRight className="absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-500 rotate-90 pointer-events-none" />
-              </div>
-            )}
-            
             {/* Order Toggle */}
             <button
                 onClick={() => setShowOrders(!showOrders)}
@@ -558,14 +576,23 @@ export default function MapPage() {
                   <div className="flex items-center gap-2">
                     {item.type === "trip" ? (
                       <Truck className={`h-3.5 w-3.5 ${item.status === "in_transit" ? "text-emerald-500" : "text-amber-500"}`} />
+                    ) : item.type === "trailer" ? (
+                      <Package className="h-3.5 w-3.5 text-orange-500" />
                     ) : (
                       <Warehouse className="h-3.5 w-3.5 text-blue-500" />
                     )}
-                    <span className="text-xs font-bold text-zinc-200">{item.unitNumber}</span>
+                    <span className="text-xs font-bold text-zinc-200">
+                      {item.type === "trailer" ? item.trailerNumber : item.unitNumber}
+                    </span>
+                    {item.type === "trailer" && item.trailerType && (
+                      <span className="text-[9px] text-zinc-500">{item.trailerType}</span>
+                    )}
                   </div>
                   <span className={`text-[10px] px-1.5 py-0.5 rounded-sm border ${
                     item.status === "in_transit" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" :
-                    item.status === "Available" ? "bg-blue-500/10 text-blue-400 border-blue-500/20" :
+                    item.status === "Available" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" :
+                    item.status === "Loaded" ? "bg-blue-500/10 text-blue-400 border-blue-500/20" :
+                    item.status === "Maintenance" ? "bg-red-500/10 text-red-400 border-red-500/20" :
                     "bg-amber-500/10 text-amber-400 border-amber-500/20"
                   }`}>
                     {item.status}
@@ -603,14 +630,37 @@ export default function MapPage() {
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-2">
                 <div className="p-2 rounded bg-black border border-zinc-800">
-                  <div className="text-[10px] text-zinc-500">Unit</div>
-                  <div className="text-sm font-mono text-zinc-200">{selectedItem.unitNumber}</div>
+                  <div className="text-[10px] text-zinc-500">{selectedItem.type === "trailer" ? "Trailer" : "Unit"}</div>
+                  <div className="text-sm font-mono text-zinc-200">
+                    {selectedItem.type === "trailer" ? selectedItem.trailerNumber : selectedItem.unitNumber}
+                  </div>
                 </div>
                 <div className="p-2 rounded bg-black border border-zinc-800">
                   <div className="text-[10px] text-zinc-500">Type</div>
-                  <div className="text-sm text-zinc-200 capitalize">{selectedItem.type}</div>
+                  <div className="text-sm text-zinc-200 capitalize">
+                    {selectedItem.type === "trailer" ? selectedItem.trailerType : selectedItem.type}
+                  </div>
                 </div>
               </div>
+
+              {selectedItem.type === "trailer" && (
+                <div className="space-y-2">
+                  <div className="p-2 rounded bg-black border border-zinc-800">
+                    <div className="text-[10px] text-zinc-500">Status</div>
+                    <div className={`text-xs font-medium ${
+                      selectedItem.status === "Available" ? "text-emerald-400" :
+                      selectedItem.status === "Loaded" ? "text-blue-400" :
+                      selectedItem.status === "Maintenance" ? "text-red-400" :
+                      "text-purple-400"
+                    }`}>{selectedItem.status}</div>
+                  </div>
+                  
+                  <div className="p-2 rounded bg-black border border-zinc-800">
+                    <div className="text-[10px] text-zinc-500">Current Location</div>
+                    <div className="text-xs text-zinc-200 truncate">{selectedItem.location || "Unknown"}</div>
+                  </div>
+                </div>
+              )}
 
               {selectedItem.type === "trip" && (
                 <div className="space-y-2">
@@ -630,28 +680,6 @@ export default function MapPage() {
                     <div className="text-xs text-zinc-200 truncate">{selectedItem.location || "Unknown"}</div>
                   </div>
 
-                  {(selectedItem.utilizationPercent !== undefined) && (
-                    <div className="p-2 rounded bg-black border border-zinc-800">
-                      <div className="flex justify-between items-center mb-1">
-                        <div className="text-[10px] text-zinc-500">Capacity</div>
-                        <div className="text-[10px] font-bold text-zinc-300">{Math.round(selectedItem.utilizationPercent)}%</div>
-                      </div>
-                      <div className="w-full bg-zinc-800 rounded-full h-1.5 mb-1">
-                        <div 
-                          className={`h-1.5 rounded-full ${
-                            selectedItem.utilizationPercent > 90 ? 'bg-orange-500' : 
-                            selectedItem.utilizationPercent > 70 ? 'bg-yellow-500' : 'bg-emerald-500'
-                          }`} 
-                          style={{ width: `${Math.min(100, selectedItem.utilizationPercent)}%` }}
-                        />
-                      </div>
-                      <div className="flex justify-between text-[9px] text-zinc-500">
-                        <span>{selectedItem.currentWeight?.toLocaleString()} lbs</span>
-                        <span>{selectedItem.limitingFactor ? `Limit: ${selectedItem.limitingFactor}` : ''}</span>
-                      </div>
-                    </div>
-                  )}
-
                   <div className="flex gap-2">
                     <Button
                       size="sm"
@@ -661,15 +689,6 @@ export default function MapPage() {
                     >
                       <span>{showRoute ? "Hide Route" : "Show Route"}</span>
                       <Navigation className="h-3 w-3" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="subtle"
-                      className={`flex-1 h-8 text-xs justify-between ${showOrders ? "bg-violet-900/20 border-violet-800 text-violet-400" : "bg-zinc-800 border-zinc-700 text-zinc-300"}`}
-                      onClick={() => setShowOrders(!showOrders)}
-                    >
-                      <span>{showOrders ? "Hide Orders" : "Show Orders"}</span>
-                      <Package className="h-3 w-3" />
                     </Button>
                   </div>
                   
@@ -687,6 +706,51 @@ export default function MapPage() {
                         <div className="text-[9px] text-zinc-500 uppercase">ETA</div>
                         <div className="text-xs font-bold text-cyan-400">{routeInfo.eta}</div>
                       </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {selectedItem.type === "staged" && (
+                <div className="space-y-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="p-2 rounded bg-black border border-zinc-800">
+                      <div className="text-[10px] text-zinc-500">Driver</div>
+                      <div className="text-xs text-zinc-200 truncate">{selectedItem.driverName || "Unassigned"}</div>
+                    </div>
+                    <div className="p-2 rounded bg-black border border-zinc-800">
+                      <div className="text-[10px] text-zinc-500">Config</div>
+                      <div className="text-xs text-zinc-200 capitalize">{selectedItem.configuration || "Bobtail"}</div>
+                    </div>
+                  </div>
+                  
+                  <div className="p-2 rounded bg-black border border-zinc-800">
+                    <div className="text-[10px] text-zinc-500">Current Location</div>
+                    <div className="text-xs text-zinc-200 truncate">{selectedItem.location || "Home Base"}</div>
+                  </div>
+
+                  {selectedItem.hosHoursRemaining !== undefined && (
+                    <div className="p-2 rounded bg-black border border-zinc-800">
+                      <div className="flex justify-between items-center mb-1">
+                        <div className="text-[10px] text-zinc-500">HOS Remaining</div>
+                        <div className="text-[10px] font-bold text-zinc-300">{selectedItem.hosHoursRemaining}h</div>
+                      </div>
+                      <div className="w-full bg-zinc-800 rounded-full h-1.5">
+                        <div 
+                          className={`h-1.5 rounded-full ${
+                            selectedItem.hosHoursRemaining < 3 ? 'bg-red-500' : 
+                            selectedItem.hosHoursRemaining < 6 ? 'bg-yellow-500' : 'bg-emerald-500'
+                          }`} 
+                          style={{ width: `${Math.min(100, (selectedItem.hosHoursRemaining / 11) * 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedItem.attachedTrailer && (
+                    <div className="p-2 rounded bg-black border border-zinc-800">
+                      <div className="text-[10px] text-zinc-500">Attached Trailer</div>
+                      <div className="text-xs text-zinc-200">{selectedItem.attachedTrailer.number} ({selectedItem.attachedTrailer.type})</div>
                     </div>
                   )}
                 </div>
@@ -709,7 +773,7 @@ export default function MapPage() {
         {/* Stats Overlay */}
         <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-px rounded-md border border-zinc-800 bg-zinc-900/90 shadow-xl backdrop-blur-sm overflow-hidden">
           <div className="px-3 py-1.5 border-r border-zinc-800">
-            <span className="text-[10px] text-zinc-500 uppercase mr-2">Total</span>
+            <span className="text-[10px] text-zinc-500 uppercase mr-2">Units</span>
             <span className="text-xs font-bold text-white">{fleetLocations.length}</span>
           </div>
           <div className="px-3 py-1.5 border-r border-zinc-800">
@@ -718,11 +782,15 @@ export default function MapPage() {
               {fleetLocations.filter(i => i.type === "trip" && i.status === "in_transit").length}
             </span>
           </div>
-          <div className="px-3 py-1.5">
+          <div className="px-3 py-1.5 border-r border-zinc-800">
             <span className="text-[10px] text-zinc-500 uppercase mr-2">Staged</span>
             <span className="text-xs font-bold text-blue-400">
               {fleetLocations.filter(i => i.type === "staged").length}
             </span>
+          </div>
+          <div className="px-3 py-1.5">
+            <span className="text-[10px] text-zinc-500 uppercase mr-2">Trailers</span>
+            <span className="text-xs font-bold text-orange-400">{trailers.length}</span>
           </div>
         </div>
 

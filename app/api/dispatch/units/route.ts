@@ -13,7 +13,6 @@ export async function GET() {
         COALESCE(max_weight_lbs, max_weight, 45000) AS max_weight,
         COALESCE(max_volume_cuft, max_cube, 3000) AS max_cube,
         COALESCE(linear_feet, 53) AS linear_feet,
-        region,
         current_location,
         is_active
       FROM unit_profiles
@@ -28,7 +27,6 @@ export async function GET() {
       maxWeight: row.max_weight,
       maxCube: row.max_cube,
       linearFeet: row.linear_feet,
-      region: row.region,
       currentLocation: row.current_location,
       isActive: row.is_active,
     }));

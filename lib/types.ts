@@ -793,8 +793,50 @@ export const fleetLocationSchema = z.object({
 
 export type FleetLocation = z.infer<typeof fleetLocationSchema>;
 
+export const trailerLocationSchema = z.object({
+  id: z.string(),
+  type: z.literal("trailer"),
+  status: z.string(),
+  trailerNumber: z.string(),
+  trailerType: z.string(),
+  location: z.string().nullable().optional(),
+  locationCity: z.string().nullable().optional(),
+  lat: z.number().nullable().optional(),
+  lng: z.number().nullable().optional(),
+});
+
+export type TrailerLocation = z.infer<typeof trailerLocationSchema>;
+
+export const facilitySchema = z.object({
+  id: z.string(),
+  type: z.literal("facility"),
+  name: z.string(),
+  address: z.string().nullable().optional(),
+  city: z.string().nullable().optional(),
+  hasTrailerPool: z.boolean().optional(),
+  poolCountEmpty: z.number().optional(),
+  lat: z.number().nullable().optional(),
+  lng: z.number().nullable().optional(),
+});
+
+export type Facility = z.infer<typeof facilitySchema>;
+
+export const fleetSummarySchema = z.object({
+  totalUnits: z.number(),
+  activeTrips: z.number(),
+  stagedUnits: z.number(),
+  totalTrailers: z.number(),
+  availableTrailers: z.number(),
+  totalFacilities: z.number(),
+});
+
+export type FleetSummary = z.infer<typeof fleetSummarySchema>;
+
 export const fleetResponseSchema = z.object({
   fleet: z.array(fleetLocationSchema),
+  trailers: z.array(trailerLocationSchema).optional(),
+  facilities: z.array(facilitySchema).optional(),
+  summary: fleetSummarySchema.optional(),
 });
 
 export type FleetResponse = z.infer<typeof fleetResponseSchema>;

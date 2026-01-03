@@ -10,11 +10,16 @@ export async function GET() {
         dp.driver_name,
         COALESCE(dp.unit_number, up.unit_number) AS unit_number,
         dp.driver_type,
-        dp.region,
-        COALESCE(dp.status, 'Available') AS status,
-        true AS is_active
+        dp.driver_category,
+        dp.oo_zone AS region,
+        COALESCE(dp.current_status::text, dp.status::text, 'Available') AS status,
+        dp.hos_hours_remaining,
+        dp.base_wage_cpm,
+        dp.effective_wage_cpm,
+        COALESCE(dp.is_active, true) AS is_active
       FROM driver_profiles dp
       LEFT JOIN unit_profiles up ON dp.driver_id = up.driver_id
+      WHERE dp.is_active = true OR dp.is_active IS NULL
       ORDER BY dp.driver_name ASC
     `);
 
@@ -23,8 +28,12 @@ export async function GET() {
       driverName: row.driver_name,
       unitNumber: row.unit_number,
       driverType: row.driver_type,
+      driverCategory: row.driver_category,
       region: row.region,
       status: row.status,
+      hosHoursRemaining: row.hos_hours_remaining,
+      baseWageCpm: row.base_wage_cpm,
+      effectiveWageCpm: row.effective_wage_cpm,
       isActive: row.is_active,
     }));
 

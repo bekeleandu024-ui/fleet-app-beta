@@ -98,8 +98,12 @@ export interface Driver {
   driverName: string;
   unitNumber: string | null;
   driverType: string;
+  driverCategory: string | null;
   region: string | null;
   status: string | null;
+  hosHoursRemaining: string | null;
+  baseWageCpm: string | null;
+  effectiveWageCpm: string | null;
   isActive: boolean;
 }
 

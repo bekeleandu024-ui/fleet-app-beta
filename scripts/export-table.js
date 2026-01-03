@@ -41,6 +41,21 @@ const ALLOWED_TABLES = [
   'market_lanes',
   'distance_cache',
   'week_miles_summary',
+  // Added missing tables
+  'accessorial_types',
+  'active_trip_locations',
+  'carrier_bids',
+  'carrier_profiles',
+  'customs_agents',
+  'customs_documents',
+  'dispatch_actions',
+  'order_accessorials',
+  'order_billing',
+  'order_freight_items',
+  'order_references',
+  'order_stops',
+  'reference_types',
+  'trip_event_timeline',
 ];
 
 async function listTables() {

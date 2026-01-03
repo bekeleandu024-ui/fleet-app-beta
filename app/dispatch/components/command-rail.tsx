@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   Truck,
@@ -22,6 +22,10 @@ import {
   ExternalLink,
   CheckCircle,
   XCircle,
+  DollarSign,
+  Zap,
+  BarChart3,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -269,6 +273,59 @@ function PlanningMode({
 // EXECUTION MODE (Scenario C - Trip Selected)
 // ============================================================================
 
+// Simulation Result Types (matches actual API response)
+interface SimulationScenario {
+  type: string;
+  feasible: boolean;
+  feasibility_reason?: string;
+  total_cost: number;
+  margin_vs_market: number;
+  margin_percent: number;
+  recommendation: string;
+  cost_breakdown: {
+    deadhead_miles: number;
+    deadhead_cost: number;
+    linehaul_miles: number;
+    linehaul_cost: number;
+    fuel_cost: number;
+    driver_cost: number;
+    fixed_daily_cost: number;
+    accessorial_cost: number;
+    total: number;
+  };
+  resource_match: {
+    driver: { id: string; name: string; category: string; hos_hours_remaining: string } | null;
+    local_driver?: { id: string; name: string; hos_hours_remaining: string } | null;
+    unit: { id: string; number: string; configuration: string; current_location: string } | null;
+    trailer?: { id: string; number: string; type: string; location: string } | null;
+  };
+}
+
+interface SimulationResult {
+  trip_id: string;
+  generated_at: string;
+  market_analysis: {
+    provider: string;
+    lane: string;
+    market_rate_avg: number;
+    total_market_rate: number;
+    target_buy_rate: number;
+    fuel_surcharge: number;
+  };
+  internal_simulation: {
+    total_trip_distance: number;
+    estimated_drive_time_hours: number;
+    scenarios: SimulationScenario[];
+  };
+  recommendation: {
+    decision: 'FLEET' | 'BROKERAGE';
+    preferred_scenario: string | null;
+    savings_vs_market: number;
+    confidence: 'HIGH' | 'MEDIUM' | 'LOW';
+    reasoning: string[];
+  };
+}
+
 function ExecutionMode({
   trip,
   drivers,
@@ -296,6 +353,63 @@ function ExecutionMode({
   const [selectedTab, setSelectedTab] = useState<"fleet" | "brokerage">("fleet");
   const [selectedDriverId, setSelectedDriverId] = useState<string>("");
   const [isAssigning, setIsAssigning] = useState(false);
+  const [simulation, setSimulation] = useState<SimulationResult | null>(null);
+  const [isSimulating, setIsSimulating] = useState(false);
+  const [showCostBreakdown, setShowCostBreakdown] = useState(false);
+
+  // Run simulation when trip changes
+  useEffect(() => {
+    async function runSimulation() {
+      if (!trip || trip.orders.length === 0) return;
+      
+      setIsSimulating(true);
+      try {
+        // Build route from trip orders
+        const firstOrder = trip.orders[0];
+        const lastOrder = trip.orders[trip.orders.length - 1];
+        
+        // Build route array with PICKUP and DROP stops
+        const route = [
+          {
+            type: 'PICKUP',
+            location_id: firstOrder.id,
+            city: firstOrder.pickupLocation || 'Origin',
+          },
+          {
+            type: 'DROP',
+            location_id: lastOrder.id,
+            city: lastOrder.dropoffLocation || 'Destination',
+          }
+        ];
+        
+        const response = await fetch('/api/dispatch/simulate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            trip_id: trip.id,
+            trip_requirements: {
+              equipment_type: trip.equipmentType || 'Dry Van',
+              weight: trip.totalWeightLbs || 40000,
+            },
+            route
+          })
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setSimulation(data);
+        } else {
+          console.error('Simulation failed:', response.status, await response.text());
+        }
+      } catch (error) {
+        console.error('Simulation error:', error);
+      } finally {
+        setIsSimulating(false);
+      }
+    }
+    
+    runSimulation();
+  }, [trip]);
 
   const handleAssign = async () => {
     if (!selectedDriverId) return;
@@ -322,6 +436,11 @@ function ExecutionMode({
     onDeleteTrip(trip.id);
     onClearSelection();
   };
+
+  // Get scenarios from simulation (nested in internal_simulation)
+  const scenarios = simulation?.internal_simulation?.scenarios || [];
+  const preferredScenario = scenarios.find(s => s.recommendation === 'PREFERRED');
+  const bestFleetScenario = scenarios.find(s => s.feasible && s.type !== 'BROKERAGE');
 
   return (
     <div className="flex flex-col h-full min-h-0">
@@ -378,6 +497,48 @@ function ExecutionMode({
         </div>
       </div>
 
+      {/* Simulation Analysis Banner */}
+      {isSimulating ? (
+        <div className="flex-none px-3 py-2 border-b border-zinc-800 bg-violet-500/5">
+          <div className="flex items-center gap-2">
+            <Loader2 className="h-3.5 w-3.5 text-violet-400 animate-spin" />
+            <span className="text-xs text-violet-400">Running cost simulation...</span>
+          </div>
+        </div>
+      ) : simulation?.recommendation ? (
+        <div className={cn(
+          "flex-none px-3 py-2 border-b",
+          simulation.recommendation.decision === 'FLEET' 
+            ? "bg-emerald-500/10 border-emerald-500/20"
+            : "bg-amber-500/10 border-amber-500/20"
+        )}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <Zap className={cn(
+                "h-3.5 w-3.5",
+                simulation.recommendation.decision === 'FLEET' ? "text-emerald-400" : "text-amber-400"
+              )} />
+              <span className={cn(
+                "text-xs font-bold",
+                simulation.recommendation.decision === 'FLEET' ? "text-emerald-400" : "text-amber-400"
+              )}>
+                {simulation.recommendation.decision === 'FLEET' ? 'Fleet Recommended' : 'Consider Brokerage'}
+              </span>
+            </div>
+            <div className="text-right">
+              <span className="text-[10px] text-zinc-500">Savings: </span>
+              <span className={cn(
+                "text-xs font-bold",
+                simulation.recommendation.savings_vs_market > 0 ? "text-emerald-400" : "text-red-400"
+              )}>
+                ${Math.abs(simulation.recommendation.savings_vs_market).toFixed(0)}
+              </span>
+            </div>
+          </div>
+          <p className="text-[10px] text-zinc-400 mt-0.5">{simulation.recommendation.reasoning?.join(' • ') || ''}</p>
+        </div>
+      ) : null}
+
       {/* Tabs */}
       <div className="flex-none px-3 pt-2">
         <Tabs
@@ -388,27 +549,80 @@ function ExecutionMode({
             <TabsTrigger value="fleet" className="flex-1 text-xs h-6">
               <Truck className="h-3 w-3 mr-1" />
               Fleet
+              {bestFleetScenario && (
+                <Badge className="ml-1 text-[8px] px-1 py-0 bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
+                  ${bestFleetScenario.total_cost.toFixed(0)}
+                </Badge>
+              )}
             </TabsTrigger>
             <TabsTrigger value="brokerage" className="flex-1 text-xs h-6">
               <Building2 className="h-3 w-3 mr-1" />
               Brokerage
+              {simulation?.market_analysis && (
+                <Badge className="ml-1 text-[8px] px-1 py-0 bg-amber-500/20 text-amber-400 border-amber-500/30">
+                  ${simulation.market_analysis.total_market_rate.toFixed(0)}
+                </Badge>
+              )}
             </TabsTrigger>
           </TabsList>
         </Tabs>
       </div>
 
       {/* Tab Content */}
-      <div className="flex-1 flex flex-col min-h-0 p-3">
+      <div className="flex-1 flex flex-col min-h-0 p-3 overflow-hidden">
         {selectedTab === "fleet" ? (
-          <div className="flex flex-col h-full gap-2">
+          <div className="flex flex-col h-full gap-2 overflow-hidden">
+            {/* Scenario Comparison - Show if simulation exists */}
+            {scenarios.length > 0 && (
+              <div className="flex-none space-y-1">
+                <label className="text-[10px] font-medium text-zinc-500 uppercase">Fleet Scenarios</label>
+                <div className="space-y-1">
+                  {scenarios
+                    .filter(s => s.type !== 'BROKERAGE' && s.feasible)
+                    .map((scenario) => (
+                      <div
+                        key={scenario.type}
+                        className={cn(
+                          "px-2 py-1.5 rounded border",
+                          scenario.recommendation === 'PREFERRED' 
+                            ? "border-emerald-500/50 bg-emerald-500/10"
+                            : "border-zinc-800 bg-zinc-900/50"
+                        )}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1.5">
+                            {scenario.recommendation === 'PREFERRED' && <CheckCircle className="h-3 w-3 text-emerald-400" />}
+                            <span className="text-[10px] font-medium text-zinc-200">{scenario.type.replace(/_/g, ' ')}</span>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-xs font-bold text-zinc-100">${scenario.total_cost.toFixed(0)}</span>
+                            <span className={cn(
+                              "text-[10px] ml-1",
+                              scenario.margin_percent > 25 ? "text-emerald-400" : "text-amber-400"
+                            )}>
+                              {scenario.margin_percent.toFixed(1)}%
+                            </span>
+                          </div>
+                        </div>
+                        {scenario.resource_match.driver && (
+                          <div className="text-[10px] text-zinc-500 mt-0.5">
+                            Driver: {scenario.resource_match.driver.name}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
+
             {/* Driver List - Compact */}
-            <div className="flex-1 flex flex-col min-h-0 gap-1">
-              <label className="text-[10px] font-medium text-zinc-500 uppercase flex-none">Drivers</label>
-              <div className="space-y-1 overflow-y-auto pr-1">
+            <div className="flex-1 flex flex-col min-h-0 gap-1 overflow-hidden">
+              <label className="text-[10px] font-medium text-zinc-500 uppercase flex-none">Available Drivers</label>
+              <div className="space-y-1 overflow-y-auto pr-1 flex-1">
                 {drivers.length === 0 ? (
                   <div className="text-center py-4 text-zinc-500">
                     <Users className="h-6 w-6 mx-auto mb-1 opacity-50" />
-                    <p className="text-xs">No drivers</p>
+                    <p className="text-xs">No drivers available</p>
                   </div>
                 ) : (
                   drivers.map((driver) => (
@@ -429,18 +643,18 @@ function ExecutionMode({
                         <div className="text-xs font-medium text-zinc-200 truncate">{driver.driverName}</div>
                         <div className="text-[10px] text-zinc-500 truncate">
                           {driver.unitNumber ? `#${driver.unitNumber}` : "No unit"}
-                          {driver.region && ` • ${driver.region}`}
+                          {driver.driverCategory && ` • ${driver.driverCategory}`}
                         </div>
                       </div>
                       <Badge
                         className={cn(
                           "text-[10px] px-1.5 py-0",
-                          driver.status === "Available"
+                          driver.status === "Available" || driver.status === "Off Duty"
                             ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
                             : "bg-zinc-800 text-zinc-400 border-zinc-700"
                         )}
                       >
-                        {driver.status?.slice(0, 4) || "Unk"}
+                        {driver.status?.slice(0, 6) || "Avail"}
                       </Badge>
                     </div>
                   ))
@@ -450,7 +664,7 @@ function ExecutionMode({
 
             {/* Assign Button */}
             <Button
-              className="w-full h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white"
+              className="w-full h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white flex-none"
               disabled={!selectedDriverId || isAssigning}
               onClick={handleAssign}
             >
@@ -460,6 +674,31 @@ function ExecutionMode({
           </div>
         ) : (
           <div className="h-full overflow-y-auto space-y-2">
+            {/* Market Rate Info */}
+            {simulation?.market_analysis && (
+              <div className="bg-zinc-900/50 border border-zinc-800 rounded p-2">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10px] text-zinc-500 uppercase">Market Rate</span>
+                  <Badge className="text-[8px] bg-zinc-700 text-zinc-300 border-zinc-600">
+                    {simulation.market_analysis.provider}
+                  </Badge>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-lg font-bold text-amber-400">
+                      ${simulation.market_analysis.total_market_rate.toFixed(0)}
+                    </span>
+                    <span className="text-[10px] text-zinc-500 ml-1">
+                      (${(simulation.market_analysis.market_rate_avg / (simulation.internal_simulation?.total_trip_distance || 1)).toFixed(2)}/mi)
+                    </span>
+                  </div>
+                  <div className="text-right text-[10px] text-zinc-500">
+                    {simulation.internal_simulation?.total_trip_distance?.toFixed(0) || '?'} miles
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Kick to Brokerage - Compact */}
             <div className="bg-amber-500/5 border border-amber-500/20 rounded p-2">
               <h4 className="text-xs font-semibold text-amber-400 mb-1">Move to Brokerage</h4>

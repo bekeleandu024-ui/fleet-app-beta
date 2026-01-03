@@ -68,9 +68,9 @@ export function DashboardMap() {
     const loadFleetData = async () => {
       try {
         const response = await fetchFleetLocations();
-        const items: FleetItem[] = response.fleet.map((item) => ({
+        const items: FleetItem[] = response.fleet.map((item: any) => ({
           id: item.id,
-          type: item.status === 'staged' ? "staged" : "trip",
+          type: item.type === 'trip' ? "trip" : "staged",
           status: item.status,
           lat: item.lat || 0,
           lng: item.lng || 0,
