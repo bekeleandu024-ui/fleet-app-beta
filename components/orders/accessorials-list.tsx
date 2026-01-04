@@ -110,16 +110,16 @@ export function AccessorialsList({ control, register, errors, className = "" }: 
                   type="number"
                   {...register(`accessorials.${index}.quantity`, { valueAsNumber: true })}
                   min={1}
-                  className="w-12 h-6 text-xs text-center bg-black/30 border-white/5"
+                  className="w-16 h-6 text-xs text-center bg-black/30 border-white/5"
                 />
                 <span className="text-[10px] text-zinc-500">×</span>
+                <span className="text-[10px] text-zinc-500">$</span>
                 <Input
                   type="number"
                   {...register(`accessorials.${index}.unitPrice`, { valueAsNumber: true })}
                   min={0}
                   step={0.01}
-                  className="w-16 h-6 text-xs bg-black/30 border-white/5"
-                  placeholder="$"
+                  className="w-20 h-6 text-xs bg-black/30 border-white/5"
                 />
                 <button
                   type="button"
