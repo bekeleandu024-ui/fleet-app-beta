@@ -21,6 +21,21 @@ export interface SimulationRequest {
     equipment_type: 'Dry Van' | 'Reefer' | 'Flatbed';
   };
   route: RouteStop[];
+
+  // Asset tracking enhancements
+  unit_id?: string;                // Specific unit to use (optional)
+  unit_current_location?: {        // Unit's current location
+    city: string;
+    state: string;
+    location_id?: string;
+  };
+  unit_home_base?: {               // Unit's home base
+    city: string;
+    state: string;
+    location_id?: string;
+  };
+  is_rounder?: boolean;            // Does the unit return home after delivery?
+  drop_trailer?: boolean;          // Does the trailer detach at delivery?
 }
 
 export interface RouteStop {
@@ -114,6 +129,11 @@ export interface CostBreakdown {
   fixed_daily_cost: number;
   accessorial_cost: number;
   total: number;
+
+  // Asset tracking enhancements
+  bobtail_return?: boolean;       // True if returning without trailer
+  total_empty_miles?: number;     // Sum of deadhead + return miles
+  is_rounder?: boolean;           // True if unit returns home
 }
 
 export interface DispatchRecommendation {
@@ -131,24 +151,28 @@ export interface DispatchRecommendation {
 const COSTING_CONFIG = {
   // Cost per mile rates
   fuel_cost_per_gallon: 4.25,
-  mpg_coupled: 6.5,       // Tractor + Trailer
-  mpg_bobtail: 8.5,       // Tractor only
-  
+
+  // Fuel efficiency (MPG) - Critical for accurate cost calculation
+  mpg_loaded: 6.5,        // Tractor + Loaded Trailer (revenue miles)
+  mpg_empty: 7.0,         // Tractor + Empty Trailer (deadhead/return)
+  mpg_bobtail: 8.5,       // Tractor only, no trailer (best efficiency)
+  mpg_coupled: 6.5,       // Alias for mpg_loaded (backward compatibility)
+
   // Driver costs
   driver_cpm_highway: 0.52,  // Cost per mile for highway drivers
   driver_cpm_local: 0.48,    // Cost per mile for local drivers
-  
+
   // Fixed costs
   fixed_daily_cost: 185.00,  // Insurance, depreciation, etc.
-  
+
   // Accessorials
   stop_charge: 50.00,        // Per additional stop beyond 2
   detention_per_hour: 75.00,
-  
+
   // Operational parameters
   average_speed_mph: 55,
   hook_unhook_time_hours: 0.5,
-  
+
   // Margin targets
   target_margin_percent: 15,
   minimum_margin_percent: 8,
@@ -194,7 +218,8 @@ export class DispatchSimulationService {
     const directHaul = await this.simulateDirectHaul(
       request.route,
       routeAnalysis,
-      resources
+      resources,
+      request
     );
     scenarios.push(directHaul);
 
@@ -202,7 +227,8 @@ export class DispatchSimulationService {
     const trailerPool = await this.simulateTrailerPool(
       request.route,
       routeAnalysis,
-      resources
+      resources,
+      request
     );
     scenarios.push(trailerPool);
 
@@ -210,7 +236,8 @@ export class DispatchSimulationService {
     const splitStaging = await this.simulateSplitStaging(
       request.route,
       routeAnalysis,
-      resources
+      resources,
+      request
     );
     scenarios.push(splitStaging);
 
@@ -539,7 +566,8 @@ export class DispatchSimulationService {
   private async simulateDirectHaul(
     route: RouteStop[],
     routeAnalysis: { totalDistance: number; estimatedHours: number },
-    resources: Awaited<ReturnType<typeof this.getAvailableResources>>
+    resources: Awaited<ReturnType<typeof this.getAvailableResources>>,
+    request?: SimulationRequest  // Add request parameter for asset tracking
   ): Promise<SimulationScenario> {
     // Find a highway driver with sufficient HOS
     const eligibleDriver = resources.drivers.find(
@@ -587,19 +615,29 @@ export class DispatchSimulationService {
     );
 
     // Calculate return deadhead (last drop back to home base)
-    const returnDeadheadMiles = await this.calculateDeadhead(
-      lastDrop,
-      { city: 'Guelph', lat: 43.5448, lng: -80.2482 } // Home base
-    );
+    // Use request.unit_home_base if provided, otherwise default to Guelph
+    const isRounder = request?.is_rounder ?? true;
+    const dropTrailer = request?.drop_trailer ?? false;
 
-    // Calculate costs (including return deadhead)
+    let returnDeadheadMiles = 0;
+    if (isRounder) {
+      const homeBase = request?.unit_home_base
+        ? { city: request.unit_home_base.city, lat: undefined, lng: undefined }
+        : { city: 'Guelph', lat: 43.5448, lng: -80.2482 };
+
+      returnDeadheadMiles = await this.calculateDeadhead(lastDrop, homeBase);
+    }
+
+    // Calculate costs with asset tracking parameters
     const costBreakdown = this.calculateCosts(
       deadheadMiles,
       routeAnalysis.totalDistance,
       returnDeadheadMiles,
       eligibleUnit.fuel_consumption,
       'Highway',
-      routeAnalysis.estimatedHours
+      routeAnalysis.estimatedHours,
+      isRounder,
+      dropTrailer
     );
 
     return {
@@ -637,7 +675,8 @@ export class DispatchSimulationService {
   private async simulateTrailerPool(
     route: RouteStop[],
     routeAnalysis: { totalDistance: number; estimatedHours: number },
-    resources: Awaited<ReturnType<typeof this.getAvailableResources>>
+    resources: Awaited<ReturnType<typeof this.getAvailableResources>>,
+    request?: SimulationRequest
   ): Promise<SimulationScenario> {
     const firstPickup = route.find(s => s.type === 'PICKUP');
     
@@ -683,31 +722,32 @@ export class DispatchSimulationService {
       firstPickup
     );
 
-    // Calculate return deadhead (last drop back to home base) - bobtail return
+    // Calculate return deadhead - use asset tracking parameters
     const lastDrop = [...route].reverse().find(s => s.type === 'DROP');
-    const returnDeadheadMiles = await this.calculateDeadhead(
-      lastDrop,
-      { city: 'Guelph', lat: 43.5448, lng: -80.2482 } // Home base
+    const isRounder = request?.is_rounder ?? true;
+    const dropTrailer = request?.drop_trailer ?? false;
+
+    let returnDeadheadMiles = 0;
+    if (isRounder) {
+      const homeBase = request?.unit_home_base
+        ? { city: request.unit_home_base.city, lat: undefined, lng: undefined }
+        : { city: 'Guelph', lat: 43.5448, lng: -80.2482 };
+
+      returnDeadheadMiles = await this.calculateDeadhead(lastDrop, homeBase);
+    }
+
+    // Use calculateCosts for consistency - trailer pool always drops trailer at pickup
+    // So this is like a rounder with drop_trailer=true (bobtail return)
+    const costBreakdown = this.calculateCosts(
+      deadheadMiles,
+      routeAnalysis.totalDistance,
+      returnDeadheadMiles,
+      bobtailUnit.fuel_consumption,
+      'Highway',
+      routeAnalysis.estimatedHours,
+      isRounder,
+      true // Trailer pool always uses trailer at pickup, so bobtail return
     );
-
-    // Bobtail has better fuel efficiency for deadhead
-    const deadheadCost = (deadheadMiles / COSTING_CONFIG.mpg_bobtail) * COSTING_CONFIG.fuel_cost_per_gallon;
-    const returnDeadheadCost = (returnDeadheadMiles / COSTING_CONFIG.mpg_bobtail) * COSTING_CONFIG.fuel_cost_per_gallon;
-    
-    // Linehaul cost (coupled after pickup)
-    const linehaulFuelCost = (routeAnalysis.totalDistance / COSTING_CONFIG.mpg_coupled) * COSTING_CONFIG.fuel_cost_per_gallon;
-    
-    // Driver cost includes return deadhead
-    const totalDriverMiles = deadheadMiles + routeAnalysis.totalDistance + returnDeadheadMiles;
-    const driverCost = totalDriverMiles * COSTING_CONFIG.driver_cpm_highway;
-    
-    // Fixed costs - include return time
-    const returnHours = returnDeadheadMiles / COSTING_CONFIG.average_speed_mph;
-    const totalTripHours = routeAnalysis.estimatedHours + returnHours;
-    const tripDays = Math.ceil(totalTripHours / 11);
-    const fixedCost = tripDays * COSTING_CONFIG.fixed_daily_cost;
-
-    const totalCost = deadheadCost + returnDeadheadCost + linehaulFuelCost + driverCost + fixedCost;
 
     return {
       type: 'TRAILER_POOL',
@@ -727,20 +767,8 @@ export class DispatchSimulationService {
           current_location: bobtailUnit.current_location,
         },
       },
-      cost_breakdown: {
-        deadhead_miles: deadheadMiles,
-        deadhead_cost: Math.round(deadheadCost * 100) / 100,
-        return_deadhead_miles: returnDeadheadMiles,
-        return_deadhead_cost: Math.round(returnDeadheadCost * 100) / 100,
-        linehaul_miles: routeAnalysis.totalDistance,
-        linehaul_cost: Math.round(linehaulFuelCost * 100) / 100,
-        fuel_cost: Math.round((deadheadCost + returnDeadheadCost + linehaulFuelCost) * 100) / 100,
-        driver_cost: Math.round(driverCost * 100) / 100,
-        fixed_daily_cost: Math.round(fixedCost * 100) / 100,
-        accessorial_cost: 0,
-        total: Math.round(totalCost * 100) / 100,
-      },
-      total_cost: Math.round(totalCost * 100) / 100,
+      cost_breakdown: costBreakdown,
+      total_cost: costBreakdown.total,
     };
   }
 
@@ -751,7 +779,8 @@ export class DispatchSimulationService {
   private async simulateSplitStaging(
     route: RouteStop[],
     routeAnalysis: { totalDistance: number; estimatedHours: number },
-    resources: Awaited<ReturnType<typeof this.getAvailableResources>>
+    resources: Awaited<ReturnType<typeof this.getAvailableResources>>,
+    request?: SimulationRequest
   ): Promise<SimulationScenario> {
     // Find a local driver for first leg
     const localDriver = resources.drivers.find(d => d.category === 'Local');
@@ -794,30 +823,37 @@ export class DispatchSimulationService {
     const lastDrop = [...route].reverse().find(s => s.type === 'DROP');
     const localLegMiles = await this.calculateDeadhead(unit.current_location, firstPickup) + 30; // Pickup + return to yard
     const mainHaulMiles = routeAnalysis.totalDistance;
-    
-    // Return deadhead for highway driver (last drop back to home base)
-    const returnDeadheadMiles = await this.calculateDeadhead(
-      lastDrop,
-      { city: 'Guelph', lat: 43.5448, lng: -80.2482 } // Home base
+
+    // Use asset tracking parameters
+    const isRounder = request?.is_rounder ?? true;
+    const dropTrailer = request?.drop_trailer ?? false;
+
+    let returnDeadheadMiles = 0;
+    if (isRounder) {
+      const homeBase = request?.unit_home_base
+        ? { city: request.unit_home_base.city, lat: undefined, lng: undefined }
+        : { city: 'Guelph', lat: 43.5448, lng: -80.2482 };
+
+      returnDeadheadMiles = await this.calculateDeadhead(lastDrop, homeBase);
+    }
+
+    // Local driver costs (first leg to yard)
+    const localDriverCost = localLegMiles * COSTING_CONFIG.driver_cpm_local;
+    const localFuelCost = (localLegMiles / COSTING_CONFIG.mpg_loaded) * COSTING_CONFIG.fuel_cost_per_gallon;
+
+    // Highway driver costs - use calculateCosts for main haul
+    const highwayCostBreakdown = this.calculateCosts(
+      0, // No deadhead - starts from yard
+      mainHaulMiles,
+      returnDeadheadMiles,
+      unit.fuel_consumption,
+      'Highway',
+      routeAnalysis.estimatedHours,
+      isRounder,
+      dropTrailer
     );
 
-    // Costs
-    const localDriverCost = localLegMiles * COSTING_CONFIG.driver_cpm_local;
-    const localFuelCost = (localLegMiles / COSTING_CONFIG.mpg_coupled) * COSTING_CONFIG.fuel_cost_per_gallon;
-    
-    // Highway driver cost includes return deadhead
-    const highwayTotalMiles = mainHaulMiles + returnDeadheadMiles;
-    const highwayDriverCost = highwayTotalMiles * COSTING_CONFIG.driver_cpm_highway;
-    const highwayFuelCost = (mainHaulMiles / COSTING_CONFIG.mpg_coupled) * COSTING_CONFIG.fuel_cost_per_gallon;
-    const returnFuelCost = (returnDeadheadMiles / COSTING_CONFIG.mpg_bobtail) * COSTING_CONFIG.fuel_cost_per_gallon;
-    
-    // Fixed costs - include return time
-    const returnHours = returnDeadheadMiles / COSTING_CONFIG.average_speed_mph;
-    const totalTripHours = routeAnalysis.estimatedHours + returnHours;
-    const tripDays = Math.ceil(totalTripHours / 11);
-    const fixedCost = tripDays * COSTING_CONFIG.fixed_daily_cost;
-
-    const totalCost = localDriverCost + localFuelCost + highwayDriverCost + highwayFuelCost + returnFuelCost + fixedCost;
+    const totalCost = localDriverCost + localFuelCost + highwayCostBreakdown.total;
 
     return {
       type: 'SPLIT_STAGING',
@@ -849,17 +885,23 @@ export class DispatchSimulationService {
         },
       },
       cost_breakdown: {
+        // Local leg is the "deadhead" to yard
         deadhead_miles: localLegMiles,
         deadhead_cost: Math.round((localDriverCost + localFuelCost) * 100) / 100,
-        return_deadhead_miles: returnDeadheadMiles,
-        return_deadhead_cost: Math.round(returnFuelCost * 100) / 100,
-        linehaul_miles: mainHaulMiles,
-        linehaul_cost: Math.round((highwayDriverCost + highwayFuelCost) * 100) / 100,
-        fuel_cost: Math.round((localFuelCost + highwayFuelCost + returnFuelCost) * 100) / 100,
-        driver_cost: Math.round((localDriverCost + highwayDriverCost) * 100) / 100,
-        fixed_daily_cost: Math.round(fixedCost * 100) / 100,
+        // Main haul breakdown from highwayCostBreakdown
+        linehaul_miles: highwayCostBreakdown.linehaul_miles,
+        linehaul_cost: highwayCostBreakdown.linehaul_cost,
+        return_deadhead_miles: highwayCostBreakdown.return_deadhead_miles || 0,
+        return_deadhead_cost: highwayCostBreakdown.return_deadhead_cost || 0,
+        fuel_cost: Math.round((localFuelCost + highwayCostBreakdown.fuel_cost) * 100) / 100,
+        driver_cost: Math.round((localDriverCost + highwayCostBreakdown.driver_cost) * 100) / 100,
+        fixed_daily_cost: highwayCostBreakdown.fixed_daily_cost,
         accessorial_cost: 0,
         total: Math.round(totalCost * 100) / 100,
+        // Include asset tracking fields
+        bobtail_return: highwayCostBreakdown.bobtail_return,
+        total_empty_miles: (highwayCostBreakdown.total_empty_miles || 0) + localLegMiles,
+        is_rounder: highwayCostBreakdown.is_rounder,
       },
       total_cost: Math.round(totalCost * 100) / 100,
     };
@@ -944,35 +986,59 @@ export class DispatchSimulationService {
     returnDeadheadMiles: number,  // Empty return to home base
     mpg: number,
     driverCategory: 'Local' | 'Highway',
-    estimatedHours: number
+    estimatedHours: number,
+    isRounder: boolean = true,       // Does unit return home?
+    dropTrailer: boolean = false     // Does trailer detach at delivery?
   ): CostBreakdown {
-    const totalMiles = deadheadMiles + linehaulMiles + returnDeadheadMiles;
-    
-    // Fuel costs - return is typically bobtail (better MPG)
-    const mpgBobtail = COSTING_CONFIG.mpg_bobtail;
-    const deadheadFuelCost = (deadheadMiles / mpg) * COSTING_CONFIG.fuel_cost_per_gallon;
-    const linehaulFuelCost = (linehaulMiles / mpg) * COSTING_CONFIG.fuel_cost_per_gallon;
-    const returnFuelCost = (returnDeadheadMiles / mpgBobtail) * COSTING_CONFIG.fuel_cost_per_gallon;
+    // CRITICAL LOGIC: Empty miles only matter for rounders
+    // Non-rounders stay DISPLACED at delivery (0 return miles)
+    const actualReturnMiles = isRounder ? returnDeadheadMiles : 0;
+    const totalMiles = deadheadMiles + linehaulMiles + actualReturnMiles;
+
+    // FUEL COSTS with proper MPG for each leg
+    // Deadhead: Usually with empty trailer (unless we add trailer positioning logic)
+    const deadheadFuelCost = (deadheadMiles / COSTING_CONFIG.mpg_empty) * COSTING_CONFIG.fuel_cost_per_gallon;
+
+    // Linehaul: Loaded trailer
+    const linehaulFuelCost = (linehaulMiles / COSTING_CONFIG.mpg_loaded) * COSTING_CONFIG.fuel_cost_per_gallon;
+
+    // Return: Depends on drop_trailer flag
+    let returnFuelCost = 0;
+    let bobtailReturn = false;
+
+    if (isRounder && actualReturnMiles > 0) {
+      if (dropTrailer) {
+        // BOBTAIL RETURN - no trailer, best MPG
+        returnFuelCost = (actualReturnMiles / COSTING_CONFIG.mpg_bobtail) * COSTING_CONFIG.fuel_cost_per_gallon;
+        bobtailReturn = true;
+      } else {
+        // EMPTY TRAILER RETURN - hauling empty trailer back
+        returnFuelCost = (actualReturnMiles / COSTING_CONFIG.mpg_empty) * COSTING_CONFIG.fuel_cost_per_gallon;
+        bobtailReturn = false;
+      }
+    }
+
     const fuelCost = deadheadFuelCost + linehaulFuelCost + returnFuelCost;
 
     // Driver costs (paid for all miles including return)
-    const driverCpm = driverCategory === 'Highway' 
-      ? COSTING_CONFIG.driver_cpm_highway 
+    const driverCpm = driverCategory === 'Highway'
+      ? COSTING_CONFIG.driver_cpm_highway
       : COSTING_CONFIG.driver_cpm_local;
     const driverCost = totalMiles * driverCpm;
 
-    // Fixed daily costs - include return time
-    const returnHours = returnDeadheadMiles / COSTING_CONFIG.average_speed_mph;
+    // Fixed daily costs - include return time if rounder
+    const returnHours = isRounder ? (actualReturnMiles / COSTING_CONFIG.average_speed_mph) : 0;
     const totalTripHours = estimatedHours + returnHours;
     const tripDays = Math.ceil(totalTripHours / 11); // 11 hour driving limit
     const fixedCost = tripDays * COSTING_CONFIG.fixed_daily_cost;
 
     const total = fuelCost + driverCost + fixedCost;
+    const totalEmptyMiles = deadheadMiles + actualReturnMiles;
 
     return {
       deadhead_miles: Math.round(deadheadMiles * 10) / 10,
       deadhead_cost: Math.round(deadheadFuelCost * 100) / 100,
-      return_deadhead_miles: Math.round(returnDeadheadMiles * 10) / 10,
+      return_deadhead_miles: Math.round(actualReturnMiles * 10) / 10,
       return_deadhead_cost: Math.round(returnFuelCost * 100) / 100,
       linehaul_miles: Math.round(linehaulMiles * 10) / 10,
       linehaul_cost: Math.round(linehaulFuelCost * 100) / 100,
@@ -981,6 +1047,11 @@ export class DispatchSimulationService {
       fixed_daily_cost: Math.round(fixedCost * 100) / 100,
       accessorial_cost: 0,
       total: Math.round(total * 100) / 100,
+
+      // Asset tracking enhancements
+      bobtail_return: bobtailReturn,
+      total_empty_miles: Math.round(totalEmptyMiles * 10) / 10,
+      is_rounder: isRounder,
     };
   }
 

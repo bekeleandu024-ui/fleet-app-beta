@@ -656,6 +656,51 @@ export default function EnterpriseOrderPage() {
                 </div>
               </div>
 
+              {/* Trip Logistics Section */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-semibold text-zinc-200">Trip Logistics</h3>
+                  <span className="text-xs text-zinc-500">Asset tracking & return behavior</span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className="flex items-start gap-4 p-3 rounded border border-zinc-800 bg-black/20">
+                    <label className="flex items-start gap-3 text-sm text-zinc-300 cursor-pointer flex-1">
+                      <input
+                        type="checkbox"
+                        {...register("isRounder")}
+                        className="rounded border-zinc-700 bg-zinc-900 text-blue-600 w-4 h-4 mt-0.5"
+                      />
+                      <div>
+                        <div className="font-medium">Is Rounder</div>
+                        <div className="text-xs text-zinc-500 mt-0.5">Unit returns to home base after delivery</div>
+                      </div>
+                    </label>
+                  </div>
+                  <div className="flex items-start gap-4 p-3 rounded border border-zinc-800 bg-black/20">
+                    <label className="flex items-start gap-3 text-sm text-zinc-300 cursor-pointer flex-1">
+                      <input
+                        type="checkbox"
+                        {...register("dropTrailer")}
+                        disabled={!watch("isRounder")}
+                        className="rounded border-zinc-700 bg-zinc-900 text-blue-600 w-4 h-4 mt-0.5 disabled:opacity-40 disabled:cursor-not-allowed"
+                      />
+                      <div>
+                        <div className="font-medium">Drop Trailer</div>
+                        <div className="text-xs text-zinc-500 mt-0.5">Trailer spots at delivery (bobtail return)</div>
+                      </div>
+                    </label>
+                  </div>
+                  <div className="p-3 rounded border border-zinc-800 bg-black/20">
+                    <div className="text-xs font-medium text-zinc-500 mb-1">COST IMPACT</div>
+                    <div className="text-xs text-zinc-400 leading-relaxed">
+                      {!watch("isRounder") && <span className="text-amber-400">⚠ Non-rounder: Unit stays displaced, no return miles</span>}
+                      {watch("isRounder") && !watch("dropTrailer") && <span className="text-blue-400">🔗 Empty trailer return</span>}
+                      {watch("isRounder") && watch("dropTrailer") && <span className="text-green-400">🚛 Bobtail return (best MPG)</span>}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {/* Instructions Section */}
               <div>
                 <div className="flex items-center justify-between mb-2">

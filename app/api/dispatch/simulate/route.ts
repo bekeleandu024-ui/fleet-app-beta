@@ -58,6 +58,11 @@ export async function POST(request: NextRequest): Promise<NextResponse<Simulatio
         lng: stop.lng,
         appointment_time: stop.appointment_time,
       })),
+      // Asset tracking parameters
+      unit_current_location: body.unit_current_location,
+      unit_home_base: body.unit_home_base,
+      is_rounder: body.is_rounder ?? true, // Default to rounder
+      drop_trailer: body.drop_trailer ?? false, // Default to keeping trailer
     };
 
     // Run simulation
@@ -101,6 +106,18 @@ export async function GET(): Promise<NextResponse> {
           lng: 'number (optional)',
         },
       ],
+      unit_current_location: {
+        city: 'string',
+        state: 'string',
+        location_id: 'string (optional)',
+      },
+      unit_home_base: {
+        city: 'string',
+        state: 'string',
+        location_id: 'string (optional)',
+      },
+      is_rounder: 'boolean (default: true) - Whether unit returns to home base after delivery',
+      drop_trailer: 'boolean (default: false) - Whether trailer is dropped at delivery location',
     },
     sample_request: {
       trip_id: 'DFT-123',
@@ -112,6 +129,18 @@ export async function GET(): Promise<NextResponse> {
         { type: 'PICKUP', location_id: 'LOC_COMTECH', city: 'Milton', zip: 'L9T' },
         { type: 'DROP', location_id: 'LOC_WINDSOR', city: 'Windsor', zip: 'N9A' },
       ],
+      unit_current_location: {
+        city: 'Cambridge',
+        state: 'ON',
+        location_id: 'cambridge-terminal-001',
+      },
+      unit_home_base: {
+        city: 'Cambridge',
+        state: 'ON',
+        location_id: 'cambridge-terminal-001',
+      },
+      is_rounder: true,
+      drop_trailer: false,
     },
     scenarios_evaluated: [
       'DIRECT_HAUL - Single driver, full route execution',

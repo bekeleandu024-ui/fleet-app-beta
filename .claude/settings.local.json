@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(psql:*)",
+      "Bash(node run-asset-tracking-migration.js:*)",
+      "Bash(npx tsx:*)",
+      "Bash(curl:*)"
+    ]
+  }
+}

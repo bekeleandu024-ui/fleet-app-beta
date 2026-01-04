@@ -215,11 +215,15 @@ export const enterpriseOrderInputSchema = z.object({
   isHazmat: z.boolean().default(false),
   isHighValue: z.boolean().default(false),
   declaredValue: z.number().min(0).optional().nullable(),
-  
+
+  // Trip Logistics - Asset Tracking
+  isRounder: z.boolean().default(true),
+  dropTrailer: z.boolean().default(false),
+
   // Instructions
   specialInstructions: z.string().optional().nullable(),
   internalNotes: z.string().optional().nullable(),
-  
+
   // Metadata
   priority: z.enum(["low", "normal", "high", "critical"]).default("normal"),
   sourceChannel: z.enum(["manual", "email", "phone", "portal", "edi", "api"]).default("manual"),
@@ -413,6 +417,8 @@ export function createDefaultOrderInput(): EnterpriseOrderInput {
     isHazmat: false,
     isHighValue: false,
     declaredValue: null,
+    isRounder: true,
+    dropTrailer: false,
     specialInstructions: null,
     internalNotes: null,
     priority: "normal",
