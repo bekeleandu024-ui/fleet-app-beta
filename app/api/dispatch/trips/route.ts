@@ -26,7 +26,7 @@ export async function POST(request: Request) {
     try {
       await client.query('BEGIN');
 
-      // Fetch order details to populate trip fields
+      // Fetch order details to populate trip fields (including customer info)
       const ordersResult = await client.query(`
         SELECT 
           id, 
@@ -35,7 +35,9 @@ export async function POST(request: Request) {
           pickup_time,
           dropoff_time,
           total_weight_lbs,
-          quoted_rate
+          quoted_rate,
+          customer_id,
+          customer_name
         FROM orders 
         WHERE id = ANY($1)
       `, [uniqueOrderIds]);
@@ -50,6 +52,32 @@ export async function POST(request: Request) {
       const totalWeight = orders.reduce((sum, o) => sum + (parseFloat(o.total_weight_lbs) || 0), 0);
       const totalRevenue = orders.reduce((sum, o) => sum + (parseFloat(o.quoted_rate) || 0), 0);
 
+      // Get unit_id and driver details if assigning to driver
+      let unitId = null;
+      let driverName = null;
+      let unitNumber = null;
+      
+      if (resourceType === 'driver' && resourceId) {
+        // Fetch driver info and their assigned unit
+        const driverResult = await client.query(`
+          SELECT 
+            dp.driver_name,
+            dp.unit_number as driver_unit_number,
+            up.unit_id,
+            up.unit_number
+          FROM driver_profiles dp
+          LEFT JOIN unit_profiles up ON dp.driver_id = up.driver_id
+          WHERE dp.driver_id = $1
+        `, [resourceId]);
+        
+        if (driverResult.rows.length > 0) {
+          const driver = driverResult.rows[0];
+          driverName = driver.driver_name;
+          unitId = driver.unit_id;
+          unitNumber = driver.unit_number || driver.driver_unit_number;
+        }
+      }
+
       // Create ONE trip for all orders (consolidated shipment)
       const newTripId = randomUUID();
 
@@ -61,13 +89,19 @@ export async function POST(request: Request) {
           trip_number,
           status,
           driver_id,
+          driver_name,
+          unit_id,
+          unit_number,
+          customer_id,
+          customer_name,
+          revenue,
           pickup_location,
           dropoff_location,
           pickup_window_start,
           delivery_window_start,
           created_at,
           updated_at
-        ) VALUES ($1, $2, $3::uuid[], $4, $5, $6, $7, $8, $9, $10, NOW(), NOW())
+        ) VALUES ($1, $2, $3::uuid[], $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, NOW(), NOW())
       `, [
         newTripId,
         primaryOrder.id,  // Use first order as primary (for backwards compatibility)
@@ -75,6 +109,12 @@ export async function POST(request: Request) {
         tripNumber,
         'ASSIGNED',
         resourceType === 'driver' ? resourceId : null,
+        driverName,
+        unitId,
+        unitNumber,
+        primaryOrder.customer_id,
+        primaryOrder.customer_name || primaryOrder.customer_id,
+        totalRevenue,
         primaryOrder.pickup_location || 'TBD',
         primaryOrder.dropoff_location || 'TBD',
         primaryOrder.pickup_time,

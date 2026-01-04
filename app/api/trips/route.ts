@@ -15,12 +15,16 @@ export async function GET(request: Request) {
       let query = `
         SELECT 
           t.*,
-          d.driver_name,
-          u.unit_number,
-          o.customer_id as customer_name
+          COALESCE(d.driver_name, d2.driver_name) as driver_name,
+          COALESCE(t.driver_id, u.driver_id) as resolved_driver_id,
+          COALESCE(t.unit_number, u.unit_number) as unit_number,
+          COALESCE(t.customer_name, o.customer_name, o.customer_id::text, 'Unknown') as customer_name,
+          COALESCE(t.revenue, o.quoted_rate) as quoted_rate,
+          o.final_billable_amount
         FROM trips t
         LEFT JOIN driver_profiles d ON t.driver_id = d.driver_id
         LEFT JOIN unit_profiles u ON t.unit_id = u.unit_id
+        LEFT JOIN driver_profiles d2 ON u.driver_id = d2.driver_id
         LEFT JOIN orders o ON t.order_id = o.id
       `;
       
@@ -107,6 +111,10 @@ function transformTripRow(row: any): TripListItem {
     completedAt: (row.completed_at || row.delivery_departure || row.closed_at) 
       ? new Date(row.completed_at || row.delivery_departure || row.closed_at).toISOString() 
       : undefined,
+    // Billing fields for Two-Stage Revenue model
+    billingStatus: row.billing_status || "PENDING",
+    quotedRate: row.quoted_rate ? Number(row.quoted_rate) : null,
+    finalBillableAmount: row.final_billable_amount ? Number(row.final_billable_amount) : null,
   };
 }
 

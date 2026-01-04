@@ -8,7 +8,7 @@ async function assignYards() {
     
     // Insert the 3 yard locations
     const yards = await client.query(`
-      INSERT INTO customers (name, full_address, city, has_trailer_pool, pool_count_empty) VALUES
+      INSERT INTO customers (customer_name, full_address, city, has_trailer_pool, pool_count_empty) VALUES
         ('Home Base Yard - Guelph', '100 Speedvale Ave W, Guelph, ON N1H 1C4', 'Guelph', true, 20),
         ('Kitchener Yard', '500 Fairway Road S, Kitchener, ON N2C 1X3', 'Kitchener', true, 15),
         ('Guelph Yard 2', '425 Woodlawn Road W, Guelph, ON N1H 7M1', 'Guelph', true, 10)
@@ -21,7 +21,7 @@ async function assignYards() {
     
     // Get yard IDs
     const yardIds = await client.query(`
-      SELECT customer_id, name FROM customers 
+      SELECT customer_id, customer_name FROM customers 
       WHERE name LIKE '%Yard%' AND city IN ('Guelph', 'Kitchener') 
       ORDER BY name
     `);
@@ -52,14 +52,14 @@ async function assignYards() {
     
     // Show distribution
     const dist = await client.query(`
-      SELECT c.name, COUNT(*) as units
+      SELECT c.customer_name, COUNT(*) as units
       FROM unit_profiles up
       JOIN customers c ON up.current_location_id = c.customer_id
-      GROUP BY c.name
-      ORDER BY c.name
+      GROUP BY c.customer_name
+      ORDER BY c.customer_name
     `);
     console.log('\n📊 Distribution:');
-    dist.rows.forEach(r => console.log('   •', r.name + ':', r.units, 'units'));
+    dist.rows.forEach(r => console.log('   •', r.customer_name + ':', r.units, 'units'));
     
   } catch (e) {
     await client.query('ROLLBACK');

@@ -94,6 +94,7 @@ export async function GET() {
       
       const mapped: OrderResponse = {
         id, // Always use the local database ID
+        orderNumber: existing?.orderNumber || o.orderNumber,
         reference: o.reference || existing?.reference || o.id,
         customer: o.customer || existing?.customer || "Customer",
         pickup: o.pickup || existing?.pickup || "",

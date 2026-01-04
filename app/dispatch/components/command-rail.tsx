@@ -356,6 +356,10 @@ function ExecutionMode({
   const [simulation, setSimulation] = useState<SimulationResult | null>(null);
   const [isSimulating, setIsSimulating] = useState(false);
   const [showCostBreakdown, setShowCostBreakdown] = useState(false);
+  
+  // Trip execution options (dispatch decisions)
+  const [isRounder, setIsRounder] = useState(true);
+  const [dropTrailer, setDropTrailer] = useState(false);
 
   // Run simulation when trip changes
   useEffect(() => {
@@ -364,23 +368,54 @@ function ExecutionMode({
       
       setIsSimulating(true);
       try {
-        // Build route from trip orders
-        const firstOrder = trip.orders[0];
-        const lastOrder = trip.orders[trip.orders.length - 1];
+        // Build complete route from ALL orders in the trip
+        // Collect all unique pickup and dropoff locations
+        const pickupStops: Array<{ type: string; location_id: string; city: string; order_ids: string[] }> = [];
+        const dropoffStops: Array<{ type: string; location_id: string; city: string; order_ids: string[] }> = [];
         
-        // Build route array with PICKUP and DROP stops
-        const route = [
-          {
-            type: 'PICKUP',
-            location_id: firstOrder.id,
-            city: firstOrder.pickupLocation || 'Origin',
-          },
-          {
-            type: 'DROP',
-            location_id: lastOrder.id,
-            city: lastOrder.dropoffLocation || 'Destination',
+        // Group orders by pickup location
+        const pickupGroups = new Map<string, string[]>();
+        const dropoffGroups = new Map<string, string[]>();
+        
+        for (const order of trip.orders) {
+          const pickupCity = order.pickupLocation || 'Origin';
+          const dropoffCity = order.dropoffLocation || 'Destination';
+          
+          // Group by pickup location
+          if (!pickupGroups.has(pickupCity)) {
+            pickupGroups.set(pickupCity, []);
           }
-        ];
+          pickupGroups.get(pickupCity)!.push(order.id);
+          
+          // Group by dropoff location
+          if (!dropoffGroups.has(dropoffCity)) {
+            dropoffGroups.set(dropoffCity, []);
+          }
+          dropoffGroups.get(dropoffCity)!.push(order.id);
+        }
+        
+        // Convert to stop arrays
+        for (const [city, orderIds] of pickupGroups) {
+          pickupStops.push({
+            type: 'PICKUP',
+            location_id: orderIds[0], // Use first order ID as location reference
+            city,
+            order_ids: orderIds,
+          });
+        }
+        
+        for (const [city, orderIds] of dropoffGroups) {
+          dropoffStops.push({
+            type: 'DROP',
+            location_id: orderIds[0],
+            city,
+            order_ids: orderIds,
+          });
+        }
+        
+        // Build route: all pickups first, then all dropoffs
+        // TODO: Could optimize stop order based on geography
+        const route = [...pickupStops, ...dropoffStops];
         
         const response = await fetch('/api/dispatch/simulate', {
           method: 'POST',
@@ -391,7 +426,10 @@ function ExecutionMode({
               equipment_type: trip.equipmentType || 'Dry Van',
               weight: trip.totalWeightLbs || 40000,
             },
-            route
+            route,
+            // Trip execution options
+            is_rounder: isRounder,
+            drop_trailer: dropTrailer,
           })
         });
         
@@ -409,7 +447,7 @@ function ExecutionMode({
     }
     
     runSimulation();
-  }, [trip]);
+  }, [trip, isRounder, dropTrailer]);
 
   const handleAssign = async () => {
     if (!selectedDriverId) return;
@@ -617,7 +655,38 @@ function ExecutionMode({
 
             {/* Driver List - Compact */}
             <div className="flex-1 flex flex-col min-h-0 gap-1 overflow-hidden">
-              <label className="text-[10px] font-medium text-zinc-500 uppercase flex-none">Available Drivers</label>
+              {/* Trip Execution Options */}
+              <div className="flex-none space-y-1.5 pb-2 border-b border-zinc-800">
+                <label className="text-[10px] font-medium text-zinc-500 uppercase">Trip Options</label>
+                <div className="flex gap-2">
+                  <label className="flex items-center gap-1.5 text-xs text-zinc-300 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={isRounder}
+                      onChange={(e) => setIsRounder(e.target.checked)}
+                      className="rounded border-zinc-700 bg-zinc-900 text-emerald-600 w-3.5 h-3.5"
+                    />
+                    <span>Rounder</span>
+                  </label>
+                  <label className="flex items-center gap-1.5 text-xs text-zinc-300 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={dropTrailer}
+                      onChange={(e) => setDropTrailer(e.target.checked)}
+                      className="rounded border-zinc-700 bg-zinc-900 text-emerald-600 w-3.5 h-3.5"
+                    />
+                    <span>Drop Trailer</span>
+                  </label>
+                </div>
+                <div className="text-[10px] text-zinc-500">
+                  {!isRounder && !dropTrailer && "⚠️ One-way: Unit + trailer stay displaced"}
+                  {!isRounder && dropTrailer && "⚠️ One-way: Unit displaced, trailer spotted"}
+                  {isRounder && !dropTrailer && "🔗 Unit + empty trailer return home"}
+                  {isRounder && dropTrailer && "🚛 Bobtail return (better MPG)"}
+                </div>
+              </div>
+              
+              <label className="text-[10px] font-medium text-zinc-500 uppercase flex-none pt-1">Available Drivers</label>
               <div className="space-y-1 overflow-y-auto pr-1 flex-1">
                 {drivers.length === 0 ? (
                   <div className="text-center py-4 text-zinc-500">

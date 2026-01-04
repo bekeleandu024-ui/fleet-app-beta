@@ -544,7 +544,7 @@ export class DispatchSimulationService {
     const poolsResult = await this.pool.query(`
       SELECT 
         customer_id as location_id,
-        name as location_name,
+        customer_name as location_name,
         COALESCE(pool_count_empty, 0) as pool_count_empty
       FROM customers
       WHERE has_trailer_pool = true

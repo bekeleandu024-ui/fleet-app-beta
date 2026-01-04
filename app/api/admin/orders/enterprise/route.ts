@@ -61,8 +61,10 @@ export async function POST(request: NextRequest) {
         total_weight_lbs, total_pieces, total_pallets, total_cubic_feet, total_linear_feet,
         is_hazmat, is_high_value, declared_value,
         special_instructions, internal_notes,
-        priority, source_channel
-      ) VALUES ($1, $2, $3, 'round_trip', 'NEW', $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
+        priority, source_channel,
+        is_direct,
+        quoted_rate, estimated_cost, target_rate
+      ) VALUES ($1, $2, $3, 'round_trip', 'NEW', $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26)
       RETURNING *`,
       [
         orderNumber,
@@ -87,6 +89,10 @@ export async function POST(request: NextRequest) {
         data.internalNotes || null,
         data.priority,
         data.sourceChannel,
+        data.isDirect,
+        data.quotedRate || null,
+        data.estimatedCost || null,
+        data.quotedRate || null, // target_rate = quoted_rate initially
       ]
     );
     

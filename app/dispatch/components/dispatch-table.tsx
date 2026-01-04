@@ -135,6 +135,9 @@ export function DispatchTable({
               <th className="px-3 py-2 text-left text-xs font-semibold text-zinc-500 uppercase tracking-wide">
                 Customer
               </th>
+              <th className="w-16 px-3 py-2 text-center text-xs font-semibold text-zinc-500 uppercase tracking-wide">
+                Type
+              </th>
               <th className="w-28 px-3 py-2 text-left text-xs font-semibold text-zinc-500 uppercase tracking-wide">
                 Origin
               </th>
@@ -162,7 +165,7 @@ export function DispatchTable({
             {trips.length > 0 && (
               <>
                 <tr className="bg-violet-500/5">
-                  <td colSpan={10} className="px-3 py-1.5">
+                  <td colSpan={11} className="px-3 py-1.5">
                     <span className="text-xs font-semibold text-violet-400 uppercase tracking-wide">
                       Draft Trips ({trips.length})
                     </span>
@@ -194,6 +197,9 @@ export function DispatchTable({
                       <span className="text-zinc-400">
                         {trip.orders.length} orders consolidated
                       </span>
+                    </td>
+                    <td className="px-3 py-2 text-center">
+                      <span className="text-[10px] text-zinc-500">—</span>
                     </td>
                     <td className="px-3 py-2 text-zinc-400 truncate max-w-[120px]">
                       {extractCity(trip.pickupLocations[0])}
@@ -227,7 +233,7 @@ export function DispatchTable({
               <>
                 {trips.length > 0 && (
                   <tr className="bg-zinc-900/50">
-                    <td colSpan={10} className="px-3 py-1.5">
+                    <td colSpan={11} className="px-3 py-1.5">
                       <span className="text-xs font-semibold text-zinc-500 uppercase tracking-wide">
                         Available Orders ({orders.length})
                       </span>
@@ -271,6 +277,15 @@ export function DispatchTable({
                         <span className="text-zinc-200 truncate block max-w-[180px]">
                           {order.customerName}
                         </span>
+                      </td>
+                      <td className="px-3 py-2 text-center">
+                        {order.isDirect ? (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 font-medium">
+                            Direct
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-zinc-500">Std</span>
+                        )}
                       </td>
                       <td className="px-3 py-2 text-zinc-400 truncate max-w-[120px]">
                         {extractCity(order.pickupLocation)}

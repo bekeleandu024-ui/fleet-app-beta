@@ -40,7 +40,7 @@ export async function GET() {
         up.is_active,
         up.updated_at,
         dp.driver_name,
-        COALESCE(c.name, 'Home Base - Guelph') as current_location,
+        COALESCE(c.customer_name, 'Home Base - Guelph') as current_location,
         t.unit_number as trailer_number
       FROM unit_profiles up
       LEFT JOIN driver_profiles dp ON up.driver_id = dp.driver_id

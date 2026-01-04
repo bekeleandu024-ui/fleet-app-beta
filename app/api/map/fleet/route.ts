@@ -25,7 +25,7 @@ export async function GET() {
           u.current_configuration,
           u.avg_fuel_consumption,
           u.current_location_id,
-          c.name as location_name,
+          c.customer_name as location_name,
           c.full_address as location_address,
           c.city as location_city,
           d.driver_id,
@@ -53,7 +53,7 @@ export async function GET() {
           t.status as trailer_status,
           t.current_location_id,
           t.attached_unit_id,
-          c.name as location_name,
+          c.customer_name as location_name,
           c.full_address as location_address,
           c.city as location_city,
           u.unit_number as attached_to_unit
@@ -67,13 +67,13 @@ export async function GET() {
       const customersQuery = `
         SELECT 
           customer_id,
-          name,
+          customer_name,
           full_address,
           city,
           has_trailer_pool,
           pool_count_empty
         FROM customers
-        ORDER BY name
+        ORDER BY customer_name
       `;
       const customersResult = await client.query(customersQuery);
 

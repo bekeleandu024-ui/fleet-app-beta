@@ -240,6 +240,11 @@ export default function OrdersPage() {
                 </button>
               </th>
               <th className="whitespace-nowrap px-4 py-2 font-medium uppercase tracking-wider">
+                <button onClick={() => handleSort("orderNumber")} className="flex items-center hover:text-zinc-300">
+                  Order Number <SortIcon field="orderNumber" />
+                </button>
+              </th>
+              <th className="whitespace-nowrap px-4 py-2 font-medium uppercase tracking-wider">
                 <button onClick={() => handleSort("status")} className="flex items-center hover:text-zinc-300">
                   Status <SortIcon field="status" />
                 </button>
@@ -279,7 +284,7 @@ export default function OrdersPage() {
           <tbody className="divide-y divide-zinc-800/50 bg-black/20">
             {filteredAndSortedData.length === 0 ? (
               <tr>
-                <td colSpan={10} className="px-4 py-8 text-center text-zinc-500">
+                <td colSpan={11} className="px-4 py-8 text-center text-zinc-500">
                   No orders found.
                 </td>
               </tr>
@@ -302,6 +307,13 @@ export default function OrdersPage() {
                           {order.window}
                         </span>
                       </div>
+                    </td>
+
+                    {/* Order Number */}
+                    <td className="px-4 py-2 align-middle">
+                      <span className="font-mono text-zinc-300">
+                        {order.orderNumber || "—"}
+                      </span>
                     </td>
 
                     {/* Status */}

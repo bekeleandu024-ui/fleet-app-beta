@@ -9,7 +9,7 @@ async function updateFleetData() {
     // 1. Set all units to Home Base Yard - Guelph
     console.log('🏠 Setting all units to Home Base Yard...');
     const homeBase = await client.query(`
-      SELECT customer_id FROM customers WHERE name = 'Home Base Yard - Guelph'
+      SELECT customer_id FROM customers WHERE customer_name = 'Home Base Yard - Guelph'
     `);
     
     const updateUnits = await client.query(`
@@ -46,7 +46,7 @@ async function updateFleetData() {
         up.current_trailer_id,
         up.avg_fuel_consumption,
         up.current_location_id,
-        c.name AS current_location_name,
+        c.customer_name AS current_location_name,
         c.city AS current_city,
         t.trailer_id,
         t.unit_number AS trailer_number,
@@ -63,7 +63,7 @@ async function updateFleetData() {
     
     // 3. Get all customer locations for trailer distribution
     const customers = await client.query(`
-      SELECT customer_id, name FROM customers ORDER BY name
+      SELECT customer_id, customer_name FROM customers ORDER BY customer_name
     `);
     console.log(`\n🚚 Creating 29 trailers across ${customers.rows.length} locations...`);
     

@@ -68,10 +68,10 @@ async function runMigration() {
     
     // Show sample customers
     console.log('\n📍 Seeded Customer Locations:');
-    const customers = await client.query('SELECT name, city, has_trailer_pool, pool_count_empty FROM customers ORDER BY name');
+    const customers = await client.query('SELECT customer_name, city, has_trailer_pool, pool_count_empty FROM customers ORDER BY customer_name');
     customers.rows.forEach(c => {
       const pool = c.has_trailer_pool ? `🟢 Pool: ${c.pool_count_empty} empty` : '⚪ No pool';
-      console.log(`   • ${c.name} (${c.city}) - ${pool}`);
+      console.log(`   • ${c.customer_name} (${c.city}) - ${pool}`);
     });
     
     // Show views created

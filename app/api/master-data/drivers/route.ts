@@ -40,7 +40,7 @@ export async function GET() {
         dp.last_shift_end_at,
         dp.is_active,
         dp.updated_at,
-        COALESCE(c.name, 'Home Base') as current_location
+        COALESCE(c.customer_name, 'Home Base') as current_location
       FROM driver_profiles dp
       LEFT JOIN unit_profiles up ON dp.unit_number = up.unit_number
       LEFT JOIN customers c ON up.current_location_id = c.customer_id

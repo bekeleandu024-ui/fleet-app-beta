@@ -129,6 +129,14 @@ export default function EnterpriseOrderPage() {
   const [aiConfidence, setAiConfidence] = useState<AIOrderExtraction["confidence"]>({});
   const [aiWarnings, setAiWarnings] = useState<string[]>([]);
 
+  // Estimated rate suggestion
+  const [suggestedRate, setSuggestedRate] = useState<{
+    rate: number;
+    rpm: number;
+    miles: number;
+  } | null>(null);
+  const [isFetchingRate, setIsFetchingRate] = useState(false);
+
   // Fetch customers
   const { data: customers } = useQuery({
     queryKey: ["admin-customers"],
@@ -316,6 +324,51 @@ export default function EnterpriseOrderPage() {
       if (currentBilling.billToType === "customer" && !currentBilling.billToName) {
         setValue("billing.billToName", customer.name);
       }
+    }
+  };
+
+  // Fetch estimated rate based on origin/destination
+  const fetchEstimatedRate = async () => {
+    const stops = watch("stops");
+    const pickups = stops.filter(s => s.stopType === "pickup");
+    const deliveries = stops.filter(s => s.stopType === "delivery");
+    
+    if (pickups.length === 0 || deliveries.length === 0) return;
+    
+    const origin = pickups[0].city + (pickups[0].state ? ", " + pickups[0].state : "");
+    const destination = deliveries[deliveries.length - 1].city + 
+      (deliveries[deliveries.length - 1].state ? ", " + deliveries[deliveries.length - 1].state : "");
+    
+    if (!origin || !destination) return;
+    
+    setIsFetchingRate(true);
+    try {
+      // Get distance
+      const distRes = await fetch(`/api/maps/distance?origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}`);
+      const distData = await distRes.json();
+      const miles = distData.distance || 500; // Fallback
+      
+      // Calculate suggested rate based on equipment and distance
+      const equipmentType = watch("equipmentType");
+      const baseCPM = 2.50;
+      const multiplier = equipmentType === "Reefer" ? 1.3 : 
+                         equipmentType === "Flatbed" ? 1.2 : 1.0;
+      const rpm = baseCPM * multiplier;
+      const rate = Math.round(miles * rpm * 100) / 100;
+      
+      setSuggestedRate({ rate, rpm, miles });
+    } catch (error) {
+      console.error("Failed to fetch estimated rate:", error);
+    } finally {
+      setIsFetchingRate(false);
+    }
+  };
+
+  const acceptSuggestedRate = () => {
+    if (suggestedRate) {
+      setValue("quotedRate", suggestedRate.rate);
+      setValue("ratePerMile", suggestedRate.rpm);
+      setValue("totalMiles", suggestedRate.miles);
     }
   };
 
@@ -512,20 +565,75 @@ export default function EnterpriseOrderPage() {
       <div className="flex-1 overflow-y-auto min-h-0">
         <Tabs defaultValue="main" className="h-full flex flex-col">
           <div className="flex-none border-b border-zinc-800 bg-zinc-950/80 px-4 sticky top-0 z-10">
-            <TabsList className="justify-start gap-2 bg-transparent p-0 h-10 border-0">
-              <TabsTrigger 
-                value="main" 
-                className="rounded px-3 py-1.5 text-xs font-medium text-zinc-400 hover:text-zinc-200 data-[state=active]:bg-zinc-800 data-[state=active]:text-white border-0"
-              >
-                Main
-              </TabsTrigger>
-              <TabsTrigger 
-                value="other" 
-                className="rounded px-3 py-1.5 text-xs font-medium text-zinc-400 hover:text-zinc-200 data-[state=active]:bg-zinc-800 data-[state=active]:text-white border-0"
-              >
-                Other Details
-              </TabsTrigger>
-            </TabsList>
+            <div className="flex items-center justify-between h-10">
+              {/* Tabs on the left */}
+              <TabsList className="justify-start gap-2 bg-transparent p-0 h-10 border-0">
+                <TabsTrigger 
+                  value="main" 
+                  className="rounded px-3 py-1.5 text-xs font-medium text-zinc-400 hover:text-zinc-200 data-[state=active]:bg-zinc-800 data-[state=active]:text-white border-0"
+                >
+                  Main
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="other" 
+                  className="rounded px-3 py-1.5 text-xs font-medium text-zinc-400 hover:text-zinc-200 data-[state=active]:bg-zinc-800 data-[state=active]:text-white border-0"
+                >
+                  Other Details
+                </TabsTrigger>
+              </TabsList>
+
+              {/* Summary + Create Button on the right */}
+              <div className="flex items-center gap-4">
+                {/* Summary Stats */}
+                <div className="flex items-center gap-3 text-xs">
+                  <div className="flex items-center gap-1">
+                    <span className="text-zinc-400">{watchedStops?.length || 0}</span>
+                    <span className="text-zinc-600">stops</span>
+                  </div>
+                  <span className="text-zinc-700">•</span>
+                  <div className="flex items-center gap-1">
+                    <span className="text-zinc-400">{watchedItems?.length || 0}</span>
+                    <span className="text-zinc-600">items</span>
+                  </div>
+                  <span className="text-zinc-700">•</span>
+                  <div className="flex items-center gap-1">
+                    <span className="text-zinc-400">{(watch("totalWeightLbs") || 0).toLocaleString()}</span>
+                    <span className="text-zinc-600">lbs</span>
+                  </div>
+                  <span className="text-zinc-700">•</span>
+                  <div className="flex items-center gap-1">
+                    <span className="text-zinc-400">{watch("totalPallets") || 0}</span>
+                    <span className="text-zinc-600">pallets</span>
+                  </div>
+                </div>
+
+                {/* Validation Status */}
+                {isValid ? (
+                  <div className="flex items-center gap-1.5 text-xs text-emerald-400">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>Ready to create</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1.5 text-xs text-amber-400">
+                    <AlertTriangle className="w-3.5 h-3.5" />
+                    <span>
+                      {!watch("customerId") && "Select customer"}
+                      {watch("customerId") && Object.keys(errors).length > 0 && "Complete required fields"}
+                    </span>
+                  </div>
+                )}
+
+                {/* Create Button */}
+                <Button
+                  onClick={handleSubmit(onSubmit)}
+                  disabled={!isValid || createMutation.isPending}
+                  className="bg-blue-600 hover:bg-blue-500 disabled:bg-zinc-700 disabled:text-zinc-400 text-white h-7 px-4 text-xs"
+                >
+                  <Send className="w-3.5 h-3.5 mr-1.5" />
+                  {createMutation.isPending ? "Creating..." : "Create Order"}
+                </Button>
+              </div>
+            </div>
           </div>
 
           <TabsContent value="main" className="flex-1 m-0 p-0">
@@ -656,46 +764,148 @@ export default function EnterpriseOrderPage() {
                 </div>
               </div>
 
-              {/* Trip Logistics Section */}
+              {/* Revenue & Pricing Section */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-sm font-semibold text-zinc-200">Trip Logistics</h3>
-                  <span className="text-xs text-zinc-500">Asset tracking & return behavior</span>
+                  <h3 className="text-sm font-semibold text-zinc-200">Revenue & Pricing</h3>
+                  <span className="text-xs text-zinc-500">Stage 1: Quoted rate (estimate)</span>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                
+                {/* Suggested Rate Card */}
+                {suggestedRate && (
+                  <div className="mb-3 p-3 rounded-lg border border-emerald-800/30 bg-emerald-950/20">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-xs text-emerald-400 font-medium mb-1">AI Suggested Rate</div>
+                        <div className="text-lg font-semibold text-emerald-300">
+                          ${suggestedRate.rate.toLocaleString()}
+                        </div>
+                        <div className="text-xs text-zinc-500 mt-1">
+                          {suggestedRate.miles} mi × ${suggestedRate.rpm.toFixed(2)}/mi
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={acceptSuggestedRate}
+                        className="border-emerald-700 text-emerald-400 hover:bg-emerald-950"
+                      >
+                        Accept Rate
+                      </Button>
+                    </div>
+                  </div>
+                )}
+                
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div>
+                    <label className="text-xs font-medium uppercase text-zinc-500 mb-1 block">
+                      Total Miles
+                    </label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="number"
+                        step="1"
+                        {...register("totalMiles", { valueAsNumber: true })}
+                        placeholder="500"
+                        className="h-9 text-sm bg-black/30 border-zinc-800 text-zinc-300"
+                      />
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="subtle"
+                        onClick={fetchEstimatedRate}
+                        disabled={isFetchingRate}
+                        className="h-9 px-2 text-zinc-400 hover:text-white"
+                      >
+                        {isFetchingRate ? "..." : "Calc"}
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label className="text-xs font-medium uppercase text-zinc-500 mb-1 block">
+                      Rate/Mile (RPM)
+                    </label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      {...register("ratePerMile", { valueAsNumber: true })}
+                      placeholder="2.50"
+                      className="h-9 text-sm bg-black/30 border-zinc-800 text-zinc-300"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="text-xs font-medium uppercase text-zinc-500 mb-1 block">
+                      Quoted Rate
+                    </label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      {...register("quotedRate", { valueAsNumber: true })}
+                      placeholder="1250.00"
+                      className="h-9 text-sm bg-black/30 border-zinc-800 text-zinc-300"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="text-xs font-medium uppercase text-zinc-500 mb-1 block">
+                      Target Margin %
+                    </label>
+                    <Input
+                      type="number"
+                      step="1"
+                      {...register("targetMarginPct", { valueAsNumber: true })}
+                      placeholder="15"
+                      className="h-9 text-sm bg-black/30 border-zinc-800 text-zinc-300"
+                    />
+                  </div>
+                </div>
+                
+                {/* Formula Display */}
+                {(watch("totalMiles") && watch("ratePerMile")) && (
+                  <div className="mt-3 rounded-lg border border-blue-800/30 bg-blue-950/20 px-3 py-2">
+                    <p className="text-center text-xs text-blue-300">
+                      <span className="font-mono">{watch("totalMiles") || 0} mi</span>
+                      <span className="mx-2 text-blue-500">×</span>
+                      <span className="font-mono">${watch("ratePerMile") || 0}</span>
+                      <span className="mx-2 text-blue-500">=</span>
+                      <span className="font-semibold font-mono">
+                        ${((watch("totalMiles") || 0) * (watch("ratePerMile") || 0)).toFixed(2)}
+                      </span>
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Service Type Section */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-semibold text-zinc-200">Service Type</h3>
+                  <span className="text-xs text-zinc-500">Consolidation rules for dispatch</span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div className="flex items-start gap-4 p-3 rounded border border-zinc-800 bg-black/20">
                     <label className="flex items-start gap-3 text-sm text-zinc-300 cursor-pointer flex-1">
                       <input
                         type="checkbox"
-                        {...register("isRounder")}
+                        {...register("isDirect")}
                         className="rounded border-zinc-700 bg-zinc-900 text-blue-600 w-4 h-4 mt-0.5"
                       />
                       <div>
-                        <div className="font-medium">Is Rounder</div>
-                        <div className="text-xs text-zinc-500 mt-0.5">Unit returns to home base after delivery</div>
-                      </div>
-                    </label>
-                  </div>
-                  <div className="flex items-start gap-4 p-3 rounded border border-zinc-800 bg-black/20">
-                    <label className="flex items-start gap-3 text-sm text-zinc-300 cursor-pointer flex-1">
-                      <input
-                        type="checkbox"
-                        {...register("dropTrailer")}
-                        disabled={!watch("isRounder")}
-                        className="rounded border-zinc-700 bg-zinc-900 text-blue-600 w-4 h-4 mt-0.5 disabled:opacity-40 disabled:cursor-not-allowed"
-                      />
-                      <div>
-                        <div className="font-medium">Drop Trailer</div>
-                        <div className="text-xs text-zinc-500 mt-0.5">Trailer spots at delivery (bobtail return)</div>
+                        <div className="font-medium">Direct Service</div>
+                        <div className="text-xs text-zinc-500 mt-0.5">Dedicated truck - cannot consolidate with other orders</div>
                       </div>
                     </label>
                   </div>
                   <div className="p-3 rounded border border-zinc-800 bg-black/20">
-                    <div className="text-xs font-medium text-zinc-500 mb-1">COST IMPACT</div>
+                    <div className="text-xs font-medium text-zinc-500 mb-1">DISPATCH IMPACT</div>
                     <div className="text-xs text-zinc-400 leading-relaxed">
-                      {!watch("isRounder") && <span className="text-amber-400">⚠ Non-rounder: Unit stays displaced, no return miles</span>}
-                      {watch("isRounder") && !watch("dropTrailer") && <span className="text-blue-400">🔗 Empty trailer return</span>}
-                      {watch("isRounder") && watch("dropTrailer") && <span className="text-green-400">🚛 Bobtail return (best MPG)</span>}
+                      {watch("isDirect") 
+                        ? <span className="text-amber-400">🚛 Direct: This order gets its own trip (1:1)</span>
+                        : <span className="text-blue-400">📦 Standard: Can be combined with other orders into multi-stop trips</span>
+                      }
                     </div>
                   </div>
                 </div>
@@ -752,60 +962,6 @@ export default function EnterpriseOrderPage() {
             </div>
           </TabsContent>
         </Tabs>
-      </div>
-
-      {/* STICKY FOOTER */}
-      <div className="flex-none border-t border-zinc-800 bg-zinc-950 px-4 py-3">
-        <div className="flex items-center justify-between">
-          {/* Summary Stats */}
-          <div className="flex items-center gap-4 text-sm">
-            <div className="flex items-center gap-2">
-              <span className="text-zinc-500">{watchedStops?.length || 0}</span>
-              <span className="text-zinc-600">stops</span>
-            </div>
-            <span className="text-zinc-700">•</span>
-            <div className="flex items-center gap-2">
-              <span className="text-zinc-500">{watchedItems?.length || 0}</span>
-              <span className="text-zinc-600">items</span>
-            </div>
-            <span className="text-zinc-700">•</span>
-            <div className="flex items-center gap-2">
-              <span className="text-zinc-500">{(watch("totalWeightLbs") || 0).toLocaleString()}</span>
-              <span className="text-zinc-600">lbs</span>
-            </div>
-            <span className="text-zinc-700">•</span>
-            <div className="flex items-center gap-2">
-              <span className="text-zinc-500">{watch("totalPallets") || 0}</span>
-              <span className="text-zinc-600">pallets</span>
-            </div>
-          </div>
-
-          {/* Validation + Submit */}
-          <div className="flex items-center gap-4">
-            {isValid ? (
-              <div className="flex items-center gap-2 text-sm text-emerald-400">
-                <CheckCircle2 className="w-4 h-4" />
-                <span>Ready to create</span>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2 text-sm text-amber-400">
-                <AlertTriangle className="w-4 h-4" />
-                <span>
-                  {!watch("customerId") && "Select customer"}
-                  {watch("customerId") && Object.keys(errors).length > 0 && "Complete required fields"}
-                </span>
-              </div>
-            )}
-            <Button
-              onClick={handleSubmit(onSubmit)}
-              disabled={!isValid || createMutation.isPending}
-              className="bg-blue-600 hover:bg-blue-500 disabled:bg-zinc-700 disabled:text-zinc-400 text-white h-9 px-6"
-            >
-              <Send className="w-4 h-4 mr-2" />
-              {createMutation.isPending ? "Creating..." : "Create Order"}
-            </Button>
-          </div>
-        </div>
       </div>
     </div>
   );

@@ -8,7 +8,7 @@
 -- ================================================================
 CREATE TABLE IF NOT EXISTS customers (
   customer_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name VARCHAR(255) NOT NULL,
+  customer_name VARCHAR(255) NOT NULL,
   full_address VARCHAR(500) NOT NULL UNIQUE,
   city VARCHAR(100) NOT NULL,
   has_trailer_pool BOOLEAN NOT NULL DEFAULT false,
@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS customers (
   updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_customers_name ON customers(name);
+CREATE INDEX IF NOT EXISTS idx_customers_customer_name ON customers(customer_name);
 CREATE INDEX IF NOT EXISTS idx_customers_city ON customers(city);
 CREATE INDEX IF NOT EXISTS idx_customers_has_trailer_pool ON customers(has_trailer_pool);
 
@@ -116,7 +116,7 @@ CREATE INDEX IF NOT EXISTS idx_driver_profiles_current_status ON driver_profiles
 -- ================================================================
 -- 5. SEED CUSTOMERS TABLE (8 Records)
 -- ================================================================
-INSERT INTO customers (name, full_address, city, has_trailer_pool, pool_count_empty) VALUES
+INSERT INTO customers (customer_name, full_address, city, has_trailer_pool, pool_count_empty) VALUES
   ('Walmart Distribution Center', '7755 Logistics Way, Milton, ON L9T 5B8', 'Milton', true, 12),
   ('Amazon YYZ4 Fulfillment', '12 Brewster Road, Brampton, ON L6T 5M8', 'Brampton', true, 8),
   ('Costco Wholesale Depot', '500 Copper Creek Drive, Markham, ON L6B 1N8', 'Markham', true, 5),

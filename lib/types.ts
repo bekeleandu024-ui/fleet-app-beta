@@ -229,6 +229,10 @@ export const tripListItemSchema = z.object({
   totalCpm: z.number().optional(),
   serviceLevel: z.string().optional(),
   completedAt: z.string().optional().nullable(),
+  // Two-Stage Revenue / Billing fields
+  billingStatus: z.string().optional().nullable(),
+  quotedRate: z.number().optional().nullable(),
+  finalBillableAmount: z.number().optional().nullable(),
 });
 export type TripListItem = z.infer<typeof tripListItemSchema>;
 

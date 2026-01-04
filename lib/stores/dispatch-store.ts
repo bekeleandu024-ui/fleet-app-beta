@@ -55,6 +55,7 @@ export interface DispatchOrder {
   totalPallets: number | null;
   quotedRate: number | null;
   targetRate: number | null;
+  isDirect: boolean; // Direct = dedicated truck, cannot consolidate
   assignedDriverId: string | null;
   assignedDriverName: string | null;
   assignedUnitId: string | null;

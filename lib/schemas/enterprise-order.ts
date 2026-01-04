@@ -216,9 +216,17 @@ export const enterpriseOrderInputSchema = z.object({
   isHighValue: z.boolean().default(false),
   declaredValue: z.number().min(0).optional().nullable(),
 
-  // Trip Logistics - Asset Tracking
-  isRounder: z.boolean().default(true),
-  dropTrailer: z.boolean().default(false),
+  // Service Type
+  isDirect: z.boolean().default(false), // Direct = dedicated truck, cannot consolidate with other orders
+
+  // Revenue & Pricing (Two-Stage Revenue Model)
+  // Stage 1: quotedRate is the initial price agreed with customer (estimate)
+  // Stage 2: finalBillableAmount will be set after delivery audit (actual)
+  quotedRate: z.number().min(0).optional().nullable(),
+  estimatedCost: z.number().min(0).optional().nullable(),
+  targetMarginPct: z.number().min(0).max(100).optional().nullable(),
+  totalMiles: z.number().min(0).optional().nullable(),
+  ratePerMile: z.number().min(0).optional().nullable(),
 
   // Instructions
   specialInstructions: z.string().optional().nullable(),
@@ -298,6 +306,10 @@ export const aiOrderExtractionSchema = z.object({
   totalWeightLbs: z.number().optional().nullable(),
   totalPieces: z.number().optional().nullable(),
   totalPallets: z.number().optional().nullable(),
+  
+  // Revenue (AI may extract from rate confirmations)
+  quotedRate: z.number().optional().nullable(),
+  ratePerMile: z.number().optional().nullable(),
   
   // Notes
   specialInstructions: z.string().optional().nullable(),
@@ -417,8 +429,7 @@ export function createDefaultOrderInput(): EnterpriseOrderInput {
     isHazmat: false,
     isHighValue: false,
     declaredValue: null,
-    isRounder: true,
-    dropTrailer: false,
+    isDirect: false,
     specialInstructions: null,
     internalNotes: null,
     priority: "normal",

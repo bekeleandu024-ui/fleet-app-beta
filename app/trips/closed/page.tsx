@@ -12,12 +12,16 @@ import {
   ChevronRight,
   MapPin,
   Truck,
-  RefreshCw
+  RefreshCw,
+  DollarSign,
+  AlertCircle,
+  CheckCircle2
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { fetchTrips } from "@/lib/api";
 import { queryKeys } from "@/lib/query";
+import { FinalizeLoadModal } from "@/components/billing/finalize-load-modal";
 
 const statusColors: Record<string, string> = {
   "Completed": "bg-zinc-500/20 text-zinc-500 border-zinc-500/30",
@@ -25,8 +29,16 @@ const statusColors: Record<string, string> = {
   "Cancelled": "bg-rose-500/20 text-rose-400 border-rose-500/30",
 };
 
+const billingStatusColors: Record<string, string> = {
+  "PENDING": "bg-amber-500/20 text-amber-400 border-amber-500/30",
+  "AUDITED": "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
+  "INVOICED": "bg-blue-500/20 text-blue-400 border-blue-500/30",
+  "PAID": "bg-zinc-500/20 text-zinc-500 border-zinc-500/30",
+};
+
 type SortField = "tripNumber" | "customer" | "status" | "driver" | "eta" | "pickup" | "delivery";
 type SortDirection = "asc" | "desc" | null;
+type BillingFilter = "all" | "pending" | "audited" | "invoiced";
 
 export default function ClosedTripsPage() {
   const router = useRouter();
@@ -38,6 +50,8 @@ export default function ClosedTripsPage() {
   const [sortField, setSortField] = useState<SortField | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [billingFilter, setBillingFilter] = useState<BillingFilter>("all");
+  const [finalizeOrderId, setFinalizeOrderId] = useState<string | null>(null);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -64,6 +78,14 @@ export default function ClosedTripsPage() {
     if (!data?.data) return [];
 
     let filtered = data.data;
+
+    // Filter by billing status
+    if (billingFilter !== "all") {
+      filtered = filtered.filter(trip => {
+        const status = (trip.billingStatus || "PENDING").toUpperCase();
+        return status === billingFilter.toUpperCase();
+      });
+    }
 
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
@@ -95,7 +117,13 @@ export default function ClosedTripsPage() {
     }
 
     return filtered;
-  }, [data?.data, searchQuery, sortField, sortDirection]);
+  }, [data?.data, searchQuery, sortField, sortDirection, billingFilter]);
+
+  // Count pending audits
+  const pendingAuditCount = useMemo(() => {
+    if (!data?.data) return 0;
+    return data.data.filter(trip => (trip.billingStatus || "PENDING") === "PENDING").length;
+  }, [data?.data]);
 
   if (isLoading) {
     return <div className="p-8 text-zinc-500">Loading closed trips...</div>;
@@ -106,6 +134,16 @@ export default function ClosedTripsPage() {
   }
 
   return (
+    <>
+    {/* Finalize Modal */}
+    {finalizeOrderId && (
+      <FinalizeLoadModal
+        orderId={finalizeOrderId}
+        onClose={() => setFinalizeOrderId(null)}
+        onSuccess={() => refetch()}
+      />
+    )}
+    
     <div className="flex flex-col gap-0 rounded-lg border border-zinc-800 bg-zinc-950 shadow-sm overflow-hidden">
       {/* Header */}
       <div className="flex h-14 items-center justify-between border-b border-zinc-800 bg-zinc-900/50 px-4">
@@ -119,6 +157,47 @@ export default function ClosedTripsPage() {
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <h1 className="text-lg font-bold text-zinc-100">Closed Trips</h1>
+          
+          {/* Billing Status Filter Tabs */}
+          <div className="hidden md:flex items-center gap-1 ml-4">
+            <button
+              onClick={() => setBillingFilter("all")}
+              className={`px-3 py-1.5 text-xs font-medium rounded-sm transition-colors ${
+                billingFilter === "all" 
+                  ? "bg-zinc-700 text-white" 
+                  : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"
+              }`}
+            >
+              All
+            </button>
+            <button
+              onClick={() => setBillingFilter("pending")}
+              className={`px-3 py-1.5 text-xs font-medium rounded-sm transition-colors flex items-center gap-1.5 ${
+                billingFilter === "pending" 
+                  ? "bg-amber-600/30 text-amber-400 border border-amber-600/50" 
+                  : "text-zinc-400 hover:text-amber-400 hover:bg-amber-950/30"
+              }`}
+            >
+              <AlertCircle className="h-3 w-3" />
+              Pending Audit
+              {pendingAuditCount > 0 && (
+                <span className="bg-amber-500/30 text-amber-400 text-[10px] px-1.5 rounded-full">
+                  {pendingAuditCount}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={() => setBillingFilter("audited")}
+              className={`px-3 py-1.5 text-xs font-medium rounded-sm transition-colors flex items-center gap-1.5 ${
+                billingFilter === "audited" 
+                  ? "bg-emerald-600/30 text-emerald-400 border border-emerald-600/50" 
+                  : "text-zinc-400 hover:text-emerald-400 hover:bg-emerald-950/30"
+              }`}
+            >
+              <CheckCircle2 className="h-3 w-3" />
+              Audited
+            </button>
+          </div>
         </div>
 
         <div className="flex items-center gap-2">
@@ -179,6 +258,9 @@ export default function ClosedTripsPage() {
                 </button>
               </th>
               <th className="whitespace-nowrap px-4 py-2 font-medium uppercase tracking-wider">
+                Billing
+              </th>
+              <th className="whitespace-nowrap px-4 py-2 font-medium uppercase tracking-wider">
                 <button onClick={() => handleSort("eta")} className="flex items-center hover:text-zinc-300">
                   Completed <SortIcon field="eta" />
                 </button>
@@ -191,13 +273,18 @@ export default function ClosedTripsPage() {
           <tbody className="divide-y divide-zinc-800/50 bg-black/20">
             {filteredAndSortedData.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-4 py-8 text-center text-zinc-500">
-                  No closed trips found.
+                <td colSpan={9} className="px-4 py-8 text-center text-zinc-500">
+                  {billingFilter === "pending" 
+                    ? "No trips pending audit." 
+                    : "No closed trips found."
+                  }
                 </td>
               </tr>
             ) : (
               filteredAndSortedData.map((trip, idx) => {
                 const statusStyle = statusColors[trip.status] || "bg-zinc-800 text-zinc-400 border-zinc-700";
+                const billingStatus = trip.billingStatus || "PENDING";
+                const billingStyle = billingStatusColors[billingStatus] || billingStatusColors["PENDING"];
                 
                 return (
                   <tr 
@@ -252,6 +339,20 @@ export default function ClosedTripsPage() {
                       </div>
                     </td>
 
+                    {/* Billing Status */}
+                    <td className="px-4 py-2 align-middle">
+                      <span className={`inline-flex items-center rounded-sm border px-1.5 py-0.5 text-[10px] font-medium ${billingStyle}`}>
+                        {billingStatus === "PENDING" && <AlertCircle className="h-2.5 w-2.5 mr-1" />}
+                        {billingStatus === "AUDITED" && <CheckCircle2 className="h-2.5 w-2.5 mr-1" />}
+                        {billingStatus}
+                      </span>
+                      {trip.quotedRate && (
+                        <div className="text-[10px] text-zinc-500 mt-0.5">
+                          ${parseFloat(trip.quotedRate).toLocaleString()}
+                        </div>
+                      )}
+                    </td>
+
                     {/* Completed Date (using eta field as proxy or completedAt if available) */}
                     <td className="px-4 py-2 align-middle">
                       <span className="text-zinc-400 font-mono">
@@ -261,10 +362,19 @@ export default function ClosedTripsPage() {
 
                     {/* Actions */}
                     <td className="px-4 py-2 align-middle text-right">
-                      <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex items-center justify-end gap-2">
+                        {billingStatus === "PENDING" && trip.orderId && (
+                          <button 
+                            onClick={() => setFinalizeOrderId(trip.orderId)}
+                            className="flex items-center gap-1 rounded-sm bg-amber-600/20 px-2 py-1 text-[10px] font-medium text-amber-400 hover:bg-amber-600/30 border border-amber-600/30"
+                          >
+                            <DollarSign className="h-3 w-3" />
+                            Finalize
+                          </button>
+                        )}
                         <button 
                           onClick={() => router.push(`/trips/${trip.id}`)}
-                          className="flex items-center gap-1 rounded-sm bg-zinc-800 px-2 py-1 text-[10px] font-medium text-zinc-300 hover:bg-zinc-700 border border-zinc-700"
+                          className="flex items-center gap-1 rounded-sm bg-zinc-800 px-2 py-1 text-[10px] font-medium text-zinc-300 hover:bg-zinc-700 border border-zinc-700 opacity-0 group-hover:opacity-100 transition-opacity"
                         >
                           Details <ChevronRight className="h-3 w-3" />
                         </button>
@@ -278,5 +388,6 @@ export default function ClosedTripsPage() {
         </table>
       </div>
     </div>
+    </>
   );
 }
