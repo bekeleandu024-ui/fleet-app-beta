@@ -40,13 +40,13 @@ export async function GET() {
       // 3. Fetch local orders (fallback/merge source)
       // Fetch ALL orders, do not filter by status
       const query = `
-        SELECT 
+        SELECT
           id, order_number, customer_id, pickup_location, dropoff_location,
           pickup_time, dropoff_time, status, dispatch_status, created_at,
-          estimated_cost, order_type, equipment_type, 
-          COALESCE(weight_lbs, total_weight_lbs, total_weight) as weight,
+          estimated_cost, order_type, equipment_type,
+          total_weight_lbs as weight,
           quoted_rate
-        FROM orders 
+        FROM orders
         ORDER BY created_at DESC
       `;
       
