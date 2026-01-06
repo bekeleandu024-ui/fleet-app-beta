@@ -423,7 +423,7 @@ export class CostingService {
    */
   private async loadRates(): Promise<void> {
     const result = await pool.query(
-      'SELECT rule_key, rule_type, rule_value FROM costing_rules WHERE is_active = true'
+      'SELECT rule_key, rule_type, rule_value, rate_unit FROM costing_rules WHERE is_active = true'
     );
 
     for (const row of result.rows) {

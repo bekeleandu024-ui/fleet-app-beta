@@ -9,7 +9,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { 
   ArrowLeft, Send, Sparkles, Upload, AlertTriangle, 
   Building2, Truck, CreditCard, FileText, Settings2,
-  CheckCircle2, ArrowRight, Plus
+  CheckCircle2, ArrowRight, Plus, Calculator
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -33,6 +33,8 @@ import {
   type OrderStopInput,
 } from "@/lib/schemas/enterprise-order";
 import { fetchAdminCustomers } from "@/lib/api";
+import { useCostingRules, transformRulesToRates, calculateTripCostWithRates } from "@/lib/use-costing";
+import { isCrossBorder } from "@/lib/costing";
 
 // Equipment options
 const EQUIPMENT_TYPES = [
@@ -134,6 +136,8 @@ export default function EnterpriseOrderPage() {
     rate: number;
     rpm: number;
     miles: number;
+    costPerMile?: number;
+    targetMargin?: number;
   } | null>(null);
   const [isFetchingRate, setIsFetchingRate] = useState(false);
 
@@ -327,7 +331,14 @@ export default function EnterpriseOrderPage() {
     }
   };
 
-  // Fetch estimated rate based on origin/destination
+  // Fetch costing rules from database
+  const { data: costingRulesData } = useCostingRules();
+  const costingRates = costingRulesData?.rules 
+    ? transformRulesToRates(costingRulesData.rules)
+    : null;
+
+  // Fetch estimated rate based on origin/destination and target margin
+  // Uses centralized costing from database
   const fetchEstimatedRate = async () => {
     const stops = watch("stops");
     const pickups = stops.filter(s => s.stopType === "pickup");
@@ -343,20 +354,59 @@ export default function EnterpriseOrderPage() {
     
     setIsFetchingRate(true);
     try {
-      // Get distance
+      // Get distance from API
       const distRes = await fetch(`/api/maps/distance?origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}`);
       const distData = await distRes.json();
       const miles = distData.distance || 500; // Fallback
       
-      // Calculate suggested rate based on equipment and distance
-      const equipmentType = watch("equipmentType");
-      const baseCPM = 2.50;
-      const multiplier = equipmentType === "Reefer" ? 1.3 : 
-                         equipmentType === "Flatbed" ? 1.2 : 1.0;
-      const rpm = baseCPM * multiplier;
-      const rate = Math.round(miles * rpm * 100) / 100;
+      // Detect border crossing
+      const borderCrossings = isCrossBorder(origin, destination) ? 1 : 0;
       
-      setSuggestedRate({ rate, rpm, miles });
+      // Estimate duration (50mph average)
+      const durationHours = miles / 50;
+      const durationDays = Math.max(durationHours / 24, 0.5);
+      
+      // Calculate cost using centralized rates (COM driver as default)
+      let costResult;
+      if (costingRates) {
+        costResult = calculateTripCostWithRates(
+          costingRates,
+          'COM', // Default to company driver
+          miles,
+          durationDays,
+          { border: borderCrossings, picks: pickups.length, drops: deliveries.length },
+          undefined
+        );
+      } else {
+        // Fallback calculation
+        const baseCostPerMile = 1.85;
+        costResult = {
+          totalCost: miles * baseCostPerMile + (borderCrossings * 15) + (pickups.length * 30) + (deliveries.length * 30),
+          totalCPM: baseCostPerMile,
+        };
+      }
+      
+      const costPerMile = costResult.totalCPM;
+      
+      // Get target margin (default 15% if not set)
+      const targetMargin = watch("targetMarginPct") || 15;
+      
+      // Calculate RPM to achieve target margin
+      // Revenue - Cost = Profit
+      // Profit / Revenue = Margin %
+      // So: RPM = Cost / (1 - Margin)
+      const marginMultiplier = 1 - (targetMargin / 100);
+      const rpm = Math.round((costPerMile / marginMultiplier) * 100) / 100;
+      const rate = Math.round(costResult.totalCost / marginMultiplier);
+      
+      // Store cost info for display
+      setSuggestedRate({ 
+        rate, 
+        rpm, 
+        miles,
+        costPerMile: Math.round(costPerMile * 100) / 100,
+        targetMargin,
+      });
     } catch (error) {
       console.error("Failed to fetch estimated rate:", error);
     } finally {
@@ -369,6 +419,9 @@ export default function EnterpriseOrderPage() {
       setValue("quotedRate", suggestedRate.rate);
       setValue("ratePerMile", suggestedRate.rpm);
       setValue("totalMiles", suggestedRate.miles);
+      if (suggestedRate.targetMargin) {
+        setValue("targetMarginPct", suggestedRate.targetMargin);
+      }
     }
   };
 
@@ -391,8 +444,13 @@ export default function EnterpriseOrderPage() {
       setValue("totalPallets", totals.pallets || null);
       setValue("totalCubicFeet", totals.cube || null);
       setValue("isHazmat", totals.hasHazmat);
+
+      // Clear hazmat-related AI warnings when no items have hazmat
+      if (!totals.hasHazmat && aiWarnings.some(w => w.toLowerCase().includes('hazmat'))) {
+        setAiWarnings(prev => prev.filter(w => !w.toLowerCase().includes('hazmat')));
+      }
     }
-  }, [watchedItems, setValue]);
+  }, [watchedItems, setValue, aiWarnings]);
 
   const onSubmit = (data: EnterpriseOrderInput) => {
     createMutation.mutate(data);
@@ -614,12 +672,33 @@ export default function EnterpriseOrderPage() {
                     <span>Ready to create</span>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-1.5 text-xs text-amber-400">
+                  <div className="flex items-center gap-1.5 text-xs text-amber-400 group relative cursor-help">
                     <AlertTriangle className="w-3.5 h-3.5" />
                     <span>
-                      {!watch("customerId") && "Select customer"}
-                      {watch("customerId") && Object.keys(errors).length > 0 && "Complete required fields"}
+                      {!watch("customerId") ? "Select customer" : (
+                        errors.stops ? "Stop missing city" :
+                        errors.freightItems ? "Item missing commodity" :
+                        errors.billing ? "Billing info incomplete" :
+                        `${Object.keys(errors).length} field(s) need attention`
+                      )}
                     </span>
+                    {/* Error tooltip on hover */}
+                    {Object.keys(errors).length > 0 && (
+                      <div className="absolute top-full right-0 mt-1 hidden group-hover:block z-50">
+                        <div className="bg-zinc-900 border border-zinc-700 rounded-lg p-2 shadow-xl min-w-[200px] max-w-[300px]">
+                          <div className="text-xs text-zinc-300 space-y-1">
+                            {errors.stops && <div>• Stops: City is required for each stop</div>}
+                            {errors.freightItems && <div>• Items: Commodity name is required</div>}
+                            {errors.billing && <div>• Billing: Check payment terms</div>}
+                            {errors.customerId && <div>• Customer: Select a customer</div>}
+                            {errors.equipmentType && <div>• Equipment type required</div>}
+                            {!errors.stops && !errors.freightItems && !errors.billing && !errors.customerId && !errors.equipmentType && (
+                              <div>• Check highlighted fields</div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -768,7 +847,7 @@ export default function EnterpriseOrderPage() {
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="text-sm font-semibold text-zinc-200">Revenue & Pricing</h3>
-                  <span className="text-xs text-zinc-500">Stage 1: Quoted rate (estimate)</span>
+                  <span className="text-xs text-zinc-500">Based on fleet costs + target margin</span>
                 </div>
                 
                 {/* Suggested Rate Card */}
@@ -776,12 +855,18 @@ export default function EnterpriseOrderPage() {
                   <div className="mb-3 p-3 rounded-lg border border-emerald-800/30 bg-emerald-950/20">
                     <div className="flex items-center justify-between">
                       <div>
-                        <div className="text-xs text-emerald-400 font-medium mb-1">AI Suggested Rate</div>
+                        <div className="text-xs text-emerald-400 font-medium mb-1">Suggested Rate @ {suggestedRate.targetMargin}% Margin</div>
                         <div className="text-lg font-semibold text-emerald-300">
                           ${suggestedRate.rate.toLocaleString()}
                         </div>
-                        <div className="text-xs text-zinc-500 mt-1">
-                          {suggestedRate.miles} mi × ${suggestedRate.rpm.toFixed(2)}/mi
+                        <div className="text-xs text-zinc-500 mt-1 space-y-0.5">
+                          <div>{suggestedRate.miles} mi × ${suggestedRate.rpm.toFixed(2)}/mi</div>
+                          {suggestedRate.costPerMile && (
+                            <div className="text-zinc-400">
+                              Cost: ${suggestedRate.costPerMile.toFixed(2)}/mi → 
+                              Profit: ${((suggestedRate.rpm - suggestedRate.costPerMile) * suggestedRate.miles).toFixed(0)}
+                            </div>
+                          )}
                         </div>
                       </div>
                       <Button
@@ -798,6 +883,19 @@ export default function EnterpriseOrderPage() {
                 )}
                 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div>
+                    <label className="text-xs font-medium uppercase text-zinc-500 mb-1 block">
+                      Target Margin %
+                    </label>
+                    <Input
+                      type="number"
+                      step="1"
+                      {...register("targetMarginPct", { valueAsNumber: true })}
+                      placeholder="15"
+                      className="h-9 text-sm bg-black/30 border-zinc-800 text-zinc-300"
+                    />
+                  </div>
+                  
                   <div>
                     <label className="text-xs font-medium uppercase text-zinc-500 mb-1 block">
                       Total Miles
@@ -831,7 +929,7 @@ export default function EnterpriseOrderPage() {
                       type="number"
                       step="0.01"
                       {...register("ratePerMile", { valueAsNumber: true })}
-                      placeholder="2.50"
+                      placeholder="2.18"
                       className="h-9 text-sm bg-black/30 border-zinc-800 text-zinc-300"
                     />
                   </div>
@@ -845,19 +943,6 @@ export default function EnterpriseOrderPage() {
                       step="0.01"
                       {...register("quotedRate", { valueAsNumber: true })}
                       placeholder="1250.00"
-                      className="h-9 text-sm bg-black/30 border-zinc-800 text-zinc-300"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="text-xs font-medium uppercase text-zinc-500 mb-1 block">
-                      Target Margin %
-                    </label>
-                    <Input
-                      type="number"
-                      step="1"
-                      {...register("targetMarginPct", { valueAsNumber: true })}
-                      placeholder="15"
                       className="h-9 text-sm bg-black/30 border-zinc-800 text-zinc-300"
                     />
                   </div>

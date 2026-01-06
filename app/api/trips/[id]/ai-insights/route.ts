@@ -31,21 +31,40 @@ export async function GET(
   const { id: tripId } = await context.params;
 
   try {
-    // Fetch trip from database
+    // Check if tripId is a UUID or trip_number
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(tripId);
+    const whereClause = isUUID ? 't.id = $1' : 't.trip_number = $1';
+
+    // Fetch trip from database with trip_costs and orders JOIN for accurate financials
+    // Using actual trip_costs columns: fixed_cost, labor_cost, fuel_cost, maintenance_cost, events_cost
+    // cost_per_mile, revenue_per_mile, profit, margin_pct
     const tripResult = await pool.query(`
       SELECT 
-        id, status, order_id, driver_id, unit_id,
-        planned_start, actual_start,
-        pickup_location, dropoff_location,
-        planned_miles, distance_miles,
-        on_time_pickup, on_time_delivery,
-        revenue, total_cost, margin_pct, profit,
-        utilization_percent, limiting_factor,
-        current_weight, current_cube, current_linear_feet,
-        pickup_window_start, pickup_window_end,
-        delivery_window_start, delivery_window_end
-      FROM trips 
-      WHERE id = $1
+        t.id, t.status, t.order_id, t.driver_id, t.unit_id,
+        t.planned_start, t.actual_start,
+        t.pickup_location, t.dropoff_location,
+        t.planned_miles, t.actual_miles as distance_miles,
+        t.on_time_pickup, t.on_time_delivery,
+        COALESCE(tc.revenue, o.quoted_rate, t.revenue, 0) as revenue,
+        COALESCE(tc.total_cost, t.total_cost, 0) as total_cost,
+        COALESCE(tc.margin_pct, t.margin_pct, 0) as margin_pct,
+        COALESCE(tc.profit, t.profit, 0) as profit,
+        t.utilization_percent, t.limiting_factor,
+        t.current_weight, t.current_cube, t.current_linear_feet,
+        t.pickup_window_start, t.pickup_window_end,
+        t.delivery_window_start, t.delivery_window_end,
+        -- Cost breakdown from trip_costs (using actual column names)
+        tc.fixed_cost, tc.labor_cost, tc.fuel_cost, tc.maintenance_cost, tc.events_cost,
+        tc.cost_per_mile, tc.revenue_per_mile,
+        CASE WHEN tc.total_miles > 0 THEN tc.profit / tc.total_miles ELSE 0 END as ppm,
+        tc.border_crossings, tc.pickup_count, tc.delivery_count,
+        tc.linehaul_miles, tc.deadhead_miles, tc.total_miles,
+        -- Order details
+        o.quoted_rate, o.status as billing_status, o.order_type as order_number
+      FROM trips t
+      LEFT JOIN trip_costs tc ON t.id = tc.trip_id
+      LEFT JOIN orders o ON t.order_id = o.id
+      WHERE ${whereClause}
     `, [tripId]);
 
     if (tripResult.rows.length === 0) {

@@ -355,7 +355,7 @@ function ExecutionMode({
   const [isAssigning, setIsAssigning] = useState(false);
   const [simulation, setSimulation] = useState<SimulationResult | null>(null);
   const [isSimulating, setIsSimulating] = useState(false);
-  const [showCostBreakdown, setShowCostBreakdown] = useState(false);
+  const [expandedScenario, setExpandedScenario] = useState<string | null>(null);
   
   // Trip execution options (dispatch decisions)
   const [isRounder, setIsRounder] = useState(true);
@@ -617,38 +617,94 @@ function ExecutionMode({
                 <div className="space-y-1">
                   {scenarios
                     .filter(s => s.type !== 'BROKERAGE' && s.feasible)
-                    .map((scenario) => (
-                      <div
-                        key={scenario.type}
-                        className={cn(
-                          "px-2 py-1.5 rounded border",
-                          scenario.recommendation === 'PREFERRED' 
-                            ? "border-emerald-500/50 bg-emerald-500/10"
-                            : "border-zinc-800 bg-zinc-900/50"
-                        )}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-1.5">
-                            {scenario.recommendation === 'PREFERRED' && <CheckCircle className="h-3 w-3 text-emerald-400" />}
-                            <span className="text-[10px] font-medium text-zinc-200">{scenario.type.replace(/_/g, ' ')}</span>
+                    .map((scenario) => {
+                      const isExpanded = expandedScenario === scenario.type;
+                      const breakdown = scenario.cost_breakdown;
+                      
+                      return (
+                        <div
+                          key={scenario.type}
+                          className={cn(
+                            "px-2 py-1.5 rounded border cursor-pointer transition-colors",
+                            scenario.recommendation === 'PREFERRED' 
+                              ? "border-emerald-500/50 bg-emerald-500/10 hover:bg-emerald-500/15"
+                              : "border-zinc-800 bg-zinc-900/50 hover:bg-zinc-800/50"
+                          )}
+                          onClick={() => setExpandedScenario(isExpanded ? null : scenario.type)}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1.5">
+                              {scenario.recommendation === 'PREFERRED' && <CheckCircle className="h-3 w-3 text-emerald-400" />}
+                              <span className="text-[10px] font-medium text-zinc-200">{scenario.type.replace(/_/g, ' ')}</span>
+                              {isExpanded ? <ChevronUp className="h-3 w-3 text-zinc-500" /> : <ChevronDown className="h-3 w-3 text-zinc-500" />}
+                            </div>
+                            <div className="text-right">
+                              <span className="text-xs font-bold text-zinc-100">${scenario.total_cost.toFixed(0)}</span>
+                              <span className={cn(
+                                "text-[10px] ml-1",
+                                scenario.margin_percent > 25 ? "text-emerald-400" : "text-amber-400"
+                              )}>
+                                {scenario.margin_percent.toFixed(1)}%
+                              </span>
+                            </div>
                           </div>
-                          <div className="text-right">
-                            <span className="text-xs font-bold text-zinc-100">${scenario.total_cost.toFixed(0)}</span>
-                            <span className={cn(
-                              "text-[10px] ml-1",
-                              scenario.margin_percent > 25 ? "text-emerald-400" : "text-amber-400"
-                            )}>
-                              {scenario.margin_percent.toFixed(1)}%
-                            </span>
-                          </div>
+                          {scenario.resource_match.driver && (
+                            <div className="text-[10px] text-zinc-500 mt-0.5">
+                              Driver: {scenario.resource_match.driver.name}
+                            </div>
+                          )}
+                          
+                          {/* Cost Breakdown - Expandable */}
+                          {isExpanded && breakdown && (
+                            <div className="mt-2 pt-2 border-t border-zinc-700/50 space-y-1">
+                              <div className="text-[10px] font-medium text-zinc-400 mb-1">Cost Breakdown</div>
+                              
+                              {/* Mileage */}
+                              <div className="grid grid-cols-2 gap-x-2 text-[10px]">
+                                <div className="text-zinc-500">Linehaul:</div>
+                                <div className="text-right text-zinc-300">
+                                  {breakdown.linehaul_miles} mi → ${breakdown.linehaul_cost.toFixed(0)}
+                                </div>
+                                
+                                {breakdown.deadhead_miles > 0 && (
+                                  <>
+                                    <div className="text-zinc-500">Deadhead:</div>
+                                    <div className="text-right text-zinc-300">
+                                      {breakdown.deadhead_miles} mi → ${breakdown.deadhead_cost.toFixed(0)}
+                                    </div>
+                                  </>
+                                )}
+                              </div>
+                              
+                              {/* Cost Components */}
+                              <div className="grid grid-cols-2 gap-x-2 text-[10px] mt-1 pt-1 border-t border-zinc-800">
+                                <div className="text-zinc-500">Fuel:</div>
+                                <div className="text-right text-amber-400">${breakdown.fuel_cost.toFixed(0)}</div>
+                                
+                                <div className="text-zinc-500">Driver:</div>
+                                <div className="text-right text-blue-400">${breakdown.driver_cost.toFixed(0)}</div>
+                                
+                                <div className="text-zinc-500">Fixed/Day:</div>
+                                <div className="text-right text-zinc-300">${breakdown.fixed_daily_cost.toFixed(0)}</div>
+                                
+                                {breakdown.accessorial_cost > 0 && (
+                                  <>
+                                    <div className="text-zinc-500">Accessorials:</div>
+                                    <div className="text-right text-zinc-300">${breakdown.accessorial_cost.toFixed(0)}</div>
+                                  </>
+                                )}
+                              </div>
+                              
+                              {/* Total */}
+                              <div className="grid grid-cols-2 gap-x-2 text-[10px] mt-1 pt-1 border-t border-zinc-700 font-medium">
+                                <div className="text-zinc-300">Total Cost:</div>
+                                <div className="text-right text-white">${breakdown.total.toFixed(0)}</div>
+                              </div>
+                            </div>
+                          )}
                         </div>
-                        {scenario.resource_match.driver && (
-                          <div className="text-[10px] text-zinc-500 mt-0.5">
-                            Driver: {scenario.resource_match.driver.name}
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                      );
+                    })}
                 </div>
               </div>
             )}

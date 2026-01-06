@@ -3,11 +3,63 @@ import Anthropic from '@anthropic-ai/sdk';
 import pool from '@/lib/db';
 import fs from 'fs';
 import path from 'path';
-import { calculateTripCost, type DriverType } from '@/lib/costing';
+import { calculateTripCost, type DriverType, type CostingRates, DEFAULT_RATES } from '@/lib/costing';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY || '',
 });
+
+/**
+ * Fetch costing rates from database
+ */
+async function fetchCostingRates(): Promise<CostingRates> {
+  try {
+    const result = await pool.query(
+      'SELECT rule_key, rule_type, rule_value FROM costing_rules WHERE is_active = true'
+    );
+
+    const rates: CostingRates = { ...DEFAULT_RATES };
+    
+    for (const row of result.rows) {
+      const key = `${row.rule_key}_${row.rule_type}`;
+      const value = Number(row.rule_value);
+      
+      switch (key) {
+        case 'BASE_WAGE_COM': rates.BASE_WAGE_COM = value; break;
+        case 'BASE_WAGE_RNR': rates.BASE_WAGE_RNR = value; break;
+        case 'BASE_WAGE_OO_ZONE1': rates.BASE_WAGE_OO_ZONE1 = value; break;
+        case 'BASE_WAGE_OO_ZONE2': rates.BASE_WAGE_OO_ZONE2 = value; break;
+        case 'BASE_WAGE_OO_ZONE3': rates.BASE_WAGE_OO_ZONE3 = value; break;
+        case 'SAFETY_PCT_GLOBAL': rates.SAFETY_PCT = value; break;
+        case 'BENEFITS_PCT_GLOBAL': rates.BENEFITS_PCT = value; break;
+        case 'PERF_PCT_GLOBAL': rates.PERF_PCT = value; break;
+        case 'STEP_PCT_GLOBAL': rates.STEP_PCT = value; break;
+        case 'TRK_RM_CPM_GLOBAL': rates.TRK_RM_CPM = value; break;
+        case 'TRL_RM_CPM_GLOBAL': rates.TRL_RM_CPM = value; break;
+        case 'FUEL_CPM_COM': rates.FUEL_CPM_COM = value; break;
+        case 'FUEL_CPM_OO': rates.FUEL_CPM_OO = value; break;
+        case 'FUEL_CPM_RNR': rates.FUEL_CPM_RNR = value; break;
+        case 'BC_PER_GLOBAL': rates.BC_PER = value; break;
+        case 'DH_PER_GLOBAL': rates.DH_PER = value; break;
+        case 'PICK_PER_GLOBAL': rates.PICK_PER = value; break;
+        case 'DEL_PER_GLOBAL': rates.DEL_PER = value; break;
+        case 'MISC_WK_GLOBAL': rates.MISC_WK = value; break;
+        case 'SGA_WK_GLOBAL': rates.SGA_WK = value; break;
+        case 'DTOPS_WK_GLOBAL': rates.DTOPS_WK = value; break;
+        case 'ISSAC_WK_GLOBAL': rates.ISSAC_WK = value; break;
+        case 'PP_WK_GLOBAL': rates.PP_WK = value; break;
+        case 'INS_WK_GLOBAL': rates.INS_WK = value; break;
+        case 'TRAILER_WK_GLOBAL': rates.TRAILER_WK = value; break;
+        case 'RPM_DEFAULT_GLOBAL': rates.RPM_DEFAULT = value; break;
+      }
+    }
+    
+    return rates;
+  } catch (error) {
+    console.error('Failed to fetch costing rates:', error);
+    return DEFAULT_RATES;
+  }
+}
 
 interface OrderInsightData {
   order_id: string;
@@ -120,6 +172,9 @@ export async function GET(
     const drivers = driversResult.rows;
     const units = unitsResult.rows;
 
+    // Fetch costing rates from database
+    const costingRates = await fetchCostingRates();
+
     // Try to get distance from related trip if exists, otherwise use default
     let laneMiles = 380; // Default distance
     try {
@@ -140,12 +195,12 @@ export async function GET(
     // Calculate distance and cost options
     const revenue = Number(order.quoted_rate || order.estimated_cost || 2000);
     
-    // Calculate costs for different driver types
+    // Calculate costs for different driver types using database rates
     const pickup = order.pickup_location || '';
     const delivery = order.dropoff_location || '';
     
     const costOptions = ['RNR', 'COM', 'OO'].map((type) => {
-      const cost = calculateTripCost(type as DriverType, laneMiles, pickup, delivery);
+      const cost = calculateTripCost(type as DriverType, laneMiles, pickup, delivery, {}, costingRates);
       const marginPct = revenue > 0 ? ((revenue - cost.fullyAllocatedCost) / revenue) * 100 : 0;
       
       return {

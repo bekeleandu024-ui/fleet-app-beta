@@ -31,8 +31,13 @@ export async function GET() {
     let localOrders: OrderResponse[] = [];
 
     try {
-      // 2. Fetch financials from DB
-      const finRes = await client.query('SELECT order_id, revenue FROM trip_costs');
+      // 2. Fetch financials from DB (join trip_costs with trips to get order_id)
+      const finRes = await client.query(`
+        SELECT t.order_id, tc.revenue 
+        FROM trip_costs tc 
+        JOIN trips t ON tc.trip_id = t.id
+        WHERE t.order_id IS NOT NULL
+      `);
       finRes.rows.forEach(row => {
         financials[row.order_id] = Number(row.revenue);
       });

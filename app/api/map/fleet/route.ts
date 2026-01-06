@@ -184,7 +184,7 @@ export async function GET() {
         return {
           id: row.customer_id,
           type: 'facility',
-          name: row.name,
+          name: row.customer_name,
           address: row.full_address,
           city: row.city,
           hasTrailerPool: row.has_trailer_pool,

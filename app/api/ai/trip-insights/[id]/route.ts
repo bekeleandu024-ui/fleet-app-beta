@@ -3,7 +3,25 @@ import { serviceFetch } from "@/lib/service-client";
 import { generateTripInsights } from "@/lib/claude-api";
 import { calculateTripCost, type Driver, type TripEvents } from "@/lib/cost-calculator";
 import { isCrossBorder } from "@/lib/costing";
+import { DEFAULT_RATES, type CostingRates } from "@/lib/use-costing";
 import pool from "@/lib/db";
+
+// Helper to fetch costing rates from database
+async function fetchCostingRates(): Promise<CostingRates> {
+  try {
+    const result = await pool.query(`SELECT rule_key, value FROM costing_rules WHERE is_active = true`);
+    if (result.rows.length > 0) {
+      const rates: Partial<CostingRates> = {};
+      for (const row of result.rows) {
+        rates[row.rule_key as keyof CostingRates] = Number(row.value);
+      }
+      return { ...DEFAULT_RATES, ...rates };
+    }
+  } catch (e) {
+    console.warn('Failed to fetch costing rates:', e);
+  }
+  return DEFAULT_RATES;
+}
 
 interface TripInsightsContext {
   trip: {
@@ -108,6 +126,9 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
     const estimatedDuration = Number(trip.duration_hours || (estimatedDistance / 55) || 0); // hours, fallback to 55mph average
     const durationDays = estimatedDuration / 24;
 
+    // Fetch costing rates from database
+    const costingRates = await fetchCostingRates();
+
     // Calculate costs
     const driverType = driver?.driver_type || "COM";
     
@@ -129,7 +150,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
       drops: 1  // Default
     };
 
-    const costResult = calculateTripCost(currentDriver, estimatedDistance, durationDays, events);
+    const costResult = calculateTripCost(currentDriver, estimatedDistance, durationDays, events, costingRates);
 
     const driverCost = costResult.breakdown.labor;
     const linehaulCost = costResult.breakdown.fixed + costResult.breakdown.maintenance + costResult.breakdown.events;
@@ -167,7 +188,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
           type: d.driver_type || "COM",
           truckWk: d.truckWk || 0
         };
-        const altCost = calculateTripCost(altDriver, estimatedDistance, durationDays, events);
+        const altCost = calculateTripCost(altDriver, estimatedDistance, durationDays, events, costingRates);
         
         return {
           driverId: d.id,

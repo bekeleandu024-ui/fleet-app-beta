@@ -10,7 +10,7 @@ const router = Router();
 router.get('/rules', async (_req: Request, res: Response) => {
   try {
     const result = await pool.query(
-      `SELECT rule_key, rule_type, rule_value, description, is_active, effective_date
+      `SELECT rule_key, rule_type, rule_value, rate_unit, description, is_active, effective_date
        FROM costing_rules 
        ORDER BY rule_key, rule_type`
     );

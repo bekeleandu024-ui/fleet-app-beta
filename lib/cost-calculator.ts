@@ -1,12 +1,22 @@
-// import { PrismaClient } from '@prisma/client';
+/**
+ * Cost Calculator
+ * 
+ * Low-level cost calculation functions using rates from the costing_rules database.
+ * For React components, use useCostingRules() hook and calculateTripCostWithRates().
+ * 
+ * This file provides fallback constants for when the API is unavailable.
+ */
 
-// 1. Data Structure (Interfaces based on Prisma Models)
+import { DEFAULT_RATES, type CostingRates } from './use-costing';
+
+// 1. Data Structure (Interfaces)
 
 export interface Driver {
   id: string;
   name: string;
   type: 'COM' | 'RNR' | 'OO';
   truckWk: number;
+  ooZone?: 'ZONE1' | 'ZONE2' | 'ZONE3';
 }
 
 export interface CostConstants {
@@ -39,84 +49,100 @@ export interface TripCostResult {
   metadata: CostMetadata;
 }
 
-// 2. Business Logic & Constants
+// 2. Business Logic - Use rates from database with fallbacks
 
-// Fallback Constants
-const GLOBAL_WEEKLY_OVERHEAD = 1233.60; // Sum of SGA, Insurance, Trailer, Misc/Tech
-const MAINTENANCE_PER_MILE = 0.11; // $0.08 Truck + $0.03 Trailer
+/**
+ * Get weekly overhead total from rates
+ */
+function getWeeklyOverhead(rates: CostingRates): number {
+  return rates.MISC_WK + rates.SGA_WK + rates.DTOPS_WK + 
+         rates.ISSAC_WK + rates.PP_WK + rates.INS_WK + rates.TRAILER_WK;
+}
 
-const FUEL_COST_PER_MILE = {
-  COM: 0.70,
-  RNR: 0.70,
-  OO: 0.22,
-};
+/**
+ * Get base wage rate for driver type
+ */
+function getBaseWageRate(
+  driverType: 'COM' | 'RNR' | 'OO',
+  miles: number,
+  rates: CostingRates,
+  ooZone?: 'ZONE1' | 'ZONE2' | 'ZONE3'
+): number {
+  if (driverType === 'OO') {
+    // Dynamic OO Zones based on miles if zone not specified
+    const zone = ooZone || (miles < 700 ? 'ZONE1' : miles <= 2200 ? 'ZONE2' : 'ZONE3');
+    switch (zone) {
+      case 'ZONE1': return rates.BASE_WAGE_OO_ZONE1;
+      case 'ZONE2': return rates.BASE_WAGE_OO_ZONE2;
+      case 'ZONE3': return rates.BASE_WAGE_OO_ZONE3;
+    }
+  } else if (driverType === 'RNR') {
+    return rates.BASE_WAGE_RNR;
+  }
+  return rates.BASE_WAGE_COM;
+}
 
-const BASE_WAGE_PER_MILE = {
-  COM: 0.59,
-  RNR: 0.74,
-  // OO is dynamic based on zones
-};
+/**
+ * Get fuel cost per mile for driver type
+ */
+function getFuelRate(driverType: 'COM' | 'RNR' | 'OO', rates: CostingRates): number {
+  switch (driverType) {
+    case 'OO': return rates.FUEL_CPM_OO;
+    case 'RNR': return rates.FUEL_CPM_RNR;
+    default: return rates.FUEL_CPM_COM;
+  }
+}
 
-const LABOR_MARKUP = 1.29; // Universal 29% markup for all driver types
-
-const EVENT_COSTS = {
-  BORDER: 15.00,
-  PICK_DROP: 30.00,
-};
+/**
+ * Get labor markup multiplier (benefits + performance + safety + step)
+ */
+function getLaborMarkup(rates: CostingRates): number {
+  return 1 + rates.BENEFITS_PCT + rates.PERF_PCT + rates.SAFETY_PCT + rates.STEP_PCT;
+}
 
 /**
  * Calculates the trip cost based on driver type, miles, duration, and events.
+ * Uses rates from the costing_rules database (pass rates parameter).
  * 
  * @param driver The Driver object (containing type and truckWk cost).
  * @param miles Number (Trip distance).
- * @param durationDays Number (Trip time).
+ * @param durationDays Number (Trip time in days).
  * @param events Object { border: number, picks: number, drops: number }.
+ * @param rates Optional CostingRates from database (defaults to DEFAULT_RATES).
  * @returns Detailed cost object.
  */
 export function calculateTripCost(
   driver: Driver,
   miles: number,
   durationDays: number,
-  events: TripEvents
+  events: TripEvents,
+  rates: CostingRates = DEFAULT_RATES
 ): TripCostResult {
   
   // A. FIXED COSTS (Time-based)
   // (Global Weekly + Driver Truck Weekly) / 7 * durationDays
-  const dailyFixedCost = (GLOBAL_WEEKLY_OVERHEAD + (driver.truckWk || 0)) / 7;
+  const weeklyOverhead = getWeeklyOverhead(rates);
+  const dailyFixedCost = (weeklyOverhead + (driver.truckWk || 0)) / 7;
   const fixedCost = dailyFixedCost * durationDays;
 
   // B. VARIABLE COSTS (Mile-based)
   
-  // Maintenance
-  const maintenanceCost = miles * MAINTENANCE_PER_MILE;
+  // Maintenance (from database rates)
+  const maintenanceRate = rates.TRK_RM_CPM + rates.TRL_RM_CPM;
+  const maintenanceCost = miles * maintenanceRate;
 
-  // Fuel
-  const fuelRate = FUEL_COST_PER_MILE[driver.type] || 0;
+  // Fuel (from database rates)
+  const fuelRate = getFuelRate(driver.type, rates);
   const fuelCost = miles * fuelRate;
 
-  // Labor (Wage)
-  let baseWageRate = 0;
-  
-  if (driver.type === 'OO') {
-    // Dynamic OO Zones
-    if (miles < 700) {
-      baseWageRate = 1.60; // Zone 1
-    } else if (miles <= 2200) {
-      baseWageRate = 1.55; // Zone 2
-    } else {
-      baseWageRate = 1.42; // Zone 3
-    }
-  } else {
-    // Standard rates for COM/RNR
-    baseWageRate = BASE_WAGE_PER_MILE[driver.type as keyof typeof BASE_WAGE_PER_MILE] || 0;
-  }
+  // Labor (Wage) with universal loading
+  const baseWageRate = getBaseWageRate(driver.type, miles, rates, driver.ooZone);
+  const laborMarkup = getLaborMarkup(rates);
+  const laborCost = miles * baseWageRate * laborMarkup;
 
-  // Universal Labor Loading (Benefits/Safety)
-  const laborCost = miles * baseWageRate * LABOR_MARKUP;
-
-  // C. EVENT COSTS
-  const borderCost = events.border * EVENT_COSTS.BORDER;
-  const pickDropCost = (events.picks + events.drops) * EVENT_COSTS.PICK_DROP;
+  // C. EVENT COSTS (from database rates)
+  const borderCost = events.border * rates.BC_PER;
+  const pickDropCost = (events.picks * rates.PICK_PER) + (events.drops * rates.DEL_PER);
   const eventsCost = borderCost + pickDropCost;
 
   // Total Cost
@@ -141,3 +167,25 @@ export function calculateTripCost(
     },
   };
 }
+
+// Legacy constants for backward compatibility (use database rates instead)
+export const GLOBAL_WEEKLY_OVERHEAD = getWeeklyOverhead(DEFAULT_RATES);
+export const MAINTENANCE_PER_MILE = DEFAULT_RATES.TRK_RM_CPM + DEFAULT_RATES.TRL_RM_CPM;
+
+export const FUEL_COST_PER_MILE = {
+  COM: DEFAULT_RATES.FUEL_CPM_COM,
+  RNR: DEFAULT_RATES.FUEL_CPM_RNR,
+  OO: DEFAULT_RATES.FUEL_CPM_OO,
+};
+
+export const BASE_WAGE_PER_MILE = {
+  COM: DEFAULT_RATES.BASE_WAGE_COM,
+  RNR: DEFAULT_RATES.BASE_WAGE_RNR,
+};
+
+export const LABOR_MARKUP = getLaborMarkup(DEFAULT_RATES);
+
+export const EVENT_COSTS = {
+  BORDER: DEFAULT_RATES.BC_PER,
+  PICK_DROP: DEFAULT_RATES.PICK_PER, // Pick and Del have same cost
+};

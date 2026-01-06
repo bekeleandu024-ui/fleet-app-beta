@@ -145,10 +145,43 @@ export interface DispatchRecommendation {
 }
 
 // ============================================================================
-// CONFIGURATION
+// CONFIGURATION - Defaults that can be overridden by database
 // ============================================================================
 
-const COSTING_CONFIG = {
+interface CostingConfig {
+  // Cost per mile rates
+  fuel_cost_per_gallon: number;
+
+  // Fuel efficiency (MPG) - Critical for accurate cost calculation
+  mpg_loaded: number;        // Tractor + Loaded Trailer (revenue miles)
+  mpg_empty: number;         // Tractor + Empty Trailer (deadhead/return)
+  mpg_bobtail: number;       // Tractor only, no trailer (best efficiency)
+  mpg_coupled: number;       // Alias for mpg_loaded (backward compatibility)
+
+  // Driver costs (from database: BASE_WAGE_COM with markup)
+  driver_cpm_highway: number;  // Cost per mile for highway drivers
+  driver_cpm_local: number;    // Cost per mile for local drivers
+
+  // Fixed costs (from database: weekly totals / 7)
+  fixed_daily_cost: number;  // Insurance, depreciation, etc.
+
+  // Accessorials (from database: PICK_PER, DEL_PER, BC_PER, DH_PER)
+  stop_charge: number;        // Per additional stop beyond 2
+  detention_per_hour: number;
+  border_crossing: number;
+  drop_hook: number;
+
+  // Operational parameters
+  average_speed_mph: number;
+  hook_unhook_time_hours: number;
+
+  // Margin targets
+  target_margin_percent: number;
+  minimum_margin_percent: number;
+}
+
+// Default configuration (used until database rates are loaded)
+const DEFAULT_COSTING_CONFIG: CostingConfig = {
   // Cost per mile rates
   fuel_cost_per_gallon: 4.25,
 
@@ -159,15 +192,17 @@ const COSTING_CONFIG = {
   mpg_coupled: 6.5,       // Alias for mpg_loaded (backward compatibility)
 
   // Driver costs
-  driver_cpm_highway: 0.52,  // Cost per mile for highway drivers
-  driver_cpm_local: 0.48,    // Cost per mile for local drivers
+  driver_cpm_highway: 0.76,  // COM base ($0.59) * 1.29 markup
+  driver_cpm_local: 0.70,    // Slightly lower for local
 
-  // Fixed costs
-  fixed_daily_cost: 185.00,  // Insurance, depreciation, etc.
+  // Fixed costs (weekly overhead / 7)
+  fixed_daily_cost: 176.23,  // ~$1233.60/7
 
-  // Accessorials
-  stop_charge: 50.00,        // Per additional stop beyond 2
+  // Accessorials (from database defaults)
+  stop_charge: 30.00,        // PICK_PER and DEL_PER
   detention_per_hour: 75.00,
+  border_crossing: 15.00,    // BC_PER
+  drop_hook: 15.00,          // DH_PER
 
   // Operational parameters
   average_speed_mph: 55,
@@ -178,15 +213,78 @@ const COSTING_CONFIG = {
   minimum_margin_percent: 8,
 };
 
+// Mutable config that can be updated from database
+let COSTING_CONFIG = { ...DEFAULT_COSTING_CONFIG };
+
+/**
+ * Load costing configuration from database rates
+ */
+async function loadCostingConfigFromDB(pool: Pool): Promise<CostingConfig> {
+  try {
+    const result = await pool.query(
+      'SELECT rule_key, rule_type, rule_value FROM costing_rules WHERE is_active = true'
+    );
+
+    const rates: Record<string, number> = {};
+    for (const row of result.rows) {
+      const key = `${row.rule_key}_${row.rule_type}`;
+      rates[key] = parseFloat(row.rule_value);
+    }
+
+    // Calculate driver CPM with markup
+    const baseWageCom = rates['BASE_WAGE_COM'] || 0.59;
+    const benefitsPct = rates['BENEFITS_PCT_GLOBAL'] || 0.20;
+    const perfPct = rates['PERF_PCT_GLOBAL'] || 0.03;
+    const safetyPct = rates['SAFETY_PCT_GLOBAL'] || 0.03;
+    const stepPct = rates['STEP_PCT_GLOBAL'] || 0.03;
+    const markup = 1 + benefitsPct + perfPct + safetyPct + stepPct;
+    const driverCpmHighway = baseWageCom * markup;
+
+    // Calculate weekly overhead for daily fixed cost
+    const weeklyOverhead = 
+      (rates['SGA_WK_GLOBAL'] || 590.91) +
+      (rates['INS_WK_GLOBAL'] || 164.89) +
+      (rates['DTOPS_WK_GLOBAL'] || 18.94) +
+      (rates['ISSAC_WK_GLOBAL'] || 31.92) +
+      (rates['PP_WK_GLOBAL'] || 66.49) +
+      (rates['MISC_WK_GLOBAL'] || 76.07) +
+      (rates['TRAILER_WK_GLOBAL'] || 284.38);
+
+    return {
+      ...DEFAULT_COSTING_CONFIG,
+      driver_cpm_highway: driverCpmHighway,
+      driver_cpm_local: driverCpmHighway * 0.92, // Local slightly less
+      fixed_daily_cost: weeklyOverhead / 7,
+      stop_charge: rates['PICK_PER_GLOBAL'] || rates['DEL_PER_GLOBAL'] || 30.00,
+      border_crossing: rates['BC_PER_GLOBAL'] || 15.00,
+      drop_hook: rates['DH_PER_GLOBAL'] || 15.00,
+    };
+  } catch (error) {
+    console.error('Failed to load costing config from DB:', error);
+    return DEFAULT_COSTING_CONFIG;
+  }
+}
+
 // ============================================================================
 // DISPATCH SIMULATION SERVICE
 // ============================================================================
 
 export class DispatchSimulationService {
   private pool: Pool;
+  private configLoaded: boolean = false;
 
   constructor(pool: Pool) {
     this.pool = pool;
+  }
+
+  /**
+   * Ensure costing config is loaded from database
+   */
+  private async ensureConfigLoaded(): Promise<void> {
+    if (!this.configLoaded) {
+      COSTING_CONFIG = await loadCostingConfigFromDB(this.pool);
+      this.configLoaded = true;
+    }
   }
 
   /**
@@ -194,6 +292,9 @@ export class DispatchSimulationService {
    */
   async simulate(request: SimulationRequest): Promise<SimulationResponse> {
     const startTime = Date.now();
+
+    // Load costing configuration from database
+    await this.ensureConfigLoaded();
 
     // 1. Calculate route distances
     const routeAnalysis = await this.analyzeRoute(request.route);
@@ -514,7 +615,7 @@ export class DispatchSimulationService {
         up.unit_number as number,
         COALESCE(up.current_configuration, 'Bobtail') as configuration,
         up.current_location_id,
-        COALESCE(c.name, 'Home Base - Guelph') as current_location,
+        COALESCE(c.customer_name, 'Home Base - Guelph') as current_location,
         COALESCE(up.avg_fuel_consumption, 6.5) as fuel_consumption
       FROM unit_profiles up
       LEFT JOIN customers c ON up.current_location_id = c.customer_id
@@ -531,7 +632,7 @@ export class DispatchSimulationService {
         t.type,
         t.status,
         t.current_location_id as location_id,
-        COALESCE(c.name, 'Unknown') as location
+        COALESCE(c.customer_name, 'Unknown') as location
       FROM trailers t
       LEFT JOIN customers c ON t.current_location_id = c.customer_id
       WHERE t.status IN ('Available', 'Loaded')

@@ -306,3 +306,89 @@ export async function createTripEvent(tripId: string, payload: EventLogPayload):
   return response.data;
 }
 
+// Trip Comparison API
+export interface TripComparisonResponse {
+  lane?: {
+    avgMargin: number;
+    avgPpm: number;
+    avgRpm: number;
+    tripCount: number;
+  };
+  driver?: {
+    avgMargin: number;
+    avgPpm: number;
+    avgRpm: number;
+    tripCount: number;
+  } | null;
+  driverType?: {
+    type: string;
+    avgMargin: number;
+    avgPpm: number;
+    avgRpm: number;
+    tripCount: number;
+  } | null;
+  currentTrip: {
+    margin: number;
+    ppm: number;
+    rpm: number;
+  };
+}
+
+export async function getTripComparison(tripId: string): Promise<TripComparisonResponse> {
+  const response = await api.get(`/trips/${tripId}/comparison`);
+  return response.data;
+}
+
+// Driver Scorecard API
+export interface DriverScorecardResponse {
+  driver: {
+    id: string;
+    name: string;
+    type: string;
+    isActive: boolean;
+  };
+  metrics: {
+    onTimeDeliveryRate: number | null;
+    onTimePickupRate: number | null;
+    avgMargin: number;
+    avgPpm: number;
+    avgRpm: number;
+    totalRevenue: number;
+    totalProfit: number;
+    totalTrips: number;
+    completedTrips: number;
+    utilizationRate: number;
+  };
+  grade: string;
+  periodDays: number;
+}
+
+export async function getDriverScorecard(driverId: string, days = 90): Promise<DriverScorecardResponse> {
+  const response = await api.get(`/drivers/${driverId}/scorecard?days=${days}`);
+  return response.data;
+}
+
+// Customer Profitability API
+export interface CustomerProfitabilityResponse {
+  customer: {
+    id: string;
+    name: string;
+  };
+  metrics: {
+    totalTrips: number;
+    totalRevenue: number;
+    totalCost: number;
+    totalProfit: number;
+    avgMargin: number;
+    avgPpm: number;
+    firstTripDate?: string;
+    lastTripDate?: string;
+  };
+  tier: "Platinum" | "Gold" | "Silver" | "Bronze" | "New";
+  trend: "up" | "down" | "stable";
+}
+
+export async function getCustomerProfitability(customerId: string): Promise<CustomerProfitabilityResponse> {
+  const response = await api.get(`/customers/${customerId}/profitability`);
+  return response.data;
+}

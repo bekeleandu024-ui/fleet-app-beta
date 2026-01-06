@@ -50,6 +50,7 @@ CREATE TABLE IF NOT EXISTS costing_rules (
   rule_key VARCHAR(100) NOT NULL,
   rule_type VARCHAR(50) NOT NULL,
   rule_value DECIMAL(10, 4) NOT NULL,
+  rate_unit VARCHAR(50), -- Unit of measurement: $/Mile, $/Week, $/Event, % of base
   description TEXT,
   effective_date TIMESTAMP NOT NULL DEFAULT NOW(),
   is_active BOOLEAN NOT NULL DEFAULT true,

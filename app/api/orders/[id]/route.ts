@@ -5,6 +5,7 @@ import { serviceFetch, ServiceError } from "@/lib/service-client";
 import { buildLane, mapOrderStatus } from "@/lib/transformers";
 import { calculateTripCost, type Driver, type TripEvents } from "@/lib/cost-calculator";
 import { isCrossBorder } from "@/lib/costing";
+import { DEFAULT_RATES, type CostingRates } from "@/lib/use-costing";
 import pool from "@/lib/db";
 
 type OrderStop = {
@@ -104,14 +105,16 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
     `;
     const unitsQuery = `SELECT unit_id as id, unit_number, truck_weekly_cost, region FROM unit_profiles`;
     const orderNumberQuery = `SELECT order_number FROM orders WHERE id = $1`;
+    const costingRulesQuery = `SELECT rule_key, value FROM costing_rules WHERE is_active = true`;
 
-    const [driversResult, unitsResult, costResult, customerViewResult, tripsResult, orderNumberResult] = await Promise.allSettled([
+    const [driversResult, unitsResult, costResult, customerViewResult, tripsResult, orderNumberResult, costingRulesResult] = await Promise.allSettled([
       pool.query(driversQuery),
       pool.query(unitsQuery),
       serviceFetch<Record<string, any>>("orders", `/api/orders/${orderId}/cost-breakdown`, { silent: true }).catch(() => undefined),
       serviceFetch<Record<string, any>>("tracking", `/api/views/customer/${orderId}`, { silent: true }).catch(() => undefined),
       serviceFetch<Array<Record<string, any>>>("tracking", `/api/trips?orderId=${orderId}`, { silent: true }).catch(() => undefined),
       pool.query(orderNumberQuery, [orderId]),
+      pool.query(costingRulesQuery),
     ]);
 
     const drivers = driversResult.status === "fulfilled" ? driversResult.value.rows : [];
@@ -122,6 +125,16 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
     const orderNumber = orderNumberResult.status === "fulfilled" && orderNumberResult.value.rows.length > 0 
       ? orderNumberResult.value.rows[0].order_number 
       : undefined;
+    
+    // Parse costing rules from database
+    let costingRates: CostingRates = DEFAULT_RATES;
+    if (costingRulesResult.status === "fulfilled" && costingRulesResult.value.rows.length > 0) {
+      const rates: Partial<CostingRates> = {};
+      for (const row of costingRulesResult.value.rows) {
+        rates[row.rule_key as keyof CostingRates] = Number(row.value);
+      }
+      costingRates = { ...DEFAULT_RATES, ...rates };
+    }
 
     if (orderNumber) {
       order.order_number = orderNumber;
@@ -134,7 +147,7 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
       console.log(`[Order Detail] Returning order with UUID: ${orderId}, Friendly ID: ${orderNumber || id}`);
     }
 
-    const detail = buildOrderDetail(order, { drivers, units, cost, customerView, trips });
+    const detail = buildOrderDetail(order, { drivers, units, cost, customerView, trips, costingRates });
 
     return NextResponse.json(detail);
   } catch (error) {
@@ -189,6 +202,7 @@ function buildOrderDetail(
     cost?: Record<string, any>;
     customerView?: Record<string, any>;
     trips?: Array<Record<string, any>>;
+    costingRates?: CostingRates;
   }
 ) {
   const stops = buildStops(order, context.customerView);
@@ -214,7 +228,7 @@ function buildOrderDetail(
       windows: buildWindows(stops),
       notes: order.special_instructions ?? extractCustomerNote(context.customerView),
     },
-    pricing: buildPricing(context.cost, enrichedOrder),
+    pricing: buildPricing(context.cost, enrichedOrder, context.costingRates),
     booking: buildBooking(order, context.drivers, context.units, context.trips ?? []),
   };
 }
@@ -334,18 +348,21 @@ function extractCustomerNote(customerView?: Record<string, any>) {
   return undefined;
 }
 
-function buildPricing(cost: Record<string, any> | undefined, order: Record<string, any>) {
+function buildPricing(cost: Record<string, any> | undefined, order: Record<string, any>, costingRates?: CostingRates) {
   // Get lane miles for calculation
   const laneMiles = order.lane_miles ?? order.planned_miles ?? order.distance_miles ?? 0;
   
-  // Calculate costs based on industry-standard rates if not provided
+  // Use provided rates or fallback to defaults
+  const rates = costingRates || DEFAULT_RATES;
+  
+  // Calculate costs based on database rates if not provided
   let linehaul = toNumber(cost?.linehaul_cost ?? cost?.linehaul);
   let fuel = toNumber(cost?.fuel_cost ?? cost?.fuel);
   let accessorials = toNumber(cost?.accessorial_cost ?? cost?.accessorials);
   let totalCost = toNumber(cost?.total_cost ?? order.estimated_cost ?? order.cost);
   let revenue = toNumber(cost?.revenue ?? order.revenue);
   
-  // If no pricing data exists, calculate based on lane miles and industry rates
+  // If no pricing data exists, calculate based on lane miles and database rates
   if (!totalCost && laneMiles > 0) {
     // Use new cost calculator with default 'COM' driver
     const defaultDriver: Driver = {
@@ -363,7 +380,7 @@ function buildPricing(cost: Record<string, any> | undefined, order: Record<strin
       drops: 1
     };
 
-    const calculated = calculateTripCost(defaultDriver, laneMiles, durationDays, events);
+    const calculated = calculateTripCost(defaultDriver, laneMiles, durationDays, events, rates);
     
     linehaul = calculated.breakdown.fixed + calculated.breakdown.labor + calculated.breakdown.maintenance + calculated.breakdown.events;
     fuel = calculated.breakdown.fuel;
