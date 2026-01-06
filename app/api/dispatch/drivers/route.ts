@@ -14,7 +14,6 @@ export async function GET() {
         dp.oo_zone AS region,
         COALESCE(dp.current_status::text, dp.status::text, 'Available') AS status,
         dp.hos_hours_remaining,
-        dp.base_wage_cpm,
         dp.effective_wage_cpm,
         COALESCE(dp.is_active, true) AS is_active
       FROM driver_profiles dp
@@ -32,7 +31,6 @@ export async function GET() {
       region: row.region,
       status: row.status,
       hosHoursRemaining: row.hos_hours_remaining,
-      baseWageCpm: row.base_wage_cpm,
       effectiveWageCpm: row.effective_wage_cpm,
       isActive: row.is_active,
     }));

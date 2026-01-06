@@ -138,6 +138,17 @@ export default function EnterpriseOrderPage() {
     miles: number;
     costPerMile?: number;
     targetMargin?: number;
+    // Full trip cost breakdown (including deadhead/return)
+    fullTripCost?: {
+      loadCost: number;        // Just the linehaul
+      deadheadMiles: number;   // Miles to pickup
+      deadheadCost: number;
+      returnMiles: number;     // Miles back to home base
+      returnCost: number;
+      totalTripCost: number;   // Full trip cost
+      totalTripMiles: number;  // Total miles including empty
+      suggestedRateFullTrip: number; // Rate to cover full trip at margin
+    };
   } | null>(null);
   const [isFetchingRate, setIsFetchingRate] = useState(false);
 
@@ -339,6 +350,7 @@ export default function EnterpriseOrderPage() {
 
   // Fetch estimated rate based on origin/destination and target margin
   // Uses centralized costing from database
+  // Now includes full trip cost (deadhead to pickup + load + return to base)
   const fetchEstimatedRate = async () => {
     const stops = watch("stops");
     const pickups = stops.filter(s => s.stopType === "pickup");
@@ -354,58 +366,99 @@ export default function EnterpriseOrderPage() {
     
     setIsFetchingRate(true);
     try {
-      // Get distance from API
-      const distRes = await fetch(`/api/maps/distance?origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}`);
-      const distData = await distRes.json();
-      const miles = distData.distance || 500; // Fallback
+      // Default home base (Guelph, ON - fleet headquarters)
+      const homeBase = "Guelph, ON";
+      
+      // Get distances from API - linehaul, deadhead, and return
+      const [linehaulRes, deadheadRes, returnRes] = await Promise.all([
+        fetch(`/api/maps/distance?origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}`),
+        fetch(`/api/maps/distance?origin=${encodeURIComponent(homeBase)}&destination=${encodeURIComponent(origin)}`),
+        fetch(`/api/maps/distance?origin=${encodeURIComponent(destination)}&destination=${encodeURIComponent(homeBase)}`),
+      ]);
+      
+      const [linehaulData, deadheadData, returnData] = await Promise.all([
+        linehaulRes.json(),
+        deadheadRes.json(),
+        returnRes.json(),
+      ]);
+      
+      const linehaulMiles = linehaulData.distance || 500; // Fallback
+      const deadheadMiles = deadheadData.distance || 50;  // Default 50mi if API fails
+      const returnMiles = returnData.distance || 50;      // Default 50mi if API fails
+      const totalTripMiles = linehaulMiles + deadheadMiles + returnMiles;
       
       // Detect border crossing
       const borderCrossings = isCrossBorder(origin, destination) ? 1 : 0;
       
-      // Estimate duration (50mph average)
-      const durationHours = miles / 50;
-      const durationDays = Math.max(durationHours / 24, 0.5);
+      // Estimate duration for linehaul (50mph average)
+      const linehaulDurationHours = linehaulMiles / 50;
+      const linehaulDurationDays = Math.max(linehaulDurationHours / 24, 0.5);
       
-      // Calculate cost using centralized rates (COM driver as default)
-      let costResult;
+      // Full trip duration including deadhead/return
+      const fullTripDurationHours = totalTripMiles / 50;
+      const fullTripDurationDays = Math.max(fullTripDurationHours / 24, 0.5);
+      
+      // Calculate LOAD ONLY cost (what we've always shown)
+      let loadCostResult;
       if (costingRates) {
-        costResult = calculateTripCostWithRates(
+        loadCostResult = calculateTripCostWithRates(
           costingRates,
           'COM', // Default to company driver
-          miles,
-          durationDays,
+          linehaulMiles,
+          linehaulDurationDays,
           { border: borderCrossings, picks: pickups.length, drops: deliveries.length },
           undefined
         );
       } else {
         // Fallback calculation
         const baseCostPerMile = 1.85;
-        costResult = {
-          totalCost: miles * baseCostPerMile + (borderCrossings * 15) + (pickups.length * 30) + (deliveries.length * 30),
+        loadCostResult = {
+          totalCost: linehaulMiles * baseCostPerMile + (borderCrossings * 15) + (pickups.length * 30) + (deliveries.length * 30),
           totalCPM: baseCostPerMile,
         };
       }
       
-      const costPerMile = costResult.totalCPM;
+      // Calculate FULL TRIP cost (deadhead + linehaul + return)
+      // Use simplified per-mile costs for empty miles (no events, reduced overhead)
+      const emptyMileCost = costingRates 
+        ? (costingRates.BASE_WAGE_COM * (1 + costingRates.BENEFITS_PCT + costingRates.PERF_PCT + costingRates.SAFETY_PCT + costingRates.STEP_PCT)) +
+          costingRates.FUEL_CPM_COM + costingRates.TRK_RM_CPM + costingRates.TRL_RM_CPM
+        : 1.50; // Fallback
+      
+      const deadheadCost = deadheadMiles * emptyMileCost;
+      const returnCost = returnMiles * emptyMileCost;
+      const totalTripCost = loadCostResult.totalCost + deadheadCost + returnCost;
+      
+      const costPerMile = loadCostResult.totalCPM;
       
       // Get target margin (default 15% if not set)
       const targetMargin = watch("targetMarginPct") || 15;
       
-      // Calculate RPM to achieve target margin
-      // Revenue - Cost = Profit
-      // Profit / Revenue = Margin %
-      // So: RPM = Cost / (1 - Margin)
+      // Calculate RPM to achieve target margin (LOAD ONLY basis)
       const marginMultiplier = 1 - (targetMargin / 100);
       const rpm = Math.round((costPerMile / marginMultiplier) * 100) / 100;
-      const rate = Math.round(costResult.totalCost / marginMultiplier);
+      const rate = Math.round(loadCostResult.totalCost / marginMultiplier);
+      
+      // Calculate rate to cover FULL TRIP cost at margin
+      const fullTripRate = Math.round(totalTripCost / marginMultiplier);
       
       // Store cost info for display
       setSuggestedRate({ 
         rate, 
         rpm, 
-        miles,
+        miles: linehaulMiles,
         costPerMile: Math.round(costPerMile * 100) / 100,
         targetMargin,
+        fullTripCost: {
+          loadCost: Math.round(loadCostResult.totalCost),
+          deadheadMiles: Math.round(deadheadMiles),
+          deadheadCost: Math.round(deadheadCost),
+          returnMiles: Math.round(returnMiles),
+          returnCost: Math.round(returnCost),
+          totalTripCost: Math.round(totalTripCost),
+          totalTripMiles: Math.round(totalTripMiles),
+          suggestedRateFullTrip: fullTripRate,
+        },
       });
     } catch (error) {
       console.error("Failed to fetch estimated rate:", error);
@@ -853,31 +906,78 @@ export default function EnterpriseOrderPage() {
                 {/* Suggested Rate Card */}
                 {suggestedRate && (
                   <div className="mb-3 p-3 rounded-lg border border-emerald-800/30 bg-emerald-950/20">
-                    <div className="flex items-center justify-between">
-                      <div>
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1">
                         <div className="text-xs text-emerald-400 font-medium mb-1">Suggested Rate @ {suggestedRate.targetMargin}% Margin</div>
                         <div className="text-lg font-semibold text-emerald-300">
                           ${suggestedRate.rate.toLocaleString()}
+                          <span className="text-sm font-normal text-zinc-500 ml-2">(load only)</span>
                         </div>
                         <div className="text-xs text-zinc-500 mt-1 space-y-0.5">
                           <div>{suggestedRate.miles} mi × ${suggestedRate.rpm.toFixed(2)}/mi</div>
                           {suggestedRate.costPerMile && (
                             <div className="text-zinc-400">
-                              Cost: ${suggestedRate.costPerMile.toFixed(2)}/mi → 
-                              Profit: ${((suggestedRate.rpm - suggestedRate.costPerMile) * suggestedRate.miles).toFixed(0)}
+                              Load Cost: ${suggestedRate.costPerMile.toFixed(2)}/mi = ${(suggestedRate.costPerMile * suggestedRate.miles).toFixed(0)}
                             </div>
                           )}
                         </div>
+                        
+                        {/* Full Trip Cost Breakdown */}
+                        {suggestedRate.fullTripCost && (
+                          <div className="mt-3 pt-3 border-t border-zinc-800">
+                            <div className="text-xs text-amber-400 font-medium mb-1.5">
+                              ⚠️ Full Trip Cost (from Guelph home base)
+                            </div>
+                            <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                              <div className="text-zinc-500">Deadhead to pickup:</div>
+                              <div className="text-zinc-400">{suggestedRate.fullTripCost.deadheadMiles} mi = ${suggestedRate.fullTripCost.deadheadCost}</div>
+                              
+                              <div className="text-zinc-500">Loaded miles:</div>
+                              <div className="text-zinc-400">{suggestedRate.miles} mi = ${suggestedRate.fullTripCost.loadCost}</div>
+                              
+                              <div className="text-zinc-500">Return to base:</div>
+                              <div className="text-zinc-400">{suggestedRate.fullTripCost.returnMiles} mi = ${suggestedRate.fullTripCost.returnCost}</div>
+                              
+                              <div className="text-zinc-300 font-medium pt-1 border-t border-zinc-800">Total Trip:</div>
+                              <div className="text-amber-400 font-medium pt-1 border-t border-zinc-800">
+                                {suggestedRate.fullTripCost.totalTripMiles} mi = ${suggestedRate.fullTripCost.totalTripCost}
+                              </div>
+                            </div>
+                            <div className="mt-2 text-xs">
+                              <span className="text-zinc-500">Rate to cover full trip @ {suggestedRate.targetMargin}%: </span>
+                              <span className="text-amber-300 font-semibold">${suggestedRate.fullTripCost.suggestedRateFullTrip.toLocaleString()}</span>
+                            </div>
+                          </div>
+                        )}
                       </div>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        onClick={acceptSuggestedRate}
-                        className="border-emerald-700 text-emerald-400 hover:bg-emerald-950"
-                      >
-                        Accept Rate
-                      </Button>
+                      <div className="flex flex-col gap-2">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={acceptSuggestedRate}
+                          className="border-emerald-700 text-emerald-400 hover:bg-emerald-950"
+                        >
+                          Accept Load Rate
+                        </Button>
+                        {suggestedRate.fullTripCost && (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              if (suggestedRate.fullTripCost) {
+                                setValue("quotedRate", suggestedRate.fullTripCost.suggestedRateFullTrip);
+                                setValue("ratePerMile", Math.round((suggestedRate.fullTripCost.suggestedRateFullTrip / suggestedRate.miles) * 100) / 100);
+                                setValue("totalMiles", suggestedRate.miles);
+                              }
+                            }}
+                            className="border-amber-700 text-amber-400 hover:bg-amber-950"
+                          >
+                            Accept Full Trip Rate
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 )}

@@ -122,6 +122,11 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
     const driver = drivers.find((d: any) => String(d.id) === String(trip.driver_id));
     const unit = units.find((u: any) => String(u.id) === String(trip.unit_id));
 
+    // Use trip's stored driver_name as fallback if driver profile lookup fails
+    const driverName = driver?.name || trip.driver_name || "Unknown";
+    // Use trip's stored customer_name as fallback
+    const customerName = trip.customer_name || order?.customer_name || order?.customer_id || "Unknown Customer";
+
     const estimatedDistance = Number(trip.distance_miles || trip.actual_miles || trip.planned_miles || 0);
     const estimatedDuration = Number(trip.duration_hours || (estimatedDistance / 55) || 0); // hours, fallback to 55mph average
     const durationDays = estimatedDuration / 24;
@@ -129,7 +134,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
     // Fetch costing rates from database
     const costingRates = await fetchCostingRates();
 
-    // Calculate costs
+    // Calculate costs - use driver profile type or fall back to COM
     const driverType = driver?.driver_type || "COM";
     
     // Use truck cost from the assigned unit if available, otherwise fallback to driver's default unit
@@ -138,8 +143,8 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
     const truckWk = assignedUnitCost > 0 ? assignedUnitCost : driverDefaultUnitCost;
 
     const currentDriver: Driver = {
-      id: driver?.id || 'unknown',
-      name: driver?.name || 'Unknown',
+      id: driver?.id || trip.driver_id || 'unknown',
+      name: driverName,
       type: driverType,
       truckWk: truckWk
     };
@@ -163,13 +168,13 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
     // Ensure we have an order object for the AI context, even if it's a placeholder
     const aiOrder = order ? {
         id: order.id,
-        customer: order.customer_name || order.customer_id || order.customer,
+        customer: order.customer_name || order.customer_id || customerName,
         commodity: order.special_instructions || order.commodity || "General Freight",
         serviceLevel: order.order_type || order.service_level || order.serviceLevel || "Standard",
         revenue: revenue,
       } : {
-        id: "placeholder",
-        customer: "Unknown Customer",
+        id: trip.order_id || "placeholder",
+        customer: customerName,
         commodity: "General Freight",
         serviceLevel: "Standard",
         revenue: revenue
@@ -239,25 +244,33 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
         currentLinearFeet: Number(trip.current_linear_feet) || 0
       },
       order: aiOrder,
-      driver: driver ? {
-        id: driver.id,
-        name: driver.name,
+      // Always provide driver info using trip's stored data as fallback
+      driver: {
+        id: driver?.id || trip.driver_id,
+        name: driverName,
         type: driverType,
-        region: driver.region,
+        region: driver?.region,
         hoursAvailable: 70,
-        location: driver.current_location || unit?.current_location,
+        location: driver?.current_location || unit?.current_location,
         estimatedCost: driverCost,
         onTimeRate: 0.98,
         rating: 4.8,
-      } : null,
+      },
       unit: unit ? {
         id: unit.unit_id || unit.id,
-        unitNumber: unit.unit_number || unit.name,
+        unitNumber: unit.unit_number || trip.unit_number,
         type: unit.unit_type || unit.type,
         region: unit.region,
         location: unit.current_location || unit.location,
         status: unit.is_active === false ? "Maintenance" : "Available",
-      } : null,
+      } : (trip.unit_number ? {
+        id: trip.unit_id,
+        unitNumber: trip.unit_number,
+        type: "Unknown",
+        region: null,
+        location: null,
+        status: "Unknown"
+      } : null),
       costing: {
         linehaulCost,
         fuelCost,

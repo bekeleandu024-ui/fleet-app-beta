@@ -3,6 +3,26 @@ import pool from "@/lib/db";
 import type { TripListItem } from "@/lib/types";
 import { calculateTripCost, type DriverType } from "@/lib/costing";
 
+// Helper to get distance from maps API
+async function getDistanceFromMaps(origin: string, destination: string): Promise<number | null> {
+  if (!origin || !destination) return null;
+  try {
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+    const response = await fetch(
+      `${baseUrl}/api/maps/distance?origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}`
+    );
+    if (response.ok) {
+      const data = await response.json();
+      if (data.distance && data.distance > 0) {
+        return data.distance;
+      }
+    }
+  } catch (error) {
+    console.warn(`Failed to get distance for ${origin} -> ${destination}:`, error);
+  }
+  return null;
+}
+
 // ...existing code...
 
 export async function GET(request: Request) {
@@ -43,7 +63,48 @@ export async function GET(request: Request) {
       
       console.log(`Found ${result.rows.length} trips`);
 
-      const trips = result.rows.map(transformTripRow);
+      // Default home base for rounder calculations
+      const HOME_BASE = "Guelph, ON";
+
+      // Fetch distances for trips - calculate full rounder miles if applicable
+      const tripsWithDistance = await Promise.all(
+        result.rows.map(async (row) => {
+          const pickup = row.pickup_location;
+          const dropoff = row.dropoff_location;
+          const isRounder = row.is_rounder === true;
+          
+          // Get linehaul distance
+          let linehaulMiles = Number(row.planned_miles) || 0;
+          if (!linehaulMiles && pickup && dropoff) {
+            const distance = await getDistanceFromMaps(pickup, dropoff);
+            if (distance) {
+              linehaulMiles = distance;
+            }
+          }
+          
+          // For rounders, calculate full trip: deadhead + linehaul + return
+          if (isRounder && pickup && dropoff) {
+            const [deadheadMiles, returnMiles] = await Promise.all([
+              getDistanceFromMaps(HOME_BASE, pickup),
+              getDistanceFromMaps(dropoff, HOME_BASE)
+            ]);
+            
+            const totalMiles = (deadheadMiles || 0) + linehaulMiles + (returnMiles || 0);
+            
+            return { 
+              ...row, 
+              planned_miles: totalMiles,
+              linehaul_miles: linehaulMiles,
+              deadhead_miles: deadheadMiles || 0,
+              return_miles: returnMiles || 0
+            };
+          }
+          
+          return { ...row, planned_miles: linehaulMiles };
+        })
+      );
+
+      const trips = tripsWithDistance.map(transformTripRow);
       return NextResponse.json(buildTripsResponse(trips));
     } finally {
       client.release();

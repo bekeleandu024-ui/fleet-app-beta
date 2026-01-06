@@ -286,7 +286,7 @@ export default function TripsPage() {
                 Miles
               </th>
               <th className="whitespace-nowrap px-4 py-2 font-medium uppercase tracking-wider text-right">
-                Revenue
+                Quoted
               </th>
               <th className="whitespace-nowrap px-4 py-2 font-medium uppercase tracking-wider text-right">
                 Actions
@@ -404,9 +404,9 @@ export default function TripsPage() {
                       {trip.distance ? `${trip.distance.toLocaleString()} mi` : "—"}
                     </td>
 
-                    {/* Revenue */}
+                    {/* Quoted Rate */}
                     <td className="px-4 py-2 align-middle text-right font-mono text-emerald-400">
-                      {trip.totalCost ? `$${trip.totalCost.toLocaleString()}` : "—"}
+                      {trip.quotedRate ? `$${trip.quotedRate.toLocaleString()}` : "—"}
                     </td>
 
                     {/* Actions */}

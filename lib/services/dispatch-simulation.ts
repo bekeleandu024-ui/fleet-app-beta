@@ -403,14 +403,40 @@ export class DispatchSimulationService {
       return straightLine * 1.3; // Road distance multiplier
     }
 
-    // Otherwise, try to lookup from database or estimate
+    // Try to get real distance from our maps API
     if (from.city && to.city) {
+      const realDistance = await this.getDistanceFromAPI(from.city, to.city);
+      if (realDistance) return realDistance;
+      
+      // Fallback to cached distance in database
       const cached = await this.getCachedDistance(from.city, to.city);
       if (cached) return cached;
     }
 
     // Default fallback estimate based on zip codes
     return this.estimateDistanceFromZip(from.zip, to.zip);
+  }
+
+  /**
+   * Get real distance from the maps distance API
+   */
+  private async getDistanceFromAPI(fromCity: string, toCity: string): Promise<number | null> {
+    try {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const response = await fetch(
+        `${baseUrl}/api/maps/distance?origin=${encodeURIComponent(fromCity)}&destination=${encodeURIComponent(toCity)}`
+      );
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.distance && data.distance > 0) {
+          return data.distance;
+        }
+      }
+    } catch (error) {
+      console.warn(`Failed to get distance from API for ${fromCity} -> ${toCity}:`, error);
+    }
+    return null;
   }
 
   private haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -1021,15 +1047,27 @@ export class DispatchSimulationService {
 
     // Normalize currentLocation to a city string
     const originCity = typeof currentLocation === 'string' 
-      ? currentLocation.toLowerCase()
-      : (currentLocation.city?.toLowerCase() || '');
+      ? currentLocation
+      : (currentLocation.city || '');
 
-    // Try to get from database first
-    const cached = await this.getCachedDistance(originCity, firstStop.city || '');
-    if (cached) return cached;
+    const destCity = firstStop.city || '';
 
-    // Default estimates based on location
-    if (originCity.includes('guelph') || originCity.includes('home base')) {
+    // Try to get real distance from API first
+    if (originCity && destCity) {
+      const realDistance = await this.getDistanceFromAPI(originCity, destCity);
+      if (realDistance) return realDistance;
+      
+      // Fallback to cached distance in database
+      const cached = await this.getCachedDistance(originCity, destCity);
+      if (cached) return cached;
+    }
+
+    // Final fallback: hardcoded estimates for common routes
+    const originLower = originCity.toLowerCase();
+    const destLower = destCity.toLowerCase();
+    
+    // Estimates from Guelph (home base)
+    if (originLower.includes('guelph') || originLower.includes('home base')) {
       const estimates: Record<string, number> = {
         'kitchener': 25,
         'cambridge': 30,
@@ -1040,21 +1078,20 @@ export class DispatchSimulationService {
         'vaughan': 85,
         'markham': 100,
         'windsor': 280,
-        'columbus': 450,    // Columbus, OH from Guelph
+        'columbus': 450,
         'detroit': 250,
         'buffalo': 160,
         'montreal': 550,
         'chicago': 520,
       };
       
-      const destCity = firstStop.city?.toLowerCase() || '';
       for (const [key, dist] of Object.entries(estimates)) {
-        if (destCity.includes(key)) return dist;
+        if (destLower.includes(key)) return dist;
       }
     }
     
-    // Reverse lookup - if firstStop is Guelph (home base), estimate from origin city
-    if (firstStop?.city?.toLowerCase().includes('guelph') || 
+    // Reverse lookup - if destination is Guelph (home base)
+    if (destLower.includes('guelph') || 
         (firstStop?.lat && Math.abs(firstStop.lat - 43.5448) < 0.5)) {
       const estimates: Record<string, number> = {
         'kitchener': 25,
@@ -1074,7 +1111,7 @@ export class DispatchSimulationService {
       };
       
       for (const [key, dist] of Object.entries(estimates)) {
-        if (originCity.includes(key)) return dist;
+        if (originLower.includes(key)) return dist;
       }
     }
 

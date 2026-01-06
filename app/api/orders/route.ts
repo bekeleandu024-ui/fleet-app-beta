@@ -46,7 +46,7 @@ export async function GET() {
       // Fetch ALL orders, do not filter by status
       const query = `
         SELECT
-          id, order_number, customer_id, pickup_location, dropoff_location,
+          id, order_number, customer_id, customer_name, pickup_location, dropoff_location,
           pickup_time, dropoff_time, status, dispatch_status, created_at,
           estimated_cost, order_type, equipment_type,
           total_weight_lbs as weight,
@@ -168,7 +168,7 @@ function transformOrderFromDb(order: Record<string, any>): OrderResponse {
     id,
     orderNumber: order.order_number,
     reference,
-    customer: order.customer_id ?? "Customer",
+    customer: order.customer_name ?? order.customer_id ?? "Customer",
     pickup,
     delivery,
     window,

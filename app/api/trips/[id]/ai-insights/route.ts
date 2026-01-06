@@ -91,9 +91,9 @@ export async function GET(
       trip.driver_id
         ? pool.query(`
             SELECT 
-              d.driver_id, d.driver_name, d.driver_type, d.region, 
+              d.driver_id, d.driver_name, d.driver_type, d.oo_zone as region, 
               d.is_active, d.unit_number,
-              u.truck_weekly_cost, u.current_location as unit_location
+              u.total_weekly_cost as truck_weekly_cost, u.current_location as unit_location
             FROM driver_profiles d
             LEFT JOIN unit_profiles u ON d.unit_number = u.unit_number
             WHERE d.driver_id = $1
@@ -102,7 +102,7 @@ export async function GET(
       trip.unit_id
         ? pool.query(`
             SELECT 
-              unit_id, unit_number, unit_type, region, 
+              unit_id, unit_number, unit_type,
               current_location, is_active
             FROM unit_profiles 
             WHERE unit_id = $1
@@ -206,7 +206,6 @@ export async function GET(
       unit_number: unit.unit_number,
       type: unit.unit_type || 'Dry Van',
       status: unit.is_active ? 'Available' : 'Maintenance',
-      region: unit.region,
       location: unit.current_location,
       assigned: true,
       maintenance_status: 'ok',

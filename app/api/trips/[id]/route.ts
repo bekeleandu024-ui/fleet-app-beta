@@ -1,166 +1,32 @@
-import { randomUUID } from "crypto";
 import { NextResponse } from "next/server";
-
-import { serviceFetch, ServiceError } from "@/lib/service-client";
-import { mapTripListItem } from "@/lib/transformers";
 import pool from "@/lib/db";
-import { calculateTripCost, type DriverType } from "@/lib/costing";
 
-// Helper function to calculate distance if missing
-async function calculateTripDistance(tripId: string, pickupLat?: number, pickupLng?: number, dropoffLat?: number, dropoffLng?: number) {
+// Helper to get distance from maps API
+async function getDistanceFromMaps(origin: string, destination: string): Promise<number | null> {
+  if (!origin || !destination) return null;
   try {
-    // If we have coordinates, calculate distance
-    if (pickupLat && pickupLng && dropoffLat && dropoffLng) {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/distance/calculate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          origin: { lat: pickupLat, lng: pickupLng },
-          destination: { lat: dropoffLat, lng: dropoffLng }
-        })
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        // Update the trip record with the calculated distance
-        await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/distance/trip/${tripId}`, {
-          method: 'POST'
-        }).catch(err => console.warn('Failed to update trip distance:', err));
-        
-        return {
-          distance_miles: parseFloat(data.distanceMiles),
-          duration_hours: parseFloat(data.durationHours)
-        };
-      }
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+    const response = await fetch(
+      `${baseUrl}/api/maps/distance?origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}`
+    );
+    if (response.ok) {
+      const data = await response.json();
+      return data.distance > 0 ? data.distance : null;
     }
   } catch (error) {
-    console.warn('Distance calculation failed:', error);
+    console.warn(`Distance API failed for ${origin} -> ${destination}`);
   }
   return null;
 }
 
-export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
-  const { id } = await context.params;
+// Safe date formatting
+function toISOSafe(value: any): string | null {
+  if (!value) return null;
   try {
-    const body = await request.json();
-    const { orderId } = body;
-
-    if (!orderId) {
-      return NextResponse.json({ error: "orderId is required" }, { status: 400 });
-    }
-
-    const client = await pool.connect();
-    try {
-      await client.query('BEGIN');
-      const tripCheck = await client.query('SELECT id, driver_id, unit_id, planned_miles FROM trips WHERE id = $1', [id]);
-      if (tripCheck.rows.length === 0) {
-        await client.query('ROLLBACK');
-        return NextResponse.json({ error: "Trip not found" }, { status: 404 });
-      }
-      
-      const trip = tripCheck.rows[0];
-
-      await client.query('UPDATE trips SET order_id = $1 WHERE id = $2', [orderId, id]);
-      await client.query("UPDATE orders SET status = 'Planning' WHERE id = $1", [orderId]);
-
-      // Calculate and insert costs if we have driver and order info
-      if (trip.driver_id) {
-          const orderRes = await client.query('SELECT * FROM orders WHERE id = $1', [orderId]);
-          if (orderRes.rows.length > 0) {
-              const order = orderRes.rows[0];
-              let miles = Number(trip.planned_miles) || Number(order.lane_miles) || 0;
-              
-              if (miles > 0) {
-                  // Get driver type
-                  const driverRes = await client.query('SELECT driver_type FROM driver_profiles WHERE driver_id = $1', [trip.driver_id]);
-                  const driverType = (driverRes.rows[0]?.driver_type as DriverType) || 'RNR';
-                  
-                  const costResult = calculateTripCost(
-                      driverType,
-                      miles,
-                      order.pickup_location || '',
-                      order.dropoff_location || '',
-                      { pickups: 1, deliveries: 1 }
-                  );
-                  
-                  // Check if cost already exists
-                  const costCheck = await client.query('SELECT cost_id FROM trip_costs WHERE trip_id = $1', [id]);
-                  
-                  if (costCheck.rows.length === 0) {
-                      const revenue = 0; // We might not have revenue yet
-                      const profit = revenue - costResult.fullyAllocatedCost;
-                      
-                      await client.query(`
-                        INSERT INTO trip_costs (
-                          cost_id,
-                          trip_id,
-                          order_id,
-                          driver_id,
-                          unit_id,
-                          driver_type,
-                          miles,
-                          total_cpm,
-                          total_cost,
-                          revenue,
-                          rpm,
-                          profit,
-                          margin_pct,
-                          is_profitable,
-                          calculation_formula,
-                          created_at,
-                          updated_at
-                        ) VALUES (
-                          gen_random_uuid(),
-                          $1::uuid,
-                          $2::uuid,
-                          $3::uuid,
-                          $4::uuid,
-                          $5,
-                          $6,
-                          $7,
-                          $8,
-                          $9,
-                          $10,
-                          $11,
-                          $12,
-                          $13,
-                          $14,
-                          NOW(),
-                          NOW()
-                        )
-                      `, [
-                        id,
-                        orderId,
-                        trip.driver_id,
-                        trip.unit_id,
-                        driverType,
-                        miles,
-                        costResult.totalCPM,
-                        costResult.fullyAllocatedCost,
-                        revenue,
-                        0, // rpm
-                        profit,
-                        0, // margin
-                        false,
-                        JSON.stringify({ method: 'auto_calc_on_assign' })
-                      ]);
-                  }
-              }
-          }
-      }
-
-      await client.query('COMMIT');
-
-      return NextResponse.json({ success: true });
-    } catch (e) {
-      await client.query('ROLLBACK');
-      throw e;
-    } finally {
-      client.release();
-    }
-  } catch (error) {
-    console.error("Error updating trip:", error);
-    return NextResponse.json({ error: "Failed to update trip" }, { status: 500 });
+    const date = new Date(value);
+    return isNaN(date.getTime()) ? null : date.toISOString();
+  } catch {
+    return null;
   }
 }
 
@@ -168,247 +34,306 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
   const { id } = await context.params;
 
   try {
-    const trip = await serviceFetch<Record<string, any>>("tracking", `/api/trips/${id}`);
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+    const whereClause = isUUID ? 't.id = $1' : 't.trip_number = $1';
+
+    const tripQuery = `
+      SELECT 
+        t.id, t.trip_number, t.order_id, t.driver_id, t.unit_id, t.status,
+        t.pickup_location, t.dropoff_location, t.planned_miles, t.actual_miles,
+        t.planned_start, t.actual_start, t.completed_at,
+        t.pickup_window_start, t.pickup_window_end, 
+        t.delivery_window_start, t.delivery_window_end,
+        t.on_time_pickup, t.on_time_delivery, t.is_rounder,
+        t.current_weight, t.current_cube, t.current_linear_feet,
+        t.utilization_percent, t.limiting_factor,
+        t.revenue, t.total_cost, t.driver_name as stored_driver_name,
+        t.customer_name as stored_customer_name, t.unit_number as stored_unit_number,
+        t.updated_at, t.created_at,
+        -- Order data
+        o.order_number, o.customer_name, o.customer_id, o.quoted_rate,
+        o.status as order_status, o.special_instructions, o.order_type as commodity,
+        o.total_weight_lbs, o.total_pallets, o.cubic_feet, o.linear_feet_required,
+        o.equipment_type,
+        -- Driver data
+        d.driver_name, d.driver_type, d.driver_category, d.oo_zone,
+        d.hos_hours_remaining, d.is_active as driver_active, d.unit_number as driver_unit,
+        -- Unit data
+        u.unit_number, u.unit_type, u.current_location as unit_location,
+        u.total_weekly_cost, u.max_weight, u.max_cube, u.linear_feet as max_linear_feet,
+        -- Trip costs
+        tc.total_cost as calc_total_cost, tc.cost_per_mile as total_cpm,
+        tc.revenue as calc_revenue, tc.margin_pct, tc.profit,
+        tc.fixed_cost, tc.labor_cost, tc.fuel_cost, 
+        tc.maintenance_cost, tc.events_cost,
+        tc.linehaul_miles, tc.deadhead_miles, tc.total_miles,
+        tc.border_crossings, tc.pickup_count, tc.delivery_count,
+        tc.revenue_per_mile
+      FROM trips t
+      LEFT JOIN orders o ON t.order_id = o.id
+      LEFT JOIN driver_profiles d ON t.driver_id = d.driver_id
+      LEFT JOIN unit_profiles u ON t.unit_id = u.unit_id
+      LEFT JOIN trip_costs tc ON t.id = tc.trip_id
+      WHERE ${whereClause}
+    `;
+
+    const result = await pool.query(tripQuery, [id]);
+
+    if (result.rows.length === 0) {
+      return NextResponse.json({ error: "Trip not found" }, { status: 404 });
+    }
+
+    const t = result.rows[0];
 
     // Calculate distance if missing
-    if (!trip.distance_miles && trip.pickup_lat && trip.pickup_lng && trip.dropoff_lat && trip.dropoff_lng) {
-      const calculated = await calculateTripDistance(
-        id,
-        trip.pickup_lat,
-        trip.pickup_lng,
-        trip.dropoff_lat,
-        trip.dropoff_lng
-      );
-      if (calculated) {
-        trip.distance_miles = calculated.distance_miles;
-        trip.duration_hours = calculated.duration_hours;
+    let totalDistance = Number(t.total_miles) || Number(t.planned_miles) || Number(t.actual_miles) || 0;
+    const pickup = t.pickup_location;
+    const dropoff = t.dropoff_location;
+    const isRounder = t.is_rounder === true;
+    const HOME_BASE = "Guelph, ON";
+
+    let linehaulMiles = Number(t.linehaul_miles) || 0;
+    let deadheadMiles = Number(t.deadhead_miles) || 0;
+    let returnMiles = 0;
+
+    if (!totalDistance && pickup && dropoff) {
+      try {
+        linehaulMiles = await getDistanceFromMaps(pickup, dropoff) || 0;
+        if (isRounder) {
+          deadheadMiles = await getDistanceFromMaps(HOME_BASE, pickup) || 0;
+          returnMiles = await getDistanceFromMaps(dropoff, HOME_BASE) || 0;
+          totalDistance = deadheadMiles + linehaulMiles + returnMiles;
+        } else {
+          totalDistance = linehaulMiles;
+        }
+      } catch (err) {
+        console.warn('Distance calculation failed');
       }
     }
 
-    // Optimized queries: fetch only the specific driver and unit for this trip
-    const driverQuery = `
-      SELECT d.driver_id as id, d.driver_name as name, d.driver_type, d.unit_number, u.truck_weekly_cost as "truckWk", d.region
-      FROM driver_profiles d
-      LEFT JOIN unit_profiles u ON d.unit_number = u.unit_number
-      WHERE d.driver_id = $1
-    `;
-    const unitQuery = `SELECT unit_id as id, unit_number, truck_weekly_cost, region, max_weight, max_cube, linear_feet, unit_type FROM unit_profiles WHERE unit_id = $1`;
-    const tripNumberQuery = `SELECT trip_number FROM trips WHERE id = $1`;
-    const tripCostsQuery = `SELECT * FROM trip_costs WHERE trip_id = $1 ORDER BY created_at DESC LIMIT 1`;
+    // Status mapping
+    const statusMap: Record<string, string> = {
+      draft: "Draft", planned: "Draft", assigned: "Dispatched",
+      dispatched: "Dispatched", in_transit: "In Transit",
+      en_route_to_pickup: "In Transit", at_pickup: "At Pickup",
+      departed_pickup: "In Transit", at_delivery: "At Delivery",
+      delivered: "Completed", completed: "Completed",
+      cancelled: "Cancelled", closed: "Invoiced", invoiced: "Invoiced",
+    };
 
-    const [orderResult, driverResult, unitResult, eventsResult, exceptionsResult, tripNumberResult, tripCostsResult] = await Promise.allSettled([
-      trip.order_id
-        ? serviceFetch<Record<string, any>>("orders", `/api/orders/${trip.order_id}`)
-        : Promise.resolve(undefined),
-      trip.driver_id
-        ? pool.query(driverQuery, [trip.driver_id])
-        : Promise.resolve({ rows: [] }),
-      trip.unit_id
-        ? pool.query(unitQuery, [trip.unit_id])
-        : Promise.resolve({ rows: [] }),
-      serviceFetch<Array<Record<string, any>>>("tracking", `/api/trips/${id}/events`),
-      serviceFetch<Array<Record<string, any>>>("tracking", `/api/trips/${id}/exceptions`),
-      pool.query(tripNumberQuery, [id]),
-      pool.query(tripCostsQuery, [id]),
-    ]);
+    // Financial calculations
+    const revenue = Number(t.calc_revenue) || Number(t.revenue) || Number(t.quoted_rate) || 0;
+    const totalCost = Number(t.calc_total_cost) || Number(t.total_cost) || 0;
+    const profit = revenue - totalCost;
+    const marginPct = revenue > 0 ? (profit / revenue) * 100 : 0;
 
-    const order = orderResult.status === "fulfilled" ? orderResult.value : undefined;
-    // Directly access the single driver/unit record (no more JS filtering needed)
-    const driver = driverResult.status === "fulfilled" ? driverResult.value.rows[0] : undefined;
-    const unit = unitResult.status === "fulfilled" ? unitResult.value.rows[0] : undefined;
-    const events = eventsResult.status === "fulfilled" ? eventsResult.value ?? [] : [];
-    const exceptions = exceptionsResult.status === "fulfilled" ? exceptionsResult.value ?? [] : [];
-    const tripNumber = tripNumberResult.status === "fulfilled" && tripNumberResult.value.rows.length > 0
-      ? tripNumberResult.value.rows[0].trip_number
-      : undefined;
-    const tripCosts = tripCostsResult.status === "fulfilled" && tripCostsResult.value.rows.length > 0
-      ? tripCostsResult.value.rows[0]
-      : undefined;
+    // Capacity
+    const currentWeight = Number(t.current_weight) || Number(t.total_weight_lbs) || 0;
+    const currentCube = Number(t.current_cube) || Number(t.cubic_feet) || 0;
+    const currentLinearFeet = Number(t.current_linear_feet) || Number(t.linear_feet_required) || 0;
+    const maxWeight = Number(t.max_weight) || 45000;
+    const maxCube = Number(t.max_cube) || 3900;
+    const maxLinearFeet = Number(t.max_linear_feet) || 53;
 
-    if (tripNumber) {
-      trip.trip_number = tripNumber;
+    // Build itinerary stops
+    interface Stop {
+      sequence: number;
+      type: string;
+      location: string;
+      scheduledWindow: { start: string | null; end: string | null };
+      eta: string | null;
+      actual: string | null;
+      status: string;
+      work: {
+        action: string;
+        shipmentRef: string | null;
+        commodity: string | null;
+        weight: number;
+        pallets: number;
+        instructions: string | null;
+      };
     }
 
-    // Merge trip costs if available
-    if (tripCosts) {
-        trip.total_cost = tripCosts.total_cost;
-        trip.total_cpm = tripCosts.total_cpm;
-        trip.revenue = tripCosts.revenue;
-        trip.margin_pct = tripCosts.margin_pct;
-        trip.driver_type = tripCosts.driver_type;
+    const stops: Stop[] = [
+      {
+        sequence: 1,
+        type: "Pickup",
+        location: pickup || "TBD",
+        scheduledWindow: {
+          start: toISOSafe(t.pickup_window_start),
+          end: toISOSafe(t.pickup_window_end),
+        },
+        eta: toISOSafe(t.planned_start),
+        actual: toISOSafe(t.actual_start),
+        status: t.actual_start ? "Completed" : (t.status === 'at_pickup' ? "In Progress" : "Pending"),
+        work: {
+          action: "Load",
+          shipmentRef: t.order_number || `ORD-${String(t.order_id || '').slice(0, 8).toUpperCase()}`,
+          commodity: t.commodity || "General Freight",
+          weight: currentWeight,
+          pallets: Number(t.total_pallets) || 0,
+          instructions: t.special_instructions,
+        },
+      },
+      {
+        sequence: 2,
+        type: "Delivery",
+        location: dropoff || "TBD",
+        scheduledWindow: {
+          start: toISOSafe(t.delivery_window_start),
+          end: toISOSafe(t.delivery_window_end),
+        },
+        eta: totalDistance && linehaulMiles ? 
+          toISOSafe(new Date(new Date(t.planned_start || Date.now()).getTime() + (linehaulMiles / 55) * 3600000)) : null,
+        actual: toISOSafe(t.completed_at),
+        status: t.completed_at ? "Completed" : (t.status === 'at_delivery' ? "In Progress" : "Pending"),
+        work: {
+          action: "Unload",
+          shipmentRef: t.order_number || `ORD-${String(t.order_id || '').slice(0, 8).toUpperCase()}`,
+          commodity: t.commodity || "General Freight",
+          weight: currentWeight,
+          pallets: Number(t.total_pallets) || 0,
+          instructions: "Verify seal, obtain POD signature",
+        },
+      },
+    ];
+
+    // If rounder, add return leg
+    if (isRounder && returnMiles > 0) {
+      stops.push({
+        sequence: 3,
+        type: "Deadhead",
+        location: HOME_BASE,
+        scheduledWindow: { start: null, end: null },
+        eta: null,
+        actual: null,
+        status: "Pending",
+        work: {
+          action: "Return to Base",
+          shipmentRef: null,
+          commodity: null,
+          weight: 0,
+          pallets: 0,
+          instructions: "Empty return - available for next dispatch",
+        },
+      });
     }
 
-    const detail = buildTripDetail(trip, { order, driver, unit, events, exceptions });
+    const response = {
+      // Hero Header
+      id: t.id,
+      tripNumber: t.trip_number || `TRP-${String(t.id).slice(0, 8).toUpperCase()}`,
+      status: statusMap[t.status?.toLowerCase()] || t.status || "Draft",
+      statusRaw: t.status,
+      
+      // Distance & Time
+      totalDistance: Math.round(totalDistance * 10) / 10,
+      linehaulMiles: Math.round(linehaulMiles * 10) / 10,
+      deadheadMiles: Math.round(deadheadMiles * 10) / 10,
+      returnMiles: Math.round(returnMiles * 10) / 10,
+      isRounder,
+      estimatedHours: totalDistance ? Math.round((totalDistance / 55) * 10) / 10 : null,
+      eta: stops[1]?.eta,
 
-    return NextResponse.json(detail);
+      // Resources
+      resources: {
+        driver: {
+          id: t.driver_id,
+          name: t.driver_name || t.stored_driver_name || null,
+          phone: null, // Future: add phone_number to driver_profiles
+          type: t.driver_type || "Company",
+          category: t.driver_category || "Highway",
+          hosRemaining: Number(t.hos_hours_remaining) || null,
+          zone: t.oo_zone,
+        },
+        coDriver: null, // Future: support team drivers
+        powerUnit: {
+          id: t.unit_id,
+          number: t.unit_number || t.stored_unit_number || t.driver_unit || null,
+          plate: null, // Future: add license_plate to unit_profiles
+          type: t.unit_type || t.equipment_type || "Dry Van",
+          location: t.unit_location,
+        },
+        trailer: {
+          id: null, // Future: separate trailer tracking
+          number: null,
+          type: t.unit_type || t.equipment_type || "Dry Van",
+          tempSetting: null, // For reefers
+        },
+        carrier: null, // Future: brokered freight
+      },
+
+      // Customer
+      customer: {
+        id: t.customer_id,
+        name: t.customer_name || t.stored_customer_name || "Unknown",
+      },
+
+      // Itinerary
+      stops,
+
+      // Financials
+      financials: {
+        revenue,
+        costs: {
+          total: totalCost,
+          labor: Number(t.labor_cost) || 0,
+          fuel: Number(t.fuel_cost) || 0,
+          fixed: Number(t.fixed_cost) || 0,
+          maintenance: Number(t.maintenance_cost) || 0,
+          events: Number(t.events_cost) || 0,
+        },
+        profit,
+        marginPct: Math.round(marginPct * 10) / 10,
+        cpm: totalDistance > 0 ? Math.round((totalCost / totalDistance) * 100) / 100 : 0,
+        rpm: totalDistance > 0 ? Math.round((revenue / totalDistance) * 100) / 100 : 0,
+        isProfitable: profit > 0,
+        marginHealth: marginPct >= 15 ? "healthy" : marginPct >= 8 ? "warning" : "critical",
+      },
+
+      // Capacity
+      capacity: {
+        weight: { current: currentWeight, max: maxWeight, pct: Math.round((currentWeight / maxWeight) * 100) },
+        cube: { current: currentCube, max: maxCube, pct: Math.round((currentCube / maxCube) * 100) },
+        linearFeet: { current: currentLinearFeet, max: maxLinearFeet, pct: Math.round((currentLinearFeet / maxLinearFeet) * 100) },
+        utilizationPct: Math.max(
+          Math.round((currentWeight / maxWeight) * 100),
+          Math.round((currentCube / maxCube) * 100),
+          Math.round((currentLinearFeet / maxLinearFeet) * 100)
+        ),
+        limitingFactor: t.limiting_factor || (currentWeight / maxWeight >= currentCube / maxCube ? "Weight" : "Cube"),
+      },
+
+      // Documentation
+      documents: {
+        bolUploaded: false, // Future: check documents table
+        podUploaded: false,
+        podRequired: true,
+        canClose: false, // POD required to close
+      },
+
+      // Timing
+      onTimePickup: t.on_time_pickup,
+      onTimeDelivery: t.on_time_delivery,
+      plannedStart: toISOSafe(t.planned_start),
+      actualStart: toISOSafe(t.actual_start),
+      completedAt: toISOSafe(t.completed_at),
+      createdAt: toISOSafe(t.created_at),
+      updatedAt: toISOSafe(t.updated_at),
+
+      // Audit trail placeholder
+      changelog: [],
+      notes: t.special_instructions ? [{ 
+        id: "1", 
+        author: "System", 
+        timestamp: toISOSafe(t.created_at), 
+        text: t.special_instructions 
+      }] : [],
+    };
+
+    return NextResponse.json(response);
   } catch (error) {
-    console.error(`Error fetching trip detail for ${id}`, error);
-    if (error instanceof ServiceError && error.status === 404) {
-      return NextResponse.json({ error: "Trip not found" }, { status: 404 });
-    }
+    console.error(`Trip detail error for ${id}:`, error);
     return NextResponse.json({ error: "Failed to load trip" }, { status: 500 });
   }
-}
-
-function buildTripDetail(
-  trip: Record<string, any>,
-  context: {
-    order?: Record<string, any>;
-    driver?: Record<string, any>;
-    unit?: Record<string, any>;
-    events: Array<Record<string, any>>;
-    exceptions: Array<Record<string, any>>;
-  }
-) {
-  // Driver and unit are now fetched directly by ID - no JS filtering needed
-  const driver = context.driver;
-  const driverName = driver?.driver_name ?? driver?.name ?? trip.driver_id ?? "Unassigned";
-  const unit = context.unit;
-  const unitNumber = unit?.unit_number ?? trip.unit_number ?? trip.unit_id ?? "Pending";
-  const pickupWindowStart = trip.pickup_window_start ?? trip.pickup_window?.start;
-  const pickupWindowEnd = trip.pickup_window_end ?? trip.pickup_window?.end;
-  const deliveryWindowStart = trip.delivery_window_start ?? trip.delivery_window?.start;
-  const deliveryWindowEnd = trip.delivery_window_end ?? trip.delivery_window?.end;
-
-  const listItem = mapTripListItem(
-    {
-      ...trip,
-      tripNumber: trip.trip_number || String(trip.id ?? "").slice(0, 8).toUpperCase(),
-      last_ping: trip.updated_at ?? trip.actual_start,
-    },
-    driverName,
-    unitNumber
-  );
-
-  const timeline = context.events.map((event) => ({
-    id: String(event.id ?? event.event_id ?? randomUUID()),
-    timestamp: toIso(event.timestamp ?? event.created_at ?? event.occurred_at),
-    summary: event.summary ?? event.event_type ?? event.type ?? "Event",
-    location: event.location ?? event.city ?? event.state ?? "",
-    status: event.status ?? "Recorded",
-  }));
-
-  const exceptionItems = context.exceptions.map((exception) => ({
-    id: String(exception.id ?? exception.exception_id ?? randomUUID()),
-    type: exception.type ?? exception.category ?? "Exception",
-    severity: (exception.severity ?? "info") as "info" | "warn" | "alert",
-    opened: toIso(exception.opened ?? exception.created_at ?? new Date().toISOString()),
-    owner: exception.owner ?? "Network Ops",
-    notes: exception.notes ?? exception.description ?? "",
-  }));
-
-  // Calculate capacity metrics
-  const currentWeight = trip.current_weight ? parseFloat(trip.current_weight) : (context.order?.total_weight ? parseFloat(context.order.total_weight) : 0);
-  const currentCube = trip.current_cube ? parseFloat(trip.current_cube) : (context.order?.cubic_feet ? parseFloat(context.order.cubic_feet) : 0);
-  const currentLinearFeet = trip.current_linear_feet ? parseFloat(trip.current_linear_feet) : (context.order?.linear_feet_required ? parseFloat(context.order.linear_feet_required) : 0);
-
-  const maxWeight = unit?.max_weight ? parseFloat(unit.max_weight) : 45000;
-  const maxCube = unit?.max_cube ? parseFloat(unit.max_cube) : 3900;
-  const maxLinearFeet = unit?.linear_feet ? parseFloat(unit.linear_feet) : 53;
-
-  let utilizationPercent = trip.utilization_percent ? parseFloat(trip.utilization_percent) : 0;
-  let limitingFactor = trip.limiting_factor;
-
-  if (!trip.utilization_percent && (currentWeight > 0 || currentCube > 0 || currentLinearFeet > 0)) {
-      const weightUtil = currentWeight / maxWeight;
-      const cubeUtil = currentCube / maxCube;
-      const linearUtil = currentLinearFeet / maxLinearFeet;
-      
-      utilizationPercent = Math.max(weightUtil, cubeUtil, linearUtil) * 100;
-      
-      if (weightUtil >= cubeUtil && weightUtil >= linearUtil) limitingFactor = "Weight";
-      else if (cubeUtil >= weightUtil && cubeUtil >= linearUtil) limitingFactor = "Cube";
-      else limitingFactor = "Linear Feet";
-  }
-
-  return {
-    id: trip.id,
-    tripNumber: listItem.tripNumber,
-    orderReference: context.order?.order_number ?? (context.order?.id ? `ORD-${String(context.order.id).slice(0, 8).toUpperCase()}` : "N/A"),
-    status: listItem.status,
-    driver: listItem.driver,
-    driverId: trip.driver_id,
-    driverType: trip.driver_type ?? driver?.driver_type,
-    driverRegion: driver?.region,
-    truckWk: driver?.truck_wk ?? driver?.truckWk ?? unit?.truck_weekly_cost,
-    unit: unitNumber,
-    unitId: trip.unit_id,
-    unitNumber: unitNumber,
-    unitType: trip.unit_type ?? trip.equipment_type ?? unit?.equipment_type ?? unit?.unit_type,
-    // Customer info from trip or order
-    customerId: trip.customer_id ?? context.order?.customer_id,
-    customerName: trip.customer_name ?? context.order?.customer_name,
-    eta: listItem.eta,
-    pickup: listItem.pickup,
-    delivery: listItem.delivery,
-    pickupWindowStart: pickupWindowStart ? toIso(pickupWindowStart) : undefined,
-    pickupWindowEnd: pickupWindowEnd ? toIso(pickupWindowEnd) : undefined,
-    deliveryWindowStart: deliveryWindowStart ? toIso(deliveryWindowStart) : undefined,
-    deliveryWindowEnd: deliveryWindowEnd ? toIso(deliveryWindowEnd) : undefined,
-    plannedStart: trip.planned_start || trip.planned_at ? toIso(trip.planned_start ?? trip.planned_at) : undefined,
-    actualStart: trip.actual_start ? toIso(trip.actual_start) : undefined,
-    pickupDeparture: trip.pickup_departure ? toIso(trip.pickup_departure) : undefined,
-    completedAt: trip.completed_at || trip.completedAt ? toIso(trip.completed_at ?? trip.completedAt) : undefined,
-    // Only show on-time status if trip has actually started/completed those phases
-    onTimePickup: trip.actual_start ? (trip.on_time_pickup ?? trip.onTimePickup ?? null) : null,
-    onTimeDelivery: trip.completed_at ? (trip.on_time_delivery ?? trip.onTimeDelivery ?? null) : null,
-    // Revenue from trip or order's quoted_rate
-    revenue: parseFloat(trip.revenue) || parseFloat(context.order?.quoted_rate) || 0,
-    quotedRate: parseFloat(context.order?.quoted_rate) || 0,
-    metrics: {
-      distanceMiles: trip.distance_miles ?? trip.actual_miles ?? trip.planned_miles ?? trip.miles ?? trip.distance,
-      estDurationHours: trip.duration_hours ?? trip.est_duration_hours,
-      linehaul: trip.linehaul_cost ?? trip.linehaul,
-      fuel: trip.fuel_cost ?? trip.fuel,
-      totalCost: trip.total_cost ?? trip.totalCost,
-      totalCpm: trip.total_cpm ?? (trip.total_cost && trip.distance_miles ? trip.total_cost / trip.distance_miles : undefined),
-      recommendedRevenue: trip.recommended_revenue ?? trip.revenue ?? context.order?.quoted_rate,
-      marginPct: trip.margin_pct ?? trip.margin,
-      profit: trip.profit,
-    },
-    currentWeight: currentWeight,
-    currentCube: currentCube,
-    currentLinearFeet: currentLinearFeet,
-    utilizationPercent: utilizationPercent,
-    limitingFactor: limitingFactor,
-    maxWeight: maxWeight,
-    maxCube: maxCube,
-    maxLinearFeet: maxLinearFeet,
-    timeline,
-    exceptions: exceptionItems,
-    telemetry: {
-      lastPing: listItem.lastPing,
-      breadcrumb: Array.isArray(trip.telemetry)
-        ? trip.telemetry.map((point: any, index: number) => ({
-            id: String(point.id ?? index),
-            timestamp: toIso(point.timestamp ?? point.recorded_at ?? listItem.lastPing),
-            speed: Number(point.speed ?? 0),
-            location: point.location ?? "",
-          }))
-        : [],
-    },
-    notes: buildNotes(context.order),
-    attachments: [],
-  };
-}
-
-function buildNotes(order?: Record<string, any>) {
-  if (!order?.notes && !order?.special_instructions) {
-    return [];
-  }
-  const noteBody = order.notes ?? order.special_instructions;
-  return [
-    {
-      id: randomUUID(),
-      author: order.customer ?? order.customer_name ?? "Customer",
-      timestamp: toIso(order.updated_at ?? new Date().toISOString()),
-      body: String(noteBody),
-    },
-  ];
-}
-
-function toIso(value?: string | Date | null) {
-  if (!value) return new Date().toISOString();
-  const date = typeof value === "string" ? new Date(value) : value;
-  return Number.isNaN(date.getTime()) ? new Date().toISOString() : date.toISOString();
 }

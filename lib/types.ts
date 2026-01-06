@@ -275,59 +275,137 @@ export const telemetryPointSchema = z.object({
   location: z.string(),
 });
 
+// Stop schema for itinerary
+export const tripStopSchema = z.object({
+  sequence: z.number(),
+  type: z.string(), // Pickup, Delivery, Deadhead
+  location: z.string(),
+  scheduledWindow: z.object({
+    start: z.string().nullable(),
+    end: z.string().nullable(),
+  }),
+  eta: z.string().nullable(),
+  actual: z.string().nullable(),
+  status: z.string(), // Pending, In Progress, Completed
+  work: z.object({
+    action: z.string(),
+    shipmentRef: z.string().nullable(),
+    commodity: z.string().nullable(),
+    weight: z.number(),
+    pallets: z.number(),
+    instructions: z.string().nullable(),
+  }),
+});
+
 export const tripDetailSchema = z.object({
+  // Hero Header
   id: z.string(),
   tripNumber: z.string(),
-  orderReference: z.string().optional(),
   status: z.string(),
-  driver: z.string(),
-  unit: z.string(),
-  unitNumber: z.string().optional(),
-  driverType: z.string().optional(),
-  truckWk: z.coerce.number().optional(),
-  unitType: z.string().optional(),
-  eta: z.string(),
-  timeline: z.array(timelineEventSchema),
-  exceptions: z.array(tripExceptionSchema),
-  telemetry: z.object({
-    lastPing: z.string(),
-    breadcrumb: z.array(telemetryPointSchema),
+  statusRaw: z.string().optional(),
+  
+  // Distance & Time
+  totalDistance: z.number(),
+  linehaulMiles: z.number().optional(),
+  deadheadMiles: z.number().optional(),
+  returnMiles: z.number().optional(),
+  isRounder: z.boolean().optional(),
+  estimatedHours: z.number().nullable().optional(),
+  eta: z.string().nullable().optional(),
+
+  // Resources
+  resources: z.object({
+    driver: z.object({
+      id: z.string().nullable(),
+      name: z.string().nullable(),
+      phone: z.string().nullable(),
+      type: z.string().nullable(),
+      category: z.string().nullable(),
+      hosRemaining: z.number().nullable(),
+      zone: z.string().nullable(),
+    }),
+    coDriver: z.any().nullable(),
+    powerUnit: z.object({
+      id: z.string().nullable(),
+      number: z.string().nullable(),
+      plate: z.string().nullable(),
+      type: z.string().nullable(),
+      location: z.string().nullable(),
+    }),
+    trailer: z.object({
+      id: z.string().nullable(),
+      number: z.string().nullable(),
+      type: z.string().nullable(),
+      tempSetting: z.number().nullable(),
+    }),
+    carrier: z.any().nullable(),
   }),
-  notes: z.array(z.object({ id: z.string(), author: z.string(), timestamp: z.string(), body: z.string() })),
-  attachments: z.array(z.object({ id: z.string(), name: z.string(), size: z.string() })),
-  pickup: z.string().optional(),
-  delivery: z.string().optional(),
-  pickupWindowStart: z.string().optional(),
-  pickupWindowEnd: z.string().optional(),
-  deliveryWindowStart: z.string().optional(),
-  deliveryWindowEnd: z.string().optional(),
-  plannedStart: z.string().optional(),
-  actualStart: z.string().optional(),
-  pickupDeparture: z.string().optional(),
-  completedAt: z.string().optional(),
+
+  // Customer
+  customer: z.object({
+    id: z.string().nullable(),
+    name: z.string(),
+  }),
+
+  // Itinerary
+  stops: z.array(tripStopSchema),
+
+  // Financials
+  financials: z.object({
+    revenue: z.number(),
+    costs: z.object({
+      total: z.number(),
+      labor: z.number(),
+      fuel: z.number(),
+      fixed: z.number(),
+      maintenance: z.number(),
+      events: z.number(),
+    }),
+    profit: z.number(),
+    marginPct: z.number(),
+    cpm: z.number(),
+    rpm: z.number(),
+    isProfitable: z.boolean(),
+    marginHealth: z.string(), // healthy, warning, critical
+  }),
+
+  // Capacity
+  capacity: z.object({
+    weight: z.object({ current: z.number(), max: z.number(), pct: z.number() }),
+    cube: z.object({ current: z.number(), max: z.number(), pct: z.number() }),
+    linearFeet: z.object({ current: z.number(), max: z.number(), pct: z.number() }),
+    utilizationPct: z.number(),
+    limitingFactor: z.string(),
+  }),
+
+  // Documents
+  documents: z.object({
+    bolUploaded: z.boolean(),
+    podUploaded: z.boolean(),
+    podRequired: z.boolean(),
+    canClose: z.boolean(),
+  }),
+
+  // Timing
   onTimePickup: z.boolean().nullable().optional(),
   onTimeDelivery: z.boolean().nullable().optional(),
-  metrics: z
-    .object({
-      distanceMiles: z.coerce.number().optional(),
-      estDurationHours: z.coerce.number().optional(),
-      linehaul: z.coerce.number().optional(),
-      fuel: z.coerce.number().optional(),
-      totalCost: z.coerce.number().optional(),
-      recommendedRevenue: z.coerce.number().optional(),
-      marginPct: z.coerce.number().optional(),
-    })
-    .optional(),
-  currentWeight: z.number().optional(),
-  currentCube: z.number().optional(),
-  currentLinearFeet: z.number().optional(),
-  utilizationPercent: z.number().optional(),
-  limitingFactor: z.string().optional(),
-  maxWeight: z.number().optional(),
-  maxCube: z.number().optional(),
-  maxLinearFeet: z.number().optional(),
+  plannedStart: z.string().nullable().optional(),
+  actualStart: z.string().nullable().optional(),
+  completedAt: z.string().nullable().optional(),
+  createdAt: z.string().nullable().optional(),
+  updatedAt: z.string().nullable().optional(),
+
+  // Audit
+  changelog: z.array(z.any()).optional(),
+  notes: z.array(z.object({ 
+    id: z.string(), 
+    author: z.string(), 
+    timestamp: z.string().nullable(), 
+    text: z.string() 
+  })).optional(),
 });
 export type TripDetail = z.infer<typeof tripDetailSchema>;
+export type TripStop = z.infer<typeof tripStopSchema>;
 
 export const costingDefaultsSchema = z.object({
   form: z.object({
