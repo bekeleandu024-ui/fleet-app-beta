@@ -178,7 +178,7 @@ export function FleetAIPanel({ isOpen, onToggle, context }: FleetAIPanelProps) {
       <button
         onClick={onToggle}
         className={cn(
-          "fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full shadow-lg transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-black",
+          "fixed bottom-24 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full shadow-lg transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-black",
           isOpen 
             ? "bg-zinc-800 text-zinc-400 rotate-90" 
             : "bg-gradient-to-br from-blue-600 to-purple-600 text-white hover:from-blue-500 hover:to-purple-500"
@@ -200,7 +200,7 @@ export function FleetAIPanel({ isOpen, onToggle, context }: FleetAIPanelProps) {
           "fixed z-40 transform transition-all duration-300 ease-in-out",
           isExpanded 
             ? "bottom-0 right-0 w-[600px] h-screen" 
-            : "bottom-24 right-6 w-[420px]",
+            : "bottom-44 right-6 w-[420px]",
           isOpen
             ? "translate-y-0 opacity-100 scale-100"
             : "translate-y-10 opacity-0 scale-95 pointer-events-none"

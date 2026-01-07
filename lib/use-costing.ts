@@ -188,11 +188,9 @@ const DEFAULT_RATES: CostingRates = {
 // ============================================================================
 
 async function fetchCostingRules(): Promise<CostingRulesResponse> {
-  const response = await fetch('/api/master-data/metadata/rules');
-  if (!response.ok) {
-    throw new Error('Failed to fetch costing rules');
-  }
-  return response.json();
+  // TODO: Create dedicated /api/costing/rules endpoint for costing-specific rules
+  // For now, return empty rules - the costing system will use HARDCODED_DEFAULTS
+  return { count: 0, rules: [] };
 }
 
 async function calculateCostAPI(request: CostCalculationRequest): Promise<CostCalculationResponse> {

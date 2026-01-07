@@ -43,10 +43,13 @@ const statusColors = {
 
 export default function OrdersPage() {
   const router = useRouter();
-  const { data, isLoading, isError, refetch } = useQuery({
+  const { data, isLoading, isError, error, isFetching, refetch } = useQuery({
     queryKey: queryKeys.orders(),
     queryFn: fetchOrders,
   });
+
+  // Debug logging
+  console.log("[Orders Page] State:", { isLoading, isFetching, isError, hasData: !!data, error });
 
   const [sortField, setSortField] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc" | null>(null);

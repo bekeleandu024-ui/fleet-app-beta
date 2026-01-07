@@ -7,6 +7,21 @@ import { Card } from "@/components/ui/card";
 import { processVoiceCommand } from "@/app/actions/voice-actions";
 import { EventFeed } from "@/components/trip-events/event-feed";
 
+// Client-side only date display to avoid hydration mismatch
+function CurrentDateDisplay() {
+  const [formattedDate, setFormattedDate] = useState<string>("");
+
+  useEffect(() => {
+    setFormattedDate(new Date().toLocaleDateString());
+  }, []);
+
+  return (
+    <div className="text-xs text-zinc-500 font-mono">
+      {formattedDate || "–"}
+    </div>
+  );
+}
+
 interface Trip {
   id: string;
   tripNumber: string;
@@ -231,9 +246,7 @@ export default function TripEventsPage() {
             <div className={`h-2 w-2 rounded-full ${coords ? "bg-emerald-500 animate-pulse" : "bg-red-500"}`} />
             <span className="text-xs font-medium">{coords ? "GPS Active" : "GPS Inactive"}</span>
           </div>
-          <div className="text-xs text-zinc-500 font-mono">
-            {new Date().toLocaleDateString()}
-          </div>
+          <CurrentDateDisplay />
         </div>
       </div>
 

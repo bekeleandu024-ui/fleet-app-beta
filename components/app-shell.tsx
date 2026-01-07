@@ -18,7 +18,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   
   const isMapPage = pathname?.startsWith("/map");
   const isDispatchPage = pathname?.startsWith("/dispatch");
-  const isOrdersListPage = pathname === "/orders";
+  const isOrdersListPage = pathname === "/orders" || pathname?.startsWith("/orders/master");
   const isTripsPage = pathname?.startsWith("/trips");
   const isFarmOutPage = pathname?.startsWith("/farm-out");
   const isFullWidthPage = isMapPage || isDispatchPage || isOrdersListPage || isTripsPage || isFarmOutPage;
@@ -50,12 +50,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {children}
       </main>
       
-      {/* Global AI Assistant Panel */}
+      {/* Global AI Assistant Panel - Temporarily removed per request
       <FleetAIPanel 
         isOpen={isAIPanelOpen} 
         onToggle={() => setIsAIPanelOpen(!isAIPanelOpen)}
         context={aiContext}
       />
+      */}
       
       {/* Global AI Command Bar */}
       <AICommandBar 
