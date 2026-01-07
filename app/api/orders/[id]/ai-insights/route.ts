@@ -133,18 +133,19 @@ export async function GET(
         d.driver_id as id,
         d.driver_name as name,
         d.driver_type as type,
-        d.region,
+        d.oo_zone,
         d.status,
+        d.hos_hours_remaining,
         u.current_location,
-        u.truck_weekly_cost,
+        u.total_weekly_cost,
         u.unit_number
       FROM driver_profiles d
       LEFT JOIN unit_profiles u ON d.unit_number = u.unit_number
       WHERE d.is_active = true
       ORDER BY 
         CASE 
-          WHEN d.region = 'GTA' THEN 1
-          WHEN d.region = 'Montreal' THEN 2
+          WHEN d.oo_zone = 'Zone1' THEN 1
+          WHEN d.oo_zone = 'Zone2' THEN 2
           ELSE 3
         END,
         d.driver_type ASC
@@ -157,7 +158,6 @@ export async function GET(
         unit_id as id,
         unit_number,
         unit_type,
-        region,
         current_location,
         is_active,
         max_weight,
@@ -165,7 +165,7 @@ export async function GET(
         linear_feet
       FROM unit_profiles
       WHERE is_active = true
-      ORDER BY region
+      ORDER BY unit_number
       LIMIT 5
     `);
 
@@ -243,11 +243,11 @@ export async function GET(
       id: d.id,
       name: d.name,
       type: d.type,
-      region: d.region,
+      region: d.oo_zone,
       current_location: d.current_location,
-      hours_available: 70, // Default available hours
+      hours_available: Number(d.hos_hours_remaining || 70),
       on_time_rate: 0.95,
-      truck_weekly_cost: Number(d.truck_weekly_cost || 0),
+      truck_weekly_cost: Number(d.total_weekly_cost || 0),
       unit_number: d.unit_number,
     }));
 
@@ -256,7 +256,6 @@ export async function GET(
       unit_number: u.unit_number,
       type: u.unit_type || 'Dry Van',
       status: u.is_active ? 'Available' : 'Maintenance',
-      region: u.region,
       location: u.current_location,
       max_weight: Number(u.max_weight || 45000),
       max_cube: Number(u.max_cube || 3900),

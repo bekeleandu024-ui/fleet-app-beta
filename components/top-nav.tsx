@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ChangeEvent, FormEvent, useCallback, useEffect, useRef, useState, Suspense } from "react";
-import { Search } from "lucide-react";
+import { Search, Command, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,25 +23,31 @@ const navItems = [
   { label: "Planning", href: "/planning/board", match: (pathname: string) => pathname.startsWith("/planning") },
   { label: "Trips", href: "/trips", match: (pathname: string) => pathname === "/trips" },
   { label: "Closed Trips", href: "/trips/closed", match: (pathname: string) => pathname === "/trips/closed" },
+  { label: "Accounting", href: "/accounting", match: (pathname: string) => pathname.startsWith("/accounting") },
   { label: "Customs", href: "/customs", match: (pathname: string) => pathname.startsWith("/customs") },
   { label: "Costing Dashboard", href: "/costing", match: (pathname: string) => pathname.startsWith("/costing") },
   { label: "Map", href: "/map", match: (pathname: string) => pathname.startsWith("/map") },
   { label: "Trip Event", href: "/events", match: (pathname: string) => pathname.startsWith("/events") },
+  { label: "Driver Console", href: "/driver/command-center", match: (pathname: string) => pathname.startsWith("/driver") },
   { label: "Fleet", href: "/master-data/units", match: (pathname: string) => pathname.startsWith("/master-data/units") },
   { label: "Drivers", href: "/master-data/drivers", match: (pathname: string) => pathname.startsWith("/master-data/drivers") },
   { label: "Rules", href: "/master-data/rules", match: (pathname: string) => pathname.startsWith("/master-data/rules") },
   { label: "Admin", href: "/admin", match: (pathname: string) => pathname.startsWith("/admin") },
 ];
 
-export function TopNav() {
+interface TopNavProps {
+  onCommandBarOpen?: () => void;
+}
+
+export function TopNav({ onCommandBarOpen }: TopNavProps = {}) {
   return (
     <Suspense fallback={<div className="h-14 border-b border-zinc-800 bg-black" />}>
-      <TopNavContent />
+      <TopNavContent onCommandBarOpen={onCommandBarOpen} />
     </Suspense>
   );
 }
 
-function TopNavContent() {
+function TopNavContent({ onCommandBarOpen }: TopNavProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -113,18 +119,19 @@ function TopNavContent() {
             Fleet Dispatch Demo
           </Link>
           <div className="ml-auto hidden flex-1 items-center gap-3 md:flex">
-            <form className="relative flex-1 max-w-xl" onSubmit={handleSubmit}>
-              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -tranzinc-y-1/2 text-zinc-500" />
-              <Input
-                type="search"
-                placeholder="Search order # / driver / unit / customer"
-                className="h-11 w-full pl-10 text-sm bg-zinc-900/60 border-zinc-800/70 text-zinc-200 placeholder:text-zinc-500 focus:border-zinc-600/80 focus:ring-2 focus:ring-zinc-600/30 rounded-xl transition-all"
-                aria-label="Global search"
-                value={searchTerm}
-                onChange={handleInputChange}
-                ref={desktopSearchRef}
-              />
-            </form>
+            {/* AI-Powered Command Bar Trigger */}
+            <button
+              onClick={onCommandBarOpen}
+              className="relative flex-1 max-w-xl h-11 flex items-center gap-3 px-4 bg-zinc-900/60 border border-zinc-800/70 rounded-xl text-zinc-500 hover:text-zinc-300 hover:border-zinc-700 hover:bg-zinc-900/80 transition-all cursor-text"
+            >
+              <Sparkles className="size-4 text-blue-400" />
+              <span className="text-sm">Search or ask FleetAI...</span>
+              <div className="ml-auto flex items-center gap-1">
+                <kbd className="hidden sm:inline-flex h-5 items-center gap-1 rounded border border-zinc-700 bg-zinc-800 px-1.5 font-mono text-[10px] font-medium text-zinc-400">
+                  ⌘K
+                </kbd>
+              </div>
+            </button>
             <Button 
               variant="primary" 
               size="sm" 
@@ -157,7 +164,7 @@ function TopNavContent() {
             </Button>
           </div>
         </div>
-        <nav className="flex flex-wrap items-center justify-center gap-2" aria-label="Primary">
+        <nav className="flex flex-wrap justify-center gap-2" aria-label="Primary">
           {navItems.map((item) => {
             const active = item.match(pathname ?? "");
             return (

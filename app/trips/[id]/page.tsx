@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -15,6 +16,7 @@ import {
   Navigation,
   Package,
   Phone,
+  Radio,
   Truck,
   User,
   XCircle,
@@ -26,6 +28,7 @@ import { fetchTripDetail } from "@/lib/api";
 import { formatCurrency, formatDateTime } from "@/lib/format";
 import { queryKeys } from "@/lib/query";
 import { CapacityGauge } from "@/components/trips/capacity-gauge";
+import { LiveOpsConsole } from "@/components/trips/live-ops-console";
 import type { TripDetail, TripStop } from "@/lib/types";
 
 // Status badge colors
@@ -51,6 +54,7 @@ export default function TripDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const tripId = params?.id ?? "";
+  const [activeTab, setActiveTab] = useState<"details" | "operations">("details");
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: queryKeys.trip(tripId),
@@ -88,6 +92,13 @@ export default function TripDetailPage() {
   }
 
   const trip = data as TripDetail;
+
+  // Prepare stops data for LiveOpsConsole
+  const consoleStops = trip.stops.map((stop, idx) => ({
+    type: stop.type,
+    location: stop.location,
+    sequence: stop.sequence || idx + 1,
+  }));
 
   return (
     <div className="h-full overflow-y-auto p-4">
@@ -130,9 +141,42 @@ export default function TripDetailPage() {
         </div>
 
         {/* ═══════════════════════════════════════════════════════════════════
-            MAIN GRID - 3 Column Layout
+            TAB NAVIGATION
         ═══════════════════════════════════════════════════════════════════ */}
-        <div className="grid gap-4 grid-cols-12">
+        <div className="flex items-center gap-1 border-b border-neutral-800 pb-0">
+          <button
+            onClick={() => setActiveTab("details")}
+            className={`px-4 py-2.5 text-sm font-medium rounded-t-lg transition-colors ${
+              activeTab === "details"
+                ? "bg-neutral-800 text-neutral-100 border-b-2 border-blue-500"
+                : "text-neutral-500 hover:text-neutral-300 hover:bg-neutral-800/50"
+            }`}
+          >
+            <Navigation className="h-4 w-4 inline mr-2" />
+            Trip Details
+          </button>
+          <button
+            onClick={() => setActiveTab("operations")}
+            className={`px-4 py-2.5 text-sm font-medium rounded-t-lg transition-colors flex items-center gap-2 ${
+              activeTab === "operations"
+                ? "bg-neutral-800 text-neutral-100 border-b-2 border-blue-500"
+                : "text-neutral-500 hover:text-neutral-300 hover:bg-neutral-800/50"
+            }`}
+          >
+            <Radio className="h-4 w-4" />
+            Live Operations
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          </button>
+        </div>
+
+        {/* ═══════════════════════════════════════════════════════════════════
+            TAB CONTENT
+        ═══════════════════════════════════════════════════════════════════ */}
+        {activeTab === "details" ? (
+          /* ─────────────────────────────────────────────────────────────────
+              DETAILS TAB - Original 3 Column Layout
+          ───────────────────────────────────────────────────────────────── */
+          <div className="grid gap-4 grid-cols-12">
           
           {/* ─────────────────────────────────────────────────────────────────
               LEFT COLUMN - Resources (Driver, Unit, Capacity)
@@ -391,6 +435,98 @@ export default function TripDetailPage() {
             )}
           </div>
         </div>
+        ) : (
+          /* ─────────────────────────────────────────────────────────────────
+              OPERATIONS TAB - Live Ops Console + Map
+          ───────────────────────────────────────────────────────────────── */
+          <div className="grid gap-4 grid-cols-12">
+            {/* Left Side - Map / Itinerary */}
+            <div className="col-span-12 lg:col-span-7 space-y-4">
+              {/* Map Placeholder */}
+              <Card className="border-neutral-800/70 bg-neutral-900/60 p-4">
+                <div className="flex items-center gap-2 mb-4">
+                  <MapPin className="h-4 w-4 text-amber-400" />
+                  <span className="text-sm font-semibold text-neutral-200">Live Route Map</span>
+                </div>
+                <div className="aspect-video bg-neutral-800/50 rounded-lg flex items-center justify-center border border-neutral-700">
+                  <div className="text-center">
+                    <MapPin className="h-12 w-12 text-neutral-600 mx-auto mb-2" />
+                    <p className="text-neutral-500">Live map integration</p>
+                    <p className="text-xs text-neutral-600">Coming soon</p>
+                  </div>
+                </div>
+              </Card>
+
+              {/* Itinerary Summary */}
+              <Card className="border-neutral-800/70 bg-neutral-900/60 p-4">
+                <div className="flex items-center gap-2 mb-4">
+                  <Navigation className="h-4 w-4 text-emerald-400" />
+                  <span className="text-sm font-semibold text-neutral-200">Itinerary</span>
+                </div>
+                <div className="space-y-3">
+                  {trip.stops.map((stop, idx) => (
+                    <StopCard key={idx} stop={stop} isLast={idx === trip.stops.length - 1} />
+                  ))}
+                </div>
+              </Card>
+            </div>
+
+            {/* Right Side - Live Operations Console */}
+            <div className="col-span-12 lg:col-span-5 space-y-4">
+              <LiveOpsConsole
+                tripId={tripId}
+                tripNumber={trip.tripNumber}
+                stops={consoleStops}
+                driverName={trip.resources.driver.name ?? undefined}
+              />
+
+              {/* Driver Contact */}
+              {trip.resources.driver.name && (
+                <Card className="border-neutral-800/70 bg-neutral-900/60 p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <User className="h-4 w-4 text-blue-400" />
+                    <span className="text-xs uppercase tracking-wide text-neutral-500">Driver</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-lg font-semibold text-neutral-100">{trip.resources.driver.name}</p>
+                      <p className="text-xs text-neutral-500">{trip.resources.driver.type || "Company Driver"}</p>
+                    </div>
+                    {trip.resources.driver.phone && (
+                      <a 
+                        href={`tel:${trip.resources.driver.phone}`}
+                        className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30 hover:bg-emerald-500/20 transition-colors"
+                      >
+                        <Phone className="h-5 w-5 text-emerald-400" />
+                      </a>
+                    )}
+                  </div>
+                </Card>
+              )}
+
+              {/* Unit Info */}
+              {trip.resources.powerUnit.number && (
+                <Card className="border-neutral-800/70 bg-neutral-900/60 p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Truck className="h-4 w-4 text-emerald-400" />
+                    <span className="text-xs uppercase tracking-wide text-neutral-500">Power Unit</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-lg font-semibold text-neutral-100">{trip.resources.powerUnit.number}</p>
+                      <p className="text-xs text-neutral-500">{trip.resources.powerUnit.type || "Dry Van"}</p>
+                    </div>
+                    {trip.resources.powerUnit.plate && (
+                      <span className="px-2 py-1 rounded bg-neutral-800 text-xs text-neutral-400">
+                        {trip.resources.powerUnit.plate}
+                      </span>
+                    )}
+                  </div>
+                </Card>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

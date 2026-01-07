@@ -84,6 +84,47 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
             order_type: dbOrder.order_type,
             estimated_cost: dbOrder.estimated_cost,
             created_at: dbOrder.created_at,
+            // Cargo fields
+            total_weight_lbs: dbOrder.total_weight_lbs,
+            total_pallets: dbOrder.total_pallets,
+            total_pieces: dbOrder.total_pieces,
+            total_cubic_feet: dbOrder.total_cubic_feet,
+            total_linear_feet: dbOrder.total_linear_feet,
+            is_hazmat: dbOrder.is_hazmat,
+            is_high_value: dbOrder.is_high_value,
+            stackable: dbOrder.stackable,
+            declared_value: dbOrder.declared_value,
+            commodity: dbOrder.commodity,
+            // Equipment
+            equipment_type: dbOrder.equipment_type,
+            equipment_length: dbOrder.equipment_length,
+            temperature_setting: dbOrder.temperature_setting,
+            required_equipment: dbOrder.required_equipment,
+            // Billing
+            billing_status: dbOrder.billing_status,
+            billing_notes: dbOrder.billing_notes,
+            billing_finalized_at: dbOrder.billing_finalized_at,
+            billing_finalized_by: dbOrder.billing_finalized_by,
+            quoted_rate: dbOrder.quoted_rate,
+            final_billable_amount: dbOrder.final_billable_amount,
+            target_rate: dbOrder.target_rate,
+            margin_target_pct: dbOrder.margin_target_pct,
+            // Dispatch
+            dispatch_status: dbOrder.dispatch_status,
+            assigned_driver_id: dbOrder.assigned_driver_id,
+            assigned_unit_id: dbOrder.assigned_unit_id,
+            awarded_carrier_id: dbOrder.awarded_carrier_id,
+            // Notes
+            internal_notes: dbOrder.internal_notes,
+            special_instructions: dbOrder.special_instructions,
+            qualification_notes: dbOrder.qualification_notes,
+            priority: dbOrder.priority,
+            source_channel: dbOrder.source_channel,
+            // Time windows
+            pu_window_start: dbOrder.pu_window_start,
+            pu_window_end: dbOrder.pu_window_end,
+            del_window_start: dbOrder.del_window_start,
+            del_window_end: dbOrder.del_window_end,
           };
           console.log(`[Order Detail] Found order in local DB: ${orderId}`);
         } else {
@@ -218,15 +259,63 @@ function buildOrderDetail(
     reference: order.order_number ?? order.reference ?? order.id?.slice(0, 8)?.toUpperCase() ?? order.id,
     status: mapOrderStatus(order.status),
     customer: order.customer ?? order.customer_name ?? order.customer_id ?? "Customer",
+    customerId: order.customer_id,
     lane,
     laneMiles,
     ageHours: calculateAgeHours(order.created_at),
     serviceLevel: order.service_level ?? order.order_type ?? "Standard",
+    priority: order.priority ?? "Normal",
+    sourceChannel: order.source_channel,
+    createdAt: order.created_at,
+    updatedAt: order.updated_at,
     snapshot: {
       commodity: order.commodity ?? order.order_type ?? "General Freight",
       stops,
       windows: buildWindows(stops),
       notes: order.special_instructions ?? extractCustomerNote(context.customerView),
+    },
+    // Cargo details
+    cargo: {
+      totalWeightLbs: order.total_weight_lbs ?? order.weight_lbs,
+      totalPallets: order.total_pallets,
+      totalPieces: order.total_pieces,
+      totalCubicFeet: order.total_cubic_feet ?? order.cubic_feet,
+      totalLinearFeet: order.total_linear_feet ?? order.linear_feet_required,
+      isHazmat: order.is_hazmat ?? false,
+      isHighValue: order.is_high_value ?? false,
+      stackable: order.stackable ?? true,
+      declaredValue: order.declared_value,
+      commodity: order.commodity ?? order.order_type ?? "General Freight",
+    },
+    // Equipment requirements
+    equipment: {
+      type: order.equipment_type ?? order.required_equipment ?? "Dry Van",
+      length: order.equipment_length,
+      temperatureSetting: order.temperature_setting,
+    },
+    // Billing & financials
+    billing: {
+      status: order.billing_status ?? "Pending",
+      quotedRate: order.quoted_rate,
+      targetRate: order.target_rate,
+      marginTargetPct: order.margin_target_pct,
+      finalBillableAmount: order.final_billable_amount,
+      billingNotes: order.billing_notes,
+      billingFinalizedAt: order.billing_finalized_at,
+      billingFinalizedBy: order.billing_finalized_by,
+    },
+    // Dispatch assignment
+    dispatch: {
+      status: order.dispatch_status ?? "Unassigned",
+      assignedDriverId: order.assigned_driver_id,
+      assignedUnitId: order.assigned_unit_id,
+      awardedCarrierId: order.awarded_carrier_id,
+    },
+    // Notes
+    notes: {
+      internal: order.internal_notes,
+      special: order.special_instructions,
+      qualification: order.qualification_notes,
     },
     pricing: buildPricing(context.cost, enrichedOrder, context.costingRates),
     booking: buildBooking(order, context.drivers, context.units, context.trips ?? []),
