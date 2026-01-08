@@ -11,8 +11,10 @@ const orderStatuses = ["New", "Planning", "In Transit", "At Risk", "Delivered", 
 const baseSchema = z.object({
   reference: z.string().min(1, "Reference is required"),
   customer: z.string().min(1, "Customer is required"),
-  pickup: z.string().min(1, "Pickup location is required"),
-  delivery: z.string().min(1, "Delivery location is required"),
+  pickup: z.string().optional(),
+  delivery: z.string().optional(),
+  pickups: z.array(z.string()).optional(),
+  deliveries: z.array(z.string()).optional(),
   window: z.string().min(1, "Service window is required"),
   status: z.enum(orderStatuses),
   ageHours: z.number().min(0, "Age must be 0 or more"),
@@ -53,6 +55,18 @@ export async function POST(request: Request) {
     const body = await request.json();
     const validated = createSchema.parse(body);
     
+    // Support both single and multiple pickups/deliveries
+    const pickupLocations = validated.pickups || (validated.pickup ? [validated.pickup] : []);
+    const deliveryLocations = validated.deliveries || (validated.delivery ? [validated.delivery] : []);
+    
+    if (pickupLocations.length === 0 || deliveryLocations.length === 0) {
+      return NextResponse.json({ error: "At least one pickup and one delivery location required" }, { status: 400 });
+    }
+    
+    // Use first pickup/delivery for primary order fields
+    const primaryPickup = pickupLocations[0];
+    const primaryDelivery = deliveryLocations[0];
+    
     // Generate UUID for the order - this is the primary key
     const orderId = randomUUID();
     
@@ -72,7 +86,7 @@ export async function POST(request: Request) {
       const parts = location.split(',');
       return parts[0]?.trim() || location.slice(0, 20);
     };
-    const lane = `${extractCity(validated.pickup)} → ${extractCity(validated.delivery)}`;
+    const lane = `${extractCity(primaryPickup)} → ${extractCity(primaryDelivery)}`;
     
     // Transform to backend CreateOrderRequest format
     // Backend expects: customer_id, order_type, pickup_location, dropoff_location, pickup_time?, special_instructions?
@@ -80,10 +94,10 @@ export async function POST(request: Request) {
       id: orderId, // Force UUID as primary key
       customer_id: validated.customer, // Frontend sends customer name as ID
       order_type: "round_trip", // Default order type
-      pickup_location: validated.pickup,
-      dropoff_location: validated.delivery,
+      pickup_location: primaryPickup,
+      dropoff_location: primaryDelivery,
       pickup_time: pickupTime?.toISOString() || undefined,
-      special_instructions: `Service Level: ${validated.serviceLevel}, Commodity: ${validated.commodity}`,
+      special_instructions: `Service Level: ${validated.serviceLevel}, Commodity: ${validated.commodity}${pickupLocations.length > 1 || deliveryLocations.length > 1 ? `\nMulti-stop: ${pickupLocations.length} pickup(s), ${deliveryLocations.length} delivery(s)` : ''}`,
     };
     
     // Insert order into local database first with ALL required fields

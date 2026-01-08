@@ -1,6 +1,33 @@
 import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
 
+
+// Helper to fetch route geometry from OSRM
+async function fetchOsrmRoute(points: Array<{ lat: number; lng: number }>): Promise<Array<{ lat: number; lng: number }> | null> {
+  if (points.length < 2) return null;
+
+  try {
+    // Construct coordinate string: "lon,lat;lon,lat;..."
+    const coordinates = points.map(p => `${p.lng},${p.lat}`).join(';');
+    const url = `https://router.project-osrm.org/route/v1/driving/${coordinates}?overview=full&geometries=geojson`;
+    
+    const response = await fetch(url);
+    if (!response.ok) return null;
+    
+    const data = await response.json();
+    if (data.code === 'Ok' && data.routes && data.routes[0]) {
+      // OSRM returns [lon, lat] in GeoJSON
+      return data.routes[0].geometry.coordinates.map((coord: number[]) => ({
+        lat: coord[1],
+        lng: coord[0]
+      }));
+    }
+  } catch (error) {
+    console.error("OSRM fetch error:", error);
+  }
+  return null;
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -101,22 +128,36 @@ export async function GET(
       }
     }
 
-    // Build route path based on trip status
-    const routePath: Array<{ lat: number; lng: number }> = [];
+    // Build waypoints for route calculation
+    const waypoints: Array<{ lat: number; lng: number }> = [];
     
     // Add home base as start point if available
     if (homeBase) {
-      routePath.push(homeBase);
+      waypoints.push(homeBase);
     }
     
-    // Add pickup location
-    if (pickupLat && pickupLng) {
-      routePath.push({ lat: pickupLat, lng: pickupLng });
+    // Add stops if available, otherwise fallback to pickup/delivery
+    if (stops.length > 0) {
+      stops.forEach(s => {
+        if (s.lat && s.lng) {
+          waypoints.push({ lat: parseFloat(s.lat), lng: parseFloat(s.lng) });
+        }
+      });
+    } else {
+      if (pickupLat && pickupLng) waypoints.push({ lat: pickupLat, lng: pickupLng });
+      if (deliveryLat && deliveryLng) waypoints.push({ lat: deliveryLat, lng: deliveryLng });
     }
-    
-    // Add delivery location
-    if (deliveryLat && deliveryLng) {
-      routePath.push({ lat: deliveryLat, lng: deliveryLng });
+
+    // Calculate actual route path
+    let routePath = [...waypoints]; // Default fallback to straight lines
+    try {
+      const realRoute = await fetchOsrmRoute(waypoints);
+      if (realRoute) {
+        routePath = realRoute;
+      }
+    } catch (routeError) {
+      console.error("Failed to calculate route path:", routeError);
+      // Fallback to straight lines is already set
     }
 
     if (!currentPosition && geofences.length === 0) {
@@ -131,6 +172,7 @@ export async function GET(
       stops: stops.map((s: any) => ({ id: s.id, sequence: s.sequence, type: s.type, location: s.location,
         lat: s.lat ? parseFloat(s.lat) : null, lng: s.lng ? parseFloat(s.lng) : null, status: s.status })),
     });
+  
   } catch (error: any) {
     console.error("Error fetching tracking data:", error);
     return NextResponse.json(generateDemoTrackingData(tripId));

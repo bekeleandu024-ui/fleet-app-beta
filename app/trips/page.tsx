@@ -348,7 +348,7 @@ export default function TripsPage() {
                             <div 
                               key={orderId}
                               className="flex items-center gap-2 text-[10px] font-mono text-zinc-500 hover:text-zinc-300 cursor-pointer"
-                              onClick={() => router.push(`/orders/${orderId}`)}
+                              onClick={() => router.push(`/orders/master?id=${orderId}`)}
                             >
                               <span className="text-violet-400/60">#{i + 1}</span>
                               <span>{orderId.slice(0, 8)}...{orderId.slice(-4)}</span>
@@ -413,7 +413,7 @@ export default function TripsPage() {
                     <td className="px-4 py-2 align-middle text-right">
                       <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button 
-                          onClick={() => router.push(`/trips/${trip.id}`)}
+                          onClick={() => router.push(`/trips/master?id=${trip.id}`)}
                           className="flex items-center gap-1 rounded-sm bg-zinc-800 px-2 py-1 text-[10px] font-medium text-zinc-300 hover:bg-zinc-700 border border-zinc-700"
                         >
                           Details <ChevronRight className="h-3 w-3" />

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { APIProvider, Map, Marker, InfoWindow, useMap } from "@vis.gl/react-google-maps";
+import { APIProvider, Map, Marker, InfoWindow, useMap, useMapsLibrary } from "@vis.gl/react-google-maps";
 import { 
   AlertTriangle, 
   Clock, 
@@ -115,17 +115,108 @@ function getTruckStatusColor(status: TruckStatus): string {
 interface MapOverlaysProps {
   geofences: GeofencePolygon[];
   breadcrumbs: GpsPing[];
-  routePath: Array<{ lat: number; lng: number }>;
+  stops: Array<{ lat?: number; lng?: number; location: string }>;
+  apiStops: Array<any>;
   showGeofence: boolean;
   showHysteresis: boolean;
   showBreadcrumbs: boolean;
   showRoute: boolean;
 }
 
-function MapOverlays({ geofences, breadcrumbs, routePath, showGeofence, showHysteresis, showBreadcrumbs, showRoute }: MapOverlaysProps) {
+function MapOverlays({ geofences, breadcrumbs, stops, apiStops, showGeofence, showHysteresis, showBreadcrumbs, showRoute }: MapOverlaysProps) {
   const map = useMap();
+  const routesLibrary = useMapsLibrary("routes");
   const polygonsRef = useRef<google.maps.Polygon[]>([]);
   const polylinesRef = useRef<google.maps.Polyline[]>([]);
+  const directionsRendererRef = useRef<google.maps.DirectionsRenderer | null>(null);
+
+  // Initialize DirectionsRenderer once
+  useEffect(() => {
+    if (!map || !routesLibrary) return;
+    
+    if (!directionsRendererRef.current) {
+      directionsRendererRef.current = new routesLibrary.DirectionsRenderer({
+        map,
+        suppressMarkers: true, // We use custom markers
+        preserveViewport: true, // Don't auto-zoom constantly
+        polylineOptions: {
+          strokeColor: "#5a5a6e", // Match "Planned Route" legend color
+          strokeOpacity: 0.8,
+          strokeWeight: 4,
+        }
+      });
+    }
+
+    return () => {
+      if (directionsRendererRef.current) {
+        directionsRendererRef.current.setMap(null);
+        directionsRendererRef.current = null;
+      }
+    };
+  }, [map, routesLibrary]);
+
+  // Calculate and display route
+  useEffect(() => {
+    if (!map || !routesLibrary || !directionsRendererRef.current || !showRoute) {
+      if (directionsRendererRef.current) directionsRendererRef.current.setMap(null);
+      return;
+    }
+
+    directionsRendererRef.current.setMap(map);
+
+      
+      // We use the stops from the API if available as they contain the coordinates
+      const effectiveStops = apiStops.length > 0 ? apiStops : stops;
+      
+    // Filter valid stops
+    const validStops = effectiveStops.filter(s => s.lat && s.lng);
+    
+    // If we don't have valid stops with coordinates, try to use geofences to identify pickup and delivery
+    // This is a robust fallback when stop coordinates might be missing but geofences were generated
+    let origin: google.maps.LatLngLiteral | null = null;
+    let destination: google.maps.LatLngLiteral | null = null;
+    let waypoints: google.maps.DirectionsWaypoint[] = [];
+
+    if (validStops.length >= 2) {
+      origin = { lat: validStops[0].lat!, lng: validStops[0].lng! };
+      destination = { lat: validStops[validStops.length - 1].lat!, lng: validStops[validStops.length - 1].lng! };
+      
+      waypoints = validStops.slice(1, -1).map(stop => ({
+        location: { lat: stop.lat!, lng: stop.lng! },
+        stopover: true
+      }));
+    } else {
+      // Fallback: try to find pickup and delivery geofences
+      const pickupGeofence = geofences.find(g => g.type === "pickup");
+      const deliveryGeofence = geofences.find(g => g.type === "delivery");
+      
+      if (pickupGeofence && pickupGeofence.coordinates.length > 0) {
+        // Use the first point of the polygon as the location
+        origin = pickupGeofence.coordinates[0];
+      }
+      
+      if (deliveryGeofence && deliveryGeofence.coordinates.length > 0) {
+        destination = deliveryGeofence.coordinates[0];
+      }
+    }
+
+    if (!origin || !destination) return;
+
+    const directionsService = new routesLibrary.DirectionsService();
+    directionsService.route({
+      origin,
+      destination,
+      waypoints,
+      travelMode: google.maps.TravelMode.DRIVING,
+    }, (result, status) => {
+      if (status === google.maps.DirectionsStatus.OK && directionsRendererRef.current) {
+        directionsRendererRef.current.setDirections(result);
+      } else {
+        console.error("Directions request failed:", status);
+      }
+    });
+
+  }, [map, routesLibrary, stops, apiStops, geofences, showRoute]);
 
   useEffect(() => {
     if (!map) return;
@@ -172,45 +263,29 @@ function MapOverlays({ geofences, breadcrumbs, routePath, showGeofence, showHyst
       });
     }
 
-    // Draw breadcrumb trail
-    if (showBreadcrumbs && breadcrumbs.length > 1) {
-      const path = breadcrumbs.map(p => ({ lat: p.lat, lng: p.lng }));
-      const polyline = new google.maps.Polyline({
-        path,
-        strokeColor: "#5a8a8a",
-        strokeOpacity: 0.7,
-        strokeWeight: 3,
-        geodesic: true,
-        map,
-      });
-      polylinesRef.current.push(polyline);
-    }
-
-    // Draw planned route
-    if (showRoute && routePath.length > 1) {
-      const routePolyline = new google.maps.Polyline({
-        path: routePath,
-        strokeColor: "#5a5a6e",
-        strokeOpacity: 0.6,
-        strokeWeight: 4,
-        geodesic: true,
-        icons: [{
-          icon: { path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW, scale: 3, strokeColor: "#5a5a6e" },
-          offset: "50%",
-        }],
-        map,
-      });
-      polylinesRef.current.push(routePolyline);
-    }
+    // Draw breadcrumb trail - DISABLED to avoid straight lines from demo data
+    // if (showBreadcrumbs && breadcrumbs.length > 1) {
+    //   const path = breadcrumbs.map(p => ({ lat: p.lat, lng: p.lng }));
+    //   const polyline = new google.maps.Polyline({
+    //     path,
+    //     strokeColor: "#5a8a8a",
+    //     strokeOpacity: 0.7,
+    //     strokeWeight: 3,
+    //     geodesic: true,
+    //     map,
+    //   });
+    //   polylinesRef.current.push(polyline);
+    // }
 
     return () => {
       polygonsRef.current.forEach(p => p.setMap(null));
       polylinesRef.current.forEach(p => p.setMap(null));
     };
-  }, [map, geofences, breadcrumbs, routePath, showGeofence, showHysteresis, showBreadcrumbs, showRoute]);
+  }, [map, geofences, breadcrumbs, showGeofence, showHysteresis, showBreadcrumbs]);
 
   return null;
 }
+
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TELEMATICS OVERLAY COMPONENT
@@ -356,6 +431,7 @@ export function LiveOpsMap({
   const [breadcrumbTrail, setBreadcrumbTrail] = useState<GpsPing[]>([]);
   const [geofences, setGeofences] = useState<GeofencePolygon[]>([]);
   const [routePath, setRoutePath] = useState<Array<{ lat: number; lng: number }>>([]);
+  const [apiStops, setApiStops] = useState<Array<any>>([]);
   const [tripStatus, setTripStatus] = useState<string>("");
   const [homeBase, setHomeBase] = useState<{ lat: number; lng: number } | null>(null);
   const [showTruckInfo, setShowTruckInfo] = useState(false);
@@ -397,6 +473,7 @@ export function LiveOpsMap({
       if (data.status) setTripStatus(data.status);
       if (data.homeBase) setHomeBase(data.homeBase);
       if (data.routePath) setRoutePath(data.routePath);
+      if (data.stops) setApiStops(data.stops);
     } catch (error) {
       console.error("Error fetching tracking data:", error);
       generateDemoData();
@@ -605,10 +682,11 @@ export function LiveOpsMap({
             style={{ width: "100%", height: "100%" }}
           >
             {/* Custom overlays for polygons and polylines */}
-            <MapOverlays
+            <MapOverlays 
               geofences={geofences}
               breadcrumbs={breadcrumbTrail}
-              routePath={routePath}
+              stops={stops}
+              apiStops={apiStops}
               showGeofence={showLayers.geofence}
               showHysteresis={showLayers.hysteresis}
               showBreadcrumbs={showLayers.breadcrumbs}

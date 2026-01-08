@@ -24,7 +24,7 @@ async function buildOrderResults(normalizedQuery: string): Promise<GlobalSearchR
         type: "order",
         title: `Order ${order.reference}`,
         description: `${order.pickup} → ${order.delivery}`,
-        href: `/orders/${order.id}`,
+        href: `/orders/master?id=${order.id}`,
         meta: [
           { label: "Customer", value: order.customer },
           { label: "Status", value: order.status },
@@ -50,7 +50,7 @@ async function buildTripResults(normalizedQuery: string): Promise<GlobalSearchRe
         type: "trip",
         title: `Trip ${trip.tripNumber}`,
         description: `${trip.pickup} → ${trip.delivery}`,
-        href: `/trips/${trip.id}`,
+        href: `/trips/master?id=${trip.id}`,
         meta: [
           { label: "Driver", value: trip.driver },
           { label: "Unit", value: trip.unit },

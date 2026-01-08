@@ -19,8 +19,8 @@ import type { OrderAdminCreate } from "@/lib/types";
 interface OrderFormData {
   id: string;
   customer: string;
-  origin: string;
-  destination: string;
+  origins: string[];
+  destinations: string[];
   puWindowStart: string;
   puWindowEnd: string;
   delWindowStart: string;
@@ -52,8 +52,8 @@ const palletTypes = ["Standard (48x40x48)", "Euro (48x40x60)", "Custom"];
 const INITIAL_FORM_DATA: OrderFormData = {
   id: "", // Auto-generated
   customer: "",
-  origin: "",
-  destination: "",
+  origins: [""],
+  destinations: [""],
   puWindowStart: "",
   puWindowEnd: "",
   delWindowStart: "",
@@ -135,12 +135,12 @@ export default function CreateOrderPage() {
   };
 
   const calculateEstimate = async () => {
-    if (!formData.origin || !formData.destination) return;
+    if (!formData.origins || !formData.origins.length || !formData.origins[0] || !formData.destinations || !formData.destinations.length || !formData.destinations[0]) return;
     
     let miles = 0;
     
     try {
-      const response = await fetch(`/api/maps/distance?origin=${encodeURIComponent(formData.origin)}&destination=${encodeURIComponent(formData.destination)}`);
+      const response = await fetch(`/api/maps/distance?origin=${encodeURIComponent(formData.origins[0])}&destination=${encodeURIComponent(formData.destinations[0])}`);
       const data = await response.json();
       
       if (data.distance) {
@@ -148,12 +148,12 @@ export default function CreateOrderPage() {
         setCalculatedDistance(miles);
       } else {
         // Fallback to hash-based calculation if API fails
-        miles = calculateMiles(formData.origin, formData.destination);
+        miles = calculateMiles(formData.origins[0], formData.destinations[0]);
         setCalculatedDistance(miles);
       }
     } catch (error) {
       console.error("Failed to calculate distance:", error);
-      miles = calculateMiles(formData.origin, formData.destination);
+      miles = calculateMiles(formData.origins[0], formData.destinations[0]);
       setCalculatedDistance(miles);
     }
 
@@ -332,8 +332,8 @@ export default function CreateOrderPage() {
       }
     }
 
-    if (parsed.origin) updates.origin = parsed.origin;
-    if (parsed.destination) updates.destination = parsed.destination;
+    if (parsed.origin) updates.origins = [parsed.origin];
+    if (parsed.destination) updates.destinations = [parsed.destination];
     if (parsed.puWindowStart) updates.puWindowStart = parsed.puWindowStart;
     if (parsed.puWindowEnd) updates.puWindowEnd = parsed.puWindowEnd;
     if (parsed.delWindowStart) updates.delWindowStart = parsed.delWindowStart;
@@ -369,7 +369,7 @@ export default function CreateOrderPage() {
   // Get AI suggestions when form data changes
   useEffect(() => {
     const getSuggestions = async () => {
-      if (!formData.customer && !formData.origin && !formData.destination) return;
+      if (!formData.customer && (!formData.origins || !formData.origins.length) && (!formData.destinations || !formData.destinations.length)) return;
 
       try {
         const response = await fetch("/api/ai/order-assistant", {
@@ -395,7 +395,7 @@ export default function CreateOrderPage() {
 
     const timer = setTimeout(getSuggestions, 1000);
     return () => clearTimeout(timer);
-  }, [formData.customer, formData.origin, formData.destination]);
+  }, [formData.customer, formData.origins, formData.destinations]);
 
   // Validate order with AI
   const validateWithAI = async () => {
@@ -424,16 +424,16 @@ export default function CreateOrderPage() {
     const payload: OrderAdminCreate = {
       reference: formData.id || `ORDER-${Date.now()}`,
       customer: formData.customer,
-      pickup: formData.origin,
-      delivery: formData.destination,
+      pickups: formData.origins,
+      deliveries: formData.destinations,
       window: `${formData.puWindowStart} - ${formData.delWindowEnd}`,
       status: formData.status,
       ageHours: 0,
       cost: estimatedCost || 0,
-      lane: `${formData.origin} → ${formData.destination}`,
+      lane: `${formData.origins.join(' → ')} → ${formData.destinations.join(' → ')}`,
       serviceLevel: formData.requiredTruck,
       commodity: "General Freight",
-      laneMiles: calculatedDistance || calculateMiles(formData.origin, formData.destination),
+      laneMiles: calculatedDistance || calculateMiles(formData.origins[0], formData.destinations[0]),
       totalWeight: parseFloat(formData.totalWeight) || 0,
       totalPallets: parseFloat(formData.totalPallets) || 0,
       palletDimensions: formData.palletDimensions === "Custom" 
@@ -449,8 +449,8 @@ export default function CreateOrderPage() {
 
   const isValid =
     !!formData.customer &&
-    !!formData.origin &&
-    !!formData.destination &&
+    formData.origins.length > 0 && formData.origins.every(o => !!o) &&
+    formData.destinations.length > 0 && formData.destinations.every(d => !!d) &&
     !!formData.puWindowStart &&
     !!formData.delWindowStart;
 
@@ -517,7 +517,7 @@ export default function CreateOrderPage() {
                 variant="primary"
                 className="w-full bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700"
                 onClick={calculateEstimate}
-                disabled={!formData.origin || !formData.destination}
+                disabled={!formData.origins || !formData.origins.length || !formData.origins[0] || !formData.destinations || !formData.destinations.length || !formData.destinations[0]}
               >
                 <Calculator className="w-4 h-4 mr-2" />
                 Calculate
@@ -540,7 +540,7 @@ export default function CreateOrderPage() {
                     ${estimatedCost.toLocaleString()}
                   </div>
                   <div className="text-xs text-zinc-500 mt-1">
-                    {calculatedDistance !== null ? calculatedDistance : calculateMiles(formData.origin, formData.destination)} miles
+                    {calculatedDistance !== null ? calculatedDistance : calculateMiles(formData.origins[0], formData.destinations[0])} miles
                   </div>
                 </div>
               )}
@@ -624,25 +624,46 @@ export default function CreateOrderPage() {
                 </Select>
               </FormField>
 
-              {/* Origin & Destination */}
+              {/* Multiple Origins & Destinations */}
               <div className="grid grid-cols-2 gap-3">
-                <FormField label="Origin" required>
-                  <LocationInput
-                    className="bg-black/20 border-zinc-800 text-zinc-300 focus:border-blue-900/50 placeholder:text-zinc-600"
-                    placeholder="Full address: Street, City, State, ZIP"
-                    value={formData.origin}
-                    onChange={(value) => handleInputChange("origin", value)}
-                  />
-                </FormField>
-
-                <FormField label="Destination" required>
-                  <LocationInput
-                    className="bg-black/20 border-zinc-800 text-zinc-300 focus:border-blue-900/50 placeholder:text-zinc-600"
-                    placeholder="Full address: Street, City, State, ZIP"
-                    value={formData.destination}
-                    onChange={(value) => handleInputChange("destination", value)}
-                  />
-                </FormField>
+                <div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs uppercase tracking-wide text-zinc-500">Pickup Locations <span className="text-rose-500/80 ml-1">*</span></span>
+                    <button type="button" className="text-xs text-blue-400" onClick={() => setFormData(f => ({ ...f, origins: [...f.origins, ""] }))}>+ Add</button>
+                  </div>
+                  {formData.origins.map((origin, idx) => (
+                    <div key={idx} className="flex gap-2 mb-2">
+                      <LocationInput
+                        className="bg-black/20 border-zinc-800 text-zinc-300 focus:border-blue-900/50 placeholder:text-zinc-600 flex-1"
+                        placeholder="Full address: Street, City, State, ZIP"
+                        value={origin}
+                        onChange={(value) => setFormData(f => { const arr = [...f.origins]; arr[idx] = value; return { ...f, origins: arr }; })}
+                      />
+                      {formData.origins.length > 1 && (
+                        <button type="button" className="text-xs text-rose-400" onClick={() => setFormData(f => ({ ...f, origins: f.origins.filter((_, i) => i !== idx) }))}>Remove</button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs uppercase tracking-wide text-zinc-500">Delivery Locations <span className="text-rose-500/80 ml-1">*</span></span>
+                    <button type="button" className="text-xs text-blue-400" onClick={() => setFormData(f => ({ ...f, destinations: [...f.destinations, ""] }))}>+ Add</button>
+                  </div>
+                  {formData.destinations.map((destination, idx) => (
+                    <div key={idx} className="flex gap-2 mb-2">
+                      <LocationInput
+                        className="bg-black/20 border-zinc-800 text-zinc-300 focus:border-blue-900/50 placeholder:text-zinc-600 flex-1"
+                        placeholder="Full address: Street, City, State, ZIP"
+                        value={destination}
+                        onChange={(value) => setFormData(f => { const arr = [...f.destinations]; arr[idx] = value; return { ...f, destinations: arr }; })}
+                      />
+                      {formData.destinations.length > 1 && (
+                        <button type="button" className="text-xs text-rose-400" onClick={() => setFormData(f => ({ ...f, destinations: f.destinations.filter((_, i) => i !== idx) }))}>Remove</button>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
 
               {/* Pickup Windows */}
@@ -892,7 +913,7 @@ export default function CreateOrderPage() {
                     <div className="flex items-start gap-2">
                       <div className="w-2 h-2 rounded-full bg-emerald-500 mt-1.5 shadow-[0_0_8px_rgba(16,185,129,0.4)]" />
                       <div className="flex-1">
-                        <div className="text-zinc-200">{formData.origin || "Origin"}</div>
+                        <div className="text-zinc-200">{formData.origins && formData.origins.length > 0 ? formData.origins.join(' / ') : "Origin"}</div>
                         {formData.puWindowStart && (
                           <div className="text-xs text-zinc-500">
                             {new Date(formData.puWindowStart).toLocaleString("en-US", {
@@ -909,7 +930,7 @@ export default function CreateOrderPage() {
                     <div className="flex items-start gap-2">
                       <div className="w-2 h-2 rounded-full bg-rose-500 mt-1.5 shadow-[0_0_8px_rgba(244,63,94,0.4)]" />
                       <div className="flex-1">
-                        <div className="text-zinc-200">{formData.destination || "Destination"}</div>
+                        <div className="text-zinc-200">{formData.destinations && formData.destinations.length > 0 ? formData.destinations.join(' / ') : "Destination"}</div>
                         {formData.delWindowStart && (
                           <div className="text-xs text-zinc-500">
                             {new Date(formData.delWindowStart).toLocaleString("en-US", {

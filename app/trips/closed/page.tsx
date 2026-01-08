@@ -373,7 +373,7 @@ export default function ClosedTripsPage() {
                           </button>
                         )}
                         <button 
-                          onClick={() => router.push(`/trips/${trip.id}`)}
+                          onClick={() => router.push(`/trips/master?id=${trip.id}`)}
                           className="flex items-center gap-1 rounded-sm bg-zinc-800 px-2 py-1 text-[10px] font-medium text-zinc-300 hover:bg-zinc-700 border border-zinc-700 opacity-0 group-hover:opacity-100 transition-opacity"
                         >
                           Details <ChevronRight className="h-3 w-3" />

@@ -325,7 +325,7 @@ export function OrderDetailPanel({
                   <div className="flex items-center justify-between py-1">
                     <span className="text-xs text-[#5a5a6e]">Trip</span>
                     <Link
-                      href={`/trips/${order.tripId}`}
+                      href={`/trips/master?id=${order.tripId}`}
                       className="text-xs text-[#5a6a8a] hover:text-[#7a8aaa] flex items-center gap-1"
                     >
                       {order.tripNumber || order.tripId.slice(0, 8)}

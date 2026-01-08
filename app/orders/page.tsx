@@ -367,7 +367,7 @@ export default function OrdersPage() {
                     <td className="px-4 py-2 align-middle text-right">
                       <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button 
-                          onClick={() => router.push(`/orders/${order.id}`)}
+                          onClick={() => router.push(`/orders/master?id=${order.id}`)}
                           className="text-zinc-400 hover:text-white"
                           title="View Details"
                         >

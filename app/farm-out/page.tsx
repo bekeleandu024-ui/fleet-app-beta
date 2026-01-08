@@ -23,6 +23,7 @@ import {
   ArrowUpRight,
   X,
   Layers,
+  DollarSign,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -30,6 +31,9 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { WhatNowWorkflow, type FarmOutTripPhase } from "@/components/farm-out/what-now-workflow";
+import { PODUploadModal } from "@/components/farm-out/pod-upload-modal";
+import { FinalizeLoadModal } from "@/components/billing/finalize-load-modal";
 
 // ============================================================================
 // TYPES
@@ -72,6 +76,12 @@ interface BrokerageTrip {
   postedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  // Extended fields for workflow
+  carrierName?: string;
+  awardedAmount?: number;
+  podUploaded?: boolean;
+  billingStatus?: string;
+  paymentStatus?: string;
 }
 
 interface CarrierBid {
@@ -105,8 +115,10 @@ export default function FarmOutPage() {
   // State
   const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState<"pending" | "posted" | "covered">("pending");
+  const [activeTab, setActiveTab] = useState<"pending" | "posted" | "covered" | "all">("pending");
   const [showBidForm, setShowBidForm] = useState(false);
+  const [showPODModal, setShowPODModal] = useState(false);
+  const [showFinalizeModal, setShowFinalizeModal] = useState(false);
   const [newBid, setNewBid] = useState({
     carrierName: "",
     bidAmount: "",
@@ -196,6 +208,29 @@ export default function FarmOutPage() {
     },
   });
 
+  // Status update mutation for workflow progression
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({ tripId, phase, notes }: { tripId: string; phase: FarmOutTripPhase; notes?: string }) => {
+      const res = await fetch(`/api/farm-out/trips/${tripId}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phase, notes }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to update status");
+      }
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["farm-out-trips"] });
+      queryClient.invalidateQueries({ queryKey: ["trip-bids", selectedTrip?.orderId] });
+    },
+    onError: (error: Error) => {
+      alert(error.message);
+    },
+  });
+
   // Derived data
   const bids = bidsData?.data || [];
   const pendingBids = bids.filter((b) => b.status === "PENDING");
@@ -210,8 +245,12 @@ export default function FarmOutPage() {
     } else if (activeTab === "posted") {
       filtered = filtered.filter((t) => t.dispatchStatus === "POSTED_EXTERNAL");
     } else if (activeTab === "covered") {
-      filtered = filtered.filter((t) => t.dispatchStatus === "COVERED_EXTERNAL");
+      // Show all covered trips including in-transit, delivered, and closed
+      filtered = filtered.filter((t) => 
+        ["COVERED_EXTERNAL", "IN_TRANSIT_EXTERNAL", "DELIVERED_EXTERNAL", "CLOSED_EXTERNAL"].includes(t.dispatchStatus)
+      );
     }
+    // "all" tab shows everything
 
     // Filter by search
     if (searchQuery) {
@@ -235,11 +274,29 @@ export default function FarmOutPage() {
   const stats = useMemo(() => {
     const pending = trips.filter((t) => t.dispatchStatus === "BROKERAGE_PENDING").length;
     const posted = trips.filter((t) => t.dispatchStatus === "POSTED_EXTERNAL").length;
-    const covered = trips.filter((t) => t.dispatchStatus === "COVERED_EXTERNAL").length;
+    const covered = trips.filter((t) => 
+      ["COVERED_EXTERNAL", "IN_TRANSIT_EXTERNAL", "DELIVERED_EXTERNAL", "CLOSED_EXTERNAL"].includes(t.dispatchStatus)
+    ).length;
+    const inTransit = trips.filter((t) => t.dispatchStatus === "IN_TRANSIT_EXTERNAL").length;
+    const delivered = trips.filter((t) => t.dispatchStatus === "DELIVERED_EXTERNAL").length;
+    const closed = trips.filter((t) => t.dispatchStatus === "CLOSED_EXTERNAL").length;
     const totalBids = trips.reduce((sum, t) => sum + t.bidCount, 0);
     const totalValue = trips.reduce((sum, t) => sum + t.totalRate, 0);
-    return { pending, posted, covered, totalBids, totalValue };
+    return { pending, posted, covered, inTransit, delivered, closed, totalBids, totalValue, total: trips.length };
   }, [trips]);
+
+  // Helper function to map dispatch status to workflow phase
+  const getWorkflowPhase = (dispatchStatus: string): FarmOutTripPhase => {
+    switch (dispatchStatus) {
+      case "BROKERAGE_PENDING": return "pending";
+      case "POSTED_EXTERNAL": return "posted";
+      case "COVERED_EXTERNAL": return "covered";
+      case "IN_TRANSIT_EXTERNAL": return "in_transit";
+      case "DELIVERED_EXTERNAL": return "delivered";
+      case "CLOSED_EXTERNAL": return "closed";
+      default: return "pending";
+    }
+  };
 
   // Auto-select first trip if none selected
   useEffect(() => {
@@ -286,6 +343,9 @@ export default function FarmOutPage() {
                 </TabsTrigger>
                 <TabsTrigger value="covered" className="text-xs h-7 px-4">
                   Covered <span className="ml-1 text-emerald-400">{stats.covered}</span>
+                </TabsTrigger>
+                <TabsTrigger value="all" className="text-xs h-7 px-4">
+                  All <span className="ml-1 text-zinc-400">{stats.total}</span>
                 </TabsTrigger>
               </TabsList>
             </Tabs>
@@ -353,6 +413,15 @@ export default function FarmOutPage() {
                         )}
                         {trip.dispatchStatus === "COVERED_EXTERNAL" && (
                           <Badge className="bg-emerald-500/20 text-emerald-400 text-[9px] px-1 py-0">Covered</Badge>
+                        )}
+                        {trip.dispatchStatus === "IN_TRANSIT_EXTERNAL" && (
+                          <Badge className="bg-blue-500/20 text-blue-400 text-[9px] px-1 py-0">In Transit</Badge>
+                        )}
+                        {trip.dispatchStatus === "DELIVERED_EXTERNAL" && (
+                          <Badge className="bg-amber-500/20 text-amber-400 text-[9px] px-1 py-0">Delivered</Badge>
+                        )}
+                        {trip.dispatchStatus === "CLOSED_EXTERNAL" && (
+                          <Badge className="bg-zinc-500/20 text-zinc-300 text-[9px] px-1 py-0">Closed</Badge>
                         )}
                       </div>
                       <span className="font-mono text-xs font-bold text-amber-400">
@@ -454,6 +523,35 @@ export default function FarmOutPage() {
                   </div>
                 )}
               </div>
+
+              {/* What Now Workflow Panel */}
+              <WhatNowWorkflow
+                trip={{
+                  tripId: selectedTrip.id,
+                  tripNumber: selectedTrip.tripNumber,
+                  phase: getWorkflowPhase(selectedTrip.dispatchStatus),
+                  carrierName: selectedTrip.carrierName || bids.find(b => b.status === "ACCEPTED")?.carrierName,
+                  awardedAmount: selectedTrip.awardedAmount || bids.find(b => b.status === "ACCEPTED")?.bidAmount,
+                  bidCount: selectedTrip.bidCount,
+                  pickupTime: selectedTrip.pickupTime || undefined,
+                  deliveryTime: selectedTrip.dropoffTime || undefined,
+                  podUploaded: selectedTrip.podUploaded || false,
+                  customerRate: selectedTrip.totalRate || 0,
+                  carrierCost: selectedTrip.awardedAmount || bids.find(b => b.status === "ACCEPTED")?.bidAmount || 0,
+                  billingStatus: selectedTrip.billingStatus as any,
+                  paymentStatus: selectedTrip.paymentStatus as any,
+                }}
+                onLogBid={() => setShowBidForm(true)}
+                onUpdateStatus={(newPhase) => {
+                  updateStatusMutation.mutate({
+                    tripId: selectedTrip.id,
+                    phase: newPhase,
+                  });
+                }}
+                onUploadPOD={() => setShowPODModal(true)}
+                onFinalizeBilling={() => setShowFinalizeModal(true)}
+                isUpdating={updateStatusMutation.isPending}
+              />
 
               {/* Bids Section */}
               <div className="flex-1 overflow-y-auto p-4 min-h-0">
@@ -698,6 +796,30 @@ export default function FarmOutPage() {
                     </CardContent>
                   </Card>
                 </div>
+              )}
+
+              {/* POD Upload Modal */}
+              {showPODModal && (
+                <PODUploadModal
+                  tripId={selectedTrip.id}
+                  tripNumber={selectedTrip.tripNumber}
+                  orderId={selectedTrip.orderId}
+                  onClose={() => setShowPODModal(false)}
+                  onSuccess={() => {
+                    queryClient.invalidateQueries({ queryKey: ["farm-out-trips"] });
+                  }}
+                />
+              )}
+
+              {/* Finalize Billing Modal */}
+              {showFinalizeModal && (
+                <FinalizeLoadModal
+                  orderId={selectedTrip.orderId}
+                  onClose={() => setShowFinalizeModal(false)}
+                  onSuccess={() => {
+                    queryClient.invalidateQueries({ queryKey: ["farm-out-trips"] });
+                  }}
+                />
               )}
             </>
           ) : (

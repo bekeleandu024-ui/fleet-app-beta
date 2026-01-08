@@ -308,7 +308,7 @@ export default function BillingAnalyticsPage() {
                     <tr key={order.id} className="border-b border-zinc-800/50 hover:bg-zinc-800/30">
                       <td className="py-3 px-2">
                         <Link 
-                          href={`/orders/${order.id}`} 
+                          href={`/orders/master?id=${order.id}`} 
                           className="text-blue-400 hover:underline font-medium"
                         >
                           {order.orderNumber}

@@ -90,7 +90,7 @@ async function searchDatabase(filters: Record<string, any>) {
           id: row.id,
           title: `${row.order_number || row.id} - ${row.customer_name || "Unknown"}`,
           subtitle: `${row.pickup_city || "?"}, ${row.pickup_state || ""} → ${row.delivery_city || "?"}, ${row.delivery_state || ""} | ${row.status}`,
-          href: `/orders/${row.id}`
+          href: `/orders/master?id=${row.id}`
         });
       }
     }
@@ -136,7 +136,7 @@ async function searchDatabase(filters: Record<string, any>) {
           id: row.id,
           title: `${row.trip_number || row.id}${row.driver_name ? ` - ${row.driver_name}` : ""}`,
           subtitle: `${row.pickup_city || "?"} → ${row.delivery_city || "?"} | ${row.status}`,
-          href: `/trips/${row.id}`
+          href: `/trips/master?id=${row.id}`
         });
       }
     }

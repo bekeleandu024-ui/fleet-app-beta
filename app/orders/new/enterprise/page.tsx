@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { 
-  ArrowLeft, Send, Sparkles, Upload, AlertTriangle, 
+  ArrowLeft, Send, AlertTriangle, 
   Building2, Truck, CreditCard, FileText, Settings2,
   CheckCircle2, ArrowRight, Plus, Calculator
 } from "lucide-react";
@@ -23,6 +23,16 @@ import { StopsTimeline } from "@/components/orders/stops-timeline";
 import { FreightItemsGrid } from "@/components/orders/freight-items-grid";
 import { ReferenceTags } from "@/components/orders/reference-tags";
 import { AccessorialsList } from "@/components/orders/accessorials-list";
+import { CompactFreightRow } from "@/components/orders/compact-freight-row";
+import { CompactRoute } from "@/components/orders/compact-route";
+import { PricingPanel } from "@/components/orders/pricing-panel";
+import { ServiceTypeCards } from "@/components/orders/service-type-cards";
+import { AccessorialChips } from "@/components/orders/accessorial-chips";
+import { CollapsibleNotes } from "@/components/orders/collapsible-notes";
+
+// AI Extraction Components (Optimized with Haiku + Streaming)
+import { PasteZone } from "./components/PasteZone";
+import { useOrderExtraction } from "./hooks/useOrderExtraction";
 
 import { 
   enterpriseOrderInputSchema, 
@@ -124,12 +134,49 @@ export default function EnterpriseOrderPage() {
     appendStop(newStop);
   };
 
-  // State
-  const [ocrText, setOcrText] = useState("");
-  const [isProcessingOCR, setIsProcessingOCR] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
-  const [aiConfidence, setAiConfidence] = useState<AIOrderExtraction["confidence"]>({});
+  // AI Extraction State (Optimized with streaming)
   const [aiWarnings, setAiWarnings] = useState<string[]>([]);
+  const [extractionSuccess, setExtractionSuccess] = useState(false);
+  
+  // Use the optimized extraction hook
+  const {
+    isExtracting,
+    extractedFields,
+    error: extractionError,
+    progress: extractionProgress,
+    extractFromText,
+    extractFromImage,
+    shouldAutoExtract,
+    reset: resetExtraction,
+  } = useOrderExtraction({
+    currentFormData: form.getValues(),
+    onFormUpdate: (data) => {
+      // Apply extracted data to form with customer matching
+      if (data.customerName && !data.customerId && customers) {
+        const normalizedSearch = (data.customerName as string).toLowerCase();
+        const matched = customers.find(c => 
+          c.name.toLowerCase().includes(normalizedSearch) || 
+          normalizedSearch.includes(c.name.toLowerCase())
+        );
+        if (matched) {
+          data.customerId = matched.id;
+          data.customerName = matched.name;
+        }
+      }
+      
+      // Update all form fields
+      Object.entries(data).forEach(([key, value]) => {
+        setValue(key as keyof EnterpriseOrderInput, value as any, {
+          shouldValidate: true,
+          shouldDirty: true,
+        });
+      });
+      
+      // Show brief success state
+      setExtractionSuccess(true);
+      setTimeout(() => setExtractionSuccess(false), 2000);
+    },
+  });
 
   // Estimated rate suggestion
   const [suggestedRate, setSuggestedRate] = useState<{
@@ -182,151 +229,16 @@ export default function EnterpriseOrderPage() {
     setCreatedOrder(null);
     reset(createDefaultOrderInput());
     setAiWarnings([]);
-    setAiConfidence({});
+    resetExtraction();
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // OCR Handlers
-  const handleOcrPaste = async (e: React.ClipboardEvent<HTMLInputElement>) => {
-    const items = e.clipboardData.items;
-    for (let i = 0; i < items.length; i++) {
-      if (items[i].type.indexOf("image") !== -1) {
-        const blob = items[i].getAsFile();
-        if (blob) {
-          e.preventDefault();
-          await processOCR(undefined, blob);
-          return;
-        }
-      }
+  // Set extraction errors as warnings
+  useEffect(() => {
+    if (extractionError) {
+      setAiWarnings([extractionError]);
     }
-    const text = e.clipboardData.getData("text");
-    if (text) {
-      setOcrText(text);
-      await processOCR(text);
-    }
-  };
-
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  }, []);
-
-  const handleDragLeave = useCallback(() => {
-    setIsDragging(false);
-  }, []);
-
-  const handleDrop = useCallback(async (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    
-    const files = e.dataTransfer.files;
-    if (files.length > 0 && files[0].type.startsWith('image/')) {
-      await processOCR(undefined, files[0]);
-      return;
-    }
-    
-    const text = e.dataTransfer.getData("text");
-    if (text) {
-      setOcrText(text);
-      await processOCR(text);
-    }
-  }, []);
-
-  const handleFileInput = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file && file.type.startsWith('image/')) {
-      await processOCR(undefined, file);
-    }
-  };
-
-  const processOCR = async (text?: string, imageFile?: File) => {
-    setIsProcessingOCR(true);
-    try {
-      let payload: any = { action: "parse-ocr-enterprise", data: {} };
-      
-      if (imageFile) {
-        const reader = new FileReader();
-        const base64 = await new Promise<string>((resolve) => {
-          reader.onload = (e) => resolve(e.target?.result as string);
-          reader.readAsDataURL(imageFile);
-        });
-        payload.data.image = base64;
-      } else if (text) {
-        payload.data.text = text;
-      }
-
-      const response = await fetch("/api/ai/order-assistant", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      const result = await response.json();
-      if (result.success && result.data) {
-        const extraction = result.data as AIOrderExtraction;
-        const formData = mapAIExtractionToFormInput(extraction, form.getValues());
-        
-        // FIX: Match customer by name if ID is missing
-        if (formData.customerName && !formData.customerId && customers) {
-          const normalizedSearch = formData.customerName.toLowerCase();
-          const matched = customers.find(c => 
-            c.name.toLowerCase().includes(normalizedSearch) || 
-            normalizedSearch.includes(c.name.toLowerCase())
-          );
-          
-          if (matched) {
-            formData.customerId = matched.id;
-            formData.customerName = matched.name;
-            
-            // Update billing if needed
-            if (formData.billing && formData.billing.billToType === "customer") {
-              formData.billing.billToName = matched.name;
-            }
-          }
-        }
-
-        // FIX: Format dates for datetime-local input (YYYY-MM-DDTHH:mm)
-        if (formData.stops) {
-          const formatDateTime = (dateStr: string | null | undefined) => {
-            if (!dateStr) return null;
-            try {
-              const date = new Date(dateStr);
-              if (isNaN(date.getTime())) return dateStr;
-              
-              // Adjust to local ISO string without seconds/ms
-              const offset = date.getTimezoneOffset() * 60000;
-              const localISOTime = (new Date(date.getTime() - offset)).toISOString().slice(0, 16);
-              return localISOTime;
-            } catch (e) {
-              return dateStr;
-            }
-          };
-
-          formData.stops = formData.stops.map(stop => ({
-            ...stop,
-            appointmentStart: formatDateTime(stop.appointmentStart),
-            appointmentEnd: formatDateTime(stop.appointmentEnd),
-          }));
-        }
-
-        // Apply extracted data to form
-        Object.entries(formData).forEach(([key, value]) => {
-          setValue(key as keyof EnterpriseOrderInput, value as any, { 
-            shouldValidate: true,
-            shouldDirty: true,
-          });
-        });
-
-        setAiConfidence(extraction.confidence || {});
-        setAiWarnings(extraction.warnings || []);
-      }
-    } catch (error) {
-      console.error("OCR processing error:", error);
-      setAiWarnings(["Failed to process OCR. Please try again."]);
-    } finally {
-      setIsProcessingOCR(false);
-    }
-  };
+  }, [extractionError]);
 
   // Customer selection handler
   const handleCustomerSelect = (customerId: string) => {
@@ -621,30 +533,17 @@ export default function EnterpriseOrderPage() {
             ))}
           </Select>
 
-          {/* AI Paste Input */}
-          <div
-            className={`flex-1 relative rounded border transition-colors ${
-              isDragging ? "border-indigo-500 bg-indigo-500/10" : "border-zinc-700 bg-zinc-900"
-            }`}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-          >
-            <Sparkles className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-indigo-400" />
-            <input
-              type="text"
-              className="w-full h-8 bg-transparent pl-8 pr-8 text-sm text-zinc-300 placeholder-zinc-500 focus:outline-none"
-              placeholder="Paste rate con or drag image..."
-              value={ocrText}
-              onChange={(e) => setOcrText(e.target.value)}
-              onPaste={handleOcrPaste}
-            />
-            <input type="file" accept="image/*" onChange={handleFileInput} className="hidden" id="ocr-upload" />
-            <label htmlFor="ocr-upload" className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-indigo-400 cursor-pointer">
-              <Upload className="w-4 h-4" />
-            </label>
-          </div>
-          {isProcessingOCR && <span className="text-xs text-indigo-400 animate-pulse">Processing...</span>}
+          {/* AI Paste Input - Optimized with Haiku + Streaming */}
+          <PasteZone
+            isExtracting={isExtracting}
+            progress={extractionProgress}
+            error={extractionError}
+            isSuccess={extractionSuccess}
+            onExtractText={extractFromText}
+            onExtractImage={extractFromImage}
+            shouldAutoExtract={shouldAutoExtract}
+            className="flex-1 min-w-[200px]"
+          />
 
           {/* Priority */}
           <Select
@@ -674,22 +573,28 @@ export default function EnterpriseOrderPage() {
 
       {/* SCROLLABLE CONTENT */}
       <div className="flex-1 overflow-y-auto min-h-0">
-        <Tabs defaultValue="main" className="h-full flex flex-col">
+        <Tabs defaultValue="order-details" className="h-full flex flex-col">
           <div className="flex-none border-b border-zinc-800 bg-zinc-950/80 px-4 sticky top-0 z-10">
             <div className="flex items-center justify-between h-10">
               {/* Tabs on the left */}
               <TabsList className="justify-start gap-2 bg-transparent p-0 h-10 border-0">
                 <TabsTrigger 
-                  value="main" 
-                  className="rounded px-3 py-1.5 text-xs font-medium text-zinc-400 hover:text-zinc-200 data-[state=active]:bg-zinc-800 data-[state=active]:text-white border-0"
+                  value="order-details" 
+                  className="rounded px-3 py-1.5 text-xs font-medium text-zinc-400 hover:text-zinc-200 data-[state=active]:bg-zinc-800 data-[state=active]:text-white border-0 whitespace-nowrap"
                 >
-                  Main
+                  Order Details
                 </TabsTrigger>
                 <TabsTrigger 
-                  value="other" 
-                  className="rounded px-3 py-1.5 text-xs font-medium text-zinc-400 hover:text-zinc-200 data-[state=active]:bg-zinc-800 data-[state=active]:text-white border-0"
+                  value="billing" 
+                  className="rounded px-3 py-1.5 text-xs font-medium text-zinc-400 hover:text-zinc-200 data-[state=active]:bg-zinc-800 data-[state=active]:text-white border-0 whitespace-nowrap"
                 >
-                  Other Details
+                  Billing & Pricing
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="notes-refs" 
+                  className="rounded px-3 py-1.5 text-xs font-medium text-zinc-400 hover:text-zinc-200 data-[state=active]:bg-zinc-800 data-[state=active]:text-white border-0 whitespace-nowrap"
+                >
+                  Notes & Refs
                 </TabsTrigger>
               </TabsList>
 
@@ -768,80 +673,63 @@ export default function EnterpriseOrderPage() {
             </div>
           </div>
 
-          <TabsContent value="main" className="flex-1 m-0 p-0">
-            <div className="p-4 space-y-6 pb-8">
-              {/* FREIGHT ITEMS */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-sm font-semibold text-zinc-200">Freight Items</h3>
+          <TabsContent value="order-details" className="flex-1 m-0 p-0">
+            <div className="p-4 space-y-4 pb-8">
+              {/* Section 1: Route */}
+              <CompactRoute
+                control={control}
+                register={register}
+                watch={watch}
+                errors={errors}
+                onAddStop={addStop}
+              />
+
+              {/* Section 2: Freight Items (Compact Single Row) */}
+              <CompactFreightRow
+                control={control}
+                register={register}
+                setValue={setValue}
+                watch={watch}
+                errors={errors}
+              />
+
+              {/* Section 3: Service Type + Accessorials (Side-by-Side) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Service Type Cards */}
+                <div className="rounded-lg border border-zinc-800 bg-zinc-900/30 p-3">
+                  <h3 className="text-sm font-semibold text-zinc-200 mb-2">Service Type</h3>
+                  <ServiceTypeCards
+                    control={control}
+                    watch={watch}
+                    setValue={setValue}
+                  />
                 </div>
-                <FreightItemsGrid
-                  control={control}
-                  register={register}
-                  setValue={setValue}
-                  watch={watch}
-                  errors={errors}
-                  className=""
-                />
+
+                {/* Accessorials Chips */}
+                <div className="rounded-lg border border-zinc-800 bg-zinc-900/30 p-3">
+                  <h3 className="text-sm font-semibold text-zinc-200 mb-2">Accessorials</h3>
+                  <AccessorialChips
+                    control={control}
+                    register={register}
+                    errors={errors}
+                  />
+                </div>
               </div>
 
-              {/* ROUTE STOPS - Horizontal */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-sm font-semibold text-zinc-200">Route</h3>
-                  <div className="flex items-center gap-1">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => addStop("pickup")}
-                      className="h-7 px-2 text-xs text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50"
-                    >
-                      <Plus className="w-3 h-3 mr-1" />
-                      Pickup
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => addStop("intermediate")}
-                      className="h-7 px-2 text-xs text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50"
-                    >
-                      <Plus className="w-3 h-3 mr-1" />
-                      Stop
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => addStop("delivery")}
-                      className="h-7 px-2 text-xs text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50"
-                    >
-                      <Plus className="w-3 h-3 mr-1" />
-                      Delivery
-                    </Button>
-                  </div>
-                </div>
-                <StopsTimeline
-                  control={control}
-                  register={register}
-                  watch={watch}
-                  errors={errors}
-                  layout="horizontal"
-                  hideAddButtons={true}
-                />
-              </div>
+              {/* Section 4: Instructions & Notes (Collapsible) */}
+              <CollapsibleNotes
+                register={register}
+                defaultExpanded={false}
+              />
             </div>
           </TabsContent>
 
-          <TabsContent value="other" className="flex-1 m-0 p-0">
+          <TabsContent value="billing" className="flex-1 m-0 p-0">
             <div className="p-4 space-y-6 pb-8">
               
               {/* Billing Section */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-sm font-semibold text-zinc-200">Billing</h3>
-                </div>
+              <div className="rounded-lg border border-zinc-800 bg-zinc-900/30 p-4">
+                <h3 className="text-sm font-semibold text-zinc-200 mb-3">Billing Information</h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   <div>
                     <label className="text-xs font-medium uppercase text-zinc-500 mb-1 block">Bill To</label>
@@ -896,16 +784,16 @@ export default function EnterpriseOrderPage() {
                 </div>
               </div>
 
-              {/* Revenue & Pricing Section */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-sm font-semibold text-zinc-200">Revenue & Pricing</h3>
+              {/* Detailed Rate Breakdown Section */}
+              <div className="rounded-lg border border-zinc-800 bg-zinc-900/30 p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-semibold text-zinc-200">Detailed Rate Breakdown</h3>
                   <span className="text-xs text-zinc-500">Based on fleet costs + target margin</span>
                 </div>
                 
                 {/* Suggested Rate Card */}
                 {suggestedRate && (
-                  <div className="mb-3 p-3 rounded-lg border border-emerald-800/30 bg-emerald-950/20">
+                  <div className="mb-4 p-3 rounded-lg border border-emerald-800/30 bg-emerald-950/20">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1">
                         <div className="text-xs text-emerald-400 font-medium mb-1">Suggested Rate @ {suggestedRate.targetMargin}% Margin</div>
@@ -1064,84 +952,50 @@ export default function EnterpriseOrderPage() {
                 )}
               </div>
 
-              {/* Service Type Section */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-sm font-semibold text-zinc-200">Service Type</h3>
-                  <span className="text-xs text-zinc-500">Consolidation rules for dispatch</span>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div className="flex items-start gap-4 p-3 rounded border border-zinc-800 bg-black/20">
-                    <label className="flex items-start gap-3 text-sm text-zinc-300 cursor-pointer flex-1">
-                      <input
-                        type="checkbox"
-                        {...register("isDirect")}
-                        className="rounded border-zinc-700 bg-zinc-900 text-blue-600 w-4 h-4 mt-0.5"
-                      />
-                      <div>
-                        <div className="font-medium">Direct Service</div>
-                        <div className="text-xs text-zinc-500 mt-0.5">Dedicated truck - cannot consolidate with other orders</div>
-                      </div>
-                    </label>
-                  </div>
-                  <div className="p-3 rounded border border-zinc-800 bg-black/20">
-                    <div className="text-xs font-medium text-zinc-500 mb-1">DISPATCH IMPACT</div>
-                    <div className="text-xs text-zinc-400 leading-relaxed">
-                      {watch("isDirect") 
-                        ? <span className="text-amber-400">🚛 Direct: This order gets its own trip (1:1)</span>
-                        : <span className="text-blue-400">📦 Standard: Can be combined with other orders into multi-stop trips</span>
-                      }
-                    </div>
-                  </div>
-                </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="notes-refs" className="flex-1 m-0 p-0">
+            <div className="p-4 space-y-6 pb-8">
+              
+              {/* References Section */}
+              <div className="rounded-lg border border-zinc-800 bg-zinc-900/30 p-4">
+                <ReferenceTags
+                  control={control}
+                  register={register}
+                  errors={errors}
+                />
               </div>
 
-              {/* Instructions Section */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-sm font-semibold text-zinc-200">Instructions & Notes</h3>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs font-medium uppercase text-zinc-500 mb-1 block">Special Instructions</label>
-                    <textarea
-                      {...register("specialInstructions")}
-                      rows={3}
-                      placeholder="Customer/driver instructions..."
-                      className="w-full text-sm bg-black/30 border border-zinc-800 rounded px-3 py-2 text-zinc-300 placeholder:text-zinc-600 resize-none focus:outline-none focus:border-zinc-700"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium uppercase text-zinc-500 mb-1 block">Internal Notes</label>
-                    <textarea
-                      {...register("internalNotes")}
-                      rows={3}
-                      placeholder="Internal notes (not shared)..."
-                      className="w-full text-sm bg-black/30 border border-zinc-800 rounded px-3 py-2 text-zinc-300 placeholder:text-zinc-600 resize-none focus:outline-none focus:border-zinc-700"
-                    />
-                  </div>
-                </div>
+              {/* Full Instructions Section */}
+              <div className="rounded-lg border border-zinc-800 bg-zinc-900/30 p-4">
+                <h3 className="text-sm font-semibold text-zinc-200 mb-3">Special Instructions</h3>
+                <textarea
+                  {...register("specialInstructions")}
+                  rows={5}
+                  placeholder="Customer/driver instructions..."
+                  className="w-full text-sm bg-black/30 border border-zinc-800 rounded-md px-3 py-2 text-zinc-300 placeholder:text-zinc-600 resize-none focus:outline-none focus:border-zinc-700"
+                />
               </div>
 
-              {/* References & Accessorials Row */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* References */}
-                <div>
-                  <ReferenceTags
-                    control={control}
-                    register={register}
-                    errors={errors}
-                  />
-                </div>
+              {/* Full Internal Notes Section */}
+              <div className="rounded-lg border border-zinc-800 bg-zinc-900/30 p-4">
+                <h3 className="text-sm font-semibold text-zinc-200 mb-3">Internal Notes</h3>
+                <textarea
+                  {...register("internalNotes")}
+                  rows={5}
+                  placeholder="Internal notes (not shared with customer or driver)..."
+                  className="w-full text-sm bg-black/30 border border-zinc-800 rounded-md px-3 py-2 text-zinc-300 placeholder:text-zinc-600 resize-none focus:outline-none focus:border-zinc-700"
+                />
+              </div>
 
-                {/* Accessorials */}
-                <div>
-                  <AccessorialsList
-                    control={control}
-                    register={register}
-                    errors={errors}
-                  />
-                </div>
+              {/* Full Accessorials List (detailed view) */}
+              <div className="rounded-lg border border-zinc-800 bg-zinc-900/30 p-4">
+                <AccessorialsList
+                  control={control}
+                  register={register}
+                  errors={errors}
+                />
               </div>
 
             </div>
