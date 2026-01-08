@@ -34,12 +34,15 @@ export async function GET(request: Request) {
         o.customer_id,
         o.pickup_location,
         o.dropoff_location,
-        o.pickup_time,
-        o.dropoff_time,
+        -- Get pickup time from order_stops if not on main orders table
+        COALESCE(o.pickup_time, pickup_stop.appointment_start) AS pickup_time,
+        -- Get dropoff time from order_stops if not on main orders table
+        COALESCE(o.dropoff_time, dropoff_stop.appointment_start) AS dropoff_time,
         COALESCE(o.dispatch_status, 'NEW') AS dispatch_status,
         o.equipment_type,
-        o.total_weight_lbs,
-        o.total_pallets,
+        -- Get total weight: sum from freight items or from orders table
+        COALESCE(freight_totals.total_weight, o.total_weight_lbs, 0) AS total_weight_lbs,
+        COALESCE(freight_totals.total_pallets, o.total_pallets, 0) AS total_pallets,
         o.quoted_rate,
         o.estimated_cost AS target_rate,
         COALESCE(o.is_direct, false) AS is_direct,
@@ -59,6 +62,30 @@ export async function GET(request: Request) {
       FROM orders o
       LEFT JOIN driver_profiles d ON o.assigned_driver_id = d.driver_id
       LEFT JOIN unit_profiles u ON o.assigned_unit_id = u.unit_id
+      -- Join to get pickup stop info
+      LEFT JOIN LATERAL (
+        SELECT appointment_start 
+        FROM order_stops 
+        WHERE order_id = o.id AND stop_type = 'pickup' 
+        ORDER BY stop_sequence 
+        LIMIT 1
+      ) pickup_stop ON true
+      -- Join to get delivery stop info  
+      LEFT JOIN LATERAL (
+        SELECT appointment_start 
+        FROM order_stops 
+        WHERE order_id = o.id AND stop_type = 'delivery' 
+        ORDER BY stop_sequence DESC 
+        LIMIT 1
+      ) dropoff_stop ON true
+      -- Join to get freight item totals
+      LEFT JOIN LATERAL (
+        SELECT 
+          SUM(weight_lbs) AS total_weight,
+          SUM(quantity) AS total_pallets
+        FROM order_freight_items 
+        WHERE order_id = o.id
+      ) freight_totals ON true
       LEFT JOIN (
         SELECT 
           order_id,
@@ -77,7 +104,7 @@ export async function GET(request: Request) {
           WHEN 'POSTED_EXTERNAL' THEN 4
           ELSE 5 
         END,
-        o.pickup_time ASC NULLS LAST,
+        pickup_time ASC NULLS LAST,
         o.created_at DESC
     `);
 

@@ -19,9 +19,10 @@ export interface ExtractedStop {
   state?: string;
   zip?: string;
   country?: "USA" | "Canada" | "Mexico";
+  appointmentType?: "open" | "firm" | "window"; // Type of appointment
   appointmentDate?: string;      // ISO 8601: YYYY-MM-DD
   appointmentTimeStart?: string; // 24-hour: HH:MM
-  appointmentTimeEnd?: string;   // 24-hour: HH:MM
+  appointmentTimeEnd?: string;   // 24-hour: HH:MM (only for window type)
   timezone?: "ET" | "CT" | "MT" | "PT" | "AT";
   contactName?: string;
   contactPhone?: string;

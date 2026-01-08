@@ -82,9 +82,10 @@ export function DispatchTable({
     return parts[0]?.trim() || location;
   };
 
-  // Format weight
+  // Format weight - show lbs for small weights, K for thousands
   const formatWeight = (weight: number | null | undefined): string => {
-    if (!weight) return "—";
+    if (weight === null || weight === undefined || weight === 0) return "—";
+    if (weight < 1000) return `${Math.round(weight)} lbs`;
     return `${Math.round(weight / 1000)}K`;
   };
 
@@ -135,25 +136,28 @@ export function DispatchTable({
               <th className="px-3 py-2 text-left text-xs font-semibold text-zinc-500 uppercase tracking-wide">
                 Customer
               </th>
-              <th className="w-16 px-3 py-2 text-center text-xs font-semibold text-zinc-500 uppercase tracking-wide">
+              <th className="w-12 px-3 py-2 text-center text-xs font-semibold text-zinc-500 uppercase tracking-wide">
                 Type
               </th>
               <th className="w-28 px-3 py-2 text-left text-xs font-semibold text-zinc-500 uppercase tracking-wide">
                 Origin
               </th>
-              <th className="w-28 px-3 py-2 text-left text-xs font-semibold text-zinc-500 uppercase tracking-wide">
+              <th className="w-28 px-3 py-2 text-left text-xs font-semibold text-zinc-500 uppercase tracking-wide whitespace-nowrap">
                 Dest
               </th>
-              <th className="w-24 px-3 py-2 text-left text-xs font-semibold text-zinc-500 uppercase tracking-wide">
-                Pickup
+              <th className="w-20 px-3 py-2 text-left text-xs font-semibold text-zinc-500 uppercase tracking-wide whitespace-nowrap">
+                PU Date
               </th>
-              <th className="w-20 px-3 py-2 text-left text-xs font-semibold text-zinc-500 uppercase tracking-wide">
+              <th className="w-20 px-3 py-2 text-left text-xs font-semibold text-zinc-500 uppercase tracking-wide whitespace-nowrap">
+                Del Date
+              </th>
+              <th className="w-16 px-3 py-2 text-left text-xs font-semibold text-zinc-500 uppercase tracking-wide whitespace-nowrap">
                 Equip
               </th>
-              <th className="w-16 px-3 py-2 text-right text-xs font-semibold text-zinc-500 uppercase tracking-wide">
+              <th className="w-16 px-3 py-2 text-right text-xs font-semibold text-zinc-500 uppercase tracking-wide whitespace-nowrap">
                 Weight
               </th>
-              <th className="w-20 px-3 py-2 text-right text-xs font-semibold text-zinc-500 uppercase tracking-wide">
+              <th className="w-16 px-3 py-2 text-right text-xs font-semibold text-zinc-500 uppercase tracking-wide whitespace-nowrap">
                 Rate
               </th>
             </tr>
@@ -165,7 +169,7 @@ export function DispatchTable({
             {trips.length > 0 && (
               <>
                 <tr className="bg-violet-500/5">
-                  <td colSpan={11} className="px-3 py-1.5">
+                  <td colSpan={12} className="px-3 py-1.5">
                     <span className="text-xs font-semibold text-violet-400 uppercase tracking-wide">
                       Draft Trips ({trips.length})
                     </span>
@@ -213,12 +217,13 @@ export function DispatchTable({
                         <span className="text-zinc-600"> +{trip.dropoffLocations.length - 1}</span>
                       )}
                     </td>
-                    <td className="px-3 py-2 text-zinc-400">—</td>
-                    <td className="px-3 py-2 text-zinc-400">{trip.equipmentType}</td>
-                    <td className="px-3 py-2 text-right text-zinc-400">
+                    <td className="px-3 py-2 text-zinc-400 whitespace-nowrap">—</td>
+                    <td className="px-3 py-2 text-zinc-400 whitespace-nowrap">—</td>
+                    <td className="px-3 py-2 text-zinc-400 whitespace-nowrap">{trip.equipmentType}</td>
+                    <td className="px-3 py-2 text-right text-zinc-400 whitespace-nowrap">
                       {formatWeight(trip.totalWeightLbs)}
                     </td>
-                    <td className="px-3 py-2 text-right">
+                    <td className="px-3 py-2 text-right whitespace-nowrap">
                       <span className="font-mono text-emerald-400 font-semibold">
                         ${trip.projectedRevenue.toLocaleString()}
                       </span>
@@ -233,7 +238,7 @@ export function DispatchTable({
               <>
                 {trips.length > 0 && (
                   <tr className="bg-zinc-900/50">
-                    <td colSpan={11} className="px-3 py-1.5">
+                    <td colSpan={12} className="px-3 py-1.5">
                       <span className="text-xs font-semibold text-zinc-500 uppercase tracking-wide">
                         Available Orders ({orders.length})
                       </span>
@@ -265,20 +270,20 @@ export function DispatchTable({
                           )}
                         </button>
                       </td>
-                      <td className="px-3 py-2">
+                      <td className="px-3 py-2 whitespace-nowrap">
                         <StatusIcon status={order.dispatchStatus} />
                       </td>
-                      <td className="px-3 py-2">
+                      <td className="px-3 py-2 whitespace-nowrap">
                         <span className="font-mono text-xs font-bold text-zinc-100">
                           #{order.orderNumber}
                         </span>
                       </td>
-                      <td className="px-3 py-2">
+                      <td className="px-3 py-2 whitespace-nowrap">
                         <span className="text-zinc-200 truncate block max-w-[180px]">
                           {order.customerName}
                         </span>
                       </td>
-                      <td className="px-3 py-2 text-center">
+                      <td className="px-3 py-2 text-center whitespace-nowrap">
                         {order.isDirect ? (
                           <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 font-medium">
                             Direct
@@ -287,22 +292,25 @@ export function DispatchTable({
                           <span className="text-[10px] text-zinc-500">Std</span>
                         )}
                       </td>
-                      <td className="px-3 py-2 text-zinc-400 truncate max-w-[120px]">
+                      <td className="px-3 py-2 text-zinc-400 truncate max-w-[120px] whitespace-nowrap">
                         {extractCity(order.pickupLocation)}
                       </td>
-                      <td className="px-3 py-2 text-zinc-400 truncate max-w-[120px]">
+                      <td className="px-3 py-2 text-zinc-400 truncate max-w-[120px] whitespace-nowrap">
                         {extractCity(order.dropoffLocation)}
                       </td>
-                      <td className="px-3 py-2 text-zinc-400">
+                      <td className="px-3 py-2 text-zinc-400 whitespace-nowrap">
                         {formatDate(order.pickupTime)}
                       </td>
-                      <td className="px-3 py-2 text-zinc-400">
+                      <td className="px-3 py-2 text-zinc-400 whitespace-nowrap">
+                        {formatDate(order.dropoffTime)}
+                      </td>
+                      <td className="px-3 py-2 text-zinc-400 whitespace-nowrap">
                         {order.equipmentType || "Van"}
                       </td>
-                      <td className="px-3 py-2 text-right text-zinc-400">
+                      <td className="px-3 py-2 text-right text-zinc-400 whitespace-nowrap">
                         {formatWeight(order.totalWeightLbs)}
                       </td>
-                      <td className="px-3 py-2 text-right">
+                      <td className="px-3 py-2 text-right whitespace-nowrap">
                         <span className="font-mono text-emerald-400 font-semibold">
                           ${order.quotedRate?.toLocaleString() || "—"}
                         </span>
@@ -316,7 +324,7 @@ export function DispatchTable({
             {/* Empty State */}
             {orders.length === 0 && trips.length === 0 && (
               <tr>
-                <td colSpan={10} className="px-3 py-12 text-center">
+                <td colSpan={12} className="px-3 py-12 text-center">
                   <Package className="h-10 w-10 text-zinc-700 mx-auto mb-3" />
                   <p className="text-zinc-500 text-sm">No orders available</p>
                   <p className="text-zinc-600 text-xs mt-1">

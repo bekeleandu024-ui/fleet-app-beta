@@ -449,23 +449,23 @@ export function TripDetailPanel({
 
               {/* Revenue / Cost / Profit Row */}
               <div className={cn(
-                "grid grid-cols-3 gap-2 mb-3 p-2 rounded-lg transition-colors",
+                "grid grid-cols-3 gap-1 mb-3 p-2 rounded-lg transition-colors",
                 trip.financials.profit < 0 
                   ? "bg-gradient-to-r from-[#b45353]/10 to-transparent border-l-2 border-[#b45353]" 
                   : "bg-transparent"
               )}>
-                <div className="text-center">
+                <div className="text-center min-w-0">
                   <p className="text-[10px] text-[#5a5a6e] uppercase tracking-wide mb-1">Revenue</p>
-                  <p className="text-base font-bold text-[#e8e8ed] whitespace-nowrap">{formatCurrency(trip.financials.revenue)}</p>
+                  <p className="text-sm font-bold text-[#e8e8ed] truncate">{formatCurrency(trip.financials.revenue)}</p>
                 </div>
-                <div className="text-center">
+                <div className="text-center min-w-0">
                   <p className="text-[10px] text-[#5a5a6e] uppercase tracking-wide mb-1">Cost</p>
-                  <p className="text-base font-bold text-[#e8e8ed] whitespace-nowrap">{formatCurrency(trip.financials.costs.total)}</p>
+                  <p className="text-sm font-bold text-[#e8e8ed] truncate">{formatCurrency(trip.financials.costs.total)}</p>
                 </div>
-                <div className="text-center">
+                <div className="text-center min-w-0">
                   <p className="text-[10px] text-[#5a5a6e] uppercase tracking-wide mb-1">Profit</p>
                   <p className={cn(
-                    "text-base font-bold whitespace-nowrap",
+                    "text-sm font-bold truncate",
                     trip.financials.profit < 0 ? "text-[#b45353]" : "text-[#e8e8ed]"
                   )}>
                     {formatCurrency(trip.financials.profit)}

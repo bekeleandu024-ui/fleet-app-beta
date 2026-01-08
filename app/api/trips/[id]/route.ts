@@ -54,7 +54,7 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
         o.order_number, o.customer_name, o.customer_id, o.quoted_rate,
         o.status as order_status, o.special_instructions, o.order_type as commodity,
         o.total_weight_lbs, o.total_pallets, o.cubic_feet, o.linear_feet_required,
-        o.equipment_type,
+        o.equipment_type, o.dispatch_status,
         -- Driver data
         d.driver_name, d.driver_type, d.driver_category, d.oo_zone,
         d.hos_hours_remaining, d.is_active as driver_active, d.unit_number as driver_unit,
@@ -68,7 +68,20 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
         tc.maintenance_cost, tc.events_cost,
         tc.linehaul_miles, tc.deadhead_miles, tc.total_miles,
         tc.border_crossings, tc.pickup_count, tc.delivery_count,
-        tc.revenue_per_mile
+        tc.revenue_per_mile,
+        -- Carrier cost for farmed-out trips
+        (SELECT cb.bid_amount FROM carrier_bids cb 
+         WHERE cb.order_id = t.order_id AND cb.status = 'ACCEPTED' LIMIT 1) as carrier_cost,
+        -- Calculate cube from freight items if not on order
+        (SELECT COALESCE(SUM(
+          CASE WHEN ofi.cubic_feet > 0 THEN ofi.cubic_feet
+          ELSE (ofi.length_in * ofi.width_in * ofi.height_in / 1728.0) * COALESCE(ofi.quantity, 1)
+          END
+        ), 0) FROM order_freight_items ofi WHERE ofi.order_id = o.id) as calc_cubic_feet,
+        -- Calculate linear feet from freight items
+        (SELECT COALESCE(SUM(
+          (ofi.length_in / 12.0) * COALESCE(ofi.quantity, 1)
+        ), 0) FROM order_freight_items ofi WHERE ofi.order_id = o.id) as calc_linear_feet
       FROM trips t
       LEFT JOIN orders o ON t.order_id = o.id
       LEFT JOIN driver_profiles d ON t.driver_id = d.driver_id
@@ -122,15 +135,19 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
     };
 
     // Financial calculations
+    // For farmed-out trips (COVERED_EXTERNAL), use carrier_cost as the total cost
+    const isFarmedOut = t.dispatch_status === 'COVERED_EXTERNAL';
     const revenue = Number(t.calc_revenue) || Number(t.revenue) || Number(t.quoted_rate) || 0;
-    const totalCost = Number(t.calc_total_cost) || Number(t.total_cost) || 0;
+    const totalCost = isFarmedOut && t.carrier_cost 
+      ? Number(t.carrier_cost) 
+      : (Number(t.calc_total_cost) || Number(t.total_cost) || 0);
     const profit = revenue - totalCost;
     const marginPct = revenue > 0 ? (profit / revenue) * 100 : 0;
 
-    // Capacity
+    // Capacity - use calculated values from freight items if order values are 0
     const currentWeight = Number(t.current_weight) || Number(t.total_weight_lbs) || 0;
-    const currentCube = Number(t.current_cube) || Number(t.cubic_feet) || 0;
-    const currentLinearFeet = Number(t.current_linear_feet) || Number(t.linear_feet_required) || 0;
+    const currentCube = Number(t.current_cube) || Number(t.cubic_feet) || Number(t.calc_cubic_feet) || 0;
+    const currentLinearFeet = Number(t.current_linear_feet) || Number(t.linear_feet_required) || Number(t.calc_linear_feet) || 0;
     const maxWeight = Number(t.max_weight) || 45000;
     const maxCube = Number(t.max_cube) || 3900;
     const maxLinearFeet = Number(t.max_linear_feet) || 53;

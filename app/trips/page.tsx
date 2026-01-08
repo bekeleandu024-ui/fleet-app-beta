@@ -17,10 +17,12 @@ import {
   Truck,
   Calendar,
   AlertTriangle,
-  Package
+  Package,
+  Building2
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { fetchTrips } from "@/lib/api";
 import { queryKeys } from "@/lib/query";
 import type { TripListItem } from "@/lib/types";
@@ -56,6 +58,7 @@ export default function TripsPage() {
   const [filterException, setFilterException] = useState<string>("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedTrips, setExpandedTrips] = useState<Set<string>>(new Set());
+  const [tripTypeTab, setTripTypeTab] = useState<"all" | "fleet" | "brokerage">("all");
 
   const toggleExpanded = (tripId: string) => {
     setExpandedTrips(prev => {
@@ -94,6 +97,23 @@ export default function TripsPage() {
     if (!data?.data) return [];
 
     let filtered = data.data;
+
+    // Filter by trip type (fleet vs brokerage)
+    if (tripTypeTab === "fleet") {
+      filtered = filtered.filter((trip) => 
+        trip.driver && 
+        trip.driver !== "Unknown Driver" && 
+        trip.driver !== "N/A" &&
+        !["Pending Farm Out", "Posted to Carriers", "Covered (External)"].includes(trip.status)
+      );
+    } else if (tripTypeTab === "brokerage") {
+      filtered = filtered.filter((trip) => 
+        !trip.driver || 
+        trip.driver === "Unknown Driver" || 
+        trip.driver === "N/A" ||
+        ["Pending Farm Out", "Posted to Carriers", "Covered (External)"].includes(trip.status)
+      );
+    }
 
     if (filterStatus !== "All") {
       filtered = filtered.filter((trip) => trip.status === filterStatus);
@@ -134,7 +154,7 @@ export default function TripsPage() {
     }
 
     return filtered;
-  }, [data?.data, filterStatus, filterException, searchQuery, sortField, sortDirection]);
+  }, [data?.data, tripTypeTab, filterStatus, filterException, searchQuery, sortField, sortDirection]);
 
   if (isLoading) {
     return <div className="p-8 text-zinc-500">Loading trips...</div>;
@@ -152,6 +172,23 @@ export default function TripsPage() {
       <div className="flex h-14 items-center justify-between border-b border-zinc-800 bg-zinc-900/50 px-4">
         <div className="flex items-center gap-6">
           <h1 className="text-lg font-bold text-zinc-100">Trips & Tracking</h1>
+          
+          {/* Trip Type Tabs */}
+          <Tabs value={tripTypeTab} onValueChange={(v) => setTripTypeTab(v as typeof tripTypeTab)}>
+            <TabsList className="h-8 bg-zinc-900 border border-zinc-800">
+              <TabsTrigger value="all" className="text-xs px-3 h-6 data-[state=active]:bg-zinc-700">
+                All
+              </TabsTrigger>
+              <TabsTrigger value="fleet" className="text-xs px-3 h-6 data-[state=active]:bg-blue-600 data-[state=active]:text-white">
+                <Truck className="h-3 w-3 mr-1" />
+                Fleet
+              </TabsTrigger>
+              <TabsTrigger value="brokerage" className="text-xs px-3 h-6 data-[state=active]:bg-amber-600 data-[state=active]:text-white">
+                <Building2 className="h-3 w-3 mr-1" />
+                Brokerage
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
           
           {/* Stats Ribbon */}
           <div className="hidden items-center gap-4 text-xs font-mono md:flex">

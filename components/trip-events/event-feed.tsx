@@ -116,8 +116,8 @@ export function EventFeed({
   };
 
   return (
-    <Card className={`rounded-xl border border-neutral-800 bg-neutral-900/60 p-4 ${className}`}>
-      <div className="mb-3 flex items-center justify-between">
+    <Card className={`rounded-xl border border-neutral-800 bg-neutral-900/60 p-4 flex flex-col overflow-hidden ${className}`}>
+      <div className="mb-3 flex items-center justify-between shrink-0">
         <h3 className="text-sm font-semibold text-neutral-200">Trip Activity Log</h3>
         <div className="flex items-center gap-2">
           {lastRefresh && (
@@ -136,7 +136,7 @@ export function EventFeed({
       </div>
 
       {trip && (
-        <div className="mb-6 space-y-4 text-sm border-b border-neutral-800 pb-4">
+        <div className="mb-4 space-y-3 text-sm border-b border-neutral-800 pb-4 shrink-0 max-h-[40%] overflow-y-auto">
           {/* Trip ID */}
           <div className="p-3 rounded-lg bg-black/40 border border-zinc-800/50">
             <div className="text-xs text-zinc-500 mb-1">Trip ID</div>
@@ -218,11 +218,11 @@ export function EventFeed({
       {!tripId ? (
         <div className="py-8 text-center text-sm text-neutral-500">Select a trip to view events</div>
       ) : events.length === 0 ? (
-        <div className="py-8 text-center text-sm text-neutral-500">
+        <div className="py-8 text-center text-sm text-neutral-500 shrink-0">
           {isLoading ? "Loading events..." : "No events recorded yet"}
         </div>
       ) : (
-        <div className="flex-1 space-y-2 overflow-y-auto min-h-0 pr-2">
+        <div className="flex-1 space-y-2 overflow-y-auto min-h-0 max-h-full pr-2">
           {events.map((event) => (
             <div
               key={event.id}

@@ -49,9 +49,9 @@ const STOP_TYPE_CONFIG = {
 };
 
 const APPOINTMENT_TYPES = [
-  { value: "fcfs", label: "FCFS" },
-  { value: "firm", label: "Firm Appt" },
   { value: "open", label: "Open" },
+  { value: "window", label: "Window" },
+  { value: "firm", label: "Firm" },
 ];
 
 export function StopsTimeline({ control, register, watch, errors, className = "", layout = "vertical", hideAddButtons = false, onAddStop }: StopsTimelineProps) {
@@ -73,7 +73,7 @@ export function StopsTimeline({ control, register, watch, errors, className = ""
       country: "USA",
       latitude: null,
       longitude: null,
-      appointmentType: "fcfs",
+      appointmentType: "open",
       appointmentStart: null,
       appointmentEnd: null,
       contactName: null,
@@ -203,6 +203,30 @@ export function StopsTimeline({ control, register, watch, errors, className = ""
                         <option key={type.value} value={type.value}>{type.label}</option>
                       ))}
                     </Select>
+                    {/* Conditional time inputs based on appointment type */}
+                    {watch(`stops.${index}.appointmentType`) === "firm" && (
+                      <Input
+                        type="datetime-local"
+                        {...register(`stops.${index}.appointmentStart`)}
+                        className="w-40 h-7 text-[10px] bg-black/30 border-white/5 text-zinc-300"
+                      />
+                    )}
+                    {watch(`stops.${index}.appointmentType`) === "window" && (
+                      <>
+                        <Input
+                          type="datetime-local"
+                          {...register(`stops.${index}.appointmentStart`)}
+                          placeholder="Start"
+                          className="w-40 h-7 text-[10px] bg-black/30 border-white/5 text-zinc-300"
+                        />
+                        <Input
+                          type="datetime-local"
+                          {...register(`stops.${index}.appointmentEnd`)}
+                          placeholder="End"
+                          className="w-40 h-7 text-[10px] bg-black/30 border-white/5 text-zinc-300"
+                        />
+                      </>
+                    )}
                   </div>
 
                   {/* Expandable Details */}
@@ -212,16 +236,6 @@ export function StopsTimeline({ control, register, watch, errors, className = ""
                       <ChevronDown className="w-3 h-3 ml-auto group-open:rotate-180 transition-transform" />
                     </summary>
                     <div className="grid grid-cols-2 gap-2 mt-2">
-                      <Input
-                        type="datetime-local"
-                        {...register(`stops.${index}.appointmentStart`)}
-                        className="h-7 text-[10px] bg-black/30 border-white/5 text-zinc-300"
-                      />
-                      <Input
-                        type="datetime-local"
-                        {...register(`stops.${index}.appointmentEnd`)}
-                        className="h-7 text-[10px] bg-black/30 border-white/5 text-zinc-300"
-                      />
                       <Input
                         {...register(`stops.${index}.contactName`)}
                         placeholder="Contact Name"
@@ -436,18 +450,31 @@ export function StopsTimeline({ control, register, watch, errors, className = ""
                           <option key={type.value} value={type.value}>{type.label}</option>
                         ))}
                       </Select>
-                      <div className="grid grid-cols-1 xl:grid-cols-2 gap-2">
+                      {/* Conditional time inputs based on appointment type */}
+                      {watch(`stops.${index}.appointmentType`) === "firm" && (
                         <Input
                           type="datetime-local"
                           {...register(`stops.${index}.appointmentStart`)}
                           className="w-full h-8 text-xs bg-black/30 border-white/5 text-zinc-300 min-w-0"
                         />
-                        <Input
-                          type="datetime-local"
-                          {...register(`stops.${index}.appointmentEnd`)}
-                          className="w-full h-8 text-xs bg-black/30 border-white/5 text-zinc-300 min-w-0"
-                        />
-                      </div>
+                      )}
+                      {watch(`stops.${index}.appointmentType`) === "window" && (
+                        <div className="grid grid-cols-1 xl:grid-cols-2 gap-2">
+                          <Input
+                            type="datetime-local"
+                            {...register(`stops.${index}.appointmentStart`)}
+                            placeholder="Start"
+                            className="w-full h-8 text-xs bg-black/30 border-white/5 text-zinc-300 min-w-0"
+                          />
+                          <Input
+                            type="datetime-local"
+                            {...register(`stops.${index}.appointmentEnd`)}
+                            placeholder="End"
+                            className="w-full h-8 text-xs bg-black/30 border-white/5 text-zinc-300 min-w-0"
+                          />
+                        </div>
+                      )}
+                      {/* Open type shows no time inputs */}
                     </div>
                   </div>
 

@@ -122,7 +122,7 @@ export default function EnterpriseOrderPage() {
       country: "USA",
       latitude: null,
       longitude: null,
-      appointmentType: "fcfs",
+      appointmentType: "open",
       appointmentStart: null,
       appointmentEnd: null,
       contactName: null,
@@ -164,12 +164,22 @@ export default function EnterpriseOrderPage() {
         }
       }
       
-      // Update all form fields
+      // Use reset with keepDefaultValues to properly update uncontrolled inputs
+      // This merges extracted data with current form values and re-renders all inputs
+      const currentValues = form.getValues();
+      const mergedValues = { ...currentValues };
+      
+      // Deep merge the extracted data
       Object.entries(data).forEach(([key, value]) => {
-        setValue(key as keyof EnterpriseOrderInput, value as any, {
-          shouldValidate: true,
-          shouldDirty: true,
-        });
+        if (value !== undefined && value !== null) {
+          (mergedValues as Record<string, unknown>)[key] = value;
+        }
+      });
+      
+      // Reset form with merged values - this properly updates all inputs
+      reset(mergedValues as EnterpriseOrderInput, {
+        keepDirty: true,
+        keepTouched: true,
       });
       
       // Show brief success state
@@ -230,6 +240,7 @@ export default function EnterpriseOrderPage() {
     reset(createDefaultOrderInput());
     setAiWarnings([]);
     resetExtraction();
+    setSuggestedRate(null);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -486,9 +497,9 @@ export default function EnterpriseOrderPage() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-black text-zinc-300">
+    <div className="min-h-screen flex flex-col bg-black text-zinc-300">
       {/* STICKY HEADER */}
-      <div className="flex-none border-b border-zinc-800 bg-zinc-950 px-4 py-2">
+      <div className="sticky top-0 z-20 border-b border-zinc-800 bg-zinc-950 px-4 py-2">
         <div className="flex items-center gap-4">
           {/* Back + Title */}
           <Button 
@@ -560,7 +571,7 @@ export default function EnterpriseOrderPage() {
 
       {/* AI Warnings Banner */}
       {aiWarnings.length > 0 && (
-        <div className="flex-none border-b border-amber-500/20 bg-amber-500/10 px-4 py-1.5">
+        <div className="sticky top-[49px] z-20 border-b border-amber-500/20 bg-amber-500/10 px-4 py-1.5">
           <div className="flex items-center gap-2 text-xs text-amber-400">
             <AlertTriangle className="w-3 h-3" />
             <span className="font-medium">AI Warnings:</span>
@@ -571,10 +582,10 @@ export default function EnterpriseOrderPage() {
         </div>
       )}
 
-      {/* SCROLLABLE CONTENT */}
-      <div className="flex-1 overflow-y-auto min-h-0">
-        <Tabs defaultValue="order-details" className="h-full flex flex-col">
-          <div className="flex-none border-b border-zinc-800 bg-zinc-950/80 px-4 sticky top-0 z-10">
+      {/* CONTENT */}
+      <div className="flex-1">
+        <Tabs defaultValue="order-details" className="flex flex-col">
+          <div className="sticky top-[49px] z-10 border-b border-zinc-800 bg-zinc-950/95 backdrop-blur px-4">
             <div className="flex items-center justify-between h-10">
               {/* Tabs on the left */}
               <TabsList className="justify-start gap-2 bg-transparent p-0 h-10 border-0">

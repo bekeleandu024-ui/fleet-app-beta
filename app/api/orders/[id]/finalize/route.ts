@@ -92,10 +92,10 @@ export async function POST(
       
       const accResult = await client.query(
         `INSERT INTO order_accessorials 
-         (order_id, accessorial_type, description, quantity, unit_price, total_amount, created_by)
+         (order_id, accessorial_code, accessorial_name, quantity, unit_price, total_price, notes)
          VALUES ($1, $2, $3, $4, $5, $6, $7)
          RETURNING *`,
-        [orderId, acc.type, acc.description || null, quantity, unitPrice, totalAmount, finalized_by || null]
+        [orderId, acc.type || acc.code || 'OTHER', acc.description || acc.name || 'Accessorial', quantity, unitPrice, totalAmount, acc.notes || null]
       );
       
       insertedAccessorials.push(accResult.rows[0]);

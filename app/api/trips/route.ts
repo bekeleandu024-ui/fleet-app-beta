@@ -40,7 +40,8 @@ export async function GET(request: Request) {
           COALESCE(t.unit_number, u.unit_number) as unit_number,
           COALESCE(t.customer_name, o.customer_name, o.customer_id::text, 'Unknown') as customer_name,
           COALESCE(t.revenue, o.quoted_rate) as quoted_rate,
-          o.final_billable_amount
+          o.final_billable_amount,
+          o.billing_status
         FROM trips t
         LEFT JOIN driver_profiles d ON t.driver_id = d.driver_id
         LEFT JOIN unit_profiles u ON t.unit_id = u.unit_id

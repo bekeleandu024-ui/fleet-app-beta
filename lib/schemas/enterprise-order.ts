@@ -6,7 +6,7 @@ import { z } from "zod";
 // ============================================================================
 
 // === STOP SCHEMA ===
-export const appointmentTypeSchema = z.enum(["firm", "fcfs", "open"]);
+export const appointmentTypeSchema = z.enum(["firm", "window", "open"]);
 export type AppointmentType = z.infer<typeof appointmentTypeSchema>;
 
 export const stopTypeSchema = z.enum(["pickup", "delivery", "intermediate"]);
@@ -28,7 +28,7 @@ export const orderStopInputSchema = z.object({
   longitude: z.number().min(-180).max(180).optional().nullable(),
   
   // Appointment
-  appointmentType: appointmentTypeSchema.default("fcfs"),
+  appointmentType: appointmentTypeSchema.default("open"),
   appointmentStart: z.string().optional().nullable(), // ISO datetime
   appointmentEnd: z.string().optional().nullable(),
   
@@ -350,7 +350,7 @@ export function createDefaultOrderInput(): EnterpriseOrderInput {
         state: null,
         postalCode: null,
         country: "USA",
-        appointmentType: "fcfs",
+        appointmentType: "open",
         appointmentStart: null,
         appointmentEnd: null,
         contactName: null,
@@ -369,7 +369,7 @@ export function createDefaultOrderInput(): EnterpriseOrderInput {
         state: null,
         postalCode: null,
         country: "USA",
-        appointmentType: "fcfs",
+        appointmentType: "open",
         appointmentStart: null,
         appointmentEnd: null,
         contactName: null,
@@ -474,7 +474,7 @@ export function mapAIExtractionToFormInput(
       country: stop.country || "USA",
       latitude: null,
       longitude: null,
-      appointmentType: stop.appointmentType || "fcfs",
+      appointmentType: stop.appointmentType || "open",
       appointmentStart: stop.appointmentStart || null,
       appointmentEnd: stop.appointmentEnd || null,
       contactName: stop.contactName || null,

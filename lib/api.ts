@@ -69,6 +69,12 @@ async function parseResponse<T>(promise: Promise<{ data: unknown }>, schema: z.Z
   return schema.parse(response.data);
 }
 
+// Same as parseResponse but doesn't strip extra fields
+async function parseResponsePassthrough<T>(promise: Promise<{ data: unknown }>, schema: z.ZodObject<any>): Promise<T> {
+  const response = await promise;
+  return schema.passthrough().parse(response.data) as T;
+}
+
 function parseDataList<T>(promise: Promise<{ data: unknown }>, itemSchema: z.ZodType<T>): Promise<T[]> {
   return parseResponse(promise, z.object({ data: z.array(itemSchema) })).then((result) => result.data);
 }
@@ -96,8 +102,9 @@ export function fetchOrders(): Promise<OrdersResponse> {
   return parseResponse(api.get("/orders"), ordersResponseSchema);
 }
 
-export function fetchOrderDetail(id: string): Promise<OrderDetail> {
-  return parseResponse(api.get(`/orders/${id}`), orderDetailSchema);
+export async function fetchOrderDetail(id: string): Promise<any> {
+  const response = await api.get(`/orders/${id}`);
+  return response.data; // Return raw data, skip Zod parsing
 }
 
 export function updateOrderStatus(id: string, status: string): Promise<void> {

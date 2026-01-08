@@ -243,6 +243,14 @@ export function mapCustomerRecord(order: any): CustomerAdminRecord {
   // Get customer name - prefer customer_name field, otherwise derive from ID
   let customerName = order.customer_name ?? order.customer ?? "Customer";
   
+  // UUID pattern: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+  const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  
+  // If customer name looks like a UUID, skip it (return null to filter out)
+  if (typeof customerName === 'string' && uuidPattern.test(customerName)) {
+    customerName = "Unknown Customer";
+  }
+  
   // If customer name looks like an ID (starts with "cust-"), convert to readable name
   if (typeof customerName === 'string' && customerName.startsWith('cust-')) {
     customerName = customerName.replace('cust-', '').replace(/-/g, ' ').toUpperCase();

@@ -308,7 +308,7 @@ export default function AccountingPage() {
   };
 
   return (
-    <div className="flex flex-col gap-0 rounded-lg border border-neutral-800 bg-neutral-950 shadow-sm overflow-hidden min-h-[calc(100vh-120px)]">
+    <div className="flex flex-col gap-0 rounded-lg border border-neutral-800 bg-neutral-950 shadow-sm overflow-hidden min-h-[calc(100vh-120px)] w-full max-w-none">
       {/* Header */}
       <div className="flex h-14 items-center justify-between border-b border-neutral-800 bg-neutral-900/50 px-4">
         <div className="flex items-center gap-4">
@@ -446,45 +446,45 @@ function AccountingTab({
   }), [trips]);
 
   return (
-    <div className="p-4 space-y-4">
-      {/* Summary Cards */}
-      <div className="grid grid-cols-4 gap-4">
-        <Card className="border-neutral-800 bg-neutral-900/60 p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <Receipt className="h-4 w-4 text-emerald-400" />
-            <span className="text-xs text-neutral-500 uppercase">Total Revenue</span>
+    <div className="p-3 space-y-3">
+      {/* Summary Cards - Compact */}
+      <div className="grid grid-cols-4 gap-3">
+        <Card className="border-neutral-800 bg-neutral-900/60 p-3">
+          <div className="flex items-center gap-2 mb-1">
+            <Receipt className="h-3.5 w-3.5 text-emerald-400" />
+            <span className="text-[10px] text-neutral-500 uppercase">Total Revenue</span>
           </div>
-          <p className="text-2xl font-bold text-emerald-400">${totals.revenue.toLocaleString()}</p>
-          <p className="text-xs text-neutral-500 mt-1">{trips.length} closed trips</p>
+          <p className="text-xl font-bold text-emerald-400">${totals.revenue.toLocaleString()}</p>
+          <p className="text-[10px] text-neutral-500">{trips.length} closed trips</p>
         </Card>
 
-        <Card className="border-neutral-800 bg-neutral-900/60 p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <DollarSign className="h-4 w-4 text-amber-400" />
-            <span className="text-xs text-neutral-500 uppercase">Total Cost</span>
+        <Card className="border-neutral-800 bg-neutral-900/60 p-3">
+          <div className="flex items-center gap-2 mb-1">
+            <DollarSign className="h-3.5 w-3.5 text-amber-400" />
+            <span className="text-[10px] text-neutral-500 uppercase">Total Cost</span>
           </div>
-          <p className="text-2xl font-bold text-amber-400">${totals.cost.toLocaleString()}</p>
-          <p className="text-xs text-neutral-500 mt-1">Operating expenses</p>
+          <p className="text-xl font-bold text-amber-400">${totals.cost.toLocaleString()}</p>
+          <p className="text-[10px] text-neutral-500">Operating expenses</p>
         </Card>
 
-        <Card className="border-neutral-800 bg-neutral-900/60 p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <Calculator className="h-4 w-4 text-blue-400" />
-            <span className="text-xs text-neutral-500 uppercase">Net Margin</span>
+        <Card className="border-neutral-800 bg-neutral-900/60 p-3">
+          <div className="flex items-center gap-2 mb-1">
+            <Calculator className="h-3.5 w-3.5 text-blue-400" />
+            <span className="text-[10px] text-neutral-500 uppercase">Net Margin</span>
           </div>
-          <p className="text-2xl font-bold text-blue-400">${totals.margin.toLocaleString()}</p>
-          <p className="text-xs text-neutral-500 mt-1">
+          <p className="text-xl font-bold text-blue-400">${totals.margin.toLocaleString()}</p>
+          <p className="text-[10px] text-neutral-500">
             {totals.revenue > 0 ? ((totals.margin / totals.revenue) * 100).toFixed(1) : 0}% margin
           </p>
         </Card>
 
-        <Card className="border-neutral-800 bg-neutral-900/60 p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <CheckCircle2 className="h-4 w-4 text-purple-400" />
-            <span className="text-xs text-neutral-500 uppercase">Selected</span>
+        <Card className="border-neutral-800 bg-neutral-900/60 p-3">
+          <div className="flex items-center gap-2 mb-1">
+            <CheckCircle2 className="h-3.5 w-3.5 text-purple-400" />
+            <span className="text-[10px] text-neutral-500 uppercase">Selected</span>
           </div>
-          <p className="text-2xl font-bold text-purple-400">{selectedTotals.count}</p>
-          <p className="text-xs text-neutral-500 mt-1">
+          <p className="text-xl font-bold text-purple-400">{selectedTotals.count}</p>
+          <p className="text-[10px] text-neutral-500">
             {selectedTotals.count > 0 ? `$${selectedTotals.revenue.toLocaleString()} revenue` : "None selected"}
           </p>
         </Card>

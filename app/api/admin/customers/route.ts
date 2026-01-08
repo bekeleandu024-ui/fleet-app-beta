@@ -34,12 +34,21 @@ export async function GET() {
     // Handle both array and structured response {data: [...]}
     const orders = Array.isArray(response) ? response : (response.data || []);
     
-    const customerMap = new Map(orders.map((order: Record<string, any>) => {
-      const record = mapCustomerRecord(order);
-      // Normalize name for deduplication (uppercase, no extra spaces)
-      const normalizedName = record.name.toUpperCase().trim();
-      return [normalizedName, record];
-    }));
+    // UUID pattern to filter out invalid customer names
+    const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    
+    const customerMap = new Map(orders
+      .map((order: Record<string, any>) => {
+        const record = mapCustomerRecord(order);
+        // Normalize name for deduplication (uppercase, no extra spaces)
+        const normalizedName = record.name.toUpperCase().trim();
+        return [normalizedName, record];
+      })
+      .filter(([normalizedName]: [string, any]) => {
+        // Filter out UUID-like names and "Unknown Customer"
+        return !uuidPattern.test(normalizedName) && normalizedName !== "UNKNOWN CUSTOMER";
+      })
+    );
 
     // Ensure fixed customers are in the list
     FIXED_CUSTOMERS.forEach(name => {

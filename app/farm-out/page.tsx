@@ -171,6 +171,7 @@ export default function FarmOutPage() {
 
   const addBidMutation = useMutation({
     mutationFn: async ({ orderId, bid }: { orderId: string; bid: typeof newBid }) => {
+      console.log('Adding bid for order:', orderId, 'bid:', bid);
       const res = await fetch(`/api/dispatch/orders/${orderId}/bids`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -183,13 +184,23 @@ export default function FarmOutPage() {
           receivedVia: "MANUAL",
         }),
       });
-      return res.json();
+      const data = await res.json();
+      console.log('Add bid response:', data);
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to add bid');
+      }
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["trip-bids", selectedTrip?.orderId] });
       queryClient.invalidateQueries({ queryKey: ["farm-out-trips"] });
       setShowBidForm(false);
       setNewBid({ carrierName: "", bidAmount: "", contactPhone: "", mcNumber: "", notes: "" });
+      refetchBids(); // Also explicitly refetch bids
+    },
+    onError: (error) => {
+      console.error('Failed to add bid:', error);
+      alert('Failed to add bid: ' + (error as Error).message);
     },
   });
 

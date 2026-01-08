@@ -89,6 +89,14 @@ export const orderListItemSchema = z.object({
   weight: z.number().optional(),
   pickupDate: z.string().optional(),
   rate: z.number().optional(),
+  pickupWindowStart: z.string().optional(),
+  pickupWindowEnd: z.string().optional(),
+  deliveryWindowStart: z.string().optional(),
+  deliveryWindowEnd: z.string().optional(),
+  priority: z.string().optional(),
+  isDirect: z.boolean().optional(),
+  totalPallets: z.number().optional(),
+  sourceChannel: z.string().optional(),
 });
 export type OrderListItem = z.infer<typeof orderListItemSchema>;
 
@@ -144,16 +152,64 @@ export const orderDetailSchema = z.object({
   reference: z.string(),
   status: orderStatusSchema,
   customer: z.string(),
+  customerId: z.string().optional(),
   lane: z.string(),
   laneMiles: z.number(),
   ageHours: z.number(),
   serviceLevel: z.string(),
+  priority: z.string().optional(),
+  sourceChannel: z.string().optional(),
+  createdAt: z.string().optional(),
+  updatedAt: z.string().optional(),
   snapshot: z.object({
     commodity: z.string(),
     stops: z.array(orderStopSchema),
     windows: z.array(keyValueSchema.pick({ label: true, value: true })),
     notes: z.string().optional(),
   }),
+  // Cargo details
+  cargo: z.object({
+    totalWeightLbs: z.number().optional(),
+    totalPallets: z.number().optional(),
+    totalPieces: z.number().optional(),
+    totalCubicFeet: z.number().optional(),
+    totalLinearFeet: z.number().optional(),
+    isHazmat: z.boolean().optional(),
+    isHighValue: z.boolean().optional(),
+    stackable: z.boolean().optional(),
+    declaredValue: z.number().optional(),
+    commodity: z.string().optional(),
+  }).optional(),
+  // Equipment requirements
+  equipment: z.object({
+    type: z.string().optional(),
+    length: z.number().optional(),
+    temperatureSetting: z.string().optional(),
+  }).optional(),
+  // Billing & financials
+  billing: z.object({
+    status: z.string().optional(),
+    quotedRate: z.number().optional(),
+    targetRate: z.number().optional(),
+    marginTargetPct: z.number().optional(),
+    finalBillableAmount: z.number().optional(),
+    billingNotes: z.string().optional(),
+    billingFinalizedAt: z.string().optional(),
+    billingFinalizedBy: z.string().optional(),
+  }).optional(),
+  // Dispatch assignment
+  dispatch: z.object({
+    status: z.string().optional(),
+    assignedDriverId: z.string().optional(),
+    assignedUnitId: z.string().optional(),
+    awardedCarrierId: z.string().optional(),
+  }).optional(),
+  // Notes
+  notes: z.object({
+    internal: z.string().optional(),
+    special: z.string().optional(),
+    qualification: z.string().optional(),
+  }).optional(),
   pricing: z.object({
     items: z.array(keyValueSchema),
     totals: keyValueSchema.extend({ helper: z.string().optional() }),

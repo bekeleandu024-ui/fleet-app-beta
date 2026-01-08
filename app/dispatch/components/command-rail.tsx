@@ -26,6 +26,8 @@ import {
   Zap,
   BarChart3,
   Loader2,
+  Sparkles,
+  RefreshCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -73,6 +75,317 @@ interface CommandRailProps {
 }
 
 // ============================================================================
+// AI RECOMMENDATION TYPES
+// ============================================================================
+
+interface AIRecommendation {
+  id: string;
+  type: "consolidate" | "assign" | "alert" | "brokerage";
+  priority: "high" | "medium" | "low";
+  title: string;
+  description: string;
+  impact: {
+    savings: string | null;
+    miles_saved: number | null;
+    utilization: string | null;
+  };
+  orders: string[];
+  suggested_driver: {
+    id: string;
+    name: string;
+    reason: string;
+  } | null;
+  action: "create_trip" | "assign_driver" | "kick_to_brokerage" | "prioritize";
+  brokerage_alternative: {
+    recommended: boolean;
+    reason: string;
+    estimated_savings: string | null;
+    fleet_fallback: string;
+  } | null;
+}
+
+interface AIRecommendationsResponse {
+  recommendations: AIRecommendation[];
+  summary: {
+    total_recommendations: number;
+    potential_savings: string;
+    orders_analyzed: number;
+    consolidation_opportunities: number;
+  };
+}
+
+// ============================================================================
+// AI SUGGESTIONS PANEL (Separate Tab)
+// ============================================================================
+
+function AISuggestionsPanel() {
+  const [aiRecommendations, setAiRecommendations] = useState<AIRecommendationsResponse | null>(null);
+  const [isLoadingAI, setIsLoadingAI] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+
+  // Auto-fetch on mount
+  useEffect(() => {
+    fetchAIRecommendations();
+  }, []);
+
+  const fetchAIRecommendations = async () => {
+    setIsLoadingAI(true);
+    setAiError(null);
+    try {
+      const response = await fetch('/api/ai/dispatch-recommendations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({})
+      });
+      if (!response.ok) throw new Error('Failed to fetch recommendations');
+      const data = await response.json();
+      setAiRecommendations(data);
+    } catch (err: any) {
+      setAiError(err.message || 'Failed to get AI recommendations');
+    } finally {
+      setIsLoadingAI(false);
+    }
+  };
+
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case 'high': return 'text-red-400 bg-red-500/10 border-red-500/30';
+      case 'medium': return 'text-amber-400 bg-amber-500/10 border-amber-500/30';
+      default: return 'text-blue-400 bg-blue-500/10 border-blue-500/30';
+    }
+  };
+
+  const getTypeIcon = (type: string) => {
+    switch (type) {
+      case 'consolidate': return <Layers className="h-3.5 w-3.5" />;
+      case 'assign': return <User className="h-3.5 w-3.5" />;
+      case 'alert': return <AlertCircle className="h-3.5 w-3.5" />;
+      case 'brokerage': return <Building2 className="h-3.5 w-3.5" />;
+      default: return <Zap className="h-3.5 w-3.5" />;
+    }
+  };
+
+  const getActionLabel = (action: string) => {
+    switch (action) {
+      case 'create_trip': return 'Create Trip';
+      case 'assign_driver': return 'Assign';
+      case 'kick_to_brokerage': return 'Broker Out';
+      case 'prioritize': return 'Review';
+      default: return 'Action';
+    }
+  };
+
+  return (
+    <div className="p-3 space-y-3 overflow-y-auto h-full">
+      {/* Header with Refresh */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-sm font-bold text-zinc-100 flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-purple-400" />
+            AI Suggestions
+          </h3>
+          <p className="text-[10px] text-zinc-500">Smart dispatch recommendations</p>
+        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={fetchAIRecommendations}
+          disabled={isLoadingAI}
+          className="h-7 px-2 text-xs border-purple-500/30 text-purple-400 hover:bg-purple-500/10"
+        >
+          {isLoadingAI ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <>
+              <RefreshCw className="h-3.5 w-3.5 mr-1" />
+              Refresh
+            </>
+          )}
+        </Button>
+      </div>
+
+      {/* Summary Stats */}
+      {aiRecommendations && (
+        <div className="grid grid-cols-2 gap-2">
+          <div className="bg-purple-500/10 border border-purple-500/20 rounded p-2">
+            <div className="text-[10px] text-purple-400 font-medium">Suggestions</div>
+            <div className="text-lg font-bold text-purple-300">
+              {aiRecommendations.summary.total_recommendations}
+            </div>
+          </div>
+          <div className="bg-emerald-500/10 border border-emerald-500/20 rounded p-2">
+            <div className="text-[10px] text-emerald-400 font-medium">Potential Savings</div>
+            <div className="text-lg font-bold text-emerald-300">
+              {aiRecommendations.summary.potential_savings}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Error State */}
+      {aiError && (
+        <div className="bg-red-500/10 border border-red-500/20 rounded p-3 text-center">
+          <AlertCircle className="h-5 w-5 text-red-400 mx-auto mb-1" />
+          <p className="text-xs text-red-400">{aiError}</p>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={fetchAIRecommendations}
+            className="mt-2 text-xs text-red-400 hover:text-red-300"
+          >
+            Try Again
+          </Button>
+        </div>
+      )}
+
+      {/* Loading State */}
+      {isLoadingAI && !aiRecommendations && (
+        <div className="flex flex-col items-center justify-center py-8">
+          <Loader2 className="h-8 w-8 text-purple-400 animate-spin mb-3" />
+          <p className="text-xs text-zinc-500">Analyzing dispatch data...</p>
+        </div>
+      )}
+
+      {/* Empty State */}
+      {aiRecommendations && aiRecommendations.recommendations.length === 0 && (
+        <div className="bg-zinc-900/50 border border-zinc-800 rounded p-4 text-center">
+          <CheckCircle className="h-8 w-8 text-emerald-400 mx-auto mb-2" />
+          <p className="text-sm font-medium text-zinc-300">All Clear!</p>
+          <p className="text-xs text-zinc-500 mt-1">
+            No optimization suggestions at this time.
+          </p>
+        </div>
+      )}
+
+      {/* Recommendations List */}
+      {aiRecommendations && aiRecommendations.recommendations.length > 0 && (
+        <div className="space-y-2">
+          {aiRecommendations.recommendations.map((rec) => (
+            <div
+              key={rec.id}
+              className={cn(
+                "rounded-lg p-3 border transition-all hover:scale-[1.01]",
+                getPriorityColor(rec.priority)
+              )}
+            >
+              {/* Header */}
+              <div className="flex items-start gap-2 mb-2">
+                <div className="flex-shrink-0 mt-0.5">
+                  {getTypeIcon(rec.type)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-xs font-semibold">{rec.title}</span>
+                    <Badge 
+                      variant="outline" 
+                      className={cn(
+                        "text-[9px] px-1.5 py-0 h-4",
+                        rec.priority === 'high' && "border-red-500/50 text-red-400",
+                        rec.priority === 'medium' && "border-amber-500/50 text-amber-400",
+                        rec.priority === 'low' && "border-blue-500/50 text-blue-400"
+                      )}
+                    >
+                      {rec.priority}
+                    </Badge>
+                  </div>
+                  <p className="text-[10px] text-zinc-400 leading-relaxed">{rec.description}</p>
+                </div>
+              </div>
+
+              {/* Orders */}
+              <div className="flex flex-wrap gap-1 mb-2">
+                {rec.orders.map((orderId) => (
+                  <Badge 
+                    key={orderId} 
+                    variant="secondary" 
+                    className="text-[9px] bg-zinc-800 text-zinc-300 px-1.5 py-0"
+                  >
+                    {orderId}
+                  </Badge>
+                ))}
+              </div>
+
+              {/* Impact & Driver */}
+              <div className="flex items-center gap-3 text-[10px]">
+                {rec.impact.savings && (
+                  <div className="flex items-center gap-1 text-emerald-400">
+                    <DollarSign className="h-3 w-3" />
+                    <span>{rec.impact.savings}</span>
+                  </div>
+                )}
+                {rec.impact.miles_saved && (
+                  <div className="flex items-center gap-1 text-blue-400">
+                    <MapPin className="h-3 w-3" />
+                    <span>{rec.impact.miles_saved} mi saved</span>
+                  </div>
+                )}
+                {rec.suggested_driver && (
+                  <div className="flex items-center gap-1 text-purple-400">
+                    <User className="h-3 w-3" />
+                    <span>{rec.suggested_driver.name}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Brokerage Alternative - Show when available for consolidation recommendations */}
+              {rec.brokerage_alternative && rec.type === 'consolidate' && (
+                <div className={cn(
+                  "mt-2 p-2 rounded border",
+                  rec.brokerage_alternative.recommended 
+                    ? "bg-orange-500/10 border-orange-500/40" 
+                    : "bg-orange-500/5 border-orange-500/20"
+                )}>
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <Building2 className={cn(
+                      "h-3 w-3",
+                      rec.brokerage_alternative.recommended ? "text-orange-300" : "text-orange-400"
+                    )} />
+                    <span className={cn(
+                      "text-[10px] font-medium",
+                      rec.brokerage_alternative.recommended ? "text-orange-300" : "text-orange-400"
+                    )}>
+                      {rec.brokerage_alternative.recommended ? '⚠️ Strongly Consider Brokerage' : 'Brokerage Option'}
+                    </span>
+                    {rec.brokerage_alternative.estimated_savings && 
+                     rec.brokerage_alternative.estimated_savings !== 'Check trip costing' && (
+                      <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5 border-orange-500/30 text-orange-400">
+                        Save {rec.brokerage_alternative.estimated_savings}
+                      </Badge>
+                    )}
+                  </div>
+                  <p className={cn(
+                    "text-[9px] leading-relaxed mb-1.5",
+                    rec.brokerage_alternative.recommended ? "text-zinc-300" : "text-zinc-400"
+                  )}>
+                    {rec.brokerage_alternative.reason}
+                  </p>
+                  <div className="flex items-start gap-1 text-[9px] text-zinc-500">
+                    <Truck className="h-3 w-3 flex-shrink-0 mt-0.5 text-zinc-600" />
+                    <span className="italic">Fleet fallback: {rec.brokerage_alternative.fleet_fallback}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Action Button */}
+              <div className="mt-2 pt-2 border-t border-zinc-700/50">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="w-full h-7 text-[10px] text-zinc-300 hover:text-white hover:bg-zinc-800"
+                >
+                  {getActionLabel(rec.action)}
+                  <ExternalLink className="h-3 w-3 ml-1" />
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================================================
 // DISPATCH SUMMARY (Scenario A - Nothing Selected)
 // ============================================================================
 
@@ -86,7 +399,7 @@ function DispatchSummary({
   totalRevenue: number;
 }) {
   return (
-    <div className="p-3 space-y-2">
+    <div className="p-3 space-y-3">
       {/* Header */}
       <div className="border-b border-zinc-800 pb-2">
         <h3 className="text-sm font-bold text-zinc-100">Dispatch Summary</h3>
@@ -126,6 +439,69 @@ function DispatchSummary({
           <li>• Multi-select with checkboxes to consolidate</li>
           <li>• Click a trip row to view assignment options</li>
         </ul>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// TABBED SUMMARY VIEW (Nothing Selected - Shows Summary or AI)
+// ============================================================================
+
+function TabbedSummaryView({
+  totalOrders,
+  highPriorityCount,
+  totalRevenue,
+}: {
+  totalOrders: number;
+  highPriorityCount: number;
+  totalRevenue: number;
+}) {
+  const [activeTab, setActiveTab] = useState<"summary" | "ai">("summary");
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* Tab Header */}
+      <div className="flex-none border-b border-zinc-800">
+        <div className="flex">
+          <button
+            onClick={() => setActiveTab("summary")}
+            className={cn(
+              "flex-1 px-3 py-2 text-xs font-medium transition-colors",
+              activeTab === "summary"
+                ? "text-zinc-100 border-b-2 border-blue-500 bg-zinc-900/50"
+                : "text-zinc-500 hover:text-zinc-300"
+            )}
+          >
+            <BarChart3 className="h-3.5 w-3.5 inline mr-1.5" />
+            Summary
+          </button>
+          <button
+            onClick={() => setActiveTab("ai")}
+            className={cn(
+              "flex-1 px-3 py-2 text-xs font-medium transition-colors",
+              activeTab === "ai"
+                ? "text-purple-400 border-b-2 border-purple-500 bg-purple-500/5"
+                : "text-zinc-500 hover:text-zinc-300"
+            )}
+          >
+            <Sparkles className="h-3.5 w-3.5 inline mr-1.5" />
+            AI Suggest
+          </button>
+        </div>
+      </div>
+
+      {/* Tab Content */}
+      <div className="flex-1 overflow-hidden">
+        {activeTab === "summary" ? (
+          <DispatchSummary
+            totalOrders={totalOrders}
+            highPriorityCount={highPriorityCount}
+            totalRevenue={totalRevenue}
+          />
+        ) : (
+          <AISuggestionsPanel />
+        )}
       </div>
     </div>
   );
@@ -937,9 +1313,9 @@ export function CommandRail({
     );
   }
 
-  // Default: Summary view
+  // Default: Tabbed Summary/AI view
   return (
-    <DispatchSummary
+    <TabbedSummaryView
       totalOrders={totalOrders}
       highPriorityCount={highPriorityCount}
       totalRevenue={totalRevenue}

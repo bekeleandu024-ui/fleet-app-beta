@@ -30,9 +30,14 @@ const STOP_SCHEMA = {
     state: { type: "string", description: "2-letter state/province code (e.g., ON, IL, OH)" },
     zip: { type: "string", description: "ZIP/postal code" },
     country: { type: "string", enum: ["USA", "Canada", "Mexico"], description: "Country" },
-    appointmentDate: { type: "string", description: "Date in YYYY-MM-DD format" },
-    appointmentTimeStart: { type: "string", description: "Start time HH:MM 24-hour format" },
-    appointmentTimeEnd: { type: "string", description: "End time HH:MM 24-hour format" },
+    appointmentType: { 
+      type: "string", 
+      enum: ["open", "firm", "window"], 
+      description: "Appointment type: 'open' = no specific time/flexible, 'firm' = exact single appointment time, 'window' = time range (e.g., 8am-12pm). Look for keywords like 'Open', 'Firm', 'FCFS', or time ranges." 
+    },
+    appointmentDate: { type: "string", description: "Date in YYYY-MM-DD format (only if firm or window)" },
+    appointmentTimeStart: { type: "string", description: "Start/exact time HH:MM 24-hour format (only if firm or window)" },
+    appointmentTimeEnd: { type: "string", description: "End time HH:MM 24-hour format (only if window type with time range)" },
     timezone: { type: "string", enum: ["ET", "CT", "MT", "PT", "AT"] },
     contactName: { type: "string", description: "Contact person name" },
     contactPhone: { type: "string", description: "Contact phone number" },
@@ -99,9 +104,32 @@ export const ORDER_EXTRACTION_TOOL: {
         description: "Single delivery location (for simple orders). For multi-drop, use 'stops' array instead.",
       },
 
-      // Freight Details
+      // Freight Details - supports multiple items
+      freightItems: {
+        type: "array",
+        description: "Array of freight items. Create SEPARATE items for each distinct commodity/piece (e.g., '1 bundle steel tubing' and '1 pallet aluminum sheets' = 2 items)",
+        items: {
+          type: "object",
+          properties: {
+            commodity: { type: "string", description: "Description of this item (e.g., 'steel tubing', 'aluminum sheets')" },
+            quantity: { type: "number", description: "Number of units (e.g., 1 bundle, 2 pallets)" },
+            packagingType: { type: "string", enum: ["pallet", "bundle", "crate", "drum", "box", "roll", "skid", "loose"], description: "How item is packaged" },
+            weight: { type: "number", description: "Weight of this item" },
+            weightUnit: { type: "string", enum: ["lb", "kg"], default: "lb" },
+            lengthIn: { type: "number", description: "Length in inches" },
+            widthIn: { type: "number", description: "Width in inches" },
+            heightIn: { type: "number", description: "Height in inches" },
+            hazmat: { type: "boolean", default: false },
+            freightClass: { type: "string", description: "Freight class (50-500)" },
+          },
+          required: ["commodity"],
+        },
+      },
+
+      // Legacy single freight object (for backwards compatibility)
       freight: {
         type: "object",
+        description: "DEPRECATED - use freightItems[] array instead for multiple items",
         properties: {
           commodity: { type: "string", description: "Description of goods" },
           weight: { type: "number", description: "Total weight" },
@@ -203,10 +231,18 @@ IMPORTANT RULES:
 - Extract quoted rate as number (e.g., "$1,040.00" → 1040)
 
 MULTI-STOP ORDERS:
-- If order has multiple pickups OR multiple deliveries, use the "stops" array
-- Add each stop with stopType: "pickup" or "delivery"
+- ALWAYS use the "stops" array for ALL orders (even single pickup/delivery)
+- ALWAYS set stopType: "pickup" or "delivery" for EACH stop - this is REQUIRED
+- Look for keywords: "Pick", "Pickup", "Origin", "Shipper" = pickup; "Drop", "Delivery", "Destination", "Consignee" = delivery
 - Keep stops in SEQUENCE order (first pickup, second pickup, then delivery, etc.)
-- For simple 1-pickup 1-delivery orders, you can use either stops[] or pickup/delivery fields`;
+- Example: "Pick: Chicago" + "Drop 1: Milwaukee" + "Drop 2: Madison" = 3 stops with stopTypes ["pickup", "delivery", "delivery"]
+
+MULTIPLE FREIGHT ITEMS:
+- ALWAYS use "freightItems" array (not legacy "freight" object)
+- Create a SEPARATE freight item for EACH distinct commodity mentioned
+- Example: "1 bundle steel tubing, 1100 lbs, 72x24x24 / 1 pallet aluminum sheets, 750 lbs, 48x48x12" = 2 separate items in freightItems[]
+- Parse dimensions: "72x24x24" → lengthIn: 72, widthIn: 24, heightIn: 24
+- Parse packaging: "1 bundle" → quantity: 1, packagingType: "bundle"; "2 pallets" → quantity: 2, packagingType: "pallet"`;
 
 
 /**
@@ -295,16 +331,57 @@ export function mapExtractedToFormData(
     result.temperatureSetting = `${extracted.freight.temperature}°${unit}`;
   }
 
+  // Helper to determine appointment type from extracted data
+  const determineAppointmentType = (stop: any): "open" | "firm" | "window" => {
+    // If explicitly set by AI, use that
+    if (stop.appointmentType) {
+      return stop.appointmentType;
+    }
+    // If no date/time at all, it's open
+    if (!stop.appointmentDate && !stop.appointmentTimeStart) {
+      return "open";
+    }
+    // If has end time, it's a window
+    if (stop.appointmentTimeEnd) {
+      return "window";
+    }
+    // If has start time but no end time, it's firm
+    if (stop.appointmentTimeStart) {
+      return "firm";
+    }
+    return "open";
+  };
+
   // Build stops array - prioritize multi-stop "stops" array over legacy pickup/delivery
   const formStops: Array<Record<string, unknown>> = [];
   
   if (extracted.stops && extracted.stops.length > 0) {
     // Multi-stop order - use the stops array
+    // AI might not set stopType, so we need smart fallback:
+    // - Look for keywords in text to determine if it's a pickup or delivery
+    // - First stop is usually pickup, rest are usually deliveries
     extracted.stops.forEach((stop, idx) => {
+      const apptType = determineAppointmentType(stop);
+      
+      // Determine stopType with smart fallback
+      let stopType = stop.stopType;
+      if (!stopType) {
+        // Check if facilityName or specialInstructions contain pickup/delivery hints
+        const text = `${stop.facilityName || ''} ${stop.specialInstructions || ''}`.toLowerCase();
+        if (text.includes('pick') || text.includes('shipper') || text.includes('origin')) {
+          stopType = "pickup";
+        } else if (text.includes('drop') || text.includes('deliver') || text.includes('consignee') || text.includes('destination')) {
+          stopType = "delivery";
+        } else {
+          // Default: first stop is pickup, rest are deliveries
+          stopType = idx === 0 ? "pickup" : "delivery";
+        }
+      }
+      
       formStops.push({
         id: `stop-${Date.now()}-${idx}`,
         stopSequence: idx,
-        stopType: stop.stopType || (idx === extracted.stops!.length - 1 ? "delivery" : "pickup"),
+        stopType,
         locationName: stop.facilityName || null,
         streetAddress: stop.streetAddress || null,
         city: stop.city || "",
@@ -316,9 +393,9 @@ export function mapExtractedToFormData(
         contactEmail: null,
         specialInstructions: stop.specialInstructions || null,
         driverInstructions: null,
-        appointmentType: "fcfs",
-        appointmentStart: formatAppointment(stop.appointmentDate, stop.appointmentTimeStart),
-        appointmentEnd: formatAppointment(stop.appointmentDate, stop.appointmentTimeEnd),
+        appointmentType: apptType,
+        appointmentStart: apptType !== "open" ? formatAppointment(stop.appointmentDate, stop.appointmentTimeStart) : null,
+        appointmentEnd: apptType === "window" ? formatAppointment(stop.appointmentDate, stop.appointmentTimeEnd) : null,
         latitude: null,
         longitude: null,
       });
@@ -327,6 +404,7 @@ export function mapExtractedToFormData(
     // Legacy single pickup/delivery
     if (extracted.pickup) {
       const p = extracted.pickup;
+      const apptType = determineAppointmentType(p);
       formStops.push({
         id: `stop-${Date.now()}-0`,
         stopSequence: 0,
@@ -342,9 +420,9 @@ export function mapExtractedToFormData(
         contactEmail: null,
         specialInstructions: p.specialInstructions || null,
         driverInstructions: null,
-        appointmentType: "fcfs",
-        appointmentStart: formatAppointment(p.appointmentDate, p.appointmentTimeStart),
-        appointmentEnd: formatAppointment(p.appointmentDate, p.appointmentTimeEnd),
+        appointmentType: apptType,
+        appointmentStart: apptType !== "open" ? formatAppointment(p.appointmentDate, p.appointmentTimeStart) : null,
+        appointmentEnd: apptType === "window" ? formatAppointment(p.appointmentDate, p.appointmentTimeEnd) : null,
         latitude: null,
         longitude: null,
       });
@@ -352,6 +430,7 @@ export function mapExtractedToFormData(
 
     if (extracted.delivery) {
       const d = extracted.delivery;
+      const apptType = determineAppointmentType(d);
       formStops.push({
         id: `stop-${Date.now()}-1`,
         stopSequence: formStops.length,
@@ -367,9 +446,9 @@ export function mapExtractedToFormData(
         contactEmail: null,
         specialInstructions: d.specialInstructions || null,
         driverInstructions: null,
-        appointmentType: "fcfs",
-        appointmentStart: formatAppointment(d.appointmentDate, d.appointmentTimeStart),
-        appointmentEnd: formatAppointment(d.appointmentDate, d.appointmentTimeEnd),
+        appointmentType: apptType,
+        appointmentStart: apptType !== "open" ? formatAppointment(d.appointmentDate, d.appointmentTimeStart) : null,
+        appointmentEnd: apptType === "window" ? formatAppointment(d.appointmentDate, d.appointmentTimeEnd) : null,
         latitude: null,
         longitude: null,
       });
@@ -380,8 +459,59 @@ export function mapExtractedToFormData(
     result.stops = formStops;
   }
 
-  // Freight items
-  if (extracted.freight) {
+  // Freight items - prioritize freightItems[] array over legacy freight object
+  if (extracted.freightItems && extracted.freightItems.length > 0) {
+    // New multi-item format
+    const formItems: Array<Record<string, unknown>> = [];
+    let totalWeight = 0;
+    let totalPallets = 0;
+    let totalPieces = 0;
+
+    extracted.freightItems.forEach((item: any, idx: number) => {
+      const qty = item.quantity || 1;
+      const weight = item.weight || 0;
+      
+      formItems.push({
+        id: `item-${Date.now()}-${idx}`,
+        lineNumber: idx + 1,
+        commodity: item.commodity || "",
+        description: null,
+        quantity: qty,
+        pieces: qty,
+        packagingType: item.packagingType || "pallet",
+        weightLbs: weight,
+        lengthIn: item.lengthIn || null,
+        widthIn: item.widthIn || null,
+        heightIn: item.heightIn || null,
+        cubicFeet: null,
+        freightClass: item.freightClass || null,
+        nmfcCode: null,
+        isHazmat: item.hazmat || false,
+        hazmatClass: null,
+        hazmatUnNumber: null,
+        hazmatPackingGroup: null,
+        hazmatProperName: null,
+        stackable: true,
+        temperatureControlled: false,
+        tempMinF: null,
+        tempMaxF: null,
+        declaredValue: null,
+        currency: "USD",
+      });
+
+      totalWeight += weight;
+      if (item.packagingType === "pallet" || !item.packagingType) {
+        totalPallets += qty;
+      }
+      totalPieces += qty;
+    });
+
+    result.freightItems = formItems;
+    if (totalWeight > 0) result.totalWeightLbs = totalWeight;
+    if (totalPallets > 0) result.totalPallets = totalPallets;
+    if (totalPieces > 0) result.totalPieces = totalPieces;
+  } else if (extracted.freight) {
+    // Legacy single freight object (backwards compatibility)
     const items = (currentData.freightItems as Array<Record<string, unknown>>) || [];
     const firstItem = items[0] || {};
     const f = extracted.freight;

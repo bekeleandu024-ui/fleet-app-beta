@@ -113,9 +113,6 @@ export function WhatNowWorkflow({
       <div className="px-4 py-3 border-b border-zinc-800/50">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
-              What Now?
-            </div>
             <Badge className={cn(currentPhaseConfig.bgColor, currentPhaseConfig.color, "text-[10px]")}>
               {currentPhaseConfig.label}
             </Badge>

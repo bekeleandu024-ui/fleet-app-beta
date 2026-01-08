@@ -85,15 +85,24 @@ export async function GET(
 
   try {
     // Fetch trip data from database - trips table has most data denormalized
+    // Include trip_costs for calculated distances and carrier_bids for farmed-out trips
     const tripResult = await pool.query(
       `SELECT 
         t.*,
         d.driver_type as driver_type,
         o.customer_name as order_customer_name,
-        o.quoted_rate
+        o.quoted_rate,
+        o.dispatch_status,
+        tc.total_miles as calc_total_miles,
+        tc.linehaul_miles as calc_linehaul_miles,
+        tc.deadhead_miles as calc_deadhead_miles,
+        tc.total_cost as calc_total_cost,
+        (SELECT cb.bid_amount FROM carrier_bids cb 
+         WHERE cb.order_id = t.order_id AND cb.status = 'ACCEPTED' LIMIT 1) as carrier_cost
       FROM trips t
       LEFT JOIN driver_profiles d ON t.driver_id = d.driver_id
       LEFT JOIN orders o ON t.order_id = o.id
+      LEFT JOIN trip_costs tc ON t.id = tc.trip_id
       WHERE t.id = $1`,
       [id]
     );
@@ -104,10 +113,16 @@ export async function GET(
 
     const trip = tripResult.rows[0];
 
-    // Calculate financial metrics - use trips table columns directly
+    // Calculate financial metrics
+    // For farmed-out trips (COVERED_EXTERNAL), use carrier_cost as the total cost
+    const isFarmedOut = trip.dispatch_status === 'COVERED_EXTERNAL';
     const revenue = Number(trip.revenue) || Number(trip.expected_revenue) || Number(trip.quoted_rate) || 0;
-    const totalCost = Number(trip.total_cost) || 0;
-    const distance = Number(trip.distance_miles) || Number(trip.planned_miles) || 0;
+    const totalCost = isFarmedOut && trip.carrier_cost 
+      ? Number(trip.carrier_cost) 
+      : (Number(trip.calc_total_cost) || Number(trip.total_cost) || 0);
+    
+    // Use calculated distance from trip_costs, fall back to trips table columns
+    const distance = Number(trip.calc_total_miles) || Number(trip.distance_miles) || Number(trip.planned_miles) || 0;
     const profit = revenue - totalCost;
     const marginPct = revenue > 0 ? ((profit / revenue) * 100) : 0;
     const rpm = distance > 0 ? revenue / distance : 0;

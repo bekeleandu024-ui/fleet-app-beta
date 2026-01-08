@@ -10,6 +10,10 @@ type OrderResponse = OrderListItem & {
   pickupWindowEnd?: string;
   deliveryWindowStart?: string;
   deliveryWindowEnd?: string;
+  priority?: string;
+  isDirect?: boolean;
+  totalPallets?: number;
+  sourceChannel?: string;
 };
 
 export async function GET() {
@@ -43,14 +47,20 @@ export async function GET() {
       });
 
       // 3. Fetch local orders (fallback/merge source)
-      // Fetch ALL orders, do not filter by status
+      // Fetch ALL orders with comprehensive fields
       const query = `
         SELECT
           id, order_number, customer_id, customer_name, pickup_location, dropoff_location,
           pickup_time, dropoff_time, status, dispatch_status, created_at,
           estimated_cost, order_type, equipment_type,
           total_weight_lbs as weight,
-          quoted_rate
+          total_pallets,
+          quoted_rate,
+          pu_window_start, pu_window_end,
+          del_window_start, del_window_end,
+          priority,
+          is_direct,
+          source_channel
         FROM orders
         ORDER BY created_at DESC
       `;
@@ -157,7 +167,9 @@ function transformOrderFromDb(order: Record<string, any>): OrderResponse {
   const createdAt = order.created_at ? new Date(order.created_at).toISOString() : new Date().toISOString();
   const ageHours = calculateAgeHours(createdAt);
   
-  const pickupDateTime = order.pickup_time;
+  // Use window times if available, otherwise fall back to pickup/dropoff times
+  const pickupDateTime = order.pu_window_start || order.pickup_time;
+  const deliveryDateTime = order.del_window_start || order.dropoff_time;
   const window = resolveWindow(pickupDateTime) ?? "Not Scheduled";
   const lane = buildLane(pickup, delivery);
 
@@ -181,14 +193,20 @@ function transformOrderFromDb(order: Record<string, any>): OrderResponse {
     laneMiles: 0, // Not tracked in orders table directly
     revenue: 0, // Default as not in DB schema
     created: createdAt,
-    pickupWindowStart: order.pickup_time ? new Date(order.pickup_time).toISOString() : undefined,
-    pickupWindowEnd: undefined,
-    deliveryWindowStart: order.dropoff_time ? new Date(order.dropoff_time).toISOString() : undefined,
-    deliveryWindowEnd: undefined,
+    pickupWindowStart: order.pu_window_start ? new Date(order.pu_window_start).toISOString() : 
+                       order.pickup_time ? new Date(order.pickup_time).toISOString() : undefined,
+    pickupWindowEnd: order.pu_window_end ? new Date(order.pu_window_end).toISOString() : undefined,
+    deliveryWindowStart: order.del_window_start ? new Date(order.del_window_start).toISOString() : 
+                         order.dropoff_time ? new Date(order.dropoff_time).toISOString() : undefined,
+    deliveryWindowEnd: order.del_window_end ? new Date(order.del_window_end).toISOString() : undefined,
     equipmentType: order.equipment_type ?? "Dry Van",
     weight: Number(order.weight) || 0,
-    pickupDate: order.pickup_time ? new Date(order.pickup_time).toLocaleDateString() : undefined,
+    pickupDate: pickupDateTime ? new Date(pickupDateTime).toLocaleDateString() : undefined,
     rate: Number(order.quoted_rate ?? order.estimated_cost ?? 0) || 0,
+    priority: order.priority || "normal",
+    isDirect: order.is_direct || false,
+    totalPallets: Number(order.total_pallets) || 0,
+    sourceChannel: order.source_channel || "manual",
   };
 }
 

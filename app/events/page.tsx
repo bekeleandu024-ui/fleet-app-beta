@@ -234,7 +234,7 @@ export default function TripEventsPage() {
   };
 
   return (
-    <div className="flex min-h-[calc(100vh-12rem)] flex-col gap-4 bg-black text-zinc-200 pb-6">
+    <div className="flex h-[calc(100vh-8rem)] flex-col gap-4 bg-black text-zinc-200 pb-6 overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between shrink-0 border-b border-zinc-800 pb-4">
         <div>
@@ -251,7 +251,7 @@ export default function TripEventsPage() {
       </div>
 
       {/* Main Content Grid */}
-      <div className="grid flex-1 grid-cols-1 gap-4 lg:grid-cols-12 min-h-0">
+      <div className="grid flex-1 grid-cols-1 gap-4 lg:grid-cols-12 min-h-0 overflow-hidden">
         
         {/* Left Panel: Controls (3 cols) */}
         <Card className="lg:col-span-3 flex flex-col gap-4 p-4 bg-zinc-900/50 border-zinc-800 h-full overflow-y-auto">

@@ -120,18 +120,22 @@ export async function POST(
       ]
     );
 
-    // Log the action
-    await pool.query(
-      `INSERT INTO dispatch_actions (order_id, action_type, performed_by, notes)
-       VALUES ($1, 'RECEIVE_BID', 'SYSTEM', $2)`,
-      [id, `Received bid from ${carrierName}: $${bidAmount}`]
-    );
+    // Log the action (optional - don't fail if dispatch_actions doesn't exist)
+    try {
+      await pool.query(
+        `INSERT INTO dispatch_actions (order_id, action_type, performed_by, notes)
+         VALUES ($1, 'RECEIVE_BID', 'SYSTEM', $2)`,
+        [id, `Received bid from ${carrierName}: $${bidAmount}`]
+      );
+    } catch (logError) {
+      console.warn('Could not log dispatch action:', logError);
+    }
 
     return NextResponse.json({ success: true, data: { id: result.rows[0].id } });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error adding bid:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to add bid' },
+      { success: false, error: 'Failed to add bid: ' + (error.message || 'Unknown error') },
       { status: 500 }
     );
   }

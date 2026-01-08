@@ -21,7 +21,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const isOrdersListPage = pathname === "/orders" || pathname?.startsWith("/orders/master");
   const isTripsPage = pathname?.startsWith("/trips");
   const isFarmOutPage = pathname?.startsWith("/farm-out");
-  const isFullWidthPage = isMapPage || isDispatchPage || isOrdersListPage || isTripsPage || isFarmOutPage;
+  const isAccountingPage = pathname?.startsWith("/accounting");
+  const isEventsPage = pathname?.startsWith("/events");
+  const isFullWidthPage = isMapPage || isDispatchPage || isOrdersListPage || isTripsPage || isFarmOutPage || isAccountingPage || isEventsPage;
 
   // Determine current page context for AI
   const aiContext = React.useMemo(() => {

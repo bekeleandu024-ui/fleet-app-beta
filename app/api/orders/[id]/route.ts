@@ -147,8 +147,17 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
     const unitsQuery = `SELECT unit_id as id, unit_number, truck_weekly_cost, region FROM unit_profiles`;
     const orderNumberQuery = `SELECT order_number FROM orders WHERE id = $1`;
     const costingRulesQuery = `SELECT rule_key, value FROM costing_rules WHERE is_active = true`;
+    const freightItemsQuery = `
+      SELECT id, order_id, line_number, commodity, description, quantity, pieces, packaging_type, 
+             weight_lbs, length_in, width_in, height_in, cubic_feet, density, freight_class, nmfc_code,
+             is_hazmat, hazmat_class, hazmat_un_number, hazmat_packing_group, hazmat_proper_name,
+             stackable, temperature_controlled, temp_min_f, temp_max_f, declared_value, currency
+      FROM order_freight_items 
+      WHERE order_id = $1 
+      ORDER BY line_number
+    `;
 
-    const [driversResult, unitsResult, costResult, customerViewResult, tripsResult, orderNumberResult, costingRulesResult] = await Promise.allSettled([
+    const [driversResult, unitsResult, costResult, customerViewResult, tripsResult, orderNumberResult, costingRulesResult, freightItemsResult] = await Promise.allSettled([
       pool.query(driversQuery),
       pool.query(unitsQuery),
       serviceFetch<Record<string, any>>("orders", `/api/orders/${orderId}/cost-breakdown`, { silent: true }).catch(() => undefined),
@@ -156,6 +165,7 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
       serviceFetch<Array<Record<string, any>>>("tracking", `/api/trips?orderId=${orderId}`, { silent: true }).catch(() => undefined),
       pool.query(orderNumberQuery, [orderId]),
       pool.query(costingRulesQuery),
+      pool.query(freightItemsQuery, [orderId]),
     ]);
 
     const drivers = driversResult.status === "fulfilled" ? driversResult.value.rows : [];
@@ -166,6 +176,7 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
     const orderNumber = orderNumberResult.status === "fulfilled" && orderNumberResult.value.rows.length > 0 
       ? orderNumberResult.value.rows[0].order_number 
       : undefined;
+    const freightItems = freightItemsResult.status === "fulfilled" ? freightItemsResult.value.rows : [];
     
     // Parse costing rules from database
     let costingRates: CostingRates = DEFAULT_RATES;
@@ -188,7 +199,7 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
       console.log(`[Order Detail] Returning order with UUID: ${orderId}, Friendly ID: ${orderNumber || id}`);
     }
 
-    const detail = buildOrderDetail(order, { drivers, units, cost, customerView, trips, costingRates });
+    const detail = buildOrderDetail(order, { drivers, units, cost, customerView, trips, costingRates, freightItems });
 
     return NextResponse.json(detail);
   } catch (error) {
@@ -244,6 +255,7 @@ function buildOrderDetail(
     customerView?: Record<string, any>;
     trips?: Array<Record<string, any>>;
     costingRates?: CostingRates;
+    freightItems?: Array<Record<string, any>>;
   }
 ) {
   const stops = buildStops(order, context.customerView);
@@ -252,6 +264,66 @@ function buildOrderDetail(
 
   // Enrich order with calculated laneMiles for pricing
   const enrichedOrder = { ...order, lane_miles: laneMiles };
+
+  // Build freight items array with proper formatting
+  const freightItems = (context.freightItems ?? []).map((item) => ({
+    id: item.id,
+    lineNumber: item.line_number,
+    commodity: item.commodity,
+    description: item.description,
+    quantity: item.quantity ? Number(item.quantity) : 1,
+    pieces: item.pieces ? Number(item.pieces) : undefined,
+    packagingType: item.packaging_type || "Pallet",
+    weightLbs: item.weight_lbs ? Number(item.weight_lbs) : 0,
+    dimensions: item.length_in && item.width_in && item.height_in
+      ? `${item.length_in}×${item.width_in}×${item.height_in}"`
+      : undefined,
+    cubicFeet: item.cubic_feet ? Number(item.cubic_feet) : undefined,
+    density: item.density ? Number(item.density) : undefined,
+    freightClass: item.freight_class,
+    nmfcCode: item.nmfc_code,
+    isHazmat: item.is_hazmat ?? false,
+    hazmatClass: item.hazmat_class,
+    unNumber: item.hazmat_un_number,
+    hazmatPackingGroup: item.hazmat_packing_group,
+    stackable: item.stackable ?? true,
+    temperatureControlled: item.temperature_controlled ?? false,
+    minTemp: item.temp_min_f ? Number(item.temp_min_f) : undefined,
+    maxTemp: item.temp_max_f ? Number(item.temp_max_f) : undefined,
+    declaredValue: item.declared_value ? Number(item.declared_value) : undefined,
+  }));
+
+  // Derive primary commodity from freight items or order
+  const primaryCommodity = freightItems.length > 0 
+    ? freightItems[0].commodity 
+    : (order.commodity || "General Freight");
+
+  // Calculate cube and linear feet from freight items if not on order
+  const calcCubicFeet = freightItems.reduce((sum, item) => {
+    if (item.cubicFeet && item.cubicFeet > 0) return sum + item.cubicFeet;
+    // Parse dimensions string like "36.00×36.00×30.00""
+    if (item.dimensions) {
+      const match = item.dimensions.match(/([\d.]+)[×x]([\d.]+)[×x]([\d.]+)/i);
+      if (match) {
+        const [, l, w, h] = match.map(Number);
+        // Convert cubic inches to cubic feet (divide by 1728)
+        return sum + ((l * w * h / 1728) * (item.quantity || 1));
+      }
+    }
+    return sum;
+  }, 0);
+  
+  const calcLinearFeet = freightItems.reduce((sum, item) => {
+    if (item.dimensions) {
+      const match = item.dimensions.match(/([\d.]+)[×x]/i);
+      if (match) {
+        const length = Number(match[1]);
+        // Convert inches to feet
+        return sum + ((length / 12) * (item.quantity || 1));
+      }
+    }
+    return sum;
+  }, 0);
 
   return {
     id: order.id,
@@ -269,23 +341,33 @@ function buildOrderDetail(
     createdAt: order.created_at,
     updatedAt: order.updated_at,
     snapshot: {
-      commodity: order.commodity ?? order.order_type ?? "General Freight",
+      commodity: primaryCommodity,
       stops,
       windows: buildWindows(stops),
       notes: order.special_instructions ?? extractCustomerNote(context.customerView),
     },
-    // Cargo details
+    // Freight items (individual line items)
+    freightItems,
+    // Cargo details - ensure numeric values, use calculated values if order values are 0
     cargo: {
-      totalWeightLbs: order.total_weight_lbs ?? order.weight_lbs,
-      totalPallets: order.total_pallets,
-      totalPieces: order.total_pieces,
-      totalCubicFeet: order.total_cubic_feet ?? order.cubic_feet,
-      totalLinearFeet: order.total_linear_feet ?? order.linear_feet_required,
+      totalWeightLbs: order.total_weight_lbs ? Number(order.total_weight_lbs) : (order.weight_lbs ? Number(order.weight_lbs) : 0),
+      totalPallets: order.total_pallets ? Number(order.total_pallets) : 0,
+      totalPieces: order.total_pieces ? Number(order.total_pieces) : 0,
+      totalCubicFeet: (order.total_cubic_feet && Number(order.total_cubic_feet) > 0) 
+        ? Number(order.total_cubic_feet) 
+        : ((order.cubic_feet && Number(order.cubic_feet) > 0) 
+          ? Number(order.cubic_feet) 
+          : (calcCubicFeet > 0 ? Math.round(calcCubicFeet * 10) / 10 : 0)),
+      totalLinearFeet: (order.total_linear_feet && Number(order.total_linear_feet) > 0) 
+        ? Number(order.total_linear_feet) 
+        : ((order.linear_feet_required && Number(order.linear_feet_required) > 0) 
+          ? Number(order.linear_feet_required) 
+          : (calcLinearFeet > 0 ? Math.round(calcLinearFeet * 10) / 10 : 0)),
       isHazmat: order.is_hazmat ?? false,
       isHighValue: order.is_high_value ?? false,
       stackable: order.stackable ?? true,
-      declaredValue: order.declared_value,
-      commodity: order.commodity ?? order.order_type ?? "General Freight",
+      declaredValue: order.declared_value ? Number(order.declared_value) : undefined,
+      commodity: primaryCommodity,
     },
     // Equipment requirements
     equipment: {
@@ -293,13 +375,13 @@ function buildOrderDetail(
       length: order.equipment_length,
       temperatureSetting: order.temperature_setting,
     },
-    // Billing & financials
+    // Billing & financials - ensure numeric values
     billing: {
       status: order.billing_status ?? "Pending",
-      quotedRate: order.quoted_rate,
-      targetRate: order.target_rate,
-      marginTargetPct: order.margin_target_pct,
-      finalBillableAmount: order.final_billable_amount,
+      quotedRate: order.quoted_rate ? Number(order.quoted_rate) : undefined,
+      targetRate: order.target_rate ? Number(order.target_rate) : undefined,
+      marginTargetPct: order.margin_target_pct ? Number(order.margin_target_pct) : undefined,
+      finalBillableAmount: order.final_billable_amount ? Number(order.final_billable_amount) : undefined,
       billingNotes: order.billing_notes,
       billingFinalizedAt: order.billing_finalized_at,
       billingFinalizedBy: order.billing_finalized_by,
@@ -328,8 +410,11 @@ function buildStops(order: Record<string, any>, customerView?: Record<string, an
     return rawStops.map((stop, index) => formatStop(stop, order, index));
   }
 
-  const pickupTime = order.pickup_time ?? order.created_at ?? new Date().toISOString();
-  const deliveryTime = order.delivery_time ?? addHours(pickupTime, 24);
+  // Use pu_window_start/del_window_start if available, otherwise fall back to pickup_time/delivery_time
+  const pickupStart = order.pu_window_start ?? order.pickup_time ?? order.created_at ?? new Date().toISOString();
+  const pickupEnd = order.pu_window_end ?? addHours(pickupStart, 4);
+  const deliveryStart = order.del_window_start ?? order.delivery_time ?? addHours(pickupStart, 24);
+  const deliveryEnd = order.del_window_end ?? addHours(deliveryStart, 4);
 
   return [
     formatStop(
@@ -337,8 +422,8 @@ function buildStops(order: Record<string, any>, customerView?: Record<string, an
         id: randomUUID(),
         type: "pickup",
         location: order.pickup_location,
-        window_start: pickupTime,
-        window_end: addHours(pickupTime, 4),
+        window_start: pickupStart,
+        window_end: pickupEnd,
         instructions: order.pickup_instructions,
       },
       order,
@@ -349,8 +434,8 @@ function buildStops(order: Record<string, any>, customerView?: Record<string, an
         id: randomUUID(),
         type: "delivery",
         location: order.dropoff_location,
-        window_start: deliveryTime,
-        window_end: addHours(deliveryTime, 4),
+        window_start: deliveryStart,
+        window_end: deliveryEnd,
         instructions: order.delivery_instructions,
       },
       order,
@@ -373,8 +458,15 @@ function formatStop(stop: Record<string, any>, order: Record<string, any>, index
   const type = normalizeStopType(stop.type ?? stop.stop_type, index);
   const fallbackLocation = type === "Pickup" ? order.pickup_location : order.dropoff_location;
   const location = stop.location ?? buildLocation(stop) ?? fallbackLocation ?? "TBD";
-  const start = stop.windowStart ?? stop.window_start ?? stop.scheduled_start ?? (type === "Pickup" ? order.pickup_time : order.delivery_time);
-  const end = stop.windowEnd ?? stop.window_end ?? stop.scheduled_end ?? addHours(start ?? order.pickup_time, 4);
+  // Use pu_window_start/del_window_start as fallback for better accuracy
+  const defaultStart = type === "Pickup" 
+    ? (order.pu_window_start ?? order.pickup_time) 
+    : (order.del_window_start ?? order.delivery_time);
+  const defaultEnd = type === "Pickup"
+    ? (order.pu_window_end ?? addHours(defaultStart, 4))
+    : (order.del_window_end ?? addHours(defaultStart, 4));
+  const start = stop.windowStart ?? stop.window_start ?? stop.scheduled_start ?? defaultStart;
+  const end = stop.windowEnd ?? stop.window_end ?? stop.scheduled_end ?? defaultEnd;
 
   return {
     id: String(stop.id ?? stop.stop_id ?? randomUUID()),

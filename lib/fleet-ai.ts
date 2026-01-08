@@ -1211,3 +1211,201 @@ Create an executive summary covering:
     };
   }
 }
+
+// ============================================================================
+// BATCH DISPATCH RECOMMENDATIONS (AI-Powered)
+// ============================================================================
+
+export interface BatchRecommendation {
+  id: string;
+  type: "consolidate" | "assign" | "alert" | "brokerage";
+  priority: "high" | "medium" | "low";
+  title: string;
+  description: string;
+  impact: {
+    savings: string | null;
+    miles_saved: number | null;
+    utilization: string | null;
+  };
+  orders: string[];
+  suggested_driver: {
+    id: string;
+    name: string;
+    reason: string;
+  } | null;
+  suggested_unit: {
+    id: string;
+    type: string;
+  } | null;
+  urgency_hours: number | null;
+  action: "create_trip" | "assign_driver" | "kick_to_brokerage" | "prioritize";
+  brokerage_alternative: {
+    recommended: boolean;
+    reason: string;
+    estimated_savings: string | null;
+    fleet_fallback: string;
+  } | null;
+}
+
+export interface BatchRecommendationsResponse {
+  recommendations: BatchRecommendation[];
+  summary: {
+    total_recommendations: number;
+    potential_savings: string;
+    orders_analyzed: number;
+    consolidation_opportunities: number;
+  };
+}
+
+export interface BatchDispatchOrder {
+  id: string;
+  status: string;
+  customer: string;
+  type?: string;
+  origin: string;
+  destination: string;
+  pickup_date: string;
+  delivery_date: string | null;
+  equipment: string;
+  weight: number;
+  rate: number;
+}
+
+export interface BatchDispatchDriver {
+  id: string;
+  name: string;
+  status: string;
+  location: string;
+  hours_available: number;
+  equipment_access: string[];
+  type: "COM" | "OO" | "RNR";
+  performance?: {
+    on_time_rate: number;
+    acceptance_rate: number;
+  };
+}
+
+export interface BatchDispatchUnit {
+  id: string;
+  type: string;
+  status: string;
+  location: string;
+  capacity_lbs: number;
+}
+
+/**
+ * Get AI-powered batch dispatch recommendations for multiple orders
+ * Analyzes all available orders, drivers, and units to provide optimization recommendations
+ */
+export async function getBatchDispatchRecommendations(params: {
+  orders: BatchDispatchOrder[];
+  drivers: BatchDispatchDriver[];
+  units: BatchDispatchUnit[];
+  capacityStatus?: "normal" | "constrained" | "critical";
+}): Promise<BatchRecommendationsResponse> {
+  const { orders, drivers, units, capacityStatus = "normal" } = params;
+
+  // Read system prompt from file
+  let systemPrompt = "";
+  try {
+    const fs = await import('fs');
+    const path = await import('path');
+    systemPrompt = fs.readFileSync(
+      path.join(process.cwd(), 'AI_DISPATCH_RECOMMENDATIONS_PROMPT.md'), 
+      'utf-8'
+    );
+  } catch (e) {
+    console.error("Failed to read dispatch recommendations prompt file:", e);
+    // Fallback to inline prompt
+    systemPrompt = `You are an expert freight dispatch optimization assistant. Analyze orders, drivers, and units to provide consolidation, assignment, alert, and brokerage recommendations. Return valid JSON only.`;
+  }
+
+  // Identify the fleet's primary operating region based on driver locations
+  const driverLocations = drivers.map(d => d.location).filter(l => l && l !== 'Unknown');
+  const hasCanadianDrivers = driverLocations.some(l => 
+    l.includes('ON') || l.includes('Ontario') || l.includes('QC') || l.includes('Quebec') ||
+    l.includes('ZONE') || l.includes('Cambridge') || l.includes('Toronto') || l.includes('Brampton')
+  );
+  
+  const fleetRegionContext = hasCanadianDrivers 
+    ? `⚠️ FLEET OPERATING REGION: This fleet is based in ONTARIO, CANADA. 
+       - Orders in US locations (Texas, Ohio, etc.) require MASSIVE deadhead (1000+ miles) to position a truck
+       - Dallas-Houston type runs are 1,400+ miles from the driver base - STRONGLY recommend brokerage
+       - Only lanes near Ontario/Michigan/New York make sense for fleet execution
+       - For distant US lanes, brokerage will almost ALWAYS be more profitable than fleet`
+    : `Fleet operating region appears to be US-based based on driver locations.`;
+
+  const userPrompt = `Analyze the following dispatch data and provide optimization recommendations.
+
+## Available Orders
+${JSON.stringify(orders, null, 2)}
+
+## Available Drivers
+${JSON.stringify(drivers, null, 2)}
+
+## Available Units
+${JSON.stringify(units, null, 2)}
+
+## Current Context
+- Current date/time: ${new Date().toISOString()}
+- Fleet capacity status: ${capacityStatus}
+
+${fleetRegionContext}
+
+## What I Need
+Analyze these orders and provide your top recommendations for:
+1. Which orders should be consolidated into trips
+2. Best driver/unit assignments for unassigned orders
+3. Any urgent alerts I should act on immediately
+4. Orders that might be better suited for brokerage - ESPECIALLY if the origin is far from driver home bases
+
+**IMPORTANT:** Do NOT make up specific dollar amounts for fleet costs or savings. 
+Say "Check trip costing" for actual numbers since deadhead costs are unknown.
+
+Respond with JSON only.`;
+
+  try {
+    const response = await anthropic.messages.create({
+      model: FLEET_AI_MODEL,
+      max_tokens: 2500,
+      system: systemPrompt,
+      messages: [{ role: "user", content: userPrompt }],
+    });
+
+    const content = response.content[0];
+    if (content.type === "text") {
+      // Clean up response - remove markdown code blocks if present
+      let text = content.text;
+      text = text.replace(/```json/g, '').replace(/```/g, '').trim();
+      
+      // Parse JSON
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]) as BatchRecommendationsResponse;
+        
+        // Ensure recommendations have unique IDs
+        parsed.recommendations = parsed.recommendations.map((rec, idx) => ({
+          ...rec,
+          id: rec.id || `rec-${Date.now()}-${idx}`,
+        }));
+        
+        return parsed;
+      }
+    }
+
+    throw new Error("Invalid response format from Claude");
+  } catch (error: any) {
+    console.error("Batch dispatch recommendations error:", error);
+    
+    // Return empty response on error
+    return {
+      recommendations: [],
+      summary: {
+        total_recommendations: 0,
+        potential_savings: "$0",
+        orders_analyzed: orders.length,
+        consolidation_opportunities: 0,
+      },
+    };
+  }
+}
