@@ -21,7 +21,7 @@ export async function GET() {
           SELECT 
             COALESCE(SUM(revenue), 0) as total_revenue,
             COALESCE(SUM(total_cost), 0) as total_cost,
-            COALESCE(SUM(miles), 0) as total_miles,
+            COALESCE(SUM(total_miles), 0) as total_miles,
             COUNT(*) FILTER (WHERE margin_pct >= 15) as profitable_trips,
             COUNT(*) FILTER (WHERE margin_pct < 15 AND margin_pct >= 0) as at_risk_trips
           FROM trip_costs
@@ -34,7 +34,7 @@ export async function GET() {
             TO_CHAR(DATE_TRUNC('week', created_at), 'Mon DD') as label,
             SUM(revenue) as revenue,
             SUM(total_cost) as cost,
-            SUM(miles) as miles,
+            SUM(total_miles) as miles,
             CASE WHEN SUM(revenue) > 0 THEN ((SUM(revenue) - SUM(total_cost)) / SUM(revenue)) * 100 ELSE 0 END as "marginPercent"
           FROM trip_costs
           WHERE created_at > NOW() - INTERVAL '8 weeks'
@@ -75,10 +75,10 @@ export async function GET() {
             CONCAT(t.pickup_location, ' -> ', t.dropoff_location) as lane,
             COUNT(*) as trips,
             SUM(tc.revenue) as revenue,
-            SUM(tc.miles) as miles,
+            SUM(tc.total_miles) as miles,
             AVG(tc.margin_pct) as "marginPercent"
           FROM trip_costs tc
-          JOIN trips t ON tc.order_id::text = t.order_id::text
+          JOIN trips t ON tc.trip_id = t.id
           WHERE tc.created_at > NOW() - INTERVAL '30 days'
           GROUP BY t.pickup_location, t.dropoff_location
           ORDER BY revenue DESC

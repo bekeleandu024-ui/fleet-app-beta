@@ -155,7 +155,7 @@ export function fetchMapPlan(): Promise<MapPlanResponse> {
 }
 
 export function fetchFleetLocations(): Promise<FleetResponse> {
-  return parseResponse(api.get("/map/fleet"), fleetResponseSchema);
+  return parseResponsePassthrough(api.get("/map/fleet"), fleetResponseSchema);
 }
 
 export function fetchAdminDrivers(): Promise<DriverAdminRecord[]> {

@@ -49,6 +49,9 @@ type FleetItem = {
   hosHoursRemaining?: number;
   driverCategory?: string;
   attachedTrailer?: { id: string; number: string; type: string } | null;
+  tripNumber?: string;
+  customer?: string;
+  distance?: number;
 };
 
 // --- Helper Components ---
@@ -96,16 +99,31 @@ function FleetMarker({ item, onClick, isDimmed, isSelected }: { item: FleetItem,
       } else {
         color = "#A855F7"; // Purple-500 (Storage)
       }
+    } else if (item.type === "trip") {
+      // Trip colors based on display status
+      if (item.status === "In Transit" || item.status === "in_transit" || item.status === "departed_pickup") {
+        color = "#3B82F6"; // Blue-500 (Active - moving)
+      } else if (item.status === "At Pickup" || item.status === "at_pickup") {
+        color = "#F59E0B"; // Amber-500 (At Pickup)
+      } else if (item.status === "At Delivery" || item.status === "at_delivery") {
+        color = "#8B5CF6"; // Violet-500 (At Delivery)
+      } else if (item.status === "Assigned" || item.status === "Dispatched" || item.status === "planned" || item.status === "assigned") {
+        color = "#10B981"; // Emerald-500 (Ready/Assigned)
+      } else if (item.status === "Delivered") {
+        color = "#059669"; // Emerald-600 (Delivered)
+      } else if (item.status === "delayed") {
+        color = "#EF4444"; // Red-500 (Delayed)
+      } else if (item.status === "Pending Farm Out" || item.status === "Posted to Carriers" || item.status === "Covered (External)") {
+        color = "#A855F7"; // Purple-500 (Brokerage)
+      } else {
+        color = "#6366F1"; // Indigo-500 (Other)
+      }
     } else {
-      // Unit/Trip colors
-      if (item.status === "in_transit" || item.status === "departed_pickup") {
-        color = "#3B82F6"; // Blue-500 (Active)
-      } else if (item.status === "at_pickup" || item.status === "at_delivery") {
-        color = "#8B5CF6"; // Violet-500
+      // Staged unit colors
+      if (item.status === "Available" || item.status === "staged") {
+        color = "#10B981"; // Emerald-500
       } else if (item.status === "delayed") {
         color = "#EF4444"; // Red-500
-      } else if (item.status === "Available" || item.status === "staged") {
-        color = "#10B981"; // Emerald-500
       }
     }
 
@@ -359,9 +377,15 @@ export default function MapPage() {
         const response = await fetchFleetLocations();
         console.log("API Response - fleet:", response.fleet?.length, "trailers:", response.trailers?.length);
         
+        // Debug: log raw fleet items to see their types
+        response.fleet.forEach((item: any) => {
+          console.log("Fleet item:", item.id?.slice(0,8), "type:", item.type, "tripNumber:", item.tripNumber);
+        });
+        
         const items: FleetItem[] = response.fleet.map((item: any) => ({
           id: item.id,
-          type: item.type === 'trip' ? "trip" : "staged",
+          // Use tripNumber presence as fallback indicator for trip type
+          type: (item.type === 'trip' || item.tripNumber) ? "trip" : "staged",
           status: item.status,
           lat: item.lat || 0,
           lng: item.lng || 0,
@@ -377,6 +401,9 @@ export default function MapPage() {
           hosHoursRemaining: item.hosHoursRemaining || undefined,
           driverCategory: item.driverCategory || undefined,
           attachedTrailer: item.attachedTrailer || null,
+          tripNumber: item.tripNumber || undefined,
+          customer: item.customer || undefined,
+          distance: item.distance || undefined,
         }));
 
         // Map trailers from response
@@ -562,50 +589,75 @@ export default function MapPage() {
         {/* Asset List */}
         <div className="flex-1 overflow-y-auto">
           <div className="divide-y divide-zinc-800/50">
-            {filteredItems.map((item) => (
-              <div 
-                key={item.id}
-                onClick={() => handleItemSelect(item)}
-                className={`p-3 cursor-pointer transition-all duration-200 hover:bg-zinc-800/50 border-l-2 ${
-                  selectedItem?.id === item.id 
-                    ? "bg-blue-900/5 border-l-blue-500" 
-                    : "border-l-transparent"
-                }`}
-              >
-                <div className="flex items-center justify-between mb-1">
-                  <div className="flex items-center gap-2">
-                    {item.type === "trip" ? (
-                      <Truck className={`h-3.5 w-3.5 ${item.status === "in_transit" ? "text-emerald-500" : "text-amber-500"}`} />
-                    ) : item.type === "trailer" ? (
-                      <Package className="h-3.5 w-3.5 text-orange-500" />
-                    ) : (
-                      <Warehouse className="h-3.5 w-3.5 text-blue-500" />
-                    )}
-                    <span className="text-xs font-bold text-zinc-200">
-                      {item.type === "trailer" ? item.trailerNumber : item.unitNumber}
+            {filteredItems.map((item) => {
+              // Get status badge styling
+              const getStatusStyle = (status: string) => {
+                if (status === "In Transit" || status === "in_transit") return "bg-blue-500/10 text-blue-400 border-blue-500/20";
+                if (status === "At Pickup" || status === "at_pickup") return "bg-amber-500/10 text-amber-400 border-amber-500/20";
+                if (status === "At Delivery" || status === "at_delivery") return "bg-violet-500/10 text-violet-400 border-violet-500/20";
+                if (status === "Assigned" || status === "Dispatched") return "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
+                if (status === "Delivered") return "bg-emerald-600/10 text-emerald-400 border-emerald-600/20";
+                if (status === "Available") return "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
+                if (status === "Loaded") return "bg-blue-500/10 text-blue-400 border-blue-500/20";
+                if (status === "Maintenance") return "bg-red-500/10 text-red-400 border-red-500/20";
+                if (status === "Pending Farm Out" || status === "Posted to Carriers" || status === "Covered (External)") return "bg-purple-500/10 text-purple-400 border-purple-500/20";
+                return "bg-zinc-500/10 text-zinc-400 border-zinc-500/20";
+              };
+
+              // Get truck icon color for trips
+              const getTruckColor = (status: string) => {
+                if (status === "In Transit" || status === "in_transit") return "text-blue-500";
+                if (status === "At Pickup" || status === "at_pickup") return "text-amber-500";
+                if (status === "At Delivery" || status === "at_delivery") return "text-violet-500";
+                if (status === "Assigned" || status === "Dispatched") return "text-emerald-500";
+                return "text-zinc-400";
+              };
+
+              return (
+                <div 
+                  key={item.id}
+                  onClick={() => handleItemSelect(item)}
+                  className={`p-3 cursor-pointer transition-all duration-200 hover:bg-zinc-800/50 border-l-2 ${
+                    selectedItem?.id === item.id 
+                      ? "bg-blue-900/5 border-l-blue-500" 
+                      : "border-l-transparent"
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center gap-2">
+                      {item.type === "trip" ? (
+                        <Truck className={`h-3.5 w-3.5 ${getTruckColor(item.status)}`} />
+                      ) : item.type === "trailer" ? (
+                        <Package className="h-3.5 w-3.5 text-orange-500" />
+                      ) : (
+                        <Warehouse className="h-3.5 w-3.5 text-blue-500" />
+                      )}
+                      <span className="text-xs font-bold text-zinc-200">
+                        {item.type === "trip" && item.tripNumber ? item.tripNumber : (item.type === "trailer" ? item.trailerNumber : item.unitNumber)}
+                      </span>
+                      {item.type === "trailer" && item.trailerType && (
+                        <span className="text-[9px] text-zinc-500">{item.trailerType}</span>
+                      )}
+                    </div>
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-sm border ${getStatusStyle(item.status)}`}>
+                      {item.status}
                     </span>
-                    {item.type === "trailer" && item.trailerType && (
-                      <span className="text-[9px] text-zinc-500">{item.trailerType}</span>
+                  </div>
+                  <div className="flex flex-col gap-0.5 ml-5">
+                    {item.type === "trip" && item.customer && (
+                      <span className="text-[11px] text-zinc-300 font-medium">{item.customer}</span>
+                    )}
+                    {item.driverName && (
+                      <span className="text-[11px] text-zinc-400">{item.driverName} {item.unitNumber ? `• ${item.unitNumber}` : ''}</span>
+                    )}
+                    <span className="text-[10px] text-zinc-600 truncate">{item.location}</span>
+                    {item.type === "trip" && item.deliveryLocation && (
+                      <span className="text-[10px] text-zinc-500 truncate">→ {typeof item.deliveryLocation === 'string' ? item.deliveryLocation : ''}</span>
                     )}
                   </div>
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded-sm border ${
-                    item.status === "in_transit" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" :
-                    item.status === "Available" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" :
-                    item.status === "Loaded" ? "bg-blue-500/10 text-blue-400 border-blue-500/20" :
-                    item.status === "Maintenance" ? "bg-red-500/10 text-red-400 border-red-500/20" :
-                    "bg-amber-500/10 text-amber-400 border-amber-500/20"
-                  }`}>
-                    {item.status}
-                  </span>
                 </div>
-                <div className="flex flex-col gap-0.5 ml-5">
-                  {item.driverName && (
-                    <span className="text-[11px] text-zinc-400">{item.driverName}</span>
-                  )}
-                  <span className="text-[10px] text-zinc-600 truncate">{item.location}</span>
-                </div>
-              </div>
-            ))}
+              );
+            })}
             {filteredItems.length === 0 && (
               <div className="p-8 text-center text-zinc-500 text-xs">
                 No assets found matching filters.
@@ -618,7 +670,9 @@ export default function MapPage() {
         {selectedItem && (
           <div className="border-t border-zinc-800 bg-zinc-900 p-4 animate-in slide-in-from-bottom-10">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-xs font-bold text-zinc-100 uppercase tracking-wider">Selected Asset</h3>
+              <h3 className="text-xs font-bold text-zinc-100 uppercase tracking-wider">
+                {selectedItem.type === "trip" ? "Active Trip" : "Selected Asset"}
+              </h3>
               <button onClick={() => {
                 setSelectedItem(null);
                 setZoom(7);
@@ -628,20 +682,22 @@ export default function MapPage() {
             </div>
             
             <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-2">
-                <div className="p-2 rounded bg-black border border-zinc-800">
-                  <div className="text-[10px] text-zinc-500">{selectedItem.type === "trailer" ? "Trailer" : "Unit"}</div>
-                  <div className="text-sm font-mono text-zinc-200">
-                    {selectedItem.type === "trailer" ? selectedItem.trailerNumber : selectedItem.unitNumber}
+              {selectedItem.type !== "trip" && (
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="p-2 rounded bg-black border border-zinc-800">
+                    <div className="text-[10px] text-zinc-500">{selectedItem.type === "trailer" ? "Trailer" : "Unit"}</div>
+                    <div className="text-sm font-mono text-zinc-200">
+                      {selectedItem.type === "trailer" ? selectedItem.trailerNumber : selectedItem.unitNumber}
+                    </div>
+                  </div>
+                  <div className="p-2 rounded bg-black border border-zinc-800">
+                    <div className="text-[10px] text-zinc-500">Type</div>
+                    <div className="text-sm text-zinc-200 capitalize">
+                      {selectedItem.type === "trailer" ? selectedItem.trailerType : selectedItem.type}
+                    </div>
                   </div>
                 </div>
-                <div className="p-2 rounded bg-black border border-zinc-800">
-                  <div className="text-[10px] text-zinc-500">Type</div>
-                  <div className="text-sm text-zinc-200 capitalize">
-                    {selectedItem.type === "trailer" ? selectedItem.trailerType : selectedItem.type}
-                  </div>
-                </div>
-              </div>
+              )}
 
               {selectedItem.type === "trailer" && (
                 <div className="space-y-2">
@@ -664,6 +720,20 @@ export default function MapPage() {
 
               {selectedItem.type === "trip" && (
                 <div className="space-y-2">
+                  {selectedItem.tripNumber && (
+                    <div className="p-2 rounded bg-blue-900/20 border border-blue-800/30">
+                      <div className="text-[10px] text-zinc-500">Trip #</div>
+                      <div className="text-sm font-mono text-blue-400">{selectedItem.tripNumber}</div>
+                    </div>
+                  )}
+                  
+                  {selectedItem.customer && (
+                    <div className="p-2 rounded bg-black border border-zinc-800">
+                      <div className="text-[10px] text-zinc-500">Customer</div>
+                      <div className="text-xs text-zinc-200 truncate">{selectedItem.customer}</div>
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-2 gap-2">
                     <div className="p-2 rounded bg-black border border-zinc-800">
                       <div className="text-[10px] text-zinc-500">Driver</div>
@@ -671,14 +741,28 @@ export default function MapPage() {
                     </div>
                     <div className="p-2 rounded bg-black border border-zinc-800">
                       <div className="text-[10px] text-zinc-500">Status</div>
-                      <div className="text-xs text-zinc-200 capitalize">{selectedItem.status.replace(/_/g, " ")}</div>
+                      <div className="text-xs text-zinc-200 capitalize">{selectedItem.status}</div>
                     </div>
                   </div>
                   
                   <div className="p-2 rounded bg-black border border-zinc-800">
-                    <div className="text-[10px] text-zinc-500">Current Location</div>
+                    <div className="text-[10px] text-zinc-500">Origin</div>
                     <div className="text-xs text-zinc-200 truncate">{selectedItem.location || "Unknown"}</div>
                   </div>
+
+                  {selectedItem.deliveryLocation && (
+                    <div className="p-2 rounded bg-black border border-zinc-800">
+                      <div className="text-[10px] text-zinc-500">Destination</div>
+                      <div className="text-xs text-zinc-200 truncate">{typeof selectedItem.deliveryLocation === 'string' ? selectedItem.deliveryLocation : 'Set'}</div>
+                    </div>
+                  )}
+
+                  {selectedItem.distance && selectedItem.distance > 0 && (
+                    <div className="p-2 rounded bg-black border border-zinc-800">
+                      <div className="text-[10px] text-zinc-500">Distance</div>
+                      <div className="text-xs font-mono text-zinc-200">{selectedItem.distance.toLocaleString()} mi</div>
+                    </div>
+                  )}
 
                   <div className="flex gap-2">
                     <Button
@@ -777,14 +861,20 @@ export default function MapPage() {
             <span className="text-xs font-bold text-white">{fleetLocations.length}</span>
           </div>
           <div className="px-3 py-1.5 border-r border-zinc-800">
-            <span className="text-[10px] text-zinc-500 uppercase mr-2">Active</span>
+            <span className="text-[10px] text-zinc-500 uppercase mr-2">Trips</span>
+            <span className="text-xs font-bold text-blue-400">
+              {fleetLocations.filter(i => i.type === "trip").length}
+            </span>
+          </div>
+          <div className="px-3 py-1.5 border-r border-zinc-800">
+            <span className="text-[10px] text-zinc-500 uppercase mr-2">In Transit</span>
             <span className="text-xs font-bold text-emerald-400">
-              {fleetLocations.filter(i => i.type === "trip" && i.status === "in_transit").length}
+              {fleetLocations.filter(i => i.type === "trip" && (i.status === "In Transit" || i.status === "in_transit")).length}
             </span>
           </div>
           <div className="px-3 py-1.5 border-r border-zinc-800">
             <span className="text-[10px] text-zinc-500 uppercase mr-2">Staged</span>
-            <span className="text-xs font-bold text-blue-400">
+            <span className="text-xs font-bold text-zinc-400">
               {fleetLocations.filter(i => i.type === "staged").length}
             </span>
           </div>

@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import pool from "@/lib/db";
 
-// Geocode customer locations (Ontario locations)
+// Geocode customer locations (Ontario + common destinations)
 const locationCoords: Record<string, { lat: number; lng: number }> = {
+  // Ontario
   'Guelph': { lat: 43.5448, lng: -80.2482 },
   'Kitchener': { lat: 43.4516, lng: -80.4925 },
   'Milton': { lat: 43.5183, lng: -79.8774 },
@@ -11,6 +12,22 @@ const locationCoords: Record<string, { lat: number; lng: number }> = {
   'Burlington': { lat: 43.3255, lng: -79.7990 },
   'Vaughan': { lat: 43.8361, lng: -79.4983 },
   'Toronto': { lat: 43.6532, lng: -79.3832 },
+  'Mississauga': { lat: 43.5890, lng: -79.6441 },
+  'Hamilton': { lat: 43.2557, lng: -79.8711 },
+  'London': { lat: 42.9849, lng: -81.2453 },
+  'Ottawa': { lat: 45.4215, lng: -75.6972 },
+  'Windsor': { lat: 42.3149, lng: -83.0364 },
+  'Cambridge': { lat: 43.3616, lng: -80.3144 },
+  // Michigan
+  'Detroit': { lat: 42.3314, lng: -83.0458 },
+  // New York
+  'Buffalo': { lat: 42.8864, lng: -78.8784 },
+  // Ohio
+  'Cleveland': { lat: 41.4993, lng: -81.6944 },
+  // Illinois
+  'Chicago': { lat: 41.8781, lng: -87.6298 },
+  // Quebec
+  'Montreal': { lat: 45.5017, lng: -73.5673 },
 };
 
 export async function GET() {
@@ -77,10 +94,11 @@ export async function GET() {
       `;
       const customersResult = await client.query(customersQuery);
 
-      // 4. Get active trips (units that are actually in transit)
+      // 4. Get active trips (all non-closed/completed trips from the trip board)
       const activeTripsQuery = `
         SELECT 
           t.id as trip_id,
+          t.trip_number,
           t.driver_id,
           t.unit_id,
           t.status,
@@ -93,12 +111,14 @@ export async function GET() {
           t.dropoff_lat,
           t.dropoff_lng,
           t.updated_at,
+          t.customer_name,
+          t.planned_miles,
           d.driver_name,
           u.unit_number
         FROM trips t
         LEFT JOIN driver_profiles d ON t.driver_id = d.driver_id
         LEFT JOIN unit_profiles u ON t.unit_id = u.unit_id
-        WHERE t.status IN ('in_transit', 'en_route_to_pickup', 'at_pickup', 'departed_pickup', 'at_delivery')
+        WHERE LOWER(COALESCE(t.status, '')) NOT IN ('closed', 'completed', 'cancelled')
       `;
       const activeTripsResult = await client.query(activeTripsQuery);
 
@@ -136,21 +156,75 @@ export async function GET() {
         };
       });
 
-      // Build active trips data
-      const activeTrips = activeTripsResult.rows.map(row => ({
-        id: row.trip_id,
-        type: 'trip',
-        status: row.status,
-        unitNumber: row.unit_number,
-        driverName: row.driver_name,
-        lat: row.last_known_lat || row.pickup_lat || 0,
-        lng: row.last_known_lng || row.pickup_lng || 0,
-        location: row.pickup_location,
-        deliveryLocation: row.dropoff_location,
-        deliveryLat: row.dropoff_lat,
-        deliveryLng: row.dropoff_lng,
-        lastUpdate: row.updated_at,
-      }));
+      // Build active trips data - map statuses to display values
+      const statusMap: Record<string, string> = {
+        planned: "Assigned",
+        assigned: "Assigned",
+        in_transit: "In Transit",
+        en_route_to_pickup: "In Transit",
+        at_pickup: "At Pickup",
+        departed_pickup: "In Transit",
+        at_delivery: "At Delivery",
+        delivered: "Delivered",
+        brokerage_pending: "Pending Farm Out",
+        posted_external: "Posted to Carriers",
+        covered_external: "Covered (External)",
+      };
+
+      // Helper function to extract city from location string
+      const extractCity = (location: string | null): string => {
+        if (!location) return '';
+        // Handle formats like "Guelph, ON" or "Toronto, Ontario"
+        const parts = location.split(',');
+        if (parts.length > 0) {
+          return parts[0].trim();
+        }
+        return location.trim();
+      };
+
+      const activeTrips = activeTripsResult.rows.map((row, index) => {
+        const displayStatus = statusMap[row.status?.toLowerCase()] || row.status || "Assigned";
+        
+        // Get coordinates from DB or fallback to geocoding by city name
+        let lat = row.last_known_lat || row.pickup_lat;
+        let lng = row.last_known_lng || row.pickup_lng;
+        
+        // If no coordinates, try to geocode from pickup location
+        if (!lat || !lng) {
+          const city = extractCity(row.pickup_location);
+          const cityCoords = locationCoords[city];
+          if (cityCoords) {
+            // Add small offset so markers don't overlap
+            const offset = 0.005 * (index % 10);
+            const angleOffset = (index * 36) * (Math.PI / 180);
+            lat = cityCoords.lat + (offset * Math.cos(angleOffset));
+            lng = cityCoords.lng + (offset * Math.sin(angleOffset));
+          } else {
+            // Default to Guelph if no match
+            lat = 43.5448;
+            lng = -80.2482;
+          }
+        }
+        
+        return {
+          id: row.trip_id,
+          type: 'trip',
+          status: displayStatus,
+          tripNumber: row.trip_number || row.trip_id?.slice(0, 8)?.toUpperCase(),
+          unitNumber: row.unit_number,
+          driverName: row.driver_name || 'Unassigned',
+          customer: row.customer_name,
+          distance: row.planned_miles,
+          lat,
+          lng,
+          location: row.pickup_location,
+          locationCity: extractCity(row.pickup_location),
+          deliveryLocation: row.dropoff_location,
+          deliveryLat: row.dropoff_lat,
+          deliveryLng: row.dropoff_lng,
+          lastUpdate: row.updated_at,
+        };
+      });
 
       // Filter out units that are on active trips
       const activeUnitIds = new Set(activeTripsResult.rows.map(r => r.unit_id));

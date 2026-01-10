@@ -904,6 +904,7 @@ export interface BookingInsights {
 
 export const fleetLocationSchema = z.object({
   id: z.string(),
+  type: z.enum(["trip", "staged"]).optional(),
   driverId: z.string().nullable().optional(),
   unitId: z.string().nullable().optional(),
   status: z.string(),
@@ -916,6 +917,10 @@ export const fleetLocationSchema = z.object({
   lastUpdate: z.string().nullable().optional(),
   driverName: z.string().nullable().optional(),
   unitNumber: z.string().nullable().optional(),
+  tripNumber: z.string().nullable().optional(),
+  customer: z.string().nullable().optional(),
+  distance: z.number().nullable().optional(),
+  locationCity: z.string().nullable().optional(),
   speed: z.number().optional(),
   region: z.string().optional(),
   currentWeight: z.number().optional(),
@@ -929,7 +934,7 @@ export const fleetLocationSchema = z.object({
     submittedDocs: z.array(z.string()).optional(),
     isApproved: z.boolean().optional(),
   }).nullable().optional(),
-});
+}).passthrough();
 
 export type FleetLocation = z.infer<typeof fleetLocationSchema>;
 

@@ -14,7 +14,6 @@ type DriverRecord = {
   status: string;
   currentStatus: string;
   hosHoursRemaining: number;
-  baseWageCpm: number;
   effectiveWageCpm: number;
   availableAt: string | null;
   lastShiftEnd: string | null;
@@ -34,7 +33,6 @@ export async function GET() {
         dp.status,
         dp.current_status,
         dp.hos_hours_remaining,
-        dp.base_wage_cpm,
         dp.effective_wage_cpm,
         dp.available_to_start_at,
         dp.last_shift_end_at,
@@ -69,7 +67,6 @@ function transformDrivers(records: Array<Record<string, any>>): DriverRecord[] {
       status: driver.status ?? "Active",
       currentStatus: driver.current_status ?? "Off Duty",
       hosHoursRemaining: parseFloat(driver.hos_hours_remaining) || 11,
-      baseWageCpm: parseFloat(driver.base_wage_cpm) || 0,
       effectiveWageCpm: parseFloat(driver.effective_wage_cpm) || 0,
       availableAt: driver.available_to_start_at,
       lastShiftEnd: driver.last_shift_end_at,

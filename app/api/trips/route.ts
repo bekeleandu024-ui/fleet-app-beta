@@ -136,6 +136,8 @@ function transformTripRow(row: any): TripListItem {
     brokerage_pending: "Pending Farm Out",
     posted_external: "Posted to Carriers",
     covered_external: "Covered (External)",
+    // Fleet statuses
+    fleet_dispatch: "Fleet Assigned",
   };
 
   const driverName = row.driver_name || "Unknown Driver";
@@ -147,6 +149,27 @@ function transformTripRow(row: any): TripListItem {
   const eta = toISO(row.completed_at || row.planned_start);
   const duration = row.planned_miles ? Math.round((row.planned_miles / 50) * 10) / 10 : undefined;
 
+  // Determine the display status
+  const rawStatus = row.status?.toLowerCase() || "";
+  let displayStatus = statusMap[rawStatus] || row.status || "Unknown";
+  
+  // If status is "Assigned" or "planned", determine if it's Fleet or Brokerage
+  if (displayStatus === "Assigned" || rawStatus === "assigned" || rawStatus === "planned") {
+    const hasDriver = driverName && driverName !== "Unknown Driver" && driverName !== "N/A";
+    const hasUnit = unitName && unitName !== "N/A";
+    
+    // Check for brokerage indicators
+    const isBrokerage = rawStatus.includes("brokerage") || 
+                        rawStatus.includes("external") || 
+                        rawStatus.includes("posted");
+    
+    if (isBrokerage) {
+      displayStatus = "Pending Farm Out";
+    } else if (hasDriver || hasUnit) {
+      displayStatus = "Fleet Assigned";
+    }
+  }
+
   return {
     id: row.id,
     tripNumber: row.trip_number || row.id.slice(0, 8).toUpperCase(),
@@ -155,7 +178,7 @@ function transformTripRow(row: any): TripListItem {
     pickup: row.pickup_location || "Unknown",
     delivery: row.dropoff_location || "Unknown",
     eta,
-    status: statusMap[row.status?.toLowerCase()] || row.status || "Unknown",
+    status: displayStatus,
     exceptions: 0,
     lastPing: toISO(row.updated_at || row.created_at),
     orderId: row.order_id,
